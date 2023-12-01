@@ -11,6 +11,7 @@ pub mod process_rack;
 pub mod process_rack_impl;
 pub mod broker;
 pub mod core_broker;
+pub mod core_store;
 pub mod source_connection;
 pub mod source_connection_impl;
 pub mod source_connection_rack;

@@ -39,10 +39,10 @@ pub fn argument_manifest(process_manifest: &Value) -> Result<Map<String, Value>,
 
 impl ProcessImpl {
 
-    pub fn new(manif: Value, func: ProcessFunction) -> Result<Self, JuizError> {
+    pub fn new(name: &str, manif: Value, func: ProcessFunction) -> Result<Self, JuizError> {
         match check_process_manifest(manif) {
             Ok(manif) => {
-                let fullpath = manif.get("name").unwrap().as_str().unwrap().to_string();
+                let fullpath = name.to_string();
                 Ok(ProcessImpl{manifest: manif, function: func, fullpath: fullpath,
                     //source_connections: SourceConnectionRack::new(),
                     source_connections: HashMap::new(),

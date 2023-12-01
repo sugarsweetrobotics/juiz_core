@@ -1,6 +1,6 @@
-use std::{cell::RefCell, rc::Rc};
+use std::sync::{Mutex, Arc};
 
-use crate::{process::Process, error::JuizError};
+use crate::{process::Process, error::JuizError, Value};
 
 
 
@@ -10,5 +10,9 @@ use crate::{process::Process, error::JuizError};
 
 pub trait ProcessFactory {
 
-    fn create_process(&mut self, name: String) -> Result<Rc<RefCell<dyn Process>>, JuizError>;
+    fn type_name(&self) -> &str;
+
+    fn create_process<T>(&self, name: T, manifest: Value) -> Result<Arc<Mutex<dyn Process>>, JuizError>;
+
+
 }

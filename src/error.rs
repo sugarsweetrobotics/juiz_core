@@ -29,6 +29,8 @@ pub enum JuizError {
     ProcessRackCanNotBorrowInsertedProcessError,
     CoreBrokerCanNotLockProcessMutexError,
     SourceConnectionNewReceivedInvalidManifestTypeError,
-    DestinationConnectionNewReceivedInvalidManifestTypeError
+    DestinationConnectionNewReceivedInvalidManifestTypeError,
+    ProcessFactoryOfSameTypeNameAlreadyExistsError,
+    ProcessFactoryCanNotFoundByTypeNameError
 
 }
