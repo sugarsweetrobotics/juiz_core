@@ -35,17 +35,13 @@ fn new_core_broker() -> CoreBroker {
     result.ok().unwrap()
 }
 
-fn setup_cb() {
-
-}
-
 #[cfg(test)]
 #[test]
 fn core_broker_process_factory_integration_test() {
     let mut cb = new_core_broker();
-    let pf = new_process_factory(&mut cb);
+    let _pf = new_process_factory(&mut cb);
 
-    let mut id = "".to_string();
+    //let mut id = "".to_string();
 
     let p_result = cb.create_process(jvalue!({
         "name": "test_function",
@@ -56,7 +52,7 @@ fn core_broker_process_factory_integration_test() {
     let arc_p = p_result.ok().unwrap();
     let p = arc_p.lock().unwrap();
     
-    id = p.identifier().clone();
+    let id = p.identifier().clone();
     
 
     assert!(cb.is_in_charge_for_process(&id));

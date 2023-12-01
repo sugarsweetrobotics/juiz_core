@@ -2,28 +2,12 @@
 extern crate juiz_core;
 use crate::juiz_core::value::*;
 use crate::juiz_core::error::*;
-use crate::juiz_core::process_impl::*;
 use crate::juiz_core::process_factory_impl::ProcessFactoryImpl;
     
 #[allow(dead_code)]
 fn increment_function(v: Value) -> Result<Value, JuizError> {
     let i = v["arg1"].as_i64().unwrap();
     return Ok(jvalue!(i+1));
-}
-
-fn new_increment_process<'a> () -> ProcessImpl {
-    let manifest = serde_json::json!({
-        "name": "test_function",
-        "arguments" : {
-            "arg1": {
-                "description": "test_argument",
-                "default": 1,
-            }, 
-        }, 
-    });
-    let p = ProcessImpl::new(manifest, increment_function);
-    assert!(p.is_ok());
-    p.unwrap()
 }
 
 static mut COUNTER: i64 = 0;
@@ -39,22 +23,6 @@ fn execution_function(_v: Value) -> Result<Value, JuizError> {
     }
     return Ok(jvalue!(val));
 }
-
-fn new_execution_process<'a> () -> ProcessImpl {
-    let manifest = serde_json::json!({
-        "name": "test_function",
-        "arguments" : {
-            "arg1": {
-                "description": "test_argument",
-                "default": 1,
-            }, 
-        }, 
-    });
-    let p = ProcessImpl::new(manifest, execution_function);
-    assert!(p.is_ok());
-    p.unwrap()
-}
-
 
 
 #[test]

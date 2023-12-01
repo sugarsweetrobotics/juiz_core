@@ -2,11 +2,10 @@ extern crate juiz_core;
 use std::sync::Arc;
 use std::sync::Mutex;
 
-use crate::juiz_core::value::*;
-use crate::juiz_core::error::*;
+use crate::juiz_core::*;
 use crate::juiz_core::process_impl::*;
 use juiz_core::process::Process;
-use crate::juiz_core::connection_builder::*;
+use crate::juiz_core::connection_builder::connection_builder;
     
 #[allow(dead_code)]
 fn increment_function(v: Value) -> Result<Value, JuizError> {
@@ -33,10 +32,7 @@ fn new_increment_process<'a> (name: String) -> ProcessImpl {
 #[cfg(test)]
 #[test]
 fn simple_connection_invoke_test() {
-    //use std::borrow::BorrowMut;
-
-    use juiz_core::process::Connectable;
-
+    //use std::borrow::BorrowMut
     let p1 = new_increment_process("process1".to_string());
     let p2 = new_increment_process("process2".to_string());
 
