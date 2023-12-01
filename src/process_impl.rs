@@ -2,23 +2,19 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::sync::{Mutex, Arc};
+use serde_json::Map;
 
-use crate::identifier::Identifier;
-use crate::process::{Process, ProcessFunction, Connectable};
-use crate::value::*;
-use crate::error::JuizError;
+use crate::{Value, jvalue, Process, ProcessFunction, Identifier, JuizError};
+
 use crate::manifest_checker::{check_manifest_before_call, check_process_manifest};
 use crate::source_connection_impl::*;
 use crate::source_connection::*;
 use crate::destination_connection_impl::*;
-use serde_json::Map;
 
 pub struct ProcessImpl {
     manifest: Value,
-    // default_manifest: Value, 
     function: ProcessFunction,
-    fullpath: Identifier,
-    // source_connections: SourceConnectionRack,
+    identifier: Identifier,
     source_connections: HashMap<String, Box<dyn SourceConnection>>,
     destination_connections: DestinationConnectionRack,
     output_memo: RefCell<Value>,
@@ -37,28 +33,26 @@ pub fn argument_manifest(process_manifest: &Value) -> Result<Map<String, Value>,
     }
 }
 
+fn identifier_from_manifest(manifest: &Value) -> Identifier {
+    manifest.get("name").unwrap().to_string()
+}
+
 impl ProcessImpl {
 
-    pub fn new(name: &str, manif: Value, func: ProcessFunction) -> Result<Self, JuizError> {
-        match check_process_manifest(manif) {
-            Ok(manif) => {
-                let fullpath = name.to_string();
-                Ok(ProcessImpl{manifest: manif, function: func, fullpath: fullpath,
-                    //source_connections: SourceConnectionRack::new(),
-                    source_connections: HashMap::new(),
-                    destination_connections: DestinationConnectionRack::new(),
-                    output_memo: RefCell::new(jvalue!(null)) })
-            },
-            Err(e) => {
-                Err(e)
-            }
-        }
+    pub fn new(manif: Value, func: ProcessFunction) -> Result<Self, JuizError> {
+        let manifest = check_process_manifest(manif)?;
+        Ok(ProcessImpl{
+            manifest: manifest.clone(), 
+            function: func, 
+            identifier: identifier_from_manifest(&manifest),
+            source_connections: HashMap::new(),
+            destination_connections: DestinationConnectionRack::new(),
+            output_memo: RefCell::new(jvalue!(null)) })
     }
 
     pub fn source_connection(&mut self, name: &String) -> Option<&Box<dyn SourceConnection>> {
         self.source_connections.get(name)
     }
-
 
     fn collect_values_exclude(&self, arg_name: &String, arg_value: Value) -> Result<Value, JuizError>{
         let mut value_map: Map<String, Value> = Map::new();
@@ -85,7 +79,7 @@ impl Process for ProcessImpl {
     }
 
     fn identifier(&self) -> &Identifier {
-        &self.fullpath
+        &self.identifier
     }
 
     fn is_updated(&self) -> Result<bool, JuizError> {
@@ -151,12 +145,13 @@ impl Process for ProcessImpl {
     }
 }
 
+/*
 impl Connectable for ProcessImpl {
 
     fn is_connected_from(&self) -> bool {
         todo!()
     }
-}
+}*/
 
 impl Drop for ProcessImpl {
     fn drop(&mut self) {

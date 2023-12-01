@@ -31,6 +31,13 @@ pub enum JuizError {
     SourceConnectionNewReceivedInvalidManifestTypeError,
     DestinationConnectionNewReceivedInvalidManifestTypeError,
     ProcessFactoryOfSameTypeNameAlreadyExistsError,
-    ProcessFactoryCanNotFoundByTypeNameError
+    ProcessFactoryCanNotFoundByTypeNameError,
+    ManifestIsNotObjectError {  },
+    ManifestTypeNameIsNotStringError {  },
+    ManifestDoesNotIncludeTypeNameError {  },
+    CoreStoreCanNotLockProcessFactoryError {  },
+    CoreBrokerCanNotLockProcessFactoryMutexError {  },
+    CoreBrokerCanNotInsertProcessError {  },
+    
 
 }

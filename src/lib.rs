@@ -1,14 +1,13 @@
 
 
 pub mod process;
+pub mod manifest_util;
 pub mod process_impl;
 pub mod process_proxy;
 pub mod value;
 pub mod error;
 pub mod manifest_checker;
 pub mod identifier;
-pub mod process_rack;
-pub mod process_rack_impl;
 pub mod broker;
 pub mod core_broker;
 pub mod core_store;
@@ -22,3 +21,9 @@ pub mod process_factory_impl;
 pub mod connection_builder;
 
 pub use value::{Value, jvalue};
+pub use process::{Process, ProcessFunction};
+pub use process_factory::ProcessFactory;
+pub use identifier::Identifier;
+pub use error::JuizError;
+pub use broker::Broker;
+pub use core_broker::CoreBroker;

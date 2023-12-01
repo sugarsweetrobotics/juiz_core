@@ -1,25 +1,32 @@
-use std::collections::HashMap;
+
 use std::sync::{Mutex, Arc};
-use std::{cell::RefCell, rc::Rc};
 use crate::manifest_checker::check_process_factory_manifest;
 use crate::process::Process;
-use crate::value::*;
-use crate::{process_factory::ProcessFactory, process_impl::ProcessImpl, error::JuizError, Value};
+use crate::{ProcessFactory, process_impl::ProcessImpl, JuizError, Value};
 
 
 pub struct ProcessFactoryImpl {
     manifest: Value,
     function: crate::process::ProcessFunction,
-    //child_processes: HashMap<String, Arc<Mutex<dyn Process>>>,
 }
 
 impl ProcessFactoryImpl {
 
     pub fn new(manifest: crate::Value, function: crate::process::ProcessFunction) -> Result<Arc<Mutex<dyn ProcessFactory>> , JuizError> {
-        let manifest_updated = check_process_factory_manifest(manifest)?;
-        Ok(Arc::new(Mutex::new(ProcessFactoryImpl{manifest: manifest_updated, function, 
-            //child_processes: HashMap::new()
-        })))
+        Ok(Arc::new(Mutex::new(
+            ProcessFactoryImpl{
+                manifest: check_process_factory_manifest(manifest)?, 
+                function
+            }
+        )))
+    }
+
+    fn apply_default_manifest(&self, manifest: Value) -> Result<Value, JuizError> {
+        let mut new_manifest = self.manifest.clone();
+        for (k, v) in manifest.as_object().unwrap().iter() {
+            new_manifest.as_object_mut().unwrap().insert(k.to_owned(), v.clone());
+        }
+        return Ok(new_manifest);
     }
 }
 
@@ -30,17 +37,12 @@ impl ProcessFactory for ProcessFactoryImpl {
         self.manifest.get("type_name").unwrap().as_str().unwrap()
     }
 
-
-    fn create_process<&str>(&self, name: &str, manifest: Value) -> Result<Arc<Mutex<dyn Process>>, JuizError> {
-        
+    fn create_process(&self, manifest: Value) -> Result<Arc<Mutex<dyn Process>> , JuizError>{
+        Ok(Arc::new(Mutex::new(
+            ProcessImpl::new(
+                self.apply_default_manifest(manifest)?, 
+                self.function)?
+        )))
     }
-
-    fn create_process<T>(&self, name: T, manifest: Value) -> Result<Arc<Mutex<dyn Process>> , JuizError>{
-        match ProcessImpl::new(name, manifest, self.function) {
-            Err(e) => return Err(e),
-            Ok(p) => {
-                Ok(Arc::new(Mutex::new(p)))
-            }
-        }
-    }
+    
 }

@@ -1,10 +1,7 @@
 
 use std::sync::{Mutex, Arc};
 
-use crate::error::JuizError;
-use crate::identifier::Identifier;
-use crate::value::*;
-
+use crate::{JuizError, Identifier, Value};
 
 pub type ProcessFunction=fn(serde_json::Value) -> Result<serde_json::Value, JuizError>;
 

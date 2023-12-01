@@ -1,7 +1,5 @@
 
-use crate::error::*;
-use crate::value::*;
-use crate::identifier::*;
+use crate::{Value, JuizError, Identifier, Process};
 
 pub enum SourceConnectionType {
     Pull,

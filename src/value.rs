@@ -3,7 +3,6 @@
 pub use serde_json::json as jvalue;
 
 use crate::error::JuizError;
-
 pub type Value=serde_json::Value;
 
 pub fn as_obj<'a>(value: &'a Value) -> Result<&'a serde_json::Map<String, Value>, JuizError> {
