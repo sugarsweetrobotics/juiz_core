@@ -5,15 +5,17 @@ use crate::juiz_core::process_impl::*;
 use crate::juiz_core::process::Process;
 use crate::juiz_core::process_rack::*;
 use crate::juiz_core::process_rack_impl::*;
+use std::sync::{Mutex, Arc};
 #[allow(dead_code)]
 fn increment_function(v: Value) -> Result<Value, JuizError> {
     let i = v["arg1"].as_i64().unwrap();
     return Ok(jvalue!(i+1));
 }
 
-fn new_increment_process<'a> () -> ProcessImpl<'a> {
+fn new_increment_process<'a> () -> ProcessImpl {
     let manifest = serde_json::json!({
         "name": "test_function",
+        "type_name": "increment",
         "arguments" : {
             "arg1": {
                 "type": "int",
@@ -23,7 +25,7 @@ fn new_increment_process<'a> () -> ProcessImpl<'a> {
         }, 
     });
     let p = ProcessImpl::new(manifest, increment_function);
-    assert!(p.is_ok());
+    assert!(p.is_ok(), "ProcessImpl::new() failed. Error is {:?}", p.err());
     p.unwrap()
 }
 
@@ -31,10 +33,11 @@ fn new_increment_process<'a> () -> ProcessImpl<'a> {
 #[cfg(test)]
 #[test]
 fn process_rack_test() {
+
     let p = new_increment_process();
-    let id = p.identifier();
+    let id = p.identifier().clone();
     let mut r = ProcessRackImpl::new();
-    r.push(Box::new(p));
+    r.push(Arc::new(Mutex::new(p)));
 
     let poped_p  = r.process(&id);
     assert!(poped_p.is_some());

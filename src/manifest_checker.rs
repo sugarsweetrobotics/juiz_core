@@ -1,6 +1,11 @@
+
 use crate::error::*;
-use crate::process;
 use crate::value::*;
+
+
+pub fn check_corebroker_manifest(manifest: Value) -> Result<Value, JuizError> {
+    return Ok(manifest);
+} 
 
 fn default_value_type_str(def_value: &Value) -> Result<&str, JuizError> {
     if def_value.is_i64() || def_value.is_u64(){
@@ -70,7 +75,7 @@ fn check_process_manifest_arguments(args_manifest: &mut Value) -> Result<(), Jui
     match args_manifest.as_object_mut() {
         None => return Err(JuizError::ManifestArgumentsInvalidError{}),
         Some(args_map) => {
-            for (arg_name, arg_manif) in args_map.iter_mut() {
+            for (_arg_name, arg_manif) in args_map.iter_mut() {
                 match check_process_manifest_argument(arg_manif) {
                     Err(e) => return Err(e),
                     Ok(_) => {}
@@ -82,6 +87,10 @@ fn check_process_manifest_arguments(args_manifest: &mut Value) -> Result<(), Jui
 }
 
 
+pub fn check_connection_manifest(connection_manifest: Value) -> Result<Value, JuizError> {
+    Ok(connection_manifest)
+}
+
 pub fn check_process_manifest(mut process_manifest: Value) -> Result<Value, JuizError> {
     
     match process_manifest.as_object_mut() {
@@ -89,6 +98,11 @@ pub fn check_process_manifest(mut process_manifest: Value) -> Result<Value, Juiz
         Some(hash_map) => {
             match hash_map.get("name") {
                 None => return Err(JuizError::ManifestNameMissingError{}),
+                Some(_) => { /* Do Nothing */ }
+            }
+
+            match hash_map.get("type_name") {
+                None => return Err(JuizError::ManifestTypeNameMissingError{}),
                 Some(_) => { /* Do Nothing */ }
             }
 

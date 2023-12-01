@@ -10,6 +10,7 @@ pub enum JuizError {
     NotImplementedError,
     ProcessCanNotFoundError,
     ManifestNameMissingError,
+    ManifestTypeNameMissingError,
     ManifestArgumentsMissingError,
     ManifestArgumentsInvalidError,
     ManifestArgumentDefaultValueMissingError,
@@ -18,5 +19,16 @@ pub enum JuizError {
     ManifestArgumentDefaultValueIsInvalidTypeError,
     ProcessOutputMemoIsNotInitializedError,
     ArgumentDescriptionIsNotStringError,
-    SourceConnectionCanNotBorrowMutableProcessReferenceError
+    SourceConnectionCanNotBorrowMutableProcessReferenceError,
+    DestinationConnectionCanNotBorrowMutableProcessReferenceError,
+    ValueAccessValueIsNotObjectError,
+    ValueAccessKeyNotFoundError,
+    ValueAccessValueIsNotStrError,
+    ConnectionBuilderCanNotBorrowSourceProcessError,
+    ConnectionBuilderCanNotBorrowDestinationProcessError,
+    ProcessRackCanNotBorrowInsertedProcessError,
+    CoreBrokerCanNotLockProcessMutexError,
+    SourceConnectionNewReceivedInvalidManifestTypeError,
+    DestinationConnectionNewReceivedInvalidManifestTypeError
+
 }

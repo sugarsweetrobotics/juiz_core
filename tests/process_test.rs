@@ -11,9 +11,10 @@ fn increment_function(v: Value) -> Result<Value, JuizError> {
     return Ok(jvalue!(i+1));
 }
 
-fn new_increment_process<'a> () -> ProcessImpl<'a> {
+fn new_increment_process<'a> () -> ProcessImpl {
     let manifest = serde_json::json!({
         "name": "test_function",
+        "type_name": "increment",
         "arguments" : {
             "arg1": {
                 "description": "test_argument",
@@ -22,9 +23,40 @@ fn new_increment_process<'a> () -> ProcessImpl<'a> {
         }, 
     });
     let p = ProcessImpl::new(manifest, increment_function);
-    assert!(p.is_ok());
+    assert!(p.is_ok(), "ProcessImpl::new() failed. Error is {:?}", p.err());
     p.unwrap()
 }
+
+static mut COUNTER: i64 = 0;
+  
+
+#[allow(dead_code)]
+fn execution_function(_v: Value) -> Result<Value, JuizError> {
+    #[allow(unused)]
+    let mut val: i64 = 0;
+    unsafe {
+        COUNTER = COUNTER + 1;
+        val = COUNTER;
+    }
+    return Ok(jvalue!(val));
+}
+
+fn new_execution_process<'a> () -> ProcessImpl {
+    let manifest = serde_json::json!({
+        "name": "test_function",
+        "type_name": "increment",
+        "arguments" : {
+            "arg1": {
+                "description": "test_argument",
+                "default": 1,
+            }, 
+        }, 
+    });
+    let p = ProcessImpl::new(manifest, execution_function);
+    assert!(p.is_ok(), "ProcessImpl::new() failed. Error is {:?}", p.err());
+    p.unwrap()
+}
+
 
 
 #[test]
@@ -39,18 +71,18 @@ fn no_name_manifest_process_test() {
     });
     let p = ProcessImpl::new(manifest, increment_function);
     assert!(p.is_err());
-    assert!(p.unwrap_err() == JuizError::ManifestNameMissingError{});
+    assert!(p.err() == Some(JuizError::ManifestNameMissingError{}));
 }
 
 #[test]
 fn no_arguments_manifest_process_test() {
     let manifest = serde_json::json!({
         "name": "hoge",
-        
+        "type_name": "increment",
     });
     let p = ProcessImpl::new(manifest, increment_function);
     assert!(p.is_err());
-    assert!(p.unwrap_err() == JuizError::ManifestArgumentsMissingError{});
+    assert!(p.err() == Some(JuizError::ManifestArgumentsMissingError{}));
 }
 
 
@@ -58,6 +90,7 @@ fn no_arguments_manifest_process_test() {
 fn no_default_manifest_process_test() {
     let manifest = serde_json::json!({
         "name": "hoge",
+        "type_name": "increment",
         "arguments": {
             "arg1": {
                 "description": "test_argument",
@@ -66,8 +99,8 @@ fn no_default_manifest_process_test() {
     });
     let p = ProcessImpl::new(manifest, increment_function);
     assert!(p.is_err());
-    let e = p.unwrap_err();
-    assert!(e == JuizError::ManifestArgumentDefaultValueMissingError{}, "Error is {:?})", e);
+    let e = p.err();
+    assert!(e == Some(JuizError::ManifestArgumentDefaultValueMissingError{}), "Error is {:?})", e);
 }
 
 #[cfg(test)]
@@ -91,6 +124,20 @@ fn invoke_process_test() {
     match new_increment_process().invoke() {
         Ok(vv) => {
             assert_eq!(vv.as_i64(), Some(2), "Error. vv is {:?}", vv.to_string());
+        }, 
+        Err(ev) => {
+            print!("Return value is {:?}", ev);
+        }
+    }
+}
+
+
+#[cfg(test)]
+#[test]
+fn execute_process_test() {
+    match new_execution_process().execute() {
+        Ok(vv) => {
+            assert_eq!(vv.as_i64(), Some(1), "Error. vv is {:?}", vv.to_string());
         }, 
         Err(ev) => {
             print!("Return value is {:?}", ev);

@@ -5,6 +5,7 @@ use crate::juiz_core::process_impl::*;
 use crate::juiz_core::process::Process;
 use crate::juiz_core::broker::*;
 use crate::juiz_core::core_broker::*;
+use std::sync::{Arc, Mutex};
 
 #[allow(dead_code)]
 fn increment_function(v: Value) -> Result<Value, JuizError> {
@@ -12,9 +13,10 @@ fn increment_function(v: Value) -> Result<Value, JuizError> {
     return Ok(jvalue!(i+1));
 }
 
-fn new_increment_process<'a> () -> ProcessImpl<'a>  {
+fn new_increment_process<'a> () -> ProcessImpl  {
     let manifest = serde_json::json!({
         "name": "test_function",
+        "type_name": "increment",
         "arguments" : {
             "arg1": {
                 "type": "int",
@@ -24,7 +26,7 @@ fn new_increment_process<'a> () -> ProcessImpl<'a>  {
         }, 
     });
     let p = ProcessImpl::new(manifest, increment_function);
-    assert!(p.is_ok());
+    assert!(p.is_ok() , "ProcessImpl::new() failed. Error is {:?}", p.err());
     p.unwrap()
 }
 
@@ -32,16 +34,24 @@ fn new_increment_process<'a> () -> ProcessImpl<'a>  {
 #[cfg(test)]
 #[test]
 fn core_broker_test() {
-    let mut cb = CoreBroker::new(jvalue!(
+
+    let result = CoreBroker::new(jvalue!(
         {
             "name": "core_broker"
         }
     ));
+    if result.is_err() {
+        assert!(false, "CoreBroker::new failed. {:?}", result.err())
+    }
+
+    let mut cb = result.unwrap();
 
     let p = new_increment_process();
-    let id = p.identifier();
+    let id = p.identifier().clone();
 
-    cb.push_process(Box::new(p));
+    let result = cb.push_process(Arc::new(Mutex::new(p)));
+
+    assert!(result.is_ok());
 
     assert!(cb.is_in_charge_for_process(&id));
 
