@@ -1,11 +1,12 @@
 
 extern crate juiz_core;
+use juiz_core::JuizResult;
+
 use crate::juiz_core::value::*;
-use crate::juiz_core::error::*;
-use crate::juiz_core::process_factory_impl::ProcessFactoryImpl;
+use crate::juiz_core::process::process_factory_impl::ProcessFactoryImpl;
     
 #[allow(dead_code)]
-fn increment_function(v: Value) -> Result<Value, JuizError> {
+fn increment_function(v: Value) -> JuizResult<Value> {
     let i = v["arg1"].as_i64().unwrap();
     return Ok(jvalue!(i+1));
 }
@@ -14,7 +15,7 @@ static mut COUNTER: i64 = 0;
   
 
 #[allow(dead_code)]
-fn execution_function(_v: Value) -> Result<Value, JuizError> {
+fn execution_function(_v: Value) -> JuizResult<Value> {
     #[allow(unused)]
     let mut val: i64 = 0;
     unsafe {

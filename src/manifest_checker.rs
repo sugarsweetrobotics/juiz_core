@@ -1,8 +1,9 @@
 
-use crate::error::*;
+use crate::JuizError;
+use crate::JuizResult;
 use crate::value::*;
 
-pub fn check_process_factory_manifest(manifest: Value) -> Result<Value, JuizError> {
+pub fn check_process_factory_manifest(manifest: Value) -> JuizResult<Value> {
     let mut manifest_updated = manifest.clone();
     match manifest_updated.as_object_mut() {
         None => return Err(JuizError::ProcessManifestError{}),
@@ -16,24 +17,6 @@ pub fn check_process_factory_manifest(manifest: Value) -> Result<Value, JuizErro
     return Ok(manifest_updated)
 }
 
-
-pub fn check_broker_create_process_manifest(manifest: Value) -> Result<Value, JuizError> {
-    let mut manifest_updated = manifest.clone();
-    match manifest_updated.as_object_mut() {
-        None => return Err(JuizError::ProcessManifestError{}),
-        Some(hash_map) => {
-            match hash_map.get("name") {
-                None => return Err(JuizError::ManifestNameMissingError{}),
-                Some(_) => { /* Do Nothing */ }
-            }
-            match hash_map.get("type_name") {
-                None => return Err(JuizError::ManifestTypeNameMissingError{}),
-                Some(_) => { /* Do Nothing */ }
-            }
-        }
-    }
-    return Ok(manifest_updated)
-}
 
 pub fn check_corebroker_manifest(manifest: Value) -> Result<Value, JuizError> {
     return Ok(manifest);

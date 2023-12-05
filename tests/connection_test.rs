@@ -3,9 +3,9 @@ use std::sync::Arc;
 use std::sync::Mutex;
 
 use crate::juiz_core::*;
-use crate::juiz_core::process_impl::*;
+use crate::juiz_core::process::process_impl::*;
 use juiz_core::process::Process;
-use crate::juiz_core::connection_builder::connection_builder;
+use crate::juiz_core::connection::connect;
     
 #[allow(dead_code)]
 fn increment_function(v: Value) -> Result<Value, JuizError> {
@@ -104,7 +104,7 @@ fn simple_connection_builder_invoke_test() {
         "id": "con1"
     });
 
-    let result1 = connection_builder::connect(Arc::clone(&rp1), Arc::clone(&rp2), &"arg1".to_string(), manifest);
+    let result1 = connect(Arc::clone(&rp1), Arc::clone(&rp2), &"arg1".to_string(), manifest);
     // rp1 -> rp2
     assert!(result1.is_ok(), "Failed to ConnectionBuilder::connected function. Error is {:?}", result1.err());
     

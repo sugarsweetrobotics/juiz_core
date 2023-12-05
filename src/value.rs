@@ -2,7 +2,12 @@
 
 pub use serde_json::json as jvalue;
 
-use crate::error::JuizError;
+use crate::JuizError;
+
+#[repr(transparent)]
+//#[repr(C)]
+pub struct JValue(pub serde_json::Value, );
+
 pub type Value=serde_json::Value;
 
 pub fn as_obj<'a>(value: &'a Value) -> Result<&'a serde_json::Map<String, Value>, JuizError> {

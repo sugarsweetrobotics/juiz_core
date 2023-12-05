@@ -1,7 +1,7 @@
 
 extern crate juiz_core;
 use crate::juiz_core::*;
-use crate::juiz_core::process_impl::*;
+use crate::juiz_core::process::process_impl::*;
     
 #[allow(dead_code)]
 fn increment_function(v: Value) -> Result<Value, JuizError> {

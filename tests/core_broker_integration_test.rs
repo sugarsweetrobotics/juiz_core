@@ -1,5 +1,6 @@
 extern crate juiz_core;
 use std::sync::{Arc, Mutex};
+
 use crate::juiz_core::*;
 
 #[allow(dead_code)]
@@ -21,7 +22,7 @@ fn new_process_factory(cb: &mut CoreBroker) -> Arc<Mutex<dyn ProcessFactory>> {
     });
     let result_pf = cb.register_process_factory(manifest, increment_function);
     assert!(result_pf.is_ok(), "register_process_factory failed. Error is {:?}", result_pf.err());
-    Arc::clone(result_pf.ok().unwrap())
+    Arc::clone(&result_pf.ok().unwrap())
 }
 
 fn new_core_broker() -> CoreBroker {
