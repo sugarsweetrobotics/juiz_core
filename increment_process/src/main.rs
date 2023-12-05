@@ -1,27 +1,6 @@
 
-use juiz_core::{System, Value, jvalue, JuizResult};
+use juiz_core::{System, jvalue, JuizResult};
 
-
-fn load() -> () {
-    unsafe {
-        match libloading::Library::new("./libincrement_process.dylib") {
-            Ok(lib) => {
-                match lib.get::<libloading::Symbol<unsafe extern fn() -> i32>>(b"main") {
-                    Ok(func) => {
-                        func();
-                    },
-                    Err(_) => {
-                        eprintln!("Function get error!");
-                    }
-                }
-            },
-            Err(_) => {
-                eprintln!("Library link error!");
-            }
-        }
-    }
-
-}
 pub fn main() -> JuizResult<()> {
 
     let manifest = jvalue!(
