@@ -4,7 +4,8 @@
 pub mod system_builder {
     use std::{path::PathBuf, sync::{Mutex, Arc}};
 
-    use crate::{System, Value, JuizResult, JuizError, core::Plugin, ProcessFactory, process::ProcessFactoryWrapper, manifest_util::{get_array, get_str, get_hashmap}, Broker, connection::connection_builder::connection_builder, sync_util::juiz_lock, value::obj_get_str};
+    use crate::{System, Value, JuizResult, JuizError, core::Plugin, ProcessFactory, process::ProcessFactoryWrapper, manifest_util::{get_array, get_hashmap}, 
+    Broker, connection::connection_builder::connection_builder, sync_util::juiz_lock, value::obj_get_str};
  
 
 
@@ -25,8 +26,7 @@ pub mod system_builder {
         "lib".to_string() + name + ".dylib"
     }
 
-    type ProcessFactorySymbolType<'a> = libloading::Symbol<'a, unsafe extern fn() 
-    -> JuizResult<Arc<Mutex<dyn ProcessFactory>>>>;
+    type ProcessFactorySymbolType<'a> = libloading::Symbol<'a, unsafe extern fn() -> JuizResult<Arc<Mutex<dyn ProcessFactory>>>>;
 
     fn setup_process_factories(system: &System, manifest: &serde_json::Value) -> JuizResult<()> {
         log::trace!("system_builder::setup_process_factories() called");

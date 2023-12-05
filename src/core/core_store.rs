@@ -37,10 +37,6 @@ impl CoreStore {
 
     pub fn register_process(&mut self, p: Arc<Mutex<dyn Process>>) -> Result<Arc<Mutex<dyn Process>>, JuizError> {
         let id = juiz_lock(&p)?.identifier().clone();
-        /*let id = match p.try_lock() {
-            Err(_) => Err(JuizError::CoreBrokerCanNotLockProcessMutexError{}),
-            Ok(proc) => Ok(proc.identifier().clone())
-        }?;*/
         log::trace!("CoreStore::register_process(Process(id={:?}, manifest={})) called", id, juiz_lock(&p)?.manifest());
         self.processes.insert(id.clone(), p);
         self.process(&id)
@@ -52,7 +48,7 @@ impl CoreStore {
             None => {
                 log::trace!("CoreStore::process(id={:?}) failed.", id);
                 log::trace!(" - CoreStore includes processes[");
-                for (k, v) in self.processes.iter() {
+                for (k, _v) in self.processes.iter() {
                     log::trace!("    - {:?}", k);
                 }
                 log::trace!("]");

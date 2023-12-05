@@ -4,7 +4,6 @@ use std::collections::HashMap;
 use std::sync::{Mutex, Arc};
 use serde_json::Map;
 
-use crate::sync_util::juiz_lock;
 use crate::value::obj_get_str;
 use crate::{Value, jvalue, Process, ProcessFunction, Identifier, JuizError, JuizResult};
 

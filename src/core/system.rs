@@ -49,12 +49,6 @@ impl System {
         self.process_from_id(&id)
     }
 
-    fn setup_plugins(&mut self) -> JuizResult<()> {
-        let manif = self.manifest.as_object_mut().unwrap().get_mut("plugins").unwrap().clone();
-        system_builder::system_builder::setup_plugins(self, &manif)?;
-        Ok(())
-    }
-
     fn setup(&mut self) -> JuizResult<()> {
         log::trace!("System::setup() called");
 
