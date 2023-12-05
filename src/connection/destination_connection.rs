@@ -1,7 +1,5 @@
 
-
-use crate::identifier::Identifier;
-use crate::{value::*, JuizResult};
+use crate::{Value, Identifier, JuizResult};
 
 pub enum DestinationConnectionType {
     Pull,

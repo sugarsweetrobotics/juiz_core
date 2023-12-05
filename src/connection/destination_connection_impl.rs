@@ -3,12 +3,11 @@
 
 use serde_json::Value;
 
-use crate::{Process, JuizError, identifier::Identifier};
+use crate::{Process, JuizError, Identifier, utils::manifest_checker::check_connection_manifest};
 use std::sync::{Mutex, Arc};
 use crate::value::*;
 use core::fmt::Debug;
 use std::clone::Clone;
-use crate::manifest_checker::*;
 use crate::connection::destination_connection::DestinationConnectionType;
 
 use super::DestinationConnection;

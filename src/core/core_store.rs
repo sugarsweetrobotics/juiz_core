@@ -1,6 +1,6 @@
 use std::{collections::HashMap, sync::{Mutex, Arc}};
 
-use crate::{ProcessFactory, JuizError, Identifier, Process, JuizResult, sync_util::juiz_lock};
+use crate::{ProcessFactory, JuizError, Identifier, Process, JuizResult, utils::juiz_lock};
 
 
 

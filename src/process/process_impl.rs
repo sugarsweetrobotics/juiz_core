@@ -7,7 +7,7 @@ use serde_json::Map;
 use crate::value::obj_get_str;
 use crate::{Value, jvalue, Process, ProcessFunction, Identifier, JuizError, JuizResult};
 
-use crate::manifest_checker::{check_manifest_before_call, check_process_manifest};
+use crate::utils::{check_manifest_before_call, check_process_manifest};
 use crate::connection::{SourceConnection, SourceConnectionImpl, DestinationConnection, DestinationConnectionImpl};
 
 pub struct ProcessImpl {

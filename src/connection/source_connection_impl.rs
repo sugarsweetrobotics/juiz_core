@@ -1,13 +1,12 @@
 
 
 
-use crate::sync_util::juiz_lock;
-use crate::{Process, JuizError, identifier::Identifier};
-use crate::connection::source_connection::*;
+use crate::{Value, Process, JuizError, JuizResult, Identifier, utils::juiz_lock, connection::source_connection::SourceConnectionType, value::obj_get_str};
 use std::sync::{Mutex, Arc};
-use crate::{value::*, JuizResult};
 use core::fmt::Debug;
 use std::clone::Clone;
+
+use super::SourceConnection;
 
 
 pub struct SourceConnectionImpl {

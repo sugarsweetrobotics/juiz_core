@@ -4,8 +4,8 @@
 pub mod system_builder {
     use std::{path::PathBuf, sync::{Mutex, Arc}};
 
-    use crate::{System, Value, JuizResult, JuizError, core::Plugin, ProcessFactory, process::ProcessFactoryWrapper, manifest_util::{get_array, get_hashmap}, 
-    Broker, connection::connection_builder::connection_builder, sync_util::juiz_lock, value::obj_get_str};
+    use crate::{System, Value, JuizResult, JuizError, core::Plugin, ProcessFactory, process::ProcessFactoryWrapper, utils::{get_array, get_hashmap}, 
+    Broker, connection::connection_builder::connection_builder, utils::juiz_lock, value::obj_get_str};
  
 
 
@@ -26,7 +26,6 @@ pub mod system_builder {
         "lib".to_string() + name + ".dylib"
     }
 
-    type ProcessFactorySymbolType<'a> = libloading::Symbol<'a, unsafe extern fn() -> JuizResult<Arc<Mutex<dyn ProcessFactory>>>>;
 
     fn setup_process_factories(system: &System, manifest: &serde_json::Value) -> JuizResult<()> {
         log::trace!("system_builder::setup_process_factories() called");
@@ -34,6 +33,7 @@ pub mod system_builder {
             let plugin_filename = concat_dirname(v, plugin_name_to_file_name(name))?;
             let pf;
             unsafe {
+                type ProcessFactorySymbolType<'a> = libloading::Symbol<'a, unsafe extern fn() -> JuizResult<Arc<Mutex<dyn ProcessFactory>>>>;
                 let plugin: Plugin = Plugin::load(plugin_filename.as_path())?;
                 {
                     let symbol = plugin.load_symbol::<ProcessFactorySymbolType>(b"process_factory")?;

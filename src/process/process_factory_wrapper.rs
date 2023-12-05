@@ -1,6 +1,6 @@
 use std::{sync::{Arc, Mutex}, cell::RefCell};
 
-use crate::{ProcessFactory, core::Plugin, JuizError, Process, Value, sync_util::juiz_lock};
+use crate::{ProcessFactory, core::Plugin, JuizError, Process, Value, utils::juiz_lock};
 
 #[allow(dead_code)]
 pub struct ProcessFactoryWrapper {

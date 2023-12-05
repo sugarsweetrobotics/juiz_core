@@ -1,6 +1,6 @@
 
 use std::sync::{Mutex, Arc};
-use crate::manifest_checker::check_process_factory_manifest;
+use crate::utils::check_process_factory_manifest;
 use crate::process::Process;
 use crate::value::obj_get_str;
 use crate::{ProcessFactory, process::process_impl::ProcessImpl, JuizError, Value};
