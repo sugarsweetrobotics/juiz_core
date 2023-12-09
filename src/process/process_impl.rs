@@ -4,15 +4,16 @@ use std::collections::HashMap;
 use std::sync::{Mutex, Arc};
 use serde_json::Map;
 
-use crate::value::obj_get_str;
-use crate::{Value, jvalue, Process, ProcessFunction, Identifier, JuizError, JuizResult};
+use crate::utils::manifest_util::get_hashmap_mut;
+use crate::value::{obj_get_str, obj_get_obj};
+use crate::{Value, jvalue, Process, Identifier, JuizError, JuizResult};
 
 use crate::utils::{check_manifest_before_call, check_process_manifest};
 use crate::connection::{SourceConnection, SourceConnectionImpl, DestinationConnection, DestinationConnectionImpl};
 
 pub struct ProcessImpl {
     manifest: Value,
-    function: ProcessFunction,
+    function: Box<dyn Fn(Value) -> JuizResult<Value>>,
     identifier: Identifier,
     source_connections: HashMap<String, Box<dyn SourceConnection>>,
     destination_connections: HashMap<String, Box<dyn DestinationConnection>>,
@@ -20,25 +21,33 @@ pub struct ProcessImpl {
 }
 
 
-pub fn argument_manifest(process_manifest: &Value) -> Result<Map<String, Value>, JuizError>{
-    match process_manifest.get("arguments") {
-        None => return Err(JuizError::ArgumentMissingError{}),
-        Some(v) => {
-            match v.as_object() {
-                None => return Err(JuizError::ArgumentIsNotObjectError{}),
-                Some(v_obj) => Ok(v_obj.clone())
-            }
-        }
-    }
+pub fn argument_manifest(process_manifest: &Value) -> JuizResult<&Map<String, Value>>{
+    obj_get_obj(process_manifest, "arguments")
 }
 
 fn identifier_from_manifest(manifest: &Value) -> Identifier {
-    obj_get_str(manifest, "name").unwrap().to_string()
+    match obj_get_str(manifest, "identifier") {
+        Err(_) => obj_get_str(manifest, "name").unwrap().to_string(),
+        Ok(id) => id.to_string()
+    }
 }
 
 impl ProcessImpl {
 
-    pub fn new(manif: Value, func: ProcessFunction) -> Result<Self, JuizError> {
+    pub fn new(manif: Value, func: fn(Value) -> JuizResult<Value>) -> JuizResult<Self> {
+        log::trace!("ProcessImpl::new(manifest={}) called", manif);
+        
+        let manifest = check_process_manifest(manif)?;
+        Ok(ProcessImpl{
+            manifest: manifest.clone(), 
+            function: Box::new(func), 
+            identifier: identifier_from_manifest(&manifest),
+            source_connections: HashMap::new(),
+            destination_connections: HashMap::new(),
+            output_memo: RefCell::new(jvalue!(null)) })
+    }
+
+    pub(crate) fn clousure_new(manif: Value, func: Box<impl Fn(Value) -> JuizResult<Value> + 'static>) -> JuizResult<Self> {
         log::trace!("ProcessImpl::new(manifest={}) called", manif);
         
         let manifest = check_process_manifest(manif)?;
@@ -55,29 +64,26 @@ impl ProcessImpl {
         self.source_connections.get(name)
     }
 
-    fn collect_values_exclude(&self, arg_name: &String, arg_value: Value) -> Result<Value, JuizError>{
+    fn collect_values_exclude(&self, arg_name: &String, arg_value: Value) -> JuizResult<Value>{
         log::trace!("ProcessImpl({:?}).collect_values_exclude({:?}) called.", self.identifier(), arg_name);
         let mut value_map: Map<String, Value> = Map::new();
         value_map.insert(arg_name.clone(), arg_value.clone());
         
         for (k, v) in argument_manifest(&self.manifest)?.into_iter() {
-            if k == *arg_name { continue; }
-            match self.source_connections.get(&k) {
-                None => { value_map.insert(k, v.get("default").unwrap().clone()); }
+            if k == arg_name { continue; }
+            match self.source_connections.get(k) {
+                None => { value_map.insert(k.clone(), v.get("default").unwrap().clone()); }
                 Some(con) => {
-                    value_map.insert(k, con.pull()?);                        
+                    value_map.insert(k.clone(), con.pull()?);                        
                 }
             }
         }
         Ok(Value::from(value_map))
     }
 
-    fn push_to_destinations(&self, output: Value) -> Result<Value, JuizError> {
+    fn push_to_destinations(&self, output: Value) -> JuizResult<Value> {
         for (_k, v) in self.destination_connections.iter() {
-            match v.push(&output) {
-                Err(e) => return Err(e),
-                Ok(_) => {}
-            }
+            let _ = v.push(&output)?;
         }
         return Ok(output)
     }
@@ -90,7 +96,27 @@ impl Process for ProcessImpl {
         &self.manifest
     }
 
-    fn call(&self, args: Value) -> Result<Value, JuizError> {
+    fn profile_full(&self) -> JuizResult<Value> {
+        let mut p = self.manifest.clone();
+        let p_hashmap = get_hashmap_mut(&mut p)?;
+        
+        let mut sc_profs = jvalue!({});
+        let sc_map = get_hashmap_mut(&mut sc_profs)?;
+        for (key, value) in self.source_connections.iter() {
+            sc_map.insert(key.to_owned(), value.profile_full()?);
+        }
+        p_hashmap.insert("source_connections".to_string(), sc_profs);
+
+        let mut dc_profs = jvalue!({});
+        let dc_map = get_hashmap_mut(&mut dc_profs)?;
+        for (key, value) in self.destination_connections.iter() {
+            dc_map.insert(key.to_owned(), value.profile_full()?);
+        }
+        p_hashmap.insert("destination_connections".to_string(), dc_profs);
+        Ok(p)
+    }
+
+    fn call(&self, args: Value) -> JuizResult<Value> {
         check_manifest_before_call(&(self.manifest), &args)?;
         Ok((self.function)(args)?)
     }
@@ -99,11 +125,11 @@ impl Process for ProcessImpl {
         &self.identifier
     }
 
-    fn is_updated(&self) -> Result<bool, JuizError> {
+    fn is_updated(&self) -> JuizResult<bool> {
         self.is_updated_exclude(&"".to_string())
     }
 
-    fn is_updated_exclude(&self, arg_name: &String) -> Result<bool, JuizError> {
+    fn is_updated_exclude(&self, arg_name: &String) -> JuizResult<bool> {
         if self.output_memo.borrow().is_null() {
             return Ok(true)
         }
@@ -125,7 +151,7 @@ impl Process for ProcessImpl {
     fn invoke_exclude<'b>(&self, arg_name: &String, value: Value) -> JuizResult<Value> {
         if !self.is_updated_exclude(arg_name)? {
             if self.output_memo.borrow().is_null() {
-                return Err(JuizError::ProcessOutputMemoIsNotInitializedError{});
+                return Err(anyhow::Error::from(JuizError::ProcessOutputMemoIsNotInitializedError{id: self.identifier().clone()}));
             }
             return Ok(self.output_memo.borrow().clone());
         }
@@ -135,12 +161,12 @@ impl Process for ProcessImpl {
         Ok(result_value)
     }
 
-    fn execute(&self) -> Result<Value, JuizError> {
-        Ok(self.push_to_destinations(self.invoke()?)?)
+    fn execute(&self) -> JuizResult<Value> {
+        self.push_to_destinations(self.invoke()?)
     }
 
-    fn push_by(&self, arg_name: &String, value: &Value) -> Result<Value, JuizError> {
-        Ok(self.push_to_destinations(self.invoke_exclude(arg_name, value.clone())?)?)
+    fn push_by(&self, arg_name: &String, value: &Value) -> JuizResult<Value> {
+        self.push_to_destinations(self.invoke_exclude(arg_name, value.clone())?)
     }
     
     fn get_output(&self) -> Option<Value> {

@@ -1,11 +1,12 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
-use crate::JuizResult;
+
+use crate::{JuizResult, Container, Broker};
 use crate::utils::juiz_lock;
 use crate::utils::manifest_util::id_from_manifest;
 use super::system_builder;
-use crate::{CoreBroker, Value, JuizError, Identifier, Process};
+use crate::{CoreBroker, Value, JuizError, Identifier, Process, jvalue};
 use crate::utils::when_contains_do;
 
 use std::time;
@@ -19,7 +20,7 @@ pub struct System {
 
 fn check_system_manifest(manifest: Value) -> JuizResult<Value> {
     if !manifest.is_object() {
-        return Err(JuizError::ManifestIsNotObjectError{});
+        return Err(anyhow::Error::from(JuizError::ValueIsNotObjectError{value:manifest}).context("check_system_manifest failed."));
     }
     return Ok(manifest);
 }
@@ -31,7 +32,7 @@ impl System {
         let updated_manifest = check_system_manifest(manifest)?;
         Ok(System{
             manifest: updated_manifest.clone(),
-            core_broker: Arc::new(Mutex::new(CoreBroker::new(updated_manifest)?)),
+            core_broker: Arc::new(Mutex::new(CoreBroker::new(jvalue!({"name": "core_broker"}))?)),
             sleep_time: time::Duration::from_millis(100) 
         })
     }
@@ -42,6 +43,10 @@ impl System {
 
     pub fn process_from_id(&self, id: &Identifier) -> JuizResult<Arc<Mutex<dyn Process>>> {
         juiz_lock(&self.core_broker)?.store().process(id)
+    }
+
+    pub fn container_from_id(&self, id: &Identifier) -> JuizResult<Arc<Mutex<dyn Container>>> {
+        juiz_lock(&self.core_broker)?.store().container(id)
     }
 
     pub fn process_from_manifest(&self, manifest: &Value) -> JuizResult<Arc<Mutex<dyn Process>>> {
@@ -59,6 +64,11 @@ impl System {
         let _ = when_contains_do(&self.manifest, "processes", |v| {
             system_builder::system_builder::setup_processes(self, v)
         }).expect("setup_processes during System::setup() failed.");
+
+        let _ = when_contains_do(&self.manifest, "containers", |v| {
+            system_builder::system_builder::setup_containers(self, v)
+        }).expect("setup_containers during System::setup() failed.");
+
 
         let _ =  when_contains_do(&self.manifest, "connections", |v| {
             system_builder::system_builder::setup_connections(self, v)
@@ -101,5 +111,11 @@ impl System {
         self.wait_for_singal()?;
         log::debug!("System::run() exit");
         Ok(())
+    }
+
+    pub fn profile_full(&self) -> JuizResult<Value> {
+        Ok(jvalue!({
+            "core_broker": self.core_broker().lock().unwrap().profile_full()?
+        }))
     }
 }

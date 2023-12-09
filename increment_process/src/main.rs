@@ -10,7 +10,7 @@ pub fn main() -> JuizResult<()> {
             "plugins": {
                 "process_factories": {
                     "increment_process": {
-                        "path": "./"
+                        "path": "./target/debug"
                     }
                 }
             },
@@ -42,9 +42,10 @@ pub fn main() -> JuizResult<()> {
     );
 
     System::new(manifest)?.run_and_do(|system|{
-        let proc = system.process_from_id(&"increment_a".to_string())?;
+        let proc = system.process_from_id(&"core://increment_a:increment_process".to_string())?;
         let retval = proc.try_lock().expect("Lock failed").invoke()?;
         println!("retval = {:?}", retval);
+        println!("System: {:#}", system.profile_full()?);
         Ok(())
     })
 }

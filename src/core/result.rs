@@ -1,3 +1,2 @@
-use crate::JuizError;
 
-pub type JuizResult<T> = Result<T, JuizError>;
+pub type JuizResult<T> = anyhow::Result<T>;

@@ -1,5 +1,5 @@
 
-use crate::{Value, JuizError, Identifier};
+use crate::{Value, Identifier, JuizResult};
 
 pub enum SourceConnectionType {
     Pull,
@@ -14,12 +14,15 @@ pub trait SourceConnection {
 
     fn connection_type(&self) -> &SourceConnectionType;
 
-    fn is_source_updated(&self) -> Result<bool, JuizError>;
+    fn is_source_updated(&self) -> JuizResult<bool>;
 
-    fn invoke_source(&mut self) -> Result<Value, JuizError>;
+    fn invoke_source(&mut self) -> JuizResult<Value>;
 
     // fn source_process_id(&self) -> &Identifier;
 
-    fn pull(&self) -> Result<Value, JuizError>;
+    fn pull(&self) -> JuizResult<Value>;
+
+
+    fn profile_full(&self) -> JuizResult<Value>;
 }
 

@@ -2,9 +2,9 @@
 
 pub mod connection_builder {
     use std::sync::{Arc, Mutex};
-    use crate::{process::Process, JuizError, Value, System, utils::{get_value, get_str, juiz_lock}};
+    use crate::{process::Process, Value, System, utils::{get_value, get_str, juiz_lock}, JuizResult};
 
-    pub fn create_connections(system: &System, manifest: &Value) -> Result<Value, JuizError> {
+    pub fn create_connections(system: &System, manifest: &Value) -> JuizResult<Value> {
         log::trace!("connection_builder::create_connections(manifest={:?}) called", manifest);
         connect(
             system.process_from_manifest(get_value(manifest, "source")?)?,
@@ -14,7 +14,7 @@ pub mod connection_builder {
         )
     }
     
-    pub fn connect(source: Arc<Mutex<dyn Process>>, destination: Arc<Mutex<dyn Process>>, arg_name: &String, manifest: Value) -> Result<Value, JuizError> {
+    pub fn connect(source: Arc<Mutex<dyn Process>>, destination: Arc<Mutex<dyn Process>>, arg_name: &String, manifest: Value) -> JuizResult<Value> {
         log::trace!("connection_builder::connect() called");
         let source_connect_result_manifest;
         {

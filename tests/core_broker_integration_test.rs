@@ -4,7 +4,7 @@ use std::sync::{Arc, Mutex};
 use crate::juiz_core::*;
 
 #[allow(dead_code)]
-fn increment_function(v: Value) -> Result<Value, JuizError> {
+fn increment_function(v: Value) -> JuizResult<Value> {
     let i = v["arg1"].as_i64().unwrap();
     return Ok(jvalue!(i+1));
 }

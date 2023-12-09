@@ -1,25 +1,26 @@
 
 use std::sync::{Mutex, Arc};
+use crate::JuizResult;
 use crate::utils::check_process_factory_manifest;
 use crate::process::Process;
 use crate::value::obj_get_str;
-use crate::{ProcessFactory, process::process_impl::ProcessImpl, JuizError, Value};
+use crate::{jvalue, ProcessFactory, process::process_impl::ProcessImpl, JuizError, Value};
 
 
 #[repr(C)]
 pub struct ProcessFactoryImpl {
     manifest: Value,
-    function: crate::process::ProcessFunction,
+    function: fn(Value) -> JuizResult<Value>,
 }
 
-pub fn create_process_factory(manifest: crate::Value, function: crate::process::ProcessFunction) -> Result<Arc<Mutex<dyn ProcessFactory>> , JuizError> {
+pub fn create_process_factory(manifest: crate::Value, function: fn(Value) -> JuizResult<Value>) -> JuizResult<Arc<Mutex<dyn ProcessFactory>>> {
     log::trace!("create_process_factory called");
     ProcessFactoryImpl::new(manifest, function)
 }
 
 impl ProcessFactoryImpl {
 
-    pub fn new(manifest: crate::Value, function: crate::process::ProcessFunction) -> Result<Arc<Mutex<dyn ProcessFactory>> , JuizError> {
+    pub fn new(manifest: crate::Value, function: fn(Value) -> JuizResult<Value>) -> JuizResult<Arc<Mutex<dyn ProcessFactory>>> {
         Ok(Arc::new(Mutex::new(
             ProcessFactoryImpl{
                 manifest: check_process_factory_manifest(manifest)?, 
@@ -45,13 +46,20 @@ impl ProcessFactory for ProcessFactoryImpl {
 //        self.manifest.get("type_name").unwrap().as_str().unwrap()
     }
 
-    fn create_process(&self, manifest: Value) -> Result<Arc<Mutex<dyn Process>> , JuizError>{
+    fn create_process(&self, manifest: Value) -> JuizResult<Arc<Mutex<dyn Process>>>{
         log::trace!("ProcessFactoryImpl::create_process(manifest={}) called", manifest);
         Ok(Arc::new(Mutex::new(
             ProcessImpl::new(
                 self.apply_default_manifest(manifest)?, 
                 self.function)?
         )))
+    }
+
+
+    fn profile_full(&self) -> JuizResult<Value> {
+        Ok(jvalue!({
+            "type_name": self.type_name()
+        }))
     }
     
 }

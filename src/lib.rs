@@ -10,6 +10,7 @@ pub mod value;
 
 pub use value::{Value, jvalue};
 pub use process::{Process, ProcessFunction, ProcessFactory, create_process_factory};
+pub use process::{Container, ContainerFactory, ContainerProcessFactory, create_container_factory, ContainerProcess};
 pub use core::identifier::Identifier;
 pub use core::error::JuizError;
 pub use broker::Broker;

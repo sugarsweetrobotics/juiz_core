@@ -8,7 +8,7 @@ use juiz_core::process::Process;
 use crate::juiz_core::connection::connect;
     
 #[allow(dead_code)]
-fn increment_function(v: Value) -> Result<Value, JuizError> {
+fn increment_function(v: Value) -> JuizResult<Value> {
     let i = v["arg1"].as_i64().unwrap();
     return Ok(jvalue!(i+1));
 }
@@ -25,7 +25,7 @@ fn new_increment_process<'a> (name: String) -> ProcessImpl {
         }, 
     });
     let p = ProcessImpl::new(manifest, increment_function);
-    assert!(p.is_ok(), "ProcessImpl::new() failed. Error is {:?}", p.err());
+    assert!(p.is_ok(), "ProcessImpl::new() failed. Error is '{:?}'", p.err());
     p.unwrap()
 }
 

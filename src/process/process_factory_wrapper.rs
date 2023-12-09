@@ -1,6 +1,8 @@
 use std::{sync::{Arc, Mutex}, cell::RefCell};
 
-use crate::{ProcessFactory, core::Plugin, JuizError, Process, Value, utils::juiz_lock};
+use anyhow::Context;
+
+use crate::{jvalue, ProcessFactory, core::Plugin, Process, Value, utils::juiz_lock, JuizResult};
 
 #[allow(dead_code)]
 pub struct ProcessFactoryWrapper {
@@ -29,10 +31,19 @@ impl ProcessFactory for ProcessFactoryWrapper {
         self.type_name.as_str()
     }
 
-    fn create_process(&self, manifest: Value) -> Result<Arc<Mutex<dyn Process>>, JuizError> {
+    fn create_process(&self, manifest: Value) -> JuizResult<Arc<Mutex<dyn Process>>> {
         log::trace!("ProcessFactoryWrapper::create_process(manifest={}) called", manifest);
-        let p = juiz_lock(&self.process_factory)?.create_process(manifest)?;
+        let p = juiz_lock(&self.process_factory).with_context(||format!("ProcessFactoryWrapper::create_process(manifest:{manifest:}) failed."))?.create_process(manifest)?;
         self.processes.borrow_mut().push(Arc::clone(&p));
         Ok(Arc::clone(&p))
+    }
+
+
+    fn profile_full(&self) -> JuizResult<Value> {
+        Ok(jvalue!({
+        "plugin": self.plugin.profile_full()?,
+        "type_name": self.type_name(),
+        "process_factory": juiz_lock(&self.process_factory)?.profile_full()?
+        }))
     }
 }

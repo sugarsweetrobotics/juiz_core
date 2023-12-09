@@ -17,4 +17,6 @@ pub trait DestinationConnection {
     fn execute_destination(&self) -> JuizResult<Value>;
 
     fn push(&self, value: &Value) -> JuizResult<Value>;
+
+    fn profile_full(&self) -> JuizResult<Value>;
 }

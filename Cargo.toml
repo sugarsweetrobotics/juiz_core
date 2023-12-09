@@ -12,4 +12,24 @@ log = "0.4.20"
 env_logger = "0.10.1"
 signal-hook = "0.3.17"
 libloading = "0.8.1"
+thiserror = "1.0.50"
+mopa = "0.2.2"
 # serde_json = { path="./json" }
+
+# example_container = { path="container_examples/example_container" }
+
+[workspace]
+members = [
+    "container_examples",
+    "increment_process",
+    "container_examples/example_container",
+    "container_examples/example_container_get",
+    "container_examples/example_container_increment",
+]
+default-members = [
+    "container_examples",
+    "increment_process",
+    "container_examples/example_container",
+    "container_examples/example_container_get",
+    "container_examples/example_container_increment",
+]

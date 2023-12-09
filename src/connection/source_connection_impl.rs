@@ -1,7 +1,9 @@
 
 
 
-use crate::{Value, Process, JuizError, JuizResult, Identifier, utils::juiz_lock, connection::source_connection::SourceConnectionType, value::obj_get_str};
+use anyhow::Context;
+
+use crate::{jvalue, Value, Process, JuizError, JuizResult, Identifier, utils::juiz_lock, connection::source_connection::SourceConnectionType, value::obj_get_str};
 use std::sync::{Mutex, Arc};
 use core::fmt::Debug;
 use std::clone::Clone;
@@ -9,22 +11,30 @@ use std::clone::Clone;
 use super::SourceConnection;
 
 
+
+pub fn source_connection_type_str(typ: &'static SourceConnectionType) -> String {
+    match typ {
+        SourceConnectionType::Pull => "Pull".to_string(),
+        _ => "Push".to_string()
+    }
+}
 pub struct SourceConnectionImpl {
     connection_id: Identifier,
     arg_name: String,
     connection_type: &'static SourceConnectionType,
     manifest: Value,
-    owner_id: Identifier,
+    owner_identifier: Identifier,
     // source_id: Identifier,
-    source_process: Arc<Mutex<dyn Process>>
+    source_process: Arc<Mutex<dyn Process>>,
+    source_process_identifier: Identifier,
 }
 
 impl SourceConnectionImpl {
 
-    pub fn new(owner_id: Identifier, source_process: Arc<Mutex<dyn Process>>, manifest: Value, arg_name: String) -> JuizResult<Self> {
+    pub fn new(owner_identifier: Identifier, source_process: Arc<Mutex<dyn Process>>, manifest: Value, arg_name: String) -> JuizResult<Self> {
         log::trace!("# SourceConnectionImpl::new() called");
         let connection_id = obj_get_str(&manifest, "id")?.to_string();
-        //let source_id = source_process.lock().unwrap().identifier().clone();
+        let source_process_identifier = juiz_lock(&source_process)?.identifier().clone();
         let mut connection_type = &SourceConnectionType::Pull;
         match obj_get_str(&manifest, "type") {
             Err(_) => {},
@@ -33,13 +43,14 @@ impl SourceConnectionImpl {
                 else if typ_str == "push" {
                     connection_type = &SourceConnectionType::Push;
                 } else {
-                    return Err(JuizError::SourceConnectionNewReceivedInvalidManifestTypeError{});
+                    return Err(anyhow::Error::from(JuizError::ConnectionTypeError{manifest}));
                 }
             }
-        }
+        };
         Ok(SourceConnectionImpl{
             connection_id,
-            owner_id, 
+            owner_identifier, 
+            source_process_identifier,
             // source_id, 
             source_process, manifest,
             arg_name,
@@ -63,28 +74,14 @@ impl SourceConnection for SourceConnectionImpl {
         &self.connection_type
     }
 
-    fn is_source_updated(&self) -> Result<bool, JuizError> {
-        match self.source_process.try_lock() {
-            Err(_err) => return Err(JuizError::SourceConnectionCanNotBorrowMutableProcessReferenceError{}),
-            Ok(proc) => {
-                match proc.is_updated() {
-                    Err(e) => return Err(e),
-                    Ok(value) => Ok(value)
-                }
-            }
-        }
+    fn is_source_updated(&self) -> JuizResult<bool> {
+        let proc = juiz_lock(&self.source_process).context("in SourceConnectionImpl.is_source_updated()")?;
+        proc.is_updated()
     }
 
-    fn invoke_source(&mut self) -> Result<Value, JuizError> {
-        match self.source_process.try_lock() {
-            Err(_err) => return Err(JuizError::SourceConnectionCanNotBorrowMutableProcessReferenceError{}),
-            Ok(proc) => {
-                match proc.invoke() {
-                    Err(e) => return Err(e),
-                    Ok(value) => Ok(value)
-                }
-            }
-        }
+    fn invoke_source(&mut self) -> JuizResult<Value> {
+        let proc = juiz_lock(&self.source_process).context("in SourceConnectionImpl.invoke_source()")?;
+        proc.invoke()
     }
 
     /*
@@ -93,33 +90,33 @@ impl SourceConnection for SourceConnectionImpl {
     }
     */
 
+
+    fn profile_full(&self) -> JuizResult<Value> {
+        Ok(jvalue!({
+            "connection_id": self.connection_id,
+            "connection_type": source_connection_type_str(self.connection_type),
+            "arg_name": self.arg_name().to_owned(),
+            "owner_identifier": self.owner_identifier.to_owned(),
+            "source_process_identifier": self.source_process_identifier.to_owned(),
+        }))
+    }
  
     fn pull(&self) -> JuizResult<Value> {
         log::trace!("SourceConnectionImpl({:?}).pull() called", self.identifier());
-        juiz_lock(&self.source_process)?.invoke()
-        /*/
-        match self.source_process.try_lock() {
-        Err(_err) => return Err(JuizError::SourceConnectionCanNotBorrowMutableProcessReferenceError{}),
-        Ok(proc) => {
-            match proc.invoke() {
-                Err(e) => return Err(e),
-                Ok(value) => Ok(value)
-            }
-        }
-        */
+        juiz_lock(&self.source_process).context("SourceConnectionImpl.pull()")?.invoke()
     }
 }
 
 impl<'a> Debug for SourceConnectionImpl {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("SourceConnection").field("source_process", &self.source_process.try_lock().unwrap().identifier()).field("owner_id", &self.owner_id).finish()
+        f.debug_struct("SourceConnection").field("source_process", &self.source_process.try_lock().unwrap().identifier()).field("owner_id", &self.owner_identifier).finish()
     }
 }
 
 impl Clone for SourceConnectionImpl {
     fn clone(&self) -> Self {
         Self { connection_id: self.connection_id.clone(),
-            owner_id: self.owner_id.clone() /*, source_id: self.source_id.clone()*/, source_process: self.source_process.clone(), manifest: self.manifest.clone(), arg_name: self.arg_name.clone(), connection_type: self.connection_type }
+            owner_identifier: self.owner_identifier.clone(), source_process_identifier: self.source_process_identifier.clone(), source_process: self.source_process.clone(), manifest: self.manifest.clone(), arg_name: self.arg_name.clone(), connection_type: self.connection_type }
     }
 }
 
