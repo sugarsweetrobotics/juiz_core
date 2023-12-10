@@ -1,4 +1,4 @@
-use juiz_core::{System, jvalue, JuizResult, BrokerProxy};
+use juiz_core::{System, jvalue, JuizResult};
 
 pub fn main() -> JuizResult<()> {
 

@@ -97,7 +97,7 @@ fn no_default_manifest_process_test() {
     });
     let p = ProcessImpl::new(manifest, increment_function);
     assert!(p.is_err());
-    let e = p.err();
+    let _e = p.err();
     // assert!(e == Some(JuizError::ManifestArgumentDefaultValueMissingError{}), "Error is {:?})", e);
 }
 

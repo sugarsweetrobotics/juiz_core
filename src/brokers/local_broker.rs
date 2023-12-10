@@ -33,7 +33,7 @@ impl Broker for LocalBroker {
     }
 
     fn start(&mut self) -> JuizResult<()> {
-        log::trace!("LocalBroker::start() called");;
+        log::trace!("LocalBroker::start() called");
         let thread_builder = Builder::new().name("local_broker".to_string());
         let end_flag = Arc::new(AtomicBool::from(false));
         self.end_flag = Some(Arc::clone(&end_flag));
