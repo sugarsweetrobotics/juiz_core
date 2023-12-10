@@ -17,6 +17,7 @@ pub struct CoreStore {
 
     container_process_factories: HashMap<String, Arc<Mutex<dyn ContainerProcessFactory>>>,
     container_processes: HashMap<Identifier, Arc<Mutex<dyn ContainerProcess>>> ,
+
 }
 
 
@@ -61,6 +62,7 @@ impl CoreStore {
         Ok(cf)
     }
 
+
     pub fn process_factory(&self, type_name: &str) -> JuizResult<&Arc<Mutex<dyn ProcessFactory>>> {
         match self.process_factories.get(type_name) {
             None => return Err(anyhow::Error::from(JuizError::ProcessFactoryCanNotFoundError{type_name: type_name.to_string()})),
@@ -81,7 +83,6 @@ impl CoreStore {
             Some(pf) => return Ok(pf)
         }
     }
-
 
     pub fn register_process(&mut self, p: Arc<Mutex<dyn Process>>) -> JuizResult<Arc<Mutex<dyn Process>>> {
         let id = juiz_lock(&p)?.identifier().clone();

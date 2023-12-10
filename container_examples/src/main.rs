@@ -1,4 +1,4 @@
-use juiz_core::{System, jvalue, JuizResult, Broker};
+use juiz_core::{System, jvalue, JuizResult, BrokerProxy};
 
 pub fn main() -> JuizResult<()> {
 
@@ -42,11 +42,8 @@ pub fn main() -> JuizResult<()> {
 
     System::new(manifest)?.run_and_do(|system|{
         println!("JuizSystem started!!");
-        let v = system.core_broker().lock().unwrap().profile_full()?;
+        let v = system.broker_proxy(&jvalue!({"type_name":"core"}))?.lock().unwrap().profile_full()?;
         println!("System: {:#}", v);
-        //let c = system.container_from_id(&"container_a".to_string())?;
-        //let retval = proc.try_lock().expect("Lock failed").invoke()?;
-        //println!("retval = {}", c.try_lock().unwrap().to_string());
         Ok(())
     })
 }

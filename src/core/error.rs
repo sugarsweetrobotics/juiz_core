@@ -56,6 +56,16 @@ pub enum JuizError {
     ContainerFactoryOfSameTypeNameAlreadyExistsError { type_name: String },
     #[error("ContainerProcessFactory({type_name:}) is already loaded.")]
     ContainerProcessFactoryOfSameTypeNameAlreadyExistsError { type_name: String },
+    #[error("BrokerFactory({type_name:}) is already loaded.")]
+    BrokerFactoryOfSameTypeNameAlreadyExistsError { type_name: String },
+    #[error("BrokerProxyFactory({type_name:}) is already loaded.")]
+    BrokerProxyFactoryOfSameTypeNameAlreadyExistsError { type_name: String },
+    #[error("BrokerFactory({type_name_bf:}) and BrokerProxyFactory({type_name_bpf:}) is loaded.")]
+    BrokerFactoryAndBrokerProxyFactoryWithDifferentTypeIsRegisteredError { type_name_bf: String, type_name_bpf: String },
+    #[error("BrokerFactory({type_name:}) can not be found.")]
+    BrokerFactoryCanNotFoundError { type_name: String },
+    #[error("BrokerStopFailedError (type_name={type_name:})")]
+    BrokerStopFailedError { type_name: String },
     /*
     ProcessManifestError,
     ArgumentMissingError,

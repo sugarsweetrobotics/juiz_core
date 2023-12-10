@@ -26,6 +26,18 @@ pub fn when_contains_do<T, F:Fn(&Value)->JuizResult<T>>(manifest: &Value, key: &
     }
 }
 
+pub fn when_contains_do_mut<T, F:FnMut(&Value)->JuizResult<T>>(manifest: &Value, key: &str, mut func: F) -> JuizResult<Option<T>> {
+    match manifest.as_object() {
+        None => Err(anyhow::Error::from(JuizError::ValueIsNotObjectError { value: manifest.clone() })),
+        Some(obj_v) => {
+            match obj_v.get(key) {
+                None => Ok(None), //Err(anyhow::Error::from(JuizError::ValueWithKeyNotFoundError { value: manifest.clone(), key: key.to_string() })),
+                Some(v) => Ok(Some(func(v)?))
+            }
+        }
+    }
+}
+
 pub fn get_array<'a>(manifest: &'a Value) -> JuizResult<&'a Vec<Value>> {
     match manifest.as_array() {
         None => Err(anyhow::Error::from(JuizError::ValueIsNotArrayError{value: manifest.clone()})),
