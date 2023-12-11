@@ -12,6 +12,10 @@ pub mod local_broker_proxy_factory;
 
 pub mod broker_factories_wrapper;
 
+pub mod crud_broker;
+pub mod http_broker;
+pub mod http_router;
+
 pub use broker::Broker;
 pub use broker_factory::BrokerFactory;
 pub use broker_proxy::BrokerProxy;

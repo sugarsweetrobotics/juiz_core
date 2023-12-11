@@ -1,4 +1,6 @@
 
+use std::sync::mpsc;
+
 use thiserror::Error;
 
 use crate::Value;
@@ -24,6 +26,10 @@ pub enum JuizError {
     ProcessCanNotFoundByIdError { id: String },
     #[error("Value(key={key:}) in Value({value:}) is not string.")]
     ValueWithKeyIsNotStringError { value: Value, key: String },
+
+    #[error("Value(key={key:}) in Value({value:}) is not bool.")]
+    ValueWithKeyIsNotBoolError { value: serde_json::Value, key: String },
+
     #[error("Value(key={key:}) in Value({value:}) is not object.")]
     ValueWithKeyIsNotObjectError { value: Value, key: String },
     #[error("Value(key={key:}) in Value({value:}) can not be found.")]
@@ -66,6 +72,23 @@ pub enum JuizError {
     BrokerFactoryCanNotFoundError { type_name: String },
     #[error("BrokerStopFailedError (type_name={type_name:})")]
     BrokerStopFailedError { type_name: String },
+    #[error("LocalBrokerProxy::send() Failed. (SendError({send_error:}))")]
+    LocalBrokerProxySendError { send_error: mpsc::SendError<serde_json::Value> },
+    #[error("LocalBrokerProxy::recv() Timeout. (RecvTimeoutError({error:}))")]
+    LocalBrokerProxyReceiveTimeoutError{ error: mpsc::RecvTimeoutError },
+    #[error("BrokerProxy::recv() failed. Function request(name={function_name:}) does not match to the response({response_function_name:})")]
+    BrokerProxyFunctionNameInResponseDoesNotMatchError { function_name: String, response_function_name: String },
+    #[error("Requested Function Name ({request_function_name:}) is not supported by Broker")]
+    BrokerProxyRequestFunctionNameNotSupportedError { request_function_name: String },
+    #[error("Broker Send Error (err={error:})")]
+    BrokerSendError { error: mpsc::SendError<serde_json::Value> },
+    #[error("Broker can not Lock sender mutex.")]
+    BrokerSendCanNotLockSenderError {  },
+    #[error("Broker can not Lock receiver mutex.")]
+    BrokerRecvCanNotLockReceiverError {  },
+    #[error("CRUDBroker can not detect resource class_name. resoure_name is {resource_name:}")]
+    CRUDBrokerGivenResourseNameHasNoClassNameError { resource_name: String },
+
     /*
     ProcessManifestError,
     ArgumentMissingError,

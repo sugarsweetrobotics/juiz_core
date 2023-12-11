@@ -14,7 +14,7 @@ use crate::utils::manifest_util::type_name;
 use crate::value::obj_get_str;
 use crate::{Value, jvalue, Process, BrokerProxy, Identifier, JuizError, JuizResult, core::core_store::CoreStore};
 
-use crate::connection::connect;
+use crate::connections::connect;
 
 #[allow(unused)]
 pub struct CoreBroker {
@@ -120,4 +120,8 @@ impl BrokerProxy for CoreBroker {
             "core_store" : self.core_store.profile_full()?
         }))
     }
+}
+
+unsafe impl Send for CoreBroker {
+
 }

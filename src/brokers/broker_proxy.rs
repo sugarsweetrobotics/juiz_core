@@ -1,7 +1,7 @@
 
 use crate::{Identifier, Value, JuizResult};
 
-pub trait BrokerProxy {
+pub trait BrokerProxy : Send {
 
     fn is_in_charge_for_process(&self, _id: &Identifier) -> JuizResult<bool>;
 

@@ -3,7 +3,7 @@ extern crate juiz_core;
 use juiz_core::JuizResult;
 
 use crate::juiz_core::value::*;
-use crate::juiz_core::process::process_factory_impl::ProcessFactoryImpl;
+use crate::juiz_core::processes::process_factory_impl::ProcessFactoryImpl;
     
 #[allow(dead_code)]
 fn increment_function(v: Value) -> JuizResult<Value> {

@@ -1,6 +1,6 @@
 use std::sync::{Mutex, Arc};
-
-use crate::{jvalue, ContainerProcessFactory, Value, JuizResult, utils::check_process_factory_manifest, Container, value::obj_get_str, process::container_process_impl::ContainerProcessImpl, ContainerProcess};
+use super::container_process_impl::ContainerProcessImpl;
+use crate::{jvalue, ContainerProcessFactory, Value, JuizResult, utils::check_process_factory_manifest, Container, value::obj_get_str, ContainerProcess};
 
 
 

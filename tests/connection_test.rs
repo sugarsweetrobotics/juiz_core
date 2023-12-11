@@ -3,9 +3,9 @@ use std::sync::Arc;
 use std::sync::Mutex;
 
 use crate::juiz_core::*;
-use crate::juiz_core::process::process_impl::*;
-use juiz_core::process::Process;
-use crate::juiz_core::connection::connect;
+use crate::juiz_core::processes::process_impl::*;
+use juiz_core::processes::Process;
+use crate::juiz_core::connections::connect;
     
 #[allow(dead_code)]
 fn increment_function(v: Value) -> JuizResult<Value> {

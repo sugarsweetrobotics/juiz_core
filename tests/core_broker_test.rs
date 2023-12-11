@@ -1,7 +1,7 @@
 extern crate juiz_core;
 use crate::juiz_core::{Value, jvalue};
-use crate::juiz_core::process::process_impl::*;
-use crate::juiz_core::process::Process;
+use crate::juiz_core::processes::process_impl::*;
+use crate::juiz_core::processes::Process;
 use crate::juiz_core::*;
 use std::sync::{Arc, Mutex};
 

@@ -9,7 +9,7 @@ use std::sync::{Mutex, Arc};
 use crate::value::*;
 use core::fmt::Debug;
 use std::clone::Clone;
-use crate::connection::destination_connection::DestinationConnectionType;
+use crate::connections::destination_connection::DestinationConnectionType;
 
 use super::DestinationConnection;
 

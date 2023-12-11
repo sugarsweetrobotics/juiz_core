@@ -1,10 +1,7 @@
 
 use std::sync::{Mutex, Arc};
-use crate::JuizResult;
-use crate::process::container_impl::ContainerImpl;
-use crate::utils::check_process_factory_manifest;
-use crate::value::obj_get_str;
-use crate::{jvalue, JuizError, Value, Container, ContainerFactory};
+use super::container_impl::ContainerImpl;
+use crate::{jvalue, JuizError, Value, Container, ContainerFactory, JuizResult, utils::check_process_factory_manifest, value::obj_get_str};
 
 use super::container_factory::ContainerConstructFunction;
 
@@ -53,7 +50,6 @@ impl<T: 'static> ContainerFactory for ContainerFactoryImpl<T> {
 
     fn type_name(&self) -> &str {
         obj_get_str(&self.manifest, "type_name").unwrap()
-//        self.manifest.get("type_name").unwrap().as_str().unwrap()
     }
 
     fn create_container(&self, manifest: Value) -> JuizResult<Arc<Mutex<dyn Container>>>{

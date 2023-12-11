@@ -9,7 +9,7 @@ use crate::value::{obj_get_str, obj_get_obj};
 use crate::{Value, jvalue, Process, Identifier, JuizError, JuizResult};
 
 use crate::utils::{check_manifest_before_call, check_process_manifest};
-use crate::connection::{SourceConnection, SourceConnectionImpl, DestinationConnection, DestinationConnectionImpl};
+use crate::connections::{SourceConnection, SourceConnectionImpl, DestinationConnection, DestinationConnectionImpl};
 
 pub struct ProcessImpl {
     manifest: Value,

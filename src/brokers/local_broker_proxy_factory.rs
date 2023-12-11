@@ -1,26 +1,27 @@
 
 use std::sync::{Mutex, Arc};
 use crate::brokers::LocalBrokerProxy;
-use crate::{jvalue, Value, JuizResult, CoreBroker, BrokerProxy};
+use crate::{jvalue, Value, JuizResult, BrokerProxy};
 
 use super::broker_proxy_factory::BrokerProxyFactory;
+use super::local_broker::SenderReceiverPair;
 
 
 pub struct LocalBrokerProxyFactory {
-    core_broker: Arc<Mutex<CoreBroker>>
+    broker_proxy: Arc<Mutex<dyn BrokerProxy>>,
 }
 
-pub fn create_local_broker_factory(core_broker: Arc<Mutex<CoreBroker>>) -> JuizResult<Arc<Mutex<dyn BrokerProxyFactory>>> {
+pub fn create_local_broker_factory(sender_receiver: Arc<Mutex<SenderReceiverPair>>) -> JuizResult<Arc<Mutex<dyn BrokerProxyFactory>>> {
     log::trace!("create_local_broker_factory called");
-    LocalBrokerProxyFactory::new(core_broker)
+    LocalBrokerProxyFactory::new(sender_receiver)
 }
 
 impl LocalBrokerProxyFactory {
 
-    pub fn new(core_broker: Arc<Mutex<CoreBroker>>) -> JuizResult<Arc<Mutex<dyn BrokerProxyFactory>>> {
+    pub fn new(sender_receiver: Arc<Mutex<SenderReceiverPair>> ) -> JuizResult<Arc<Mutex<dyn BrokerProxyFactory>>> {
         Ok(Arc::new(Mutex::new(
             LocalBrokerProxyFactory{
-                core_broker
+                broker_proxy: LocalBrokerProxy::new(sender_receiver)?,
             }
         )))
     }
@@ -44,12 +45,8 @@ impl BrokerProxyFactory for LocalBrokerProxyFactory {
 
     fn create_broker_proxy(&self, manifest: Value) -> JuizResult<Arc<Mutex<dyn BrokerProxy>>>{
         log::trace!("LocalBrokerFactory::create_broker_proxy(manifest={}) called", manifest);
-        Ok(
-            LocalBrokerProxy::new(
-                Arc::clone(&self.core_broker))?
-        )
+        Ok(Arc::clone(&self.broker_proxy))
     }
-
 
     fn profile_full(&self) -> JuizResult<Value> {
         Ok(jvalue!({

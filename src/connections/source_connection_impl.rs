@@ -3,7 +3,7 @@
 
 use anyhow::Context;
 
-use crate::{jvalue, Value, Process, JuizError, JuizResult, Identifier, utils::juiz_lock, connection::source_connection::SourceConnectionType, value::obj_get_str};
+use crate::{jvalue, Value, Process, JuizError, JuizResult, Identifier, utils::juiz_lock, connections::source_connection::SourceConnectionType, value::obj_get_str};
 use std::sync::{Mutex, Arc};
 use core::fmt::Debug;
 use std::clone::Clone;

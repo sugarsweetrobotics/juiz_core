@@ -2,7 +2,7 @@
 
 pub mod connection_builder {
     use std::sync::{Arc, Mutex};
-    use crate::{process::Process, Value, System, utils::{get_value, get_str, juiz_lock}, JuizResult};
+    use crate::{processes::Process, Value, System, utils::{get_value, get_str, juiz_lock}, JuizResult};
 
     pub fn create_connections(system: &System, manifest: &Value) -> JuizResult<Value> {
         log::trace!("connection_builder::create_connections(manifest={:?}) called", manifest);

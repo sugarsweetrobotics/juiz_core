@@ -2,10 +2,10 @@
 
 
 pub mod system_builder {
-    use std::{path::PathBuf, sync::{Mutex, Arc}};
+    use std::{path::PathBuf, sync::{Mutex, Arc, mpsc}};
 
-    use crate::{jvalue, System, Value, JuizResult, core::Plugin, ProcessFactory, process::{ProcessFactoryWrapper, container_factory_wrapper::ContainerFactoryWrapper, container_process_factory_wrapper::ContainerProcessFactoryWrapper}, utils::{get_array, get_hashmap, when_contains_do}, 
-    connection::connection_builder::connection_builder, utils::{juiz_lock, manifest_util::when_contains_do_mut}, value::obj_get_str, ContainerFactory, ContainerProcessFactory, BrokerFactory, BrokerProxyFactory, brokers::{broker_factories_wrapper::BrokerFactoriesWrapper, local_broker_factory::LocalBrokerFactory, local_broker_proxy_factory::LocalBrokerProxyFactory}};
+    use crate::{jvalue, System, Value, JuizResult, core::Plugin, ProcessFactory, processes::{ProcessFactoryWrapper, container_factory_wrapper::ContainerFactoryWrapper, container_process_factory_wrapper::ContainerProcessFactoryWrapper}, utils::{get_array, get_hashmap, when_contains_do}, 
+    connections::connection_builder::connection_builder, utils::{juiz_lock, manifest_util::when_contains_do_mut}, value::obj_get_str, ContainerFactory, ContainerProcessFactory, BrokerFactory, BrokerProxyFactory, brokers::{broker_factories_wrapper::BrokerFactoriesWrapper, local_broker_factory::LocalBrokerFactory, local_broker_proxy_factory::LocalBrokerProxyFactory, local_broker::SenderReceiverPair, http_broker::HTTPBroker}};
  
     pub fn setup_plugins(system: &mut System, manifest: &Value) -> JuizResult<()> {
         log::trace!("system_builder::setup_plugins({}) called", manifest);
@@ -149,10 +149,13 @@ pub mod system_builder {
 
     pub fn setup_local_broker_factory(system: &mut System) -> JuizResult<()> {
         log::debug!("system_builder::setup_local_broker_factory() called");
-        system.register_broker_factories_wrapper(BrokerFactoriesWrapper::new(None, 
-            LocalBrokerFactory::new(Arc::clone(&system.core_broker()))?, 
-            LocalBrokerProxyFactory::new(Arc::clone(&system.core_broker()))?
-    )?)?;
+        let (c_sender, c_receiver) = mpsc::channel::<Value>();
+        let (p_sender, p_receiver) = mpsc::channel::<Value>();
+
+        let _wrapper = system.register_broker_factories_wrapper(BrokerFactoriesWrapper::new(None, 
+            LocalBrokerFactory::new(system.core_broker().clone(), Arc::new(Mutex::new(SenderReceiverPair(p_sender, c_receiver))))?, 
+            LocalBrokerProxyFactory::new(Arc::new(Mutex::new(SenderReceiverPair(c_sender, p_receiver)))
+        )?)?)?;
         Ok(())
     }
 
@@ -162,12 +165,16 @@ pub mod system_builder {
             "type_name": "local"
         }))?;
         system.register_broker(local_broker)?;
+
+        let http_broker = HTTPBroker::new(system.core_broker().clone())?;
+
+        system.register_broker(http_broker)?;
         Ok(())
     }
 
     pub fn setup_brokers(_system: &System, _manifest: &Value) -> JuizResult<()> {
         log::trace!("system_builder::setup_brokers() called");
-        
+
         Ok(())
     }
 

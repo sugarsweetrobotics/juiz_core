@@ -55,6 +55,13 @@ pub fn obj_get_str<'a>(value: &'a Value, key: &str) -> JuizResult<&'a str> {
     }
 }
 
+pub fn obj_get_bool(value: &Value, key: &str) -> JuizResult<bool> {
+    let obj = obj_get(value, key)?;
+    match obj.as_bool() {
+        None  => Err(anyhow::Error::from(JuizError::ValueWithKeyIsNotBoolError{value: value.clone(), key: key.to_string()})),
+        Some(s) => return Ok(s)
+    }
+}
 pub fn obj_get_obj<'a>(value: &'a Value, key: &str) -> JuizResult<&'a Map<String, Value>> {
     let obj = obj_get(value, key)?;
     match obj.as_object() {
