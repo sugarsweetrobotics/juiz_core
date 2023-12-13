@@ -9,6 +9,9 @@ pub enum JuizObjectClass {
     ProcessFactory(&'static str),
     ContainerFactory(&'static str),
     ContainerProcessFactory(&'static str),
+    ExecutionContext(&'static str),
+    ExecutionContextFactory(&'static str),
+
     Broker(&'static str),
     BrokerFactory(&'static str),
     BrokerProxy(&'static str),
@@ -26,6 +29,8 @@ impl JuizObjectClass {
             JuizObjectClass::ContainerFactory(_) => "ContainerFactory",
             JuizObjectClass::ContainerProcess(_) => "ContainerProcess",
             JuizObjectClass::ContainerProcessFactory(_) => "ContainerProcessFactory",
+            JuizObjectClass::ExecutionContext(_) => "ExecutionContext",
+            JuizObjectClass::ExecutionContextFactory(_) => "ExecutionContextFactory",
 
             JuizObjectClass::Broker(_) => "Broker",
             JuizObjectClass::BrokerFactory(_) => "BrokerFactory",
