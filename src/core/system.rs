@@ -3,27 +3,28 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
+use anyhow::Context;
+
 use crate::brokers::broker_factories_wrapper::BrokerFactoriesWrapper;
-use crate::value::obj_get_str;
-use crate::{JuizResult, Container, BrokerProxy, Broker};
+use crate::object::{ObjectCore, JuizObjectCoreHolder, JuizObjectClass};
+use crate::value::{obj_get_str, obj_merge, obj_insert};
+use crate::{JuizResult, Container, BrokerProxy, Broker, JuizObject, CoreBroker, Value, JuizError, Identifier, Process, jvalue};
 use crate::utils::juiz_lock;
 use crate::utils::manifest_util::{id_from_manifest, when_contains_do_mut};
-use super::system_builder;
-use crate::{CoreBroker, Value, JuizError, Identifier, Process, jvalue};
+use super::system_builder::system_builder;
 use crate::utils::when_contains_do;
 
 use std::time;
 
 #[allow(dead_code)]
 pub struct System {
+    core: ObjectCore,
     manifest: Value,
     core_broker: Arc<Mutex<CoreBroker>>,
     sleep_time: Duration,
-
     broker_factories: HashMap<String, Arc<Mutex<BrokerFactoriesWrapper>>>,
     brokers: HashMap<String, Arc<Mutex<dyn Broker>>>,
     broker_proxies: HashMap<String, Arc<Mutex<dyn BrokerProxy>>>,
-    
 }
 
 fn check_system_manifest(manifest: Value) -> JuizResult<Value> {
@@ -33,14 +34,32 @@ fn check_system_manifest(manifest: Value) -> JuizResult<Value> {
     return Ok(manifest);
 }
 
+impl JuizObjectCoreHolder for System {
+    fn core(&self) -> &ObjectCore {
+        &self.core
+    }
+}
+
+impl JuizObject for System {
+    fn profile_full(&self) -> JuizResult<Value> {
+        let bf = juiz_lock(self.core_broker())?.profile_full()?;
+        let p = self.core.profile_full()?;
+        obj_merge(p, &jvalue!({
+            "core_broker": bf,
+        }))
+    }
+}
+
+
 impl System {
 
     pub fn new(manifest: Value) -> JuizResult<System> {
         env_logger::init();
         let updated_manifest = check_system_manifest(manifest)?;
         Ok(System{
+            core: ObjectCore::create(JuizObjectClass::System("System"), "system", "system"),
             manifest: updated_manifest.clone(),
-            core_broker: Arc::new(Mutex::new(CoreBroker::new(jvalue!({"name": "core_broker"}))?)),
+            core_broker: Arc::new(Mutex::new(CoreBroker::new(jvalue!({"type_name": "CoreBroker", "name": "core_broker"}))?)),
             sleep_time: time::Duration::from_millis(100),
             broker_factories: HashMap::new(),
             brokers: HashMap::new(),
@@ -69,31 +88,31 @@ impl System {
         log::trace!("System::setup() called");
         let manifest_copied = self.manifest.clone();
         let _ = when_contains_do_mut(&manifest_copied, "plugins", |v| {
-            system_builder::system_builder::setup_plugins(self, v)
-        }).expect("setup_plugins during System::setup() failed.");
+            system_builder::setup_plugins(self, v).context("system_builder::setup_plugins in System::setup() failed")
+        })?;
 
         let _ = when_contains_do(&self.manifest, "processes", |v| {
-            system_builder::system_builder::setup_processes(self, v)
-        }).expect("setup_processes during System::setup() failed.");
+            system_builder::setup_processes(self, v).context("system_builder::setup_processes in System::setup() failed")
+        })?;
 
         let _ = when_contains_do(&self.manifest, "containers", |v| {
-            system_builder::system_builder::setup_containers(self, v)
-        }).expect("setup_containers during System::setup() failed.");
+            system_builder::setup_containers(self, v).context("system_builder::setup_containers in System::setup() failed")
+        })?;
 
-        system_builder::system_builder::setup_local_broker_factory(self).expect("setup_local_broker_factory durin System::setup() failed.");
-        system_builder::system_builder::setup_local_broker(self).expect("setup_local_broker during System::setup() failed.");
+        system_builder::setup_local_broker_factory(self).context("system_builder::setup_local_broker_factory in System::setup() failed.")?;
+        system_builder::setup_local_broker(self).context("system_builder::setup_local_broker in System::setup() failed.")?;
 
         let _ = when_contains_do_mut(&manifest_copied, "brokers", |v| {
-            system_builder::system_builder::setup_brokers(self, v)
-        }).expect("setup_brokers during System::setup() failed.");
+            system_builder::setup_brokers(self, v).context("system_builder::setup_brokers in System::setup() failed.")
+        })?;
 
         let _ =  when_contains_do(&self.manifest, "connections", |v| {
-            system_builder::system_builder::setup_connections(self, v)
-        }).expect("setup_connections during System::setup() failed.");
-        
+            system_builder::setup_connections(self, v).context("system_builder::setup_connections in System::setup() failed.")
+        })?;
+
         for (type_name, broker) in self.brokers.iter() {
             log::info!("starting Broker({type_name:})");
-            let _ = juiz_lock(&broker)?.start()?;
+            let _ = juiz_lock(&broker)?.start().context("Broker(type_name={type_name:}).start() in System::setup() failed.")?;
         }
 
         log::debug!("System::setup() successfully finished.");
@@ -123,37 +142,40 @@ impl System {
     pub fn run(&mut self) -> JuizResult<()> {
         log::debug!("System::run() called");
         log::debug!("Juiz System Now Started.");
-        self.setup()?;
-        self.wait_for_singal()?;
+        self.setup().context("System::setup() in System::run() failed.")?;
+        self.wait_for_singal().context("System::wait_for_signal() in System::run() failed.")?;
         log::debug!("System::run() exit");
         Ok(())
     }
 
     pub fn run_and_do(&mut self, func: fn(&mut System) -> JuizResult<()>) -> JuizResult<()> {
-        log::debug!("System::run() called");
+        log::debug!("System::run_and_do() called");
+        self.setup().context("System::setup() in System::run_and_do() failed.")?;
         log::debug!("Juiz System Now Started.");
-        self.setup()?;
-        (func)(self)?;
-        self.wait_for_singal()?;
+        (func)(self).context("User function passed for System::run_and_do() failed.")?;
+        self.wait_for_singal().context("System::wait_for_signal() in System::run_and_do() failed.")?;
         log::debug!("System::run() exit");
         Ok(())
     }
 
-    pub fn profile_full(&self) -> JuizResult<Value> {
-        Ok(jvalue!({
-            "core_broker": self.core_broker().lock().unwrap().profile_full()?
-        }))
-    }
-
     pub fn broker_proxy(&self, manifest: &Value) -> JuizResult<Arc<Mutex<dyn BrokerProxy>>> {
         log::trace!("System::broker_proxy({}) called", manifest);
-        let type_name = obj_get_str(manifest, "type_name")?;
+        let mut type_name = obj_get_str(manifest, "type_name")?;
         if type_name == "core" {
-            let cbf = Arc::clone(self.core_broker());
-            return Ok(cbf);
+            type_name = "local";
         }
+
+        let mut manifest_copied = manifest.clone();
+        match obj_get_str(manifest, "name") {
+            Ok(_) => {},
+            Err(_) => {
+                let counter = 0;
+                let name = type_name.to_string() + counter.to_string().as_str();
+                obj_insert(&mut manifest_copied, "name", jvalue!(name))?;
+            }
+        };
         let bfw = self.broker_factories_wrapper(type_name)?;
-        juiz_lock(bfw)?.create_broker_proxy(manifest)
+        juiz_lock(bfw)?.create_broker_proxy(&manifest_copied).context("System::broker_proxy()")
     }
 
     pub fn register_broker_factories_wrapper(&mut self, bf: Arc<Mutex<BrokerFactoriesWrapper>>) -> JuizResult<Arc<Mutex<BrokerFactoriesWrapper>>> {
@@ -163,6 +185,9 @@ impl System {
             return Err(anyhow::Error::from(JuizError::BrokerFactoryOfSameTypeNameAlreadyExistsError{type_name: type_name}));
         }
         self.broker_factories.insert(type_name, Arc::clone(&bf));
+
+        juiz_lock(&self.core_broker())?.store_mut().register_broker_factory_manifest("local", juiz_lock(&bf)?.profile_full()?)?;
+        
         Ok(bf)
     }
 
@@ -174,14 +199,24 @@ impl System {
     }
 
     pub fn create_broker(&self, manifest: &Value) -> JuizResult<Arc<Mutex<dyn Broker>>> {
+        log::trace!("System::create_broker({manifest:}) called");
         let type_name = obj_get_str(manifest, "type_name")?;
         let bf = self.broker_factories_wrapper(type_name)?;
-        juiz_lock(bf)?.create_broker(&manifest)
+        juiz_lock(bf).context("Locking BrokerFactoriesWrapper in System::create_broker() failed.")?.create_broker(&manifest).context("BrokerFactoriesWrapper.create_broker() failed in System::create_broker()")
     }
 
     pub(crate) fn register_broker(&mut self, broker: Arc<Mutex<dyn Broker>>) -> JuizResult<Arc<Mutex<dyn Broker>>> {
-        let type_name = juiz_lock(&broker)?.type_name().to_string();
-        self.brokers.insert(type_name, Arc::clone(&broker));
+        let type_name;
+        
+        {
+            type_name = juiz_lock(&broker).context("Locking broker to get type_name failed.")?.type_name().to_string();
+        }
+        log::trace!("System::register_broker(type_name={type_name:}) called");
+        
+        self.brokers.insert(type_name.clone(), Arc::clone(&broker));
+        let p =juiz_lock(&broker).context("Locking passed broker failed.")?.profile_full().context("Broker::profile_full")?;
+        juiz_lock(&self.core_broker()).context("Blocking CoreBroker failed.")?.store_mut().register_broker_manifest(type_name.as_str(), p)?;
+        
         Ok(broker)
     }
 

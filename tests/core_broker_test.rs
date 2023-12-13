@@ -53,7 +53,7 @@ fn core_broker_test() {
 
     //assert!(cb.is_in_charge_for_process(&id));
 
-    let retval = cb.call_process(&id, jvalue!({
+    let retval = cb.process_call(&id, jvalue!({
         "arg1": 1,
     }));
     match retval {

@@ -4,7 +4,7 @@ pub mod example_container_get {
     use std::sync::{Arc, Mutex};
 
     use example_container::example_container::ExampleContainer;
-    use juiz_core::{jvalue, JuizResult, Value, ContainerProcessFactory, processes::create_container_process_factory};
+    use juiz_core::{jvalue, JuizResult, Value, ContainerProcessFactory, containers::create_container_process_factory};
 
     
     #[no_mangle]

@@ -1,16 +1,12 @@
 use std::sync::{Arc, Mutex};
 
-use crate::{Value, JuizResult, Broker};
+use crate::{Value, JuizResult, Broker, JuizObject};
 
 
 
 
-pub trait BrokerFactory {
-
-    fn type_name(&self) -> &str;
+pub trait BrokerFactory : JuizObject {
 
     fn create_broker(&self, manifest: Value) -> JuizResult<Arc<Mutex<dyn Broker>>>;
-
-    fn profile_full(&self) -> JuizResult<Value>;
 
 }

@@ -1,4 +1,4 @@
-use std::sync::{Arc, Mutex};
+use std::{sync::{Arc, Mutex}, collections::HashMap};
 
 use crate::{jvalue, BrokerProxy, utils::juiz_lock, Value, JuizResult, JuizError, Identifier};
 
@@ -15,6 +15,12 @@ fn resource_name_to_cls_and_id<'a>(resource_name: &'a str, params: &Vec<String>)
     Ok((class_name, "".to_string()))
 }
 
+fn params_get(map: HashMap<String, String>, key: &str) -> JuizResult<String> {
+    match map.get(key) {
+        None => Err(anyhow::Error::from(JuizError::CRUDBrokerCanNotParameterFunctionError { key_name: key.to_string() })),
+        Some(v) => Ok(v.clone())
+    }
+}
 impl CRUDBroker {
 
 
@@ -26,34 +32,69 @@ impl CRUDBroker {
         todo!()
     }
 
-    pub fn read(&self, resource_name: &str) -> JuizResult<Value> {
-        match resource_name {
-            "system/profile_full" => {
-                juiz_lock(&self.core_broker)?.profile_full()
-            },
-            _ => {
-                Ok(jvalue!({}))
-            }
-        }
-    }  
-
-    pub fn read_with_param(&self, resource_name: &str, params: Vec<String>) -> JuizResult<Value> {
-        let (class_name, id) = resource_name_to_cls_and_id(resource_name, &params)?;
+    pub fn read_class(&self, class_name: &str, function_name: &str, params: HashMap<String, String>) -> JuizResult<Value> {
+        log::trace!("CRUDBroker::read_class called");
+        let cb = juiz_lock(&self.core_broker)?;
         match class_name {
-            "core_broker" => {
-                juiz_lock(&self.core_broker)?.profile_full()
+            "system" => {
+                match function_name {
+                    "profile_full" => return cb.system_profile_full(),
+                    _ => {
+                        return Err(anyhow::Error::from(JuizError::CRUDBrokerCanNotFindFunctionError{class_name:class_name.to_string(), function_name: function_name.to_string()}));
+                    }
+                }
+            },
+            "process" => {
+                
+                let id = params_get(params, "identifier")?;
+                match function_name {
+                    "profile_full" => return cb.process_profile_full(&id),
+                    _ => {
+                        return Err(anyhow::Error::from(JuizError::CRUDBrokerCanNotFindFunctionError{class_name:class_name.to_string(), function_name: function_name.to_string()}));
+                    }
+                }
             },
             _ => {
                 Ok(jvalue!({}))
             }
         }
-    }   
+    }
 
-    pub fn update(&self, resource_name: &str, params: Vec<String>, value: Value) -> JuizResult<Value> {
-        todo!()
+    pub fn update_class(&self, class_name: &str, function_name: &str, value: Value, params: HashMap<String, String>) -> JuizResult<Value> {
+        let cb = juiz_lock(&self.core_broker)?;
+        match class_name {
+            "system" => {
+                match function_name {
+                    _ => {
+                        return Err(anyhow::Error::from(JuizError::CRUDBrokerCanNotFindFunctionError{class_name:class_name.to_string(), function_name: function_name.to_string()}));
+                    }
+                }
+            },
+            "process" => {
+                let id = params_get(params, "identifier")?;
+                match function_name {
+                    "call" => return cb.process_call(&id, value),
+                    _ => {
+                        return Err(anyhow::Error::from(JuizError::CRUDBrokerCanNotFindFunctionError{class_name:class_name.to_string(), function_name: function_name.to_string()}));
+                    }
+                }
+            },
+            _ => {
+                Ok(jvalue!({}))
+            }
+        }
     }
 
     pub fn delete(&self, resource_name: &str, params: Vec<String>) -> JuizResult<Value> {
         todo!()
     }
+}
+
+
+pub fn read_class(crud_broker: &Arc<Mutex<CRUDBroker>>, class_name: &str, function_name: &str, params: HashMap<String,String>) -> JuizResult<Value> {
+    juiz_lock(crud_broker)?.read_class(class_name, function_name, params)
+}
+
+pub fn update_class(crud_broker: &Arc<Mutex<CRUDBroker>>, class_name: &str, function_name: &str, arg: Value, params: HashMap<String,String>) -> JuizResult<Value> {
+    juiz_lock(crud_broker)?.update_class(class_name, function_name, arg, params)
 }

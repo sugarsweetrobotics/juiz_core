@@ -8,7 +8,7 @@ use crate::{core::Plugin, BrokerFactory, BrokerProxyFactory};
 pub struct BrokerFactoriesWrapper {
     type_name: String,
     plugin: Option<Plugin>, 
-    broker_factory: Arc<Mutex<dyn BrokerFactory>>,
+    pub broker_factory: Arc<Mutex<dyn BrokerFactory>>,
     broker_proxy_factory: Arc<Mutex<dyn BrokerProxyFactory>>,
 }
 
@@ -28,6 +28,10 @@ impl BrokerFactoriesWrapper {
             broker_factory,
             broker_proxy_factory
         })))
+    }
+
+    pub fn profile_full(&self) -> JuizResult<Value> {
+        juiz_lock(&self.broker_factory)?.profile_full()
     }
 
     pub fn type_name(&self) -> &str {

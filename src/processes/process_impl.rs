@@ -4,14 +4,17 @@ use std::collections::HashMap;
 use std::sync::{Mutex, Arc};
 use serde_json::Map;
 
+use crate::identifier::{identifier_from_manifest, create_identifier_from_manifest};
+use crate::object::{JuizObjectCoreHolder, ObjectCore, JuizObjectClass};
 use crate::utils::manifest_util::get_hashmap_mut;
-use crate::value::{obj_get_str, obj_get_obj};
-use crate::{Value, jvalue, Process, Identifier, JuizError, JuizResult};
+use crate::value::{obj_get_str, obj_get_obj, obj_merge_mut};
+use crate::{Value, jvalue, Process, Identifier, JuizError, JuizResult, JuizObject};
 
 use crate::utils::{check_manifest_before_call, check_process_manifest};
 use crate::connections::{SourceConnection, SourceConnectionImpl, DestinationConnection, DestinationConnectionImpl};
 
 pub struct ProcessImpl {
+    core: ObjectCore,
     manifest: Value,
     function: Box<dyn Fn(Value) -> JuizResult<Value>>,
     identifier: Identifier,
@@ -25,23 +28,22 @@ pub fn argument_manifest(process_manifest: &Value) -> JuizResult<&Map<String, Va
     obj_get_obj(process_manifest, "arguments")
 }
 
-fn identifier_from_manifest(manifest: &Value) -> Identifier {
-    match obj_get_str(manifest, "identifier") {
-        Err(_) => obj_get_str(manifest, "name").unwrap().to_string(),
-        Ok(id) => id.to_string()
-    }
-}
 
 impl ProcessImpl {
 
     pub fn new(manif: Value, func: fn(Value) -> JuizResult<Value>) -> JuizResult<Self> {
         log::trace!("ProcessImpl::new(manifest={}) called", manif);
-        
         let manifest = check_process_manifest(manif)?;
+        let type_name = obj_get_str(&manifest, "type_name")?;
+        let object_name = obj_get_str(&manifest, "name")?;
         Ok(ProcessImpl{
+            core: ObjectCore::create(JuizObjectClass::Process("ProcessImpl"), 
+                type_name,
+                object_name,
+            ),
             manifest: manifest.clone(), 
             function: Box::new(func), 
-            identifier: identifier_from_manifest(&manifest),
+            identifier: create_identifier_from_manifest("Process", &manifest)?,
             source_connections: HashMap::new(),
             destination_connections: HashMap::new(),
             output_memo: RefCell::new(jvalue!(null)) })
@@ -51,10 +53,14 @@ impl ProcessImpl {
         log::trace!("ProcessImpl::new(manifest={}) called", manif);
         
         let manifest = check_process_manifest(manif)?;
+        let type_name = obj_get_str(&manifest, "type_name")?;
+        let object_name = obj_get_str(&manifest, "name")?;
         Ok(ProcessImpl{
+            core: ObjectCore::create(JuizObjectClass::Process("ProcessImpl"),
+            type_name, object_name),
             manifest: manifest.clone(), 
             function: func, 
-            identifier: identifier_from_manifest(&manifest),
+            identifier: identifier_from_manifest("core", "core", "Process", &manifest)?,
             source_connections: HashMap::new(),
             destination_connections: HashMap::new(),
             output_memo: RefCell::new(jvalue!(null)) })
@@ -65,7 +71,7 @@ impl ProcessImpl {
     }
 
     fn collect_values_exclude(&self, arg_name: &String, arg_value: Value) -> JuizResult<Value>{
-        log::trace!("ProcessImpl({:?}).collect_values_exclude({:?}) called.", self.identifier(), arg_name);
+        log::trace!("ProcessImpl({:?}).collect_values_exclude({:?}) called.", &self.identifier, arg_name);
         let mut value_map: Map<String, Value> = Map::new();
         value_map.insert(arg_name.clone(), arg_value.clone());
         
@@ -90,39 +96,46 @@ impl ProcessImpl {
 
 }
 
-impl Process for ProcessImpl {
-    
-    fn manifest(&self) -> &Value { 
-        &self.manifest
+impl JuizObjectCoreHolder for ProcessImpl {
+    fn core(&self) -> &crate::object::ObjectCore {
+        &self.core
     }
+}
+
+impl JuizObject for ProcessImpl {
+
 
     fn profile_full(&self) -> JuizResult<Value> {
-        let mut p = self.manifest.clone();
-        let p_hashmap = get_hashmap_mut(&mut p)?;
-        
         let mut sc_profs = jvalue!({});
         let sc_map = get_hashmap_mut(&mut sc_profs)?;
         for (key, value) in self.source_connections.iter() {
             sc_map.insert(key.to_owned(), value.profile_full()?);
         }
-        p_hashmap.insert("source_connections".to_string(), sc_profs);
 
         let mut dc_profs = jvalue!({});
         let dc_map = get_hashmap_mut(&mut dc_profs)?;
         for (key, value) in self.destination_connections.iter() {
             dc_map.insert(key.to_owned(), value.profile_full()?);
         }
-        p_hashmap.insert("destination_connections".to_string(), dc_profs);
-        Ok(p)
+
+        let mut v = self.core.profile_full()?;
+        obj_merge_mut(&mut v, &jvalue!({
+            "source_connections": sc_profs,
+            "destination_connections": dc_profs,
+        }))?;
+        Ok(v)
+    }
+}
+
+impl Process for ProcessImpl {
+    
+    fn manifest(&self) -> &Value { 
+        &self.manifest
     }
 
     fn call(&self, args: Value) -> JuizResult<Value> {
         check_manifest_before_call(&(self.manifest), &args)?;
         Ok((self.function)(args)?)
-    }
-
-    fn identifier(&self) -> &Identifier {
-        &self.identifier
     }
 
     fn is_updated(&self) -> JuizResult<bool> {
@@ -196,14 +209,6 @@ impl Process for ProcessImpl {
         Ok(connection_manifest)
     }
 }
-
-/*
-impl Connectable for ProcessImpl {
-
-    fn is_connected_from(&self) -> bool {
-        todo!()
-    }
-}*/
 
 impl Drop for ProcessImpl {
     fn drop(&mut self) {

@@ -1,8 +1,6 @@
-use crate::JuizResult;
+use crate::{JuizResult, JuizObject};
 
-pub trait Broker {
-
-    fn type_name(&self) -> &str;
+pub trait Broker : JuizObject {
 
     fn start(&mut self) -> JuizResult<()>;
 

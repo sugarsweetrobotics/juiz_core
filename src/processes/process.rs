@@ -1,13 +1,11 @@
 
 use std::sync::{Mutex, Arc};
 
-use crate::{Identifier, Value, JuizResult};
+use crate::{Identifier, Value, JuizResult, JuizObject};
 
 pub type ProcessFunction=dyn Fn(Value) -> JuizResult<Value>;
 
-pub trait Process {
-
-    fn identifier(&self) -> &Identifier;
+pub trait Process : JuizObject{
 
     fn call(&self, _args: Value) -> JuizResult<Value>;
 
@@ -17,7 +15,7 @@ pub trait Process {
 
     fn manifest(&self) -> &Value;
     
-    fn profile_full(&self) -> JuizResult<Value>;
+    // fn profile_full(&self) -> JuizResult<Value>;
     /*
      * invokeは自身の入力側接続をすべてinvokeしてデータを収集した後に、収集したデータで自身をcallして結果を返す。
      * 出力はmemo化されるので、配下がupdateされなければメモを返す。

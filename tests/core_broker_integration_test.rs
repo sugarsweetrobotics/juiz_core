@@ -61,7 +61,7 @@ fn core_broker_process_factory_integration_test() {
 
     //assert!(cb.is_in_charge_for_process(&id));
 
-    let retval = cb.call_process(&id, jvalue!({
+    let retval = cb.process_call(&id, jvalue!({
         "arg1": 1,
     }));
     match retval {
@@ -106,7 +106,7 @@ fn core_broker_process_factory_integration_connection_test() {
     //assert!(cb.is_in_charge_for_process(&id2));
     
 
-    let con_result = cb.connect_process_to(&id1,
+    let con_result = cb.process_connect_to(&id1,
          &"arg1".to_string(), 
          &id2, 
         jvalue!({
@@ -114,7 +114,7 @@ fn core_broker_process_factory_integration_connection_test() {
         }));
     assert!(con_result.is_ok(), "CoreBroker::connect() failed. Error is {:?}", con_result.err());
 
-    let retval = cb.execute_process(&id1);
+    let retval = cb.process_execute(&id1);
     match retval {
         Ok(vv) => {
             assert_eq!(vv.as_i64().unwrap(), 2);

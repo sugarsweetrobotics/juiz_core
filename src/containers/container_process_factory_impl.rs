@@ -1,21 +1,22 @@
 use std::sync::{Mutex, Arc};
 use super::container_process_impl::ContainerProcessImpl;
-use crate::{jvalue, ContainerProcessFactory, Value, JuizResult, utils::check_process_factory_manifest, Container, value::obj_get_str, ContainerProcess};
-
-
-
+use crate::{jvalue, ContainerProcessFactory, Value, JuizResult, utils::check_process_factory_manifest, Container, value::{obj_get_str, obj_merge}, ContainerProcess, JuizObject, Identifier, identifier::{identifier_from_manifest, create_factory_identifier_from_manifest}, object::{JuizObjectCoreHolder, ObjectCore, JuizObjectClass}};
 
 struct ContainerProcessFactoryImpl<T> {
+    core: ObjectCore,
     manifest: Value,
     function: fn(&mut Box<T>, Value) -> JuizResult<Value>,
 }
 
 impl<T: 'static> ContainerProcessFactoryImpl<T> {
     pub fn new(manifest: crate::Value, function: fn(&mut Box<T>, Value) -> JuizResult<Value>) -> JuizResult<Arc<Mutex<dyn ContainerProcessFactory>>> {
+        let type_name = obj_get_str(&manifest, "type_name")?;
         Ok(Arc::new(Mutex::new(
             ContainerProcessFactoryImpl{
-                manifest: check_process_factory_manifest(manifest)?, 
-                function
+                core: ObjectCore::create_factory(JuizObjectClass::ContainerProcessFactory("ContainerProcessFactoryImpl"), 
+                type_name),
+                function,
+                manifest,
             }
         )))
     }
@@ -34,18 +35,15 @@ pub fn create_container_process_factory<T: 'static>(manifest: crate::Value, func
     ContainerProcessFactoryImpl::<T>::new(manifest, function)
 }
 
+impl<T: 'static> JuizObjectCoreHolder for ContainerProcessFactoryImpl<T> {
+    fn core(&self) -> &crate::object::ObjectCore {
+        &self.core
+    }
+}
+
+impl<T: 'static> JuizObject for ContainerProcessFactoryImpl<T> {}
 
 impl<T: 'static> ContainerProcessFactory for ContainerProcessFactoryImpl<T> {
-    fn type_name(&self) -> &str {
-        obj_get_str(&self.manifest, "type_name").unwrap()
-    }
-
-    fn profile_full(&self) -> JuizResult<Value> {
-        Ok(jvalue!({
-            "type_name": self.type_name()
-        }))
-    }
-
     fn create_container_process(&self, container: Arc<Mutex<dyn Container>>, manifest: crate::Value) -> JuizResult<Arc<Mutex<dyn ContainerProcess>>> {
         log::trace!("ContainerProcessFactoryImpl::create_container_process(container, manifest={}) called", manifest);
         Ok(Arc::new(Mutex::new(

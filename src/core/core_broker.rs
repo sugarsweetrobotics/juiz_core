@@ -8,24 +8,34 @@ use anyhow::Context;
 
 use crate::Container;
 use crate::ContainerProcess;
+use crate::JuizObject;
+use crate::brokers::broker_proxy::ProcessBrokerProxy;
+use crate::brokers::broker_proxy::SystemBrokerProxy;
+use crate::identifier::create_identifier_from_manifest;
+use crate::object::JuizObjectClass;
+use crate::object::JuizObjectCoreHolder;
+use crate::object::ObjectCore;
 use crate::utils::check_corebroker_manifest;
 use crate::utils::juiz_lock;
 use crate::utils::manifest_util::type_name;
 use crate::value::obj_get_str;
+use crate::value::obj_merge;
 use crate::{Value, jvalue, Process, BrokerProxy, Identifier, JuizError, JuizResult, core::core_store::CoreStore};
 
 use crate::connections::connect;
 
 #[allow(unused)]
 pub struct CoreBroker {
+    core: ObjectCore,
     manifest: Value,
     core_store: CoreStore,
 }
 
 impl CoreBroker {
 
-    pub fn new(manifest: Value) -> Result<CoreBroker, JuizError> {
+    pub fn new(manifest: Value) -> JuizResult<CoreBroker> {
         Ok(CoreBroker{
+            core: ObjectCore::create(JuizObjectClass::BrokerProxy("CoreBroker"), "core", "core"),
             manifest: check_corebroker_manifest(manifest)?,
             core_store: CoreStore::new()
         })
@@ -97,30 +107,55 @@ impl CoreBroker {
 
 }
 
+
+impl JuizObjectCoreHolder for CoreBroker {
+    fn core(&self) -> &ObjectCore {
+        &self.core
+    }
+}
+
+impl JuizObject for CoreBroker {
+
+    fn profile_full(&self) -> JuizResult<Value> {
+        obj_merge(self.core.profile_full()?, &jvalue!({
+            "core_store" : self.core_store.profile_full()?,
+        }))
+    }
+}
+
+impl SystemBrokerProxy for CoreBroker {
+    fn system_profile_full(&self) -> JuizResult<Value> {
+        self.profile_full()
+    }
+}
+
+
+impl ProcessBrokerProxy for CoreBroker { 
+
+    fn process_call(&self, id: &Identifier, args: Value) -> JuizResult<Value> {
+        juiz_lock(&self.store().process(id)?)?.call(args)
+    }
+
+    fn process_execute(&self, id: &Identifier) -> JuizResult<Value> {
+        juiz_lock(&self.store().process(id)?).with_context(||format!("locking process(id={id:}) in CoreBroker::execute_process() function"))?.execute()
+    }
+
+    fn process_connect_to(&mut self, source_process_id: &Identifier, arg_name: &String, target_process_id: &Identifier, manifest: Value) -> JuizResult<Value> {
+        connect(self.store().process(source_process_id)?, self.store().process(target_process_id)?, arg_name, manifest)
+    }
+
+    fn process_profile_full(&self, id: &Identifier) -> JuizResult<Value> {
+        juiz_lock(&self.store().process(id)?).with_context(||format!("locking process(id={id:}) in CoreBroker::execute_process() function"))?.profile_full()
+    }
+}
+
 impl BrokerProxy for CoreBroker {
 
     fn is_in_charge_for_process(&self, id: &Identifier) -> JuizResult<bool> {
         Ok(self.store().process(id).is_ok())
     }
-
-    fn call_process(&self, id: &Identifier, args: Value) -> JuizResult<Value> {
-        juiz_lock(&self.store().process(id)?)?.call(args)
-    }
-
-    fn connect_process_to(&mut self, source_process_id: &Identifier, arg_name: &String, target_process_id: &Identifier, manifest: Value) -> JuizResult<Value> {
-        connect(self.store().process(source_process_id)?, self.store().process(target_process_id)?, arg_name, manifest)
-    }
-
-    fn execute_process(&self, id: &Identifier) -> JuizResult<Value> {
-        juiz_lock(&self.store().process(id)?).with_context(||format!("locking process(id={id:}) in CoreBroker::execute_process() function"))?.execute()
-    }
-
-    fn profile_full(&self) -> JuizResult<Value> {
-        Ok(jvalue!({
-            "core_store" : self.core_store.profile_full()?
-        }))
-    }
 }
+
 
 unsafe impl Send for CoreBroker {
 

@@ -1,9 +1,10 @@
 
 use std::sync::{Mutex, Arc};
-use crate::{jvalue, value::obj_get_str, Process, ProcessFactory, processes::process_impl::ProcessImpl, JuizError, Value, JuizResult, utils::check_process_factory_manifest};
+use crate::{jvalue, value::obj_get_str, Process, ProcessFactory, processes::process_impl::ProcessImpl, JuizError, Value, JuizResult, utils::check_process_factory_manifest, JuizObject, Identifier, identifier::{identifier_from_manifest, create_factory_identifier_from_manifest}, object::{ObjectCore, JuizObjectCoreHolder, JuizObjectClass}};
 
 #[repr(C)]
 pub struct ProcessFactoryImpl {
+    core: ObjectCore,
     manifest: Value,
     function: fn(Value) -> JuizResult<Value>,
 }
@@ -16,8 +17,12 @@ pub fn create_process_factory(manifest: crate::Value, function: fn(Value) -> Jui
 impl ProcessFactoryImpl {
 
     pub fn new(manifest: crate::Value, function: fn(Value) -> JuizResult<Value>) -> JuizResult<Arc<Mutex<dyn ProcessFactory>>> {
+        let type_name = obj_get_str(&manifest, "type_name")?;
         Ok(Arc::new(Mutex::new(
             ProcessFactoryImpl{
+                core: ObjectCore::create_factory(JuizObjectClass::ProcessFactory("ProcessFactoryImpl"),
+                    type_name
+                ),
                 manifest: check_process_factory_manifest(manifest)?, 
                 function
             }
@@ -33,13 +38,17 @@ impl ProcessFactoryImpl {
     }
 }
 
-impl ProcessFactory for ProcessFactoryImpl {
-
-
-    fn type_name(&self) -> &str {
-        obj_get_str(&self.manifest, "type_name").unwrap()
-//        self.manifest.get("type_name").unwrap().as_str().unwrap()
+impl JuizObjectCoreHolder for ProcessFactoryImpl {
+    fn core(&self) -> &ObjectCore {
+        &self.core
     }
+}
+
+
+impl JuizObject for ProcessFactoryImpl {
+}
+
+impl ProcessFactory for ProcessFactoryImpl {
 
     fn create_process(&self, manifest: Value) -> JuizResult<Arc<Mutex<dyn Process>>>{
         log::trace!("ProcessFactoryImpl::create_process(manifest={}) called", manifest);
@@ -48,13 +57,5 @@ impl ProcessFactory for ProcessFactoryImpl {
                 self.apply_default_manifest(manifest)?, 
                 self.function)?
         )))
-    }
-
-
-    fn profile_full(&self) -> JuizResult<Value> {
-        Ok(jvalue!({
-            "type_name": self.type_name()
-        }))
-    }
-    
+    }    
 }

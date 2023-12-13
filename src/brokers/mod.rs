@@ -5,10 +5,16 @@ pub mod broker_factory;
 pub mod broker_proxy;
 pub mod broker_proxy_factory;
 
+pub mod messenger_broker;
+pub mod messenger_broker_factory;
+pub mod messenger_broker_proxy;
+
 pub mod local_broker;
-pub mod local_broker_factory;
+//pub mod local_broker_factory;
 pub mod local_broker_proxy;
-pub mod local_broker_proxy_factory;
+
+//pub mod local_broker_proxy_factory;
+pub mod messenger_broker_proxy_factory;
 
 pub mod broker_factories_wrapper;
 

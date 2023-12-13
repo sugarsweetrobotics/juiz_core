@@ -1,25 +1,18 @@
 use std::sync::{Arc, Mutex};
 
-use crate::{Process, Identifier, Value, JuizResult, Container, utils::{juiz_lock, check_process_manifest, manifest_util::get_hashmap_mut}, JuizError, jvalue, value::obj_get_str};
+use crate::{Process, JuizObject, processes::process_impl::ProcessImpl, Identifier, Value, JuizResult, Container, utils::{juiz_lock, check_process_manifest, manifest_util::get_hashmap_mut}, JuizError, jvalue, value::{obj_get_str, obj_merge_mut, obj_merge}, identifier::{identifier_from_manifest, create_identifier_from_manifest}, object::{ObjectCore, JuizObjectClass, JuizObjectCoreHolder}};
 
-use super::{container::ContainerProcess, container_impl::ContainerImpl, process_impl::ProcessImpl};
+use super::{container_process::ContainerProcess, container_impl::ContainerImpl };
 
 
 
 pub type ContainerProcessFunction<T>=dyn Fn (&mut Box<T>, Value) -> JuizResult<Value> + 'static;
 
 
-fn identifier_from_manifest(manifest: &Value) -> Identifier {
-    match obj_get_str(manifest, "identifier") {
-        Err(_) => obj_get_str(manifest, "name").unwrap().to_string(),
-        Ok(id) => id.to_string()
-    }
-}
-
 
 #[allow(dead_code)]
 pub struct ContainerProcessImpl<T: 'static> {
-    identifier: Identifier,
+    core: ObjectCore,
     process: ProcessImpl,
     pub container: Arc<Mutex<dyn Container>>,
     container_identifier: Identifier,
@@ -30,11 +23,11 @@ impl<T: 'static> ContainerProcessImpl<T> {
 
     pub fn new<'a> (manif: Value, container: Arc<Mutex<dyn Container>>, function: fn (&mut Box<T>, Value) -> JuizResult<Value>) -> JuizResult<Self> {
         log::trace!("ContainerProcessImpl::new(manifest={}) called", manif);
-        let identifier = identifier_from_manifest(&manif);
+        //let identifier = create_identifier_from_manifest("ContainerProcess", &manif)?;
         let manifest = check_process_manifest(manif)?;
         let container_clone = Arc::clone(&container);
         let container_identifier = juiz_lock(&container)?.identifier().clone();
-        let proc = ProcessImpl::clousure_new(manifest, Box::new(move |args: Value| {
+        let proc = ProcessImpl::clousure_new(manifest.clone(), Box::new(move |args: Value| {
             let mut locked_container = juiz_lock(&container)?;
             match locked_container.downcast_mut::<ContainerImpl<T>>() {
                 None => Err(anyhow::Error::from(JuizError::ContainerDowncastingError{identifier: locked_container.identifier().clone()})),
@@ -44,10 +37,14 @@ impl<T: 'static> ContainerProcessImpl<T> {
             }
             
         }))?;
+        
+        let type_name = obj_get_str(&manifest, "type_name")?;
+        let object_name = obj_get_str(&manifest, "name")?;
         Ok(  
             (
                 move || ContainerProcessImpl::<T>{
-                    identifier,
+                    core: ObjectCore::create(JuizObjectClass::ContainerProcess("ContainerProcessImpl"), 
+                        type_name, object_name),
                     container_identifier,
                     container: container_clone,
                     process: proc,
@@ -55,33 +52,27 @@ impl<T: 'static> ContainerProcessImpl<T> {
                 }
             )()
         )
-        /*
-        let proc = ProcessImpl::clousure_new(manifest, Box::new(func))?;
-        Ok((move ||
-            ContainerProcessImpl::<T>{
-                container: container_clone,
-                process: proc,
-                function
-            })())
-            */
     }
 
     
 }
 
-impl<T: 'static> Process for ContainerProcessImpl<T> {
-    fn identifier(&self) -> &crate::Identifier {
-        &self.identifier
-        // self.process.identifier()
+impl<T: 'static> JuizObjectCoreHolder for ContainerProcessImpl<T> {
+    fn core(&self) -> &ObjectCore {
+        &self.core
     }
+}
 
-
+impl<T: 'static> JuizObject for ContainerProcessImpl<T> {
     fn profile_full(&self) -> JuizResult<Value> {
-        let mut prof = self.process.profile_full()?;
-        let p_hash = get_hashmap_mut(&mut prof)?;
-        p_hash.insert("container_identifier".to_string(), jvalue!(self.container_identifier));
-        Ok(prof)
+        obj_merge(self.process.profile_full()?, &jvalue!({
+            "container_identifier": self.container_identifier
+        }))
     }
+}
+
+impl<T: 'static> Process for ContainerProcessImpl<T> {
+
 
     fn manifest(&self) -> &crate::Value {
         self.process.manifest()

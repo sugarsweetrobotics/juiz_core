@@ -1,9 +1,11 @@
 
 
+use std::collections::HashMap;
+
 use serde_json::Map;
 pub use serde_json::json as jvalue;
 
-use crate::{JuizError, JuizResult};
+use crate::{JuizError, JuizResult, utils::{get_hashmap, manifest_util::get_hashmap_mut}};
 
 #[repr(transparent)]
 //#[repr(C)]
@@ -28,6 +30,30 @@ pub fn obj_get<'a>(value: &'a Value, key: &str) -> JuizResult<&'a Value> {
             }
         }
     }
+}
+
+pub fn obj_insert(value: &mut Value, key: &str, data: Value) -> JuizResult<()> {
+    get_hashmap_mut(value)?.insert(key.to_string(), data);
+    Ok(())
+}
+
+pub fn obj_merge_mut(value: &mut Value, data: &Value) -> JuizResult<()> {
+    let mut_map = get_hashmap_mut(value)?;
+    let data_map = get_hashmap(data)?;
+    for (k, v) in data_map.iter() {
+        mut_map.insert(k.clone(), v.clone());
+    }
+    Ok(())
+}
+
+
+pub fn obj_merge(mut value: Value, data: &Value) -> JuizResult<Value> {
+    let mut_map = get_hashmap_mut(&mut value)?;
+    let data_map = get_hashmap(data)?;
+    for (k, v) in data_map.iter() {
+        mut_map.insert(k.clone(), v.clone());
+    }
+    Ok(value)
 }
 
 pub fn obj_get_mut<'a>(value: &'a mut Value, key: &str) -> JuizResult<&'a mut Value> {
@@ -68,4 +94,14 @@ pub fn obj_get_obj<'a>(value: &'a Value, key: &str) -> JuizResult<&'a Map<String
         None  => Err(anyhow::Error::from(JuizError::ValueWithKeyIsNotObjectError{value: value.clone(), key: key.to_string()})),
         Some(s) => return Ok(s)
     }
+}
+
+pub fn obj_get_hashmap<'a>(value: &'a Value, key: &str) -> JuizResult<HashMap<String, Value>> {
+    let map = obj_get_obj(&value, key)?;
+    let mut ret_map: HashMap<String, Value> = HashMap::with_capacity(map.len());
+    for (k, v) in map.iter() {
+        ret_map.insert(k.clone(), v.clone());
+    }
+    Ok(ret_map)
+
 }

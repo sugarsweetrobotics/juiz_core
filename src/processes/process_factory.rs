@@ -1,13 +1,10 @@
 use std::sync::{Mutex, Arc};
 
-use crate::{Process, Value, JuizResult};
+use crate::{Process, Value, JuizResult, JuizObject};
 
 
-pub trait ProcessFactory {
+pub trait ProcessFactory: JuizObject {
 
-    fn type_name(&self) -> &str;
 
     fn create_process(&self, manifest: Value) -> JuizResult<Arc<Mutex<dyn Process>>>;
-
-    fn profile_full(&self) -> JuizResult<Value>;
 }

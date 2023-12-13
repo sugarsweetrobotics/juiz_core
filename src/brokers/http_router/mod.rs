@@ -1,20 +1,39 @@
-use std::sync::{Mutex, Arc};
+use std::collections::HashMap;
 
-use axum::{Router, routing::get, Json};
-use crate::{jvalue, utils::juiz_lock};
+use axum::{response::IntoResponse, http::{StatusCode, Response}, Json, extract::Query};
+use serde::Deserialize;
+use utoipa::IntoParams;
 
-use super::crud_broker::CRUDBroker;
+use crate::{JuizResult, Value, JuizError};
 
+pub mod any;
+//pub mod system;
+// pub mod process;
+//pub mod container;
 
-
-async fn get_profile_full() -> Json<serde_json::Value> {
-    Json(jvalue!({"system": "hoge"}))
+#[derive(Deserialize, IntoParams)]
+pub struct IdentifierQuery {
+    identifier: Option<String>,
 }
 
+pub fn query_to_map(query: &Query<IdentifierQuery>) -> HashMap<String, String> {
+    let mut map: HashMap<String, String> = HashMap::new();
+    match query.identifier.clone() {
+        None => {},
+        Some(v) => {
+            map.insert("identifier".to_string(), v);
+        }
+    }
+    map
+}
 
-pub fn system(crud_broker: Arc<Mutex<CRUDBroker>>) -> Router {
-    Router::new()
-        .route("/profile_full", get({
-            Json(juiz_lock(&crud_broker).unwrap().read("system/profile_full").unwrap())
-        }))
+pub fn json_wrap(result: JuizResult<Value>) -> impl IntoResponse {
+    match result {
+        Err(e) => {
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(format!("Internal Server Error: {}", e.to_string()))).into_response()
+        },
+        Ok(v) => {
+            Json(v).into_response()
+        }
+    }
 }

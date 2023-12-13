@@ -1,7 +1,7 @@
 use juiz_core::{System, jvalue, JuizResult};
 
 #[tokio::main]
-async fn main() -> JuizResult<()> {
+async fn main() -> JuizResult<()>{
 
     let manifest = jvalue!(
         {
@@ -41,10 +41,10 @@ async fn main() -> JuizResult<()> {
         }
     );
 
-    System::new(manifest)?.run_and_do(|system|{
+    Ok(System::new(manifest)?.run_and_do(|system|{
         println!("JuizSystem started!!");
-        let v = system.broker_proxy(&jvalue!({"type_name":"local"}))?.lock().unwrap().profile_full()?;
+        let v = system.broker_proxy(&jvalue!({"type_name":"local"}))?.lock().unwrap().system_profile_full()?;
         println!("System: {:#}", v);
         Ok(())
-    })
+    }).expect("Error in System::run_and_do()"))
 }

@@ -1,27 +1,32 @@
 
 use std::sync::{Mutex, Arc};
+use anyhow::Context;
+
 use super::container_impl::ContainerImpl;
-use crate::{jvalue, JuizError, Value, Container, ContainerFactory, JuizResult, utils::check_process_factory_manifest, value::obj_get_str};
+use crate::{jvalue, JuizError, Value, Container, ContainerFactory, JuizResult, utils::check_process_factory_manifest, value::obj_get_str, JuizObject, Identifier, identifier::{identifier_from_manifest, create_identifier_from_manifest, create_factory_identifier_from_manifest}, object::{ObjectCore, JuizObjectClass, JuizObjectCoreHolder}};
 
 use super::container_factory::ContainerConstructFunction;
 
 
 #[repr(C)]
 pub struct ContainerFactoryImpl<T> {
+    core: ObjectCore,
     manifest: Value,
     constructor: ContainerConstructFunction<T>
 }
 
 pub fn create_container_factory<S: 'static>(manifest: crate::Value, constructor: ContainerConstructFunction<S>) -> JuizResult<Arc<Mutex<dyn ContainerFactory>>> {
     log::trace!("create_container_factory called");
-    ContainerFactoryImpl::new(manifest, constructor)
+    ContainerFactoryImpl::new(manifest, constructor).context("create_container_factory()")
 }
 
 impl<S: 'static> ContainerFactoryImpl<S> {
 
     pub fn new(manifest: crate::Value, constructor: ContainerConstructFunction<S>) -> JuizResult<Arc<Mutex<dyn ContainerFactory>>> {
+        let type_name = obj_get_str(&manifest, "type_name")?;
         Ok(Arc::new(Mutex::new(
             ContainerFactoryImpl::<S>{
+                core: ObjectCore::create_factory(JuizObjectClass::ContainerFactory("ContainerFactoryImpl"), type_name),
                 manifest: check_process_factory_manifest(manifest)?,
                 constructor
             }
@@ -37,27 +42,23 @@ impl<S: 'static> ContainerFactoryImpl<S> {
     }
 }
 
+
+impl<T: 'static> JuizObjectCoreHolder for ContainerFactoryImpl<T> {
+    fn core(&self) -> &ObjectCore {
+        &self.core
+    }
+}
+
+impl<T: 'static> JuizObject for ContainerFactoryImpl<T> {}
+
 impl<T: 'static> ContainerFactory for ContainerFactoryImpl<T> {
-
-
-    fn profile_full(&self) -> JuizResult<Value> {
-        Ok(jvalue!(
-            {
-                "type_name": self.type_name()
-            }
-        ))
-    }
-
-    fn type_name(&self) -> &str {
-        obj_get_str(&self.manifest, "type_name").unwrap()
-    }
 
     fn create_container(&self, manifest: Value) -> JuizResult<Arc<Mutex<dyn Container>>>{
         log::trace!("ContainerFactoryImpl::create_container(manifest={}) called", manifest);
         Ok(ContainerImpl::new(
                 self.apply_default_manifest(manifest.clone())?,
                 (self.constructor)(manifest)?
-            ))
+            )?)
     }
     
 }

@@ -34,8 +34,8 @@ pub enum JuizError {
     ValueWithKeyIsNotObjectError { value: Value, key: String },
     #[error("Value(key={key:}) in Value({value:}) can not be found.")]
     ValueWithKeyNotFoundError { value: Value, key: String },
-    #[error("Locking mutex failed.")]
-    MutexLockFailedError {},
+    #[error("Locking mutex failed. Error is \"{error:}\"")]
+    MutexLockFailedError { error: String },
     #[error("Process tried to use output_memo, but borrowing value failed.")]
     ProcessOutputMemoIsNotInitializedError { id: String },
     #[error("Process checked given argument({given_argument:}) but the argument does not contain the predefined specification ({process_manifest:})")]
@@ -88,6 +88,18 @@ pub enum JuizError {
     BrokerRecvCanNotLockReceiverError {  },
     #[error("CRUDBroker can not detect resource class_name. resoure_name is {resource_name:}")]
     CRUDBrokerGivenResourseNameHasNoClassNameError { resource_name: String },
+    #[error("CRUDBroker can not detect function ({function_name:}) in class_name ({class_name:})")]
+    CRUDBrokerCanNotFindFunctionError { class_name: String, function_name: String },
+    #[error("CRUDBroker can not get object identifier to execute function{function_name:}) in class({class_name:})")]
+    CRUDBrokerCanNotGetIdentifierOfObjectError { class_name: String, function_name: String },
+    #[error("CRUDBroker can not detect identifier parameter.")]
+    CRUDBrokerIdentifierNeededError {  },
+    #[error("CRUDBroker can not detect parameter (key={key_name}).")]
+    CRUDBrokerCanNotParameterFunctionError { key_name: String },
+    #[error("CRUDBroker can not detect parameter")]
+    CRUDBrokerParameterIsInvalidTypeError {  },
+    #[error("CRUDBroker can not detect method. Given method_name is {method_name:}")]
+    CRUDBRokerCanNotFindMethodError { method_name: String },
 
     /*
     ProcessManifestError,

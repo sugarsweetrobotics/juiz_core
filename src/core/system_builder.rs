@@ -4,21 +4,21 @@
 pub mod system_builder {
     use std::{path::PathBuf, sync::{Mutex, Arc, mpsc}};
 
-    use crate::{jvalue, System, Value, JuizResult, core::Plugin, ProcessFactory, processes::{ProcessFactoryWrapper, container_factory_wrapper::ContainerFactoryWrapper, container_process_factory_wrapper::ContainerProcessFactoryWrapper}, utils::{get_array, get_hashmap, when_contains_do}, 
-    connections::connection_builder::connection_builder, utils::{juiz_lock, manifest_util::when_contains_do_mut}, value::obj_get_str, ContainerFactory, ContainerProcessFactory, BrokerFactory, BrokerProxyFactory, brokers::{broker_factories_wrapper::BrokerFactoriesWrapper, local_broker_factory::LocalBrokerFactory, local_broker_proxy_factory::LocalBrokerProxyFactory, local_broker::SenderReceiverPair, http_broker::HTTPBroker}};
+    use anyhow::Context;
+
+    use crate::{jvalue, brokers::{broker_factories_wrapper::BrokerFactoriesWrapper, local_broker::{SenderReceiverPair, create_local_broker_factory}, http_broker::HTTPBroker, local_broker_proxy::create_local_broker_proxy_factory}, System, Value, JuizResult, core::Plugin, ProcessFactory, processes::ProcessFactoryWrapper, containers::{container_factory_wrapper::ContainerFactoryWrapper, container_process_factory_wrapper::ContainerProcessFactoryWrapper}, utils::{get_array, get_hashmap, when_contains_do, juiz_lock, manifest_util::when_contains_do_mut}, connections::connection_builder::connection_builder, value::obj_get_str, ContainerFactory, ContainerProcessFactory, BrokerFactory, BrokerProxyFactory};
  
     pub fn setup_plugins(system: &mut System, manifest: &Value) -> JuizResult<()> {
         log::trace!("system_builder::setup_plugins({}) called", manifest);
 
         let _ = when_contains_do_mut(manifest, "broker_factories", |v| {
-            setup_broker_factories(system, v)
+            setup_broker_factories(system, v).with_context(||format!("system_builder::setup_broker_factories(manifest={manifest:}) failed."))
         })?;
-
         let _ = when_contains_do(manifest, "process_factories", |v| {
-            setup_process_factories(system, v)
+            setup_process_factories(system, v).with_context(||format!("system_builder::setup_process_factories(manifest={manifest:}) failed."))
         })?;
         let _ = when_contains_do(manifest, "container_factories", |v| {
-            setup_container_factories(system, v)
+            setup_container_factories(system, v).with_context(||format!("system_builder::setup_container_factories(manifest={manifest:}) failed."))
         })?;
         Ok(())
     }
@@ -43,11 +43,11 @@ pub mod system_builder {
                 let plugin: Plugin = Plugin::load(plugin_filename.as_path())?;
                 {
                     let symbol = plugin.load_symbol::<ProcessFactorySymbolType>(b"process_factory")?;
-                    pf = (symbol)()?;
+                    pf = (symbol)().with_context(||format!("calling symbol 'process_factory'. arg is {manifest:}"))?;
                     let ppf = juiz_lock(&pf)?;
                     log::debug!("ProcessFactory(type_name={:?}) created.", ppf.type_name());
                 }
-                system.core_broker().lock().unwrap().store_mut().register_process_factory(ProcessFactoryWrapper::new(plugin, pf))?;
+                system.core_broker().lock().unwrap().store_mut().register_process_factory(ProcessFactoryWrapper::new(plugin, pf)?)?;
             }
         }
         Ok(())
@@ -65,11 +65,11 @@ pub mod system_builder {
                     // println!("!!!!!!!ContainerName: {}", (name.to_owned() + "::container_factory"));
                     //let symbol = plugin.load_symbol::<ContainerFactorySymbolType>((name.to_owned() + "::container_factory").as_bytes())?;
                     let symbol = plugin.load_symbol::<ContainerFactorySymbolType>(b"container_factory")?;
-                    cf = (symbol)()?;
+                    cf = (symbol)().with_context(||format!("calling symbol 'container_factory'. arg is {manifest:}"))?;
                     let ccf = juiz_lock(&cf)?;
                     log::debug!("ContainerFactory(type_name={:?}) created.", ccf.type_name());
                 }
-                system.core_broker().lock().unwrap().store_mut().register_container_factory(ContainerFactoryWrapper::new(plugin, cf))?;
+                system.core_broker().lock().unwrap().store_mut().register_container_factory(ContainerFactoryWrapper::new(plugin, cf).context("ContainerFactoryWrapper::new()")?)?;
                 when_contains_do(v, "processes", |vv| {
                     setup_container_process_factories(system, vv)
                 })?;
@@ -87,11 +87,11 @@ pub mod system_builder {
                 let plugin: Plugin = Plugin::load(plugin_filename.as_path())?;
                 {
                     let symbol = plugin.load_symbol::<ContainerProcessFactorySymbolType>(b"container_process_factory")?;
-                    cpf = (symbol)()?;
+                    cpf = (symbol)().with_context(||format!("calling symbol 'container_process_factory'. arg is {manifest:}"))?;
                     let ccpf = juiz_lock(&cpf)?;
                     log::debug!("ContainerProcessFactory(type_name={:?}) created.", ccpf.type_name());
                 }
-                system.core_broker().lock().unwrap().store_mut().register_container_process_factory(ContainerProcessFactoryWrapper::new(plugin, cpf))?;
+                system.core_broker().lock().unwrap().store_mut().register_container_process_factory(ContainerProcessFactoryWrapper::new(plugin, cpf)?)?;
             }
         }
         Ok(())
@@ -112,10 +112,10 @@ pub mod system_builder {
                     // println!("!!!!!!!ContainerName: {}", (name.to_owned() + "::container_factory"));
                     //let symbol = plugin.load_symbol::<ContainerFactorySymbolType>((name.to_owned() + "::container_factory").as_bytes())?;
                     let symbol_bf = plugin.load_symbol::<BrokerFactorySymbolType>(b"broker_factory")?;
-                    bf = (symbol_bf)()?;
+                    bf = (symbol_bf)().with_context(||format!("calling symbol 'broker_factory'. arg is {manifest:}"))?;
                     log::debug!("BrokerFactory(type_name={:?}) created.", juiz_lock(&bf)?.type_name());
                     let symbol_bpf = plugin.load_symbol::<BrokerProxyFactorySymbolType>(b"broker_proxy_factory")?;
-                    bpf = (symbol_bpf)()?;
+                    bpf = (symbol_bpf)().with_context(||format!("calling symbol 'broker_proxy_factory'. arg is {manifest:}"))?;
                     log::debug!("BrokerProxyFactory(type_name={:?}) created.", juiz_lock(&bpf)?.type_name());
                 }
                 system.register_broker_factories_wrapper(BrokerFactoriesWrapper::new(Some(plugin), bf, bpf)?)?;
@@ -151,10 +151,10 @@ pub mod system_builder {
         log::debug!("system_builder::setup_local_broker_factory() called");
         let (c_sender, c_receiver) = mpsc::channel::<Value>();
         let (p_sender, p_receiver) = mpsc::channel::<Value>();
-
+        let lbf = create_local_broker_factory(system.core_broker().clone(), Arc::new(Mutex::new(SenderReceiverPair(p_sender, c_receiver))))?;
         let _wrapper = system.register_broker_factories_wrapper(BrokerFactoriesWrapper::new(None, 
-            LocalBrokerFactory::new(system.core_broker().clone(), Arc::new(Mutex::new(SenderReceiverPair(p_sender, c_receiver))))?, 
-            LocalBrokerProxyFactory::new(Arc::new(Mutex::new(SenderReceiverPair(c_sender, p_receiver)))
+            lbf, 
+            create_local_broker_proxy_factory(Arc::new(Mutex::new(SenderReceiverPair(c_sender, p_receiver)))
         )?)?)?;
         Ok(())
     }
@@ -162,12 +162,13 @@ pub mod system_builder {
     pub fn setup_local_broker(system: &mut System) -> JuizResult<()> {
         log::trace!("system_builder::setup_local_broker() called");
         let local_broker = system.create_broker(&jvalue!({
-            "type_name": "local"
-        }))?;
+            "type_name": "local",
+            "name": "local"
+        })).context("system.create_broker() failed in system_builder::setup_local_broker()")?;
         system.register_broker(local_broker)?;
 
-        let http_broker = HTTPBroker::new(system.core_broker().clone())?;
-
+        let http_broker = HTTPBroker::new(
+            system.core_broker().clone(), "http_broker_0")?;
         system.register_broker(http_broker)?;
         Ok(())
     }

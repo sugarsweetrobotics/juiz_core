@@ -18,6 +18,8 @@ pub struct CoreStore {
     container_process_factories: HashMap<String, Arc<Mutex<dyn ContainerProcessFactory>>>,
     container_processes: HashMap<Identifier, Arc<Mutex<dyn ContainerProcess>>> ,
 
+    broker_factories_manifests: HashMap<Identifier, Value>,
+    brokers_manifests: HashMap<Identifier, Value>,
 }
 
 
@@ -29,6 +31,8 @@ impl CoreStore {
             containers: HashMap::new(), 
             container_process_factories: HashMap::new(),
             container_processes: HashMap::new(),
+            brokers_manifests: HashMap::new(),
+            broker_factories_manifests: HashMap::new(),
         }
     }
 
@@ -103,6 +107,16 @@ impl CoreStore {
         log::trace!("CoreStore::register_container_process(Process(id={:?}, manifest={})) called", id, juiz_lock(&p)?.manifest());
         self.container_processes.insert(id.clone(), p);
         self.container_process(&id).context("register_container_process()")
+    }
+
+    pub fn register_broker_manifest(&mut self, type_name: &str, b: Value) -> JuizResult<()> {
+        self.brokers_manifests.insert(type_name.to_string(), b);
+        Ok(())
+    }
+
+    pub fn register_broker_factory_manifest(&mut self, type_name: &str, b: Value) -> JuizResult<()> {
+        self.broker_factories_manifests.insert(type_name.to_string(), b);
+        Ok(())
     }
 
     pub fn process(&self, id: &Identifier) -> JuizResult<Arc<Mutex<dyn Process>>> {
@@ -200,6 +214,14 @@ impl CoreStore {
         Ok(container_process_factories)
     }
 
+    fn broker_factories_profile_full(&self) -> JuizResult<Value> {
+        Ok(jvalue!(self.broker_factories_manifests))
+    }
+
+    fn brokers_profile_full(&self) -> JuizResult<Value> {
+        Ok(jvalue!(self.brokers_manifests))
+    }
+
     fn processes_profile_full(&self) -> JuizResult<Value> {
         let mut processes = jvalue!({});
         let p_hashmap = get_hashmap_mut(&mut processes)?;
@@ -258,6 +280,8 @@ impl CoreStore {
             "processes": self.processes_profile_full()?,
             "containers": self.containers_profile_full()?,
             "container_processes": self.container_processes_profile_full()?,
+            "brokers": self.brokers_profile_full()?,
+            "broker_factories": self.broker_factories_profile_full()?,
         }))
     }
 }

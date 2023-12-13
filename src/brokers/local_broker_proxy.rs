@@ -1,76 +1,49 @@
-use std::{sync::{Arc, Mutex, mpsc}, time::Duration, ops::Deref};
+use std::{sync::{Arc, Mutex}, time::Duration, ops::Deref};
 
-use crate::{jvalue, BrokerProxy, JuizResult, Identifier, Value, JuizError, value::{obj_get_str, obj_get_bool, obj_get}};
+use crate::{jvalue, JuizResult, Value, JuizError, brokers::messenger_broker_proxy_factory::{MessengerBrokerProxyFactory, create_messenger_broker_proxy_factory}, object::{ObjectCore, JuizObjectClass}, BrokerProxyFactory};
 
-use super::local_broker::SenderReceiverPair;
-
-
+use super::{local_broker::SenderReceiverPair, messenger_broker_proxy::{MessengerBrokerProxy, MessengerBrokerProxyCore, SendReceivePair, MessengerBrokerProxyCoreFactory}};
 
 
-pub struct LocalBrokerProxy {
-    //sender: Arc<Mutex<mpsc::Sender<Value>>>,
-    //receiver: Arc<Mutex<mpsc::Receiver<Value>>>,
+
+pub type LocalBrokerProxy = MessengerBrokerProxy;
+pub struct LocalBrokerProxyCore {
     sender_receiver: Arc<Mutex<SenderReceiverPair>>,
-    
 }
 
-impl LocalBrokerProxy {
+pub struct LocalBrokerProxyCoreFactory {
+    sender_receiver: Arc<Mutex<SenderReceiverPair>>,
+}
 
-    pub fn new(sender_receiver: Arc<Mutex<SenderReceiverPair>> ) -> JuizResult<Arc<Mutex<dyn BrokerProxy>>>{
-        Ok(Arc::new(Mutex::new(LocalBrokerProxy{
-        sender_receiver})))
+impl LocalBrokerProxyCoreFactory {
+    pub fn new(sender_receiver: Arc<Mutex<SenderReceiverPair>>) -> JuizResult<Box<dyn MessengerBrokerProxyCoreFactory>> {
+        Ok(Box::new(LocalBrokerProxyCoreFactory {sender_receiver}))
     }
+}
 
-    pub fn send_recv_and<F: Fn(Value)->JuizResult<T>, T>(&self, function_name: &str, arguments: Value, func: F) -> JuizResult<T> {
-        let sndr_recvr = self.sender_receiver.lock().map_err(|e| return anyhow::Error::from(JuizError::BrokerSendCanNotLockSenderError{}))?;
+impl MessengerBrokerProxyCoreFactory  for LocalBrokerProxyCoreFactory {
+    fn create_core(&self, object_name: &str) -> JuizResult<Box<dyn MessengerBrokerProxyCore>> {
+        Ok(Box::new(LocalBrokerProxyCore{sender_receiver: self.sender_receiver.clone()}))
+    }
+}
+
+impl MessengerBrokerProxyCore for LocalBrokerProxyCore {
+    fn send_and_receive(&self, value: Value, timeout: Duration) -> JuizResult<Value> {
+        let sndr_recvr = self.sender_receiver.lock().map_err(|_e| return anyhow::Error::from(JuizError::BrokerSendCanNotLockSenderError{}))?;
         let SenderReceiverPair(sndr, recvr) = sndr_recvr.deref();
-        let _ = sndr.send(jvalue!({"function_name": function_name, "arguments": arguments})).map_err(|e| return anyhow::Error::from(JuizError::LocalBrokerProxySendError{send_error: e}))?;
-        
-        let timeout = Duration::new(1, 0);
-        let value = recvr.recv_timeout(timeout).map_err(|e|
-                return anyhow::Error::from(JuizError::LocalBrokerProxyReceiveTimeoutError{error: e}))?;
-        let response_function_name = obj_get_str(&value, "function_name")?;
-        match response_function_name {
-            "RequestFunctionNameNotSupported" => {
-                return Err(anyhow::Error::from(JuizError::BrokerProxyRequestFunctionNameNotSupportedError{request_function_name: function_name.to_string()}));
-            },
-            _ => {
-                if response_function_name != function_name {
-                    return Err(anyhow::Error::from(JuizError::BrokerProxyFunctionNameInResponseDoesNotMatchError{function_name: function_name.to_string(), response_function_name: response_function_name.to_string()}));
-                }
-                func(value)
-            }
-        }
+        let _ = sndr.send(value).map_err(|e| return anyhow::Error::from(JuizError::LocalBrokerProxySendError{send_error: e}))?;
+        recvr.recv_timeout(timeout).map_err(|e|
+                return anyhow::Error::from(JuizError::LocalBrokerProxyReceiveTimeoutError{error: e}))
     }
 }
 
-impl BrokerProxy for LocalBrokerProxy {
-    fn is_in_charge_for_process(&self, id: &Identifier) -> JuizResult<bool> {
-        self.send_recv_and("is_in_charge_for_process", jvalue!({"id": id}), |value| obj_get_bool(&value, "return"))
+impl LocalBrokerProxyCore {
+    pub fn new(sender_receiver: Arc<Mutex<SenderReceiverPair>> ) -> LocalBrokerProxyCore {
+        LocalBrokerProxyCore{sender_receiver}
     }
+}
 
-    fn call_process(&self, id: &Identifier, args: crate::Value) -> crate::JuizResult<crate::Value> {
-        self.send_recv_and("call_process", jvalue!({"id": id, "args": args}), |value| Ok(obj_get(&value, "return")?.clone()))
-    }
-
-    fn execute_process(&self, id: &crate::Identifier) -> crate::JuizResult<crate::Value> {
-        self.send_recv_and("execute_process", jvalue!({"id": id}), |value| Ok(obj_get(&value, "return")?.clone()))
-    }
-
-    fn connect_process_to(&mut self, 
-        source_process_id: &crate::Identifier, 
-        arg_name: &String, target_process_id: &crate::Identifier,
-        manifest: crate::Value) -> crate::JuizResult<crate::Value> {
-            
-        self.send_recv_and("connect_process_to", jvalue!({
-            "source_process_id": source_process_id,
-            "arg_name": arg_name,
-            "target_process_id": target_process_id,
-            "manifest": manifest
-        }), |value| Ok(obj_get(&value, "return")?.clone()))
-    }
-
-    fn profile_full(&self) -> crate::JuizResult<crate::Value> {
-        self.send_recv_and("profile_full", jvalue!({}), |value| Ok(obj_get(&value, "return")?.clone()))
-    }
+pub fn create_local_broker_proxy_factory(sender_receiver: Arc<Mutex<SenderReceiverPair>>) -> JuizResult<Arc<Mutex<dyn BrokerProxyFactory>>> {
+    log::trace!("create_local_broker_factory called");
+    create_messenger_broker_proxy_factory("LocalBrokerProxyFactory", "local", LocalBrokerProxyCoreFactory::new(sender_receiver)?)
 }

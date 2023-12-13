@@ -1,45 +1,43 @@
 
 use std::sync::{Mutex, Arc};
-use crate::{jvalue, Value, JuizResult, BrokerProxy};
+use crate::object::{ObjectCore, JuizObjectClass, JuizObjectCoreHolder};
+use crate::utils::juiz_lock;
+use crate::{Value, JuizResult, JuizObject, CoreBroker};
 
 use super::broker_factory::BrokerFactory;
 use super::local_broker::{LocalBroker, SenderReceiverPair};
+use super::messenger_broker::MessengerBrokerCoreFactory;
 
 
-pub struct LocalBrokerFactory {
-    core_broker: Arc<Mutex<dyn BrokerProxy>>,
-    sender_receiver: Arc<Mutex<SenderReceiverPair>>, 
-    //sender: Arc<Mutex<mpsc::Sender<Value>>>, 
-    //receiver: Arc<Mutex<mpsc::Receiver<Value>>>
-}
 
 impl LocalBrokerFactory {
 
-    pub fn new(core_broker: Arc<Mutex<dyn BrokerProxy>>, sender_receiver: Arc<Mutex<SenderReceiverPair>>) -> JuizResult<Arc<Mutex<dyn BrokerFactory>>> {
-        Ok(Arc::new(Mutex::new(LocalBrokerFactory{core_broker, sender_receiver})))
+    pub fn new(core_broker: Arc<Mutex<CoreBroker>>, sender_receiver: Arc<Mutex<SenderReceiverPair>>) -> JuizResult<Arc<Mutex<dyn BrokerFactory>>> {
+        let type_name = "local";
+        let lbf = Arc::new(Mutex::new(LocalBrokerFactory{
+            core: ObjectCore::create_factory(JuizObjectClass::BrokerFactory("LocalBrokerFacotry"), type_name), 
+            core_broker:core_broker.clone(), 
+            sender_receiver
+        }));
+        Ok(lbf)
     }
 }
 
+impl JuizObjectCoreHolder for LocalBrokerFactory {
+    fn core(&self) -> &ObjectCore {
+        &self.core
+    }
+}
+
+impl JuizObject for LocalBrokerFactory {}
+
 impl BrokerFactory for LocalBrokerFactory {
 
-
-    fn type_name(&self) -> &str {
-        "local"
-    }
-
-
-    fn profile_full(&self) -> JuizResult<Value> {
-        Ok(jvalue!({
-            "type_name": self.type_name()
-        }))
-    }
-
     fn create_broker(&self, _manifest: Value) -> JuizResult<Arc<Mutex<dyn crate::Broker>>> {
-        //Ok(Arc::clone(&self.broker))
+        log::trace!("LocalBrokerFactory::create_broker(manifest={_manifest}) called");
         Ok(LocalBroker::new(
-                    Arc::clone(&self.core_broker),
+                    self.core_broker.clone(),
                     Arc::clone(&self.sender_receiver),)?,
-                
         )
     }
     
