@@ -2,7 +2,7 @@ use std::{sync::{Arc, Mutex}, cell::RefCell};
 
 use anyhow::Context;
 
-use crate::{jvalue, ProcessFactory, core::Plugin, Process, Value, utils::juiz_lock, JuizResult, JuizObject, Identifier, identifier::{identifier_from_manifest, identifier_new}, object::{ObjectCore, JuizObjectCoreHolder, JuizObjectClass}, value::obj_merge};
+use crate::{jvalue, ProcessFactory, core::Plugin, Process, Value, utils::juiz_lock, JuizResult, JuizObject, object::{ObjectCore, JuizObjectCoreHolder, JuizObjectClass}, value::obj_merge};
 
 #[allow(dead_code)]
 pub struct ProcessFactoryWrapper {

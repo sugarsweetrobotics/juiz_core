@@ -1,28 +1,17 @@
-use std::{sync::{Arc, Mutex, atomic::AtomicBool}, thread::Builder, time::Duration};
+use std::sync::{Arc, Mutex};
 
-use crate::{jvalue, Broker, BrokerProxy, JuizResult, JuizObject, Identifier, identifier::identifier_new, object::{ObjectCore, JuizObjectClass, JuizObjectCoreHolder}};
+use crate::{Broker, BrokerProxy, JuizResult, JuizObject, object::{ObjectCore, JuizObjectClass, JuizObjectCoreHolder}};
 
 use super::crud_broker::CRUDBroker;
 
-use utoipa::{
-    openapi::security::{ApiKey, ApiKeyValue, SecurityScheme},
-    Modify, OpenApi,
-};
-
-use axum::{
-    routing::{get, post},
-    http::StatusCode,
-    Json, Router,
-};
-
-use serde::{Deserialize, Serialize};
+use utoipa::OpenApi;
+use axum::Router;
 use utoipa_swagger_ui::SwaggerUi;
 
 pub struct HTTPBroker {
     core: ObjectCore,
     crud_broker: Arc<Mutex<CRUDBroker>>,
     thread_handle: Option<tokio::task::JoinHandle<()>>,
-    end_flag: Arc<Mutex<AtomicBool>>,
 }
 
 impl HTTPBroker {
@@ -31,8 +20,7 @@ impl HTTPBroker {
         Ok(Arc::new(Mutex::new(HTTPBroker{
             core: ObjectCore::create(JuizObjectClass::Broker("HTTPBroker"), type_name, object_name), 
             crud_broker: CRUDBroker::new(core_broker)?,
-            thread_handle: None,
-            end_flag: Arc::new(Mutex::new(AtomicBool::from(false)))
+            thread_handle: None
         })))
     }
 }

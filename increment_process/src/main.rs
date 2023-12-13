@@ -1,5 +1,5 @@
 
-use juiz_core::{System, jvalue, JuizResult, JuizObject};
+use juiz_core::{System, jvalue, JuizResult};
 
 #[tokio::main]
 async fn main() -> JuizResult<()> {
@@ -43,7 +43,7 @@ async fn main() -> JuizResult<()> {
         }
     );
 
-    System::new(manifest)?.run_and_do(|system|{
+    System::new(manifest)?.run_and_do(|_system|{
 //        let proc = system.process_from_id(&"core://increment_a:increment_process".to_string())?;
 //        let retval = proc.try_lock().expect("Lock failed").invoke()?;
 //        println!("retval = {:?}", retval);

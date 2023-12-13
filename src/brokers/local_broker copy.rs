@@ -124,7 +124,7 @@ impl Broker for LocalBroker {
                             }
                         }
                     };
-                    match sender_receiver.lock() {
+                    match sender_receiver.try_lock() {
                         Err(e) => {
                             log::error!("Error({e:?}) in LocalBroker::routine()");
                             continue;

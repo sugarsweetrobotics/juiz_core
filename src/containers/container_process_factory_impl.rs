@@ -1,6 +1,6 @@
 use std::sync::{Mutex, Arc};
 use super::container_process_impl::ContainerProcessImpl;
-use crate::{jvalue, ContainerProcessFactory, Value, JuizResult, utils::check_process_factory_manifest, Container, value::{obj_get_str, obj_merge}, ContainerProcess, JuizObject, Identifier, identifier::{identifier_from_manifest, create_factory_identifier_from_manifest}, object::{JuizObjectCoreHolder, ObjectCore, JuizObjectClass}};
+use crate::{ContainerProcessFactory, Value, JuizResult, Container, value::obj_get_str, ContainerProcess, JuizObject, object::{JuizObjectCoreHolder, ObjectCore, JuizObjectClass}};
 
 struct ContainerProcessFactoryImpl<T> {
     core: ObjectCore,

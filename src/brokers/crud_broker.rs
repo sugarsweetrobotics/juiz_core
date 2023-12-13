@@ -9,7 +9,7 @@ pub struct CRUDBroker {
     core_broker: Arc<Mutex<dyn BrokerProxy>>,
 }
 
-fn resource_name_to_cls_and_id<'a>(resource_name: &'a str, params: &Vec<String>) -> JuizResult<(&'a str, Identifier)> {
+fn _resource_name_to_cls_and_id<'a>(resource_name: &'a str, _params: &Vec<String>) -> JuizResult<(&'a str, Identifier)> {
     let mut split = resource_name.split('/');
     let class_name = split.next().ok_or( anyhow::Error::from(JuizError::CRUDBrokerGivenResourseNameHasNoClassNameError{resource_name: resource_name.to_string()} ))?;
     Ok((class_name, "".to_string()))
@@ -28,7 +28,7 @@ impl CRUDBroker {
         Ok(Arc::new(Mutex::new(CRUDBroker{core_broker})))
     }
 
-    pub fn create(&self, resource_name: &str, params: Vec<String>, value: Value) -> JuizResult<Value> {
+    pub fn create(&self, _resource_name: &str, _params: Vec<String>, _value: Value) -> JuizResult<Value> {
         todo!()
     }
 
@@ -61,6 +61,7 @@ impl CRUDBroker {
     }
 
     pub fn update_class(&self, class_name: &str, function_name: &str, value: Value, params: HashMap<String, String>) -> JuizResult<Value> {
+        log::trace!("CRUDBroker::update_class() called");
         let cb = juiz_lock(&self.core_broker)?;
         match class_name {
             "system" => {
@@ -85,7 +86,7 @@ impl CRUDBroker {
         }
     }
 
-    pub fn delete(&self, resource_name: &str, params: Vec<String>) -> JuizResult<Value> {
+    pub fn delete(&self, _resource_name: &str, _params: Vec<String>) -> JuizResult<Value> {
         todo!()
     }
 }

@@ -1,6 +1,6 @@
 
 use std::sync::{Mutex, Arc};
-use crate::{jvalue, value::obj_get_str, Process, ProcessFactory, processes::process_impl::ProcessImpl, JuizError, Value, JuizResult, utils::check_process_factory_manifest, JuizObject, Identifier, identifier::{identifier_from_manifest, create_factory_identifier_from_manifest}, object::{ObjectCore, JuizObjectCoreHolder, JuizObjectClass}};
+use crate::{value::obj_get_str, Process, ProcessFactory, processes::process_impl::ProcessImpl, JuizError, Value, JuizResult, utils::check_process_factory_manifest, JuizObject, object::{ObjectCore, JuizObjectCoreHolder, JuizObjectClass}};
 
 #[repr(C)]
 pub struct ProcessFactoryImpl {

@@ -11,7 +11,7 @@ use crate::ContainerProcess;
 use crate::JuizObject;
 use crate::brokers::broker_proxy::ProcessBrokerProxy;
 use crate::brokers::broker_proxy::SystemBrokerProxy;
-use crate::identifier::create_identifier_from_manifest;
+
 use crate::object::JuizObjectClass;
 use crate::object::JuizObjectCoreHolder;
 use crate::object::ObjectCore;
@@ -20,7 +20,7 @@ use crate::utils::juiz_lock;
 use crate::utils::manifest_util::type_name;
 use crate::value::obj_get_str;
 use crate::value::obj_merge;
-use crate::{Value, jvalue, Process, BrokerProxy, Identifier, JuizError, JuizResult, core::core_store::CoreStore};
+use crate::{Value, jvalue, Process, BrokerProxy, Identifier, JuizResult, core::core_store::CoreStore};
 
 use crate::connections::connect;
 
@@ -125,6 +125,7 @@ impl JuizObject for CoreBroker {
 
 impl SystemBrokerProxy for CoreBroker {
     fn system_profile_full(&self) -> JuizResult<Value> {
+        log::trace!("CoreBroker::system_profile_full() called");
         self.profile_full()
     }
 }

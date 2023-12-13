@@ -1,6 +1,9 @@
-use std::{sync::{Arc, Mutex}, time::Duration, collections::HashMap};
+use std::{sync::{Arc, Mutex}, time::Duration};
 
-use crate::{jvalue, BrokerProxy, JuizResult, Identifier, Value, JuizError, value::{obj_get_str, obj_get_bool, obj_get}, JuizObject, object::{ObjectCore, JuizObjectClass, JuizObjectCoreHolder}};
+use anyhow::Context;
+use serde_json::Map;
+
+use crate::{jvalue, BrokerProxy, JuizResult, Identifier, Value, JuizError, value::{obj_get_str, obj_get}, JuizObject, object::{ObjectCore, JuizObjectClass, JuizObjectCoreHolder}};
 
 use super::broker_proxy::{SystemBrokerProxy, ProcessBrokerProxy};
 
@@ -24,6 +27,14 @@ pub trait MessengerBrokerProxyCoreFactory {
     fn create_core(&self, object_name: &str) -> JuizResult<Box<dyn MessengerBrokerProxyCore>>;
 }
 
+fn to_map(params: &[(String, String)]) -> Map<String, Value> {
+    let mut map : Map<String, Value> = Map::new();
+    for (k, v) in params {
+        map.insert(k.clone(), jvalue!(v));
+    }
+    map
+}
+
 impl MessengerBrokerProxy {
 
     pub fn new(class_name: &'static str, type_name: &str, object_name: &str, messenger: Box<dyn MessengerBrokerProxyCore>) -> JuizResult<Arc<Mutex<dyn BrokerProxy>>>{
@@ -40,8 +51,8 @@ impl MessengerBrokerProxy {
             "class_name": class_name,
             "function_name": function_name, 
             "arguments": arguments,
-            "params": params,
-        }), Duration::new(1, 0))?;
+            "params": to_map(params),
+        }), Duration::new(3, 0)).context("MessengerBrokerProxyCore.send_and_receive() failed in MessengerBrokerProxy.send_recv_and()")?;
         //let value = (recvr)(timeout)?;
         let response_function_name = obj_get_str(&value, "function_name")?;
         match response_function_name {
@@ -68,6 +79,7 @@ impl JuizObject for MessengerBrokerProxy {}
 
 impl SystemBrokerProxy for MessengerBrokerProxy {
     fn system_profile_full(&self) -> JuizResult<Value> {
+        log::trace!("MessengerBrokerProxy::system_profile_full() called");
         self.send_recv_and("READ", "system", "profile_full", 
             jvalue!({}), &[], |value| Ok(obj_get(&value, "return")?.clone()))
     }
@@ -123,7 +135,7 @@ impl ProcessBrokerProxy for MessengerBrokerProxy {
 }
 
 impl BrokerProxy for MessengerBrokerProxy {
-    fn is_in_charge_for_process(&self, id: &Identifier) -> JuizResult<bool> {
+    fn is_in_charge_for_process(&self, _id: &Identifier) -> JuizResult<bool> {
         todo!()
         //self.send_recv_and("process", "is_in_charge_for_process", jvalue!({"id": id}), |value| obj_get_bool(&value, "return"))
     }

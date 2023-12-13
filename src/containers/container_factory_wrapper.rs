@@ -2,7 +2,7 @@ use std::{sync::{Arc, Mutex}, cell::RefCell};
 
 use anyhow::Context;
 
-use crate::{jvalue, ContainerFactory, core::Plugin, Container, Value, utils::juiz_lock, JuizResult, JuizObject, Identifier, object::{ObjectCore, JuizObjectClass, JuizObjectCoreHolder}, value::obj_merge};
+use crate::{jvalue, ContainerFactory, core::Plugin, Container, Value, utils::juiz_lock, JuizResult, JuizObject, object::{ObjectCore, JuizObjectClass, JuizObjectCoreHolder}, value::obj_merge};
 
 #[allow(dead_code)]
 pub struct ContainerFactoryWrapper {

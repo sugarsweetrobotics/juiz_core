@@ -33,15 +33,11 @@ impl JuizObjectClass {
             JuizObjectClass::BrokerProxyFactory(_) => "BrokerProxyFactory",
 
             JuizObjectClass::System(_) => "System",
-
-            _ => {
-                "unknown"
-            }
         }
     }
 }
 
-pub(crate) struct ObjectCore {
+pub struct ObjectCore {
     identifier: Identifier,
     class_name: JuizObjectClass,
     type_name: String,
@@ -77,7 +73,7 @@ impl ObjectCore {
     }
 }
 
-pub(crate) trait JuizObjectCoreHolder {
+pub trait JuizObjectCoreHolder {
     fn core(&self) -> &ObjectCore;
 }
 

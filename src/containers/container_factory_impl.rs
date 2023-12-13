@@ -3,7 +3,7 @@ use std::sync::{Mutex, Arc};
 use anyhow::Context;
 
 use super::container_impl::ContainerImpl;
-use crate::{jvalue, JuizError, Value, Container, ContainerFactory, JuizResult, utils::check_process_factory_manifest, value::obj_get_str, JuizObject, Identifier, identifier::{identifier_from_manifest, create_identifier_from_manifest, create_factory_identifier_from_manifest}, object::{ObjectCore, JuizObjectClass, JuizObjectCoreHolder}};
+use crate::{JuizError, Value, Container, ContainerFactory, JuizResult, utils::check_process_factory_manifest, value::obj_get_str, JuizObject, object::{ObjectCore, JuizObjectClass, JuizObjectCoreHolder}};
 
 use super::container_factory::ContainerConstructFunction;
 

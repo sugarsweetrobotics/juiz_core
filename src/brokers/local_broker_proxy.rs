@@ -1,8 +1,8 @@
 use std::{sync::{Arc, Mutex}, time::Duration, ops::Deref};
 
-use crate::{jvalue, JuizResult, Value, JuizError, brokers::messenger_broker_proxy_factory::{MessengerBrokerProxyFactory, create_messenger_broker_proxy_factory}, object::{ObjectCore, JuizObjectClass}, BrokerProxyFactory};
+use crate::{JuizResult, Value, JuizError, brokers::messenger_broker_proxy_factory::create_messenger_broker_proxy_factory, BrokerProxyFactory};
 
-use super::{local_broker::SenderReceiverPair, messenger_broker_proxy::{MessengerBrokerProxy, MessengerBrokerProxyCore, SendReceivePair, MessengerBrokerProxyCoreFactory}};
+use super::{local_broker::SenderReceiverPair, messenger_broker_proxy::{MessengerBrokerProxy, MessengerBrokerProxyCore, MessengerBrokerProxyCoreFactory}};
 
 
 
@@ -22,18 +22,22 @@ impl LocalBrokerProxyCoreFactory {
 }
 
 impl MessengerBrokerProxyCoreFactory  for LocalBrokerProxyCoreFactory {
-    fn create_core(&self, object_name: &str) -> JuizResult<Box<dyn MessengerBrokerProxyCore>> {
+    fn create_core(&self, _object_name: &str) -> JuizResult<Box<dyn MessengerBrokerProxyCore>> {
         Ok(Box::new(LocalBrokerProxyCore{sender_receiver: self.sender_receiver.clone()}))
     }
 }
 
 impl MessengerBrokerProxyCore for LocalBrokerProxyCore {
     fn send_and_receive(&self, value: Value, timeout: Duration) -> JuizResult<Value> {
+        let us = timeout.as_micros();
+        log::trace!("LocaBrokerProxyCore::send_and_receive(timeout_us={us}) called");
         let sndr_recvr = self.sender_receiver.lock().map_err(|_e| return anyhow::Error::from(JuizError::BrokerSendCanNotLockSenderError{}))?;
         let SenderReceiverPair(sndr, recvr) = sndr_recvr.deref();
         let _ = sndr.send(value).map_err(|e| return anyhow::Error::from(JuizError::LocalBrokerProxySendError{send_error: e}))?;
-        recvr.recv_timeout(timeout).map_err(|e|
-                return anyhow::Error::from(JuizError::LocalBrokerProxyReceiveTimeoutError{error: e}))
+        recvr.recv_timeout(timeout).map_err(|e| {
+                log::error!("LocalBrokerProxyCore::send_and_receive() failed. Error is {e:}");
+                return anyhow::Error::from(JuizError::LocalBrokerProxyReceiveTimeoutError{error: e});
+        })
     }
 }
 

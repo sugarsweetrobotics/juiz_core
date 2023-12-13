@@ -1,8 +1,7 @@
-use std::{sync::{Arc, Mutex, atomic::AtomicBool, mpsc, MutexGuard}, thread::Builder, time::Duration, ops::Deref};
-use crate::{jvalue, Broker, JuizResult, JuizError, Value, value::{obj_get_str, obj_get, obj_merge}, utils::juiz_lock, BrokerProxy, JuizObject, object::{ObjectCore, JuizObjectClass, JuizObjectCoreHolder}, CoreBroker, Process, BrokerFactory, brokers::messenger_broker_factory::create_messenger_broker_factory};
+use std::{sync::{Arc, Mutex, mpsc}, time::Duration, ops::Deref};
 
-use std::sync::atomic::Ordering::SeqCst;
 
+use crate::{jvalue, JuizResult, JuizError, Value, utils::juiz_lock, CoreBroker, BrokerFactory, brokers::messenger_broker_factory::create_messenger_broker_factory};
 use super::messenger_broker::{MessengerBrokerCore, MessengerBrokerCoreFactory};
 
 #[allow(dead_code)]
@@ -12,6 +11,8 @@ pub struct LocalBrokerCore {
 
 impl MessengerBrokerCore for LocalBrokerCore {
     fn receive_and_send(&self, timeout: Duration, func: Arc<Mutex<dyn Fn(Value)->JuizResult<Value>>>) -> JuizResult<Value> {
+        
+        //log::trace!("LocalBrokerCore::receive_and_send() called");
         let sendr_recvr = juiz_lock(&self.sender_receiver)?;
         let SenderReceiverPair(sendr, recvr) = sendr_recvr.deref();
         match recvr.recv_timeout(timeout) {
@@ -19,7 +20,16 @@ impl MessengerBrokerCore for LocalBrokerCore {
                 Ok(jvalue!({}))
             },
             Ok(value) => {
-                let ret_value = (juiz_lock(&func)?)(value)?;
+                log::trace!("LocalBrokerCore::receive_and_send() received some data.");
+                
+                let ret_value = match (juiz_lock(&func)?)(value) {
+                    Ok(v) => v,
+                    Err(e) => {
+                        log::error!("User function call in MessengerBrokerCore::receive_and_send() failed. Error is {}", e.to_string());
+                        return Err(e);
+                    }
+                };
+                log::trace!("LocalBrokerCore now sending back data.");
                 match sendr.send(ret_value) {
                     Err(e) => {
                         log::error!("Error({e:?}) in LocalBroker::routine()");

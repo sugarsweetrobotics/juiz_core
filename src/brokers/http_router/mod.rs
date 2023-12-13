@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 
-use axum::{response::IntoResponse, http::{StatusCode, Response}, Json, extract::Query};
+use axum::{response::IntoResponse, http::StatusCode, Json, extract::Query};
 use serde::Deserialize;
 use utoipa::IntoParams;
 
-use crate::{JuizResult, Value, JuizError};
+use crate::{JuizResult, Value};
 
 pub mod any;
 //pub mod system;

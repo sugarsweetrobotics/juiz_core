@@ -1,7 +1,8 @@
-use std::{sync::{Arc, Mutex, atomic::AtomicBool, mpsc, MutexGuard}, thread::Builder, time::Duration, ops::Deref, collections::HashMap};
+use std::{sync::{Arc, Mutex, atomic::AtomicBool, mpsc}, time::Duration, collections::HashMap};
+
 use serde_json::Map;
 
-use crate::{jvalue, Broker, JuizResult, JuizError, Value, value::{obj_get_str, obj_get, obj_merge, obj_get_obj, obj_get_hashmap}, utils::juiz_lock, BrokerProxy, JuizObject, object::{ObjectCore, JuizObjectClass, JuizObjectCoreHolder}, CoreBroker, Process};
+use crate::{jvalue, Broker, JuizResult, JuizError, Value, value::{obj_get_str, obj_get, obj_get_obj}, utils::juiz_lock, JuizObject, object::{ObjectCore, JuizObjectClass, JuizObjectCoreHolder}, CoreBroker};
 
 use std::sync::atomic::Ordering::SeqCst;
 
@@ -47,6 +48,7 @@ impl MessengerBroker {
 }
 
 fn to_param(map: &Map<String, Value>) -> JuizResult<HashMap<String, String>> {
+    log::trace!("to_param called");
     let mut ret_map: HashMap<String, String> = HashMap::with_capacity(map.len());
     for (k, v) in map.iter() {
         match v.as_str() {
@@ -60,27 +62,26 @@ fn to_param(map: &Map<String, Value>) -> JuizResult<HashMap<String, String>> {
 }
 
 fn handle_function(crud_broker: Arc<Mutex<CRUDBroker>>, value: Value) -> JuizResult<Value> {
-    log::info!("Broker::handle_function() called");
+    log::info!("MessengerBroker::handle_function({value}) called 2 ");
     let method_name = obj_get_str(&value, "method_name")?;
     let class_name = obj_get_str(&value, "class_name")?;
     let function_name = obj_get_str(&value, "function_name")?;
     let args = obj_get(&value, "arguments")?;
     let params = to_param(obj_get_obj(&value, "params")?)?;
-    //let cb = juiz_lock(&core_broker)?;
-    /*
-    fn proc(core_broker: &Arc<Mutex<CoreBroker>>, value: &Value) -> JuizResult<Arc<Mutex<dyn Process>>> {
-        juiz_lock(&core_broker)?.store().process(&obj_get_str(value, "id")?.to_string())
-    }
-    */
-    
-    match method_name {
+    let result = match method_name {
         //"CREATE" => juiz_lock(&crud_broker)?.create_class(class_name, function_name, args, params),
         "READ" =>  juiz_lock(&crud_broker)?.read_class(class_name, function_name, params),
         "UPDATE" =>  juiz_lock(&crud_broker)?.update_class(class_name, function_name, args.clone(), params),
         _ => {
             Err(anyhow::Error::from(JuizError::CRUDBRokerCanNotFindMethodError{method_name: method_name.to_string()}))
         }
-    }
+    }?;
+    return Ok(jvalue!(
+        {
+            "function_name": jvalue!(function_name),
+            "return": result
+        }
+    ));
 }
 
 impl JuizObjectCoreHolder for MessengerBroker {
@@ -124,8 +125,14 @@ impl Broker for MessengerBroker {
                         Err(_) => {},
                         Ok(sndr_recvr) => {
                             
-                            let response = sndr_recvr.receive_and_send(
-                                timeout, func);
+                            match sndr_recvr.receive_and_send(
+                                timeout, func) {
+                                    Err(e) => {
+                                        log::error!("Error. Core.receive_and_send failed. in MessengerBroker::routine(). Error is {}", e);
+                                    }, Ok(_) => {
+
+                                    }
+                            }
                         }
                     }
                 }

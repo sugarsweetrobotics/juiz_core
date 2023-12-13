@@ -33,8 +33,9 @@ pub(crate) fn _create_factory_identifier(class_name: &str, type_name: &str) -> I
 pub(crate) fn create_identifier_from_manifest(class_name: &str, manifest: &Value) -> JuizResult<Identifier> {
     identifier_from_manifest("core", "core", class_name, manifest)
 }
-
+/*
 pub(crate) fn create_factory_identifier_from_manifest(class_name: &str, manifest: &Value) -> JuizResult<Identifier> {
     let type_name = obj_get_str(manifest, "type_name")?;
     Ok(identifier_new("core", "core", class_name, type_name, type_name))
 }
+*/

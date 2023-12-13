@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use crate::{Process, JuizObject, processes::process_impl::ProcessImpl, Identifier, Value, JuizResult, Container, utils::{juiz_lock, check_process_manifest, manifest_util::get_hashmap_mut}, JuizError, jvalue, value::{obj_get_str, obj_merge_mut, obj_merge}, identifier::{identifier_from_manifest, create_identifier_from_manifest}, object::{ObjectCore, JuizObjectClass, JuizObjectCoreHolder}};
+use crate::{Process, JuizObject, processes::process_impl::ProcessImpl, Identifier, Value, JuizResult, Container, utils::{juiz_lock, check_process_manifest}, JuizError, jvalue, value::{obj_get_str, obj_merge}, object::{ObjectCore, JuizObjectClass, JuizObjectCoreHolder}};
 
 use super::{container_process::ContainerProcess, container_impl::ContainerImpl };
 

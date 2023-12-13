@@ -24,7 +24,7 @@ impl LocalBrokerProxy {
     }
 
     pub fn send_recv_and<F: Fn(Value)->JuizResult<T>, T>(&self, class_name: &str, function_name: &str, arguments: Value, func: F) -> JuizResult<T> {
-        let sndr_recvr = self.sender_receiver.lock().map_err(|_e| return anyhow::Error::from(JuizError::BrokerSendCanNotLockSenderError{}))?;
+        let sndr_recvr = self.sender_receiver.try_lock().map_err(|_e| return anyhow::Error::from(JuizError::BrokerSendCanNotLockSenderError{}))?;
         let SenderReceiverPair(sndr, recvr) = sndr_recvr.deref();
         let _ = sndr.send(jvalue!({
             "class_name": class_name,
