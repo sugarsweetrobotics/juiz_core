@@ -6,7 +6,7 @@ pub mod system_builder {
 
     use anyhow::Context;
 
-    use crate::{jvalue, brokers::{broker_factories_wrapper::BrokerFactoriesWrapper, local_broker::{SenderReceiverPair, create_local_broker_factory}, http_broker::HTTPBroker, local_broker_proxy::create_local_broker_proxy_factory}, System, Value, JuizResult, core::Plugin, ProcessFactory, processes::ProcessFactoryWrapper, containers::{container_factory_wrapper::ContainerFactoryWrapper, container_process_factory_wrapper::ContainerProcessFactoryWrapper}, utils::{get_array, get_hashmap, when_contains_do, juiz_lock, manifest_util::when_contains_do_mut}, connections::connection_builder::connection_builder, value::obj_get_str, ContainerFactory, ContainerProcessFactory, BrokerFactory, BrokerProxyFactory};
+    use crate::{jvalue, brokers::{broker_factories_wrapper::BrokerFactoriesWrapper, local::local_broker::{SenderReceiverPair, create_local_broker_factory}, http_broker::HTTPBroker, local::local_broker_proxy::create_local_broker_proxy_factory}, System, Value, JuizResult, core::Plugin, ProcessFactory, processes::ProcessFactoryWrapper, containers::{container_factory_wrapper::ContainerFactoryWrapper, container_process_factory_wrapper::ContainerProcessFactoryWrapper}, utils::{get_array, get_hashmap, when_contains_do, juiz_lock, manifest_util::when_contains_do_mut}, connections::connection_builder::connection_builder, value::obj_get_str, ContainerFactory, ContainerProcessFactory, BrokerFactory, BrokerProxyFactory};
  
     pub fn setup_plugins(system: &mut System, manifest: &Value) -> JuizResult<()> {
         log::trace!("system_builder::setup_plugins({}) called", manifest);

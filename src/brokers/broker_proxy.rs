@@ -18,8 +18,18 @@ pub trait ProcessBrokerProxy {
 
 }
 
+pub trait ContainerBrokerProxy {
 
-pub trait BrokerProxy : Send + JuizObject + SystemBrokerProxy + ProcessBrokerProxy {
+    fn container_profile_full(&self, id: &Identifier) -> JuizResult<Value>;
+}
+
+pub trait ContainerProcessBrokerProxy {
+
+    fn container_process_profile_full(&self, id: &Identifier) -> JuizResult<Value>;
+}
+
+
+pub trait BrokerProxy : Send + JuizObject + SystemBrokerProxy + ProcessBrokerProxy + ContainerBrokerProxy + ContainerProcessBrokerProxy {
 
     fn is_in_charge_for_process(&self, _id: &Identifier) -> JuizResult<bool>;
 }

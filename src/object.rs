@@ -77,6 +77,10 @@ impl ObjectCore {
         ObjectCore { identifier, class_name, type_name: type_name.to_string(), name: type_name.to_string(), broker_name: "core".to_string(), broker_type_name: "core".to_string()}
     }
 
+    pub fn identifier(&self) -> &Identifier {
+        &self.identifier
+    }
+
     pub fn profile_full(&self) -> JuizResult<Value> {
         Ok(jvalue!({
             "identifier": self.identifier,
@@ -94,7 +98,7 @@ pub trait JuizObjectCoreHolder {
 pub trait JuizObject : JuizObjectCoreHolder {
 
     fn identifier(&self) -> &Identifier {
-        &self.core().identifier
+        self.core().identifier()
     }
 
     fn profile_full(&self) -> JuizResult<Value> {

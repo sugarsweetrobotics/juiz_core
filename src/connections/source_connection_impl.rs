@@ -3,86 +3,58 @@
 
 use anyhow::Context;
 
-use crate::{jvalue, Value, Process, JuizError, JuizResult, Identifier, utils::juiz_lock, value::obj_get_str, JuizObject, object::{JuizObjectCoreHolder, ObjectCore, JuizObjectClass}};
+use crate::{Value, Process, JuizResult, Identifier, utils::juiz_lock, JuizObject, object::{JuizObjectCoreHolder, ObjectCore}};
 use std::sync::{Mutex, Arc};
 use core::fmt::Debug;
 use std::clone::Clone;
 
-use super::{SourceConnection, connection::{Connection, ConnectionType}};
+use super::{SourceConnection, connection::{Connection, ConnectionCore}};
 
 pub struct SourceConnectionImpl {
-    core: ObjectCore, 
-    arg_name: String,
-    connection_type: &'static ConnectionType,
-    manifest: Value,
-    owner_identifier: Identifier,
-    // source_id: Identifier,
+    core: ConnectionCore,
     source_process: Arc<Mutex<dyn Process>>,
-    source_process_identifier: Identifier,
 }
 
 impl SourceConnectionImpl {
 
     pub fn new(owner_identifier: Identifier, source_process: Arc<Mutex<dyn Process>>, manifest: Value, arg_name: String) -> JuizResult<Self> {
         log::trace!("# SourceConnectionImpl::new() called");
-        let connection_id = obj_get_str(&manifest, "id")?.to_string();
         let source_process_identifier = juiz_lock(&source_process)?.identifier().clone();
-        let mut connection_type = &ConnectionType::Pull;
-        match obj_get_str(&manifest, "type") {
-            Err(_) => {},
-            Ok(typ_str) => {
-                if typ_str == "pull" {}
-                else if typ_str == "push" {
-                    connection_type = &ConnectionType::Push;
-                } else {
-                    return Err(anyhow::Error::from(JuizError::ConnectionTypeError{manifest}));
-                }
-            }
-        };
         Ok(SourceConnectionImpl{
-            core: ObjectCore::create(JuizObjectClass::Connection("SourceConnection"), "SourceConnection", connection_id),
-            owner_identifier, 
-            source_process_identifier,
-            // source_id, 
-            source_process, manifest,
-            arg_name,
-            connection_type})
+            core: ConnectionCore::new("SourceConnection", 
+                source_process_identifier, 
+                owner_identifier, 
+                arg_name, 
+                &manifest)?,
+            source_process})
     }
 
+    fn owner_identifier(&self) -> &Identifier {
+        self.core.destination_identifier()
+    }
 }
 
 impl JuizObjectCoreHolder for SourceConnectionImpl {
-    fn core(&self) -> &crate::object::ObjectCore {
-        &self.core
+    fn core(&self) -> &ObjectCore {
+        &self.core.object_core()
     }
 }
 
 impl JuizObject for SourceConnectionImpl {
 
     fn profile_full(&self) -> JuizResult<Value> {
-        Ok(jvalue!({
-            "identifier": self.identifier(),
-            "connection_type": self.connection_type.to_string(),
-            "arg_name": self.arg_name().to_owned(),
-            "owner_identifier": self.owner_identifier.to_owned(),
-            "source_process_identifier": self.source_process_identifier.to_owned(),
-        }))
+        self.core.profile_full()
     }
 }
 
 impl Connection for SourceConnectionImpl {
-    fn arg_name(&self) -> &String {
-        &self.arg_name
-    }
 
-    fn connection_type(&self) -> &ConnectionType {
-        &self.connection_type
+    fn connection_core(&self) -> &ConnectionCore {
+        &self.core
     }
 }
 
 impl SourceConnection for SourceConnectionImpl {
-
-    
 
     fn is_source_updated(&self) -> JuizResult<bool> {
         let proc = juiz_lock(&self.source_process).context("in SourceConnectionImpl.is_source_updated()")?;
@@ -102,15 +74,14 @@ impl SourceConnection for SourceConnectionImpl {
 
 impl<'a> Debug for SourceConnectionImpl {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("SourceConnection").field("source_process", &self.source_process.try_lock().unwrap().identifier()).field("owner_id", &self.owner_identifier).finish()
+        f.debug_struct("SourceConnection").field("source_process", &self.source_process.try_lock().unwrap().identifier()).field("owner_id", &self.owner_identifier()).finish()
     }
 }
 
 impl Clone for SourceConnectionImpl {
     fn clone(&self) -> Self {
         Self { 
-            core: self.core.clone(),
-            owner_identifier: self.owner_identifier.clone(), source_process_identifier: self.source_process_identifier.clone(), source_process: self.source_process.clone(), manifest: self.manifest.clone(), arg_name: self.arg_name.clone(), connection_type: self.connection_type }
+            core: self.core.clone(), source_process: self.source_process.clone() }
     }
 }
 

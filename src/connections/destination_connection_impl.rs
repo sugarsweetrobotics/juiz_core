@@ -4,59 +4,45 @@
 use anyhow::Context;
 use serde_json::Value;
 
-use crate::{Process, JuizError, Identifier, utils::{manifest_checker::check_connection_manifest, juiz_lock}, JuizResult, JuizObject, object::{JuizObjectCoreHolder, ObjectCore, JuizObjectClass}};
+use crate::{Process, Identifier, utils::{manifest_checker::check_connection_manifest, juiz_lock}, JuizResult, JuizObject, object::JuizObjectCoreHolder};
 use std::sync::{Mutex, Arc};
-use crate::value::*;
+
 use core::fmt::Debug;
 use std::clone::Clone;
 
-use super::{DestinationConnection, connection::{Connection, ConnectionType}};
+use super::{DestinationConnection, connection::{Connection, ConnectionCore}};
 
 
 pub struct DestinationConnectionImpl{
-    core: ObjectCore, 
-    manifest: Value,
-    connection_type: &'static ConnectionType,
-    owner_identifier: Identifier,
-    arg_name: String,
-    destination_process_identifier: Identifier,
+    core: ConnectionCore,
     destination_process: Arc<Mutex<dyn Process>>
 }
 
 impl DestinationConnectionImpl {
 
-    pub fn new(owner_id: &Identifier, dest_process: Arc<Mutex<dyn Process>>, connection_manifest: Value, arg_name: String) -> JuizResult<Self> {
+    pub fn new(owner_identifier: &Identifier, dest_process: Arc<Mutex<dyn Process>>, connection_manifest: Value, arg_name: String) -> JuizResult<Self> {
         log::trace!("# DestinationConnectionImpl::new() called");
-        let manif = check_connection_manifest(connection_manifest.clone())?;
-        let mut connection_type = &ConnectionType::Pull;
+        let manifest = check_connection_manifest(connection_manifest.clone())?;
         let destination_process_identifier = juiz_lock(&dest_process)?.identifier().clone();
-        match obj_get_str(&manif, "type") {
-            Err(_) => {},
-            Ok(typ_str) => {
-                if typ_str == "pull" {}
-                else if typ_str == "push" {
-                    connection_type = &ConnectionType::Push;
-                } else {
-                    return Err(anyhow::Error::from(JuizError::ConnectionTypeError { manifest: connection_manifest }));
-                }
-            }
-        };
-        let connection_id = obj_get_str(&manif, "id")?;
         Ok(DestinationConnectionImpl{
-            core: ObjectCore::create(JuizObjectClass::Connection("DestinationConnection"), "DestinationConnection", connection_id),
-            owner_identifier:owner_id.clone(),
-            destination_process: dest_process, 
-            destination_process_identifier,
-            manifest: manif,
-            arg_name,
-            connection_type})
+            core: ConnectionCore::new("DestinationConnection", 
+                owner_identifier.to_string(), 
+                destination_process_identifier, 
+                arg_name, 
+                &manifest)?,
+            destination_process: dest_process, })
+    }
+
+
+    fn owner_identifier(&self) -> &Identifier {
+        self.core.source_identifier()
     }
 
 }
 
 impl JuizObjectCoreHolder for DestinationConnectionImpl {
     fn core(&self) -> &crate::object::ObjectCore {
-        &self.core
+        self.core.object_core()
     }
 }
 
@@ -65,26 +51,15 @@ impl JuizObject for DestinationConnectionImpl {
 
     
     fn profile_full(&self) -> JuizResult<Value> {
-        Ok(jvalue!({
-            "identifier": self.identifier(), 
-            "connection_type": self.connection_type.to_string(),
-            "arg_name": self.arg_name().to_owned(),
-            "owner_identifier": self.owner_identifier.to_owned(),
-            "destination_process_identifier": self.destination_process_identifier.to_owned(),
-        }))
+        self.core.profile_full()
     }
 
 }
 
 impl Connection for DestinationConnectionImpl {
-    fn arg_name(&self) -> &String {
-        &self.arg_name
+    fn connection_core(&self) -> &ConnectionCore {
+        &self.core
     }
-
-    fn connection_type(&self) -> &ConnectionType {
-        &self.connection_type
-    }
-
 }
 
 impl DestinationConnection for DestinationConnectionImpl {
@@ -102,19 +77,12 @@ impl DestinationConnection for DestinationConnectionImpl {
 
 impl<'a> Debug for DestinationConnectionImpl {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("SourceConnection").field("source_process", &self.destination_process.try_lock().unwrap().identifier()).field("owner_id", &self.owner_identifier).finish()
+        f.debug_struct("SourceConnection").field("source_process", &self.destination_process.try_lock().unwrap().identifier()).field("owner_id", &self.owner_identifier()).finish()
     }
 }
 
 impl Clone for DestinationConnectionImpl {
     fn clone(&self) -> Self {
-        Self {
-            core: self.core.clone(),
-            owner_identifier: self.owner_identifier.clone(), 
-            destination_process: self.destination_process.clone(), 
-            destination_process_identifier: self.destination_process_identifier.clone(), 
-            manifest: self.manifest.clone(), 
-            arg_name: self.arg_name.clone(), 
-            connection_type: self.connection_type }
+        Self { core: self.core.clone(), destination_process: self.destination_process.clone() }
     }
 }

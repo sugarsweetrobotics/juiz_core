@@ -48,8 +48,8 @@ pub enum JuizError {
     ManifestValueIsNotExpectedTypeError { value: serde_json::Value, key: String, expected_type: String },
     #[error("Manifest Value (key={key:}, value={set_type:}) in Manifest ({value:}) is not equal to default_type ({expected_type:})")]
     ManifestDefaultValueIsNotExpectedTypeError { value: serde_json::Value, key: String, set_type: String, expected_type: String },
-    #[error("Given Connection type is invalid (manifest: {manifest:})")]
-    ConnectionTypeError { manifest: serde_json::Value },
+    #[error("Given Connection type is invalid (type_string: {type_string:})")]
+    ConnectionTypeError { type_string: String },
     #[error("ContainerFactory({type_name:}) can not be found.")]
     ContainerFactoryCanNotFoundError { type_name: String },
     #[error("Container({id:}) can not be found.")]

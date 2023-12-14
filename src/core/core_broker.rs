@@ -8,6 +8,8 @@ use anyhow::Context;
 
 use crate::Container;
 use crate::JuizObject;
+use crate::brokers::broker_proxy::ContainerBrokerProxy;
+use crate::brokers::broker_proxy::ContainerProcessBrokerProxy;
 use crate::brokers::broker_proxy::ProcessBrokerProxy;
 use crate::brokers::broker_proxy::SystemBrokerProxy;
 
@@ -145,9 +147,22 @@ impl ProcessBrokerProxy for CoreBroker {
     }
 
     fn process_profile_full(&self, id: &Identifier) -> JuizResult<Value> {
-        juiz_lock(&self.store().process(id)?).with_context(||format!("locking process(id={id:}) in CoreBroker::execute_process() function"))?.profile_full()
+        juiz_lock(&self.store().process(id)?).with_context(||format!("locking process(id={id:}) in CoreBroker::process_profile_full() function"))?.profile_full()
     }
 }
+
+impl ContainerBrokerProxy for CoreBroker {
+    fn container_profile_full(&self, id: &Identifier) -> JuizResult<Value> {
+        juiz_lock(&self.store().container(id)?).with_context(||format!("locking container(id={id:}) in CoreBroker::container_profile_full() function"))?.profile_full()
+    }
+}
+
+impl ContainerProcessBrokerProxy for CoreBroker {
+    fn container_process_profile_full(&self, id: &Identifier) -> JuizResult<Value> {
+        juiz_lock(&self.store().container_process(id)?).with_context(||format!("locking container_procss(id={id:}) in CoreBroker::container_process_profile_full() function"))?.profile_full()
+    }
+}
+
 
 impl BrokerProxy for CoreBroker {
 
