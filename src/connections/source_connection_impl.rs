@@ -3,25 +3,17 @@
 
 use anyhow::Context;
 
-use crate::{jvalue, Value, Process, JuizError, JuizResult, Identifier, utils::juiz_lock, connections::source_connection::SourceConnectionType, value::obj_get_str, JuizObject, object::{JuizObjectCoreHolder, ObjectCore, JuizObjectClass}};
+use crate::{jvalue, Value, Process, JuizError, JuizResult, Identifier, utils::juiz_lock, value::obj_get_str, JuizObject, object::{JuizObjectCoreHolder, ObjectCore, JuizObjectClass}};
 use std::sync::{Mutex, Arc};
 use core::fmt::Debug;
 use std::clone::Clone;
 
-use super::{SourceConnection, connection::Connection};
+use super::{SourceConnection, connection::{Connection, ConnectionType}};
 
-
-
-pub fn source_connection_type_str(typ: &'static SourceConnectionType) -> String {
-    match typ {
-        SourceConnectionType::Pull => "Pull".to_string(),
-        _ => "Push".to_string()
-    }
-}
 pub struct SourceConnectionImpl {
     core: ObjectCore, 
     arg_name: String,
-    connection_type: &'static SourceConnectionType,
+    connection_type: &'static ConnectionType,
     manifest: Value,
     owner_identifier: Identifier,
     // source_id: Identifier,
@@ -35,13 +27,13 @@ impl SourceConnectionImpl {
         log::trace!("# SourceConnectionImpl::new() called");
         let connection_id = obj_get_str(&manifest, "id")?.to_string();
         let source_process_identifier = juiz_lock(&source_process)?.identifier().clone();
-        let mut connection_type = &SourceConnectionType::Pull;
+        let mut connection_type = &ConnectionType::Pull;
         match obj_get_str(&manifest, "type") {
             Err(_) => {},
             Ok(typ_str) => {
                 if typ_str == "pull" {}
                 else if typ_str == "push" {
-                    connection_type = &SourceConnectionType::Push;
+                    connection_type = &ConnectionType::Push;
                 } else {
                     return Err(anyhow::Error::from(JuizError::ConnectionTypeError{manifest}));
                 }
@@ -70,7 +62,7 @@ impl JuizObject for SourceConnectionImpl {
     fn profile_full(&self) -> JuizResult<Value> {
         Ok(jvalue!({
             "identifier": self.identifier(),
-            "connection_type": source_connection_type_str(self.connection_type),
+            "connection_type": self.connection_type.to_string(),
             "arg_name": self.arg_name().to_owned(),
             "owner_identifier": self.owner_identifier.to_owned(),
             "source_process_identifier": self.source_process_identifier.to_owned(),
@@ -79,18 +71,18 @@ impl JuizObject for SourceConnectionImpl {
 }
 
 impl Connection for SourceConnectionImpl {
-
-}
-
-impl SourceConnection for SourceConnectionImpl {
-
     fn arg_name(&self) -> &String {
         &self.arg_name
     }
 
-    fn connection_type(&self) -> &SourceConnectionType {
+    fn connection_type(&self) -> &ConnectionType {
         &self.connection_type
     }
+}
+
+impl SourceConnection for SourceConnectionImpl {
+
+    
 
     fn is_source_updated(&self) -> JuizResult<bool> {
         let proc = juiz_lock(&self.source_process).context("in SourceConnectionImpl.is_source_updated()")?;

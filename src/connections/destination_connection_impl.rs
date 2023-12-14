@@ -9,20 +9,14 @@ use std::sync::{Mutex, Arc};
 use crate::value::*;
 use core::fmt::Debug;
 use std::clone::Clone;
-use crate::connections::destination_connection::DestinationConnectionType;
 
-use super::{DestinationConnection, connection::Connection};
+use super::{DestinationConnection, connection::{Connection, ConnectionType}};
 
-pub fn destination_connection_type_str(typ: &'static DestinationConnectionType) -> String {
-    match typ {
-        DestinationConnectionType::Pull => "Pull".to_string(),
-        _ => "Push".to_string()
-    }
-}
+
 pub struct DestinationConnectionImpl{
     core: ObjectCore, 
     manifest: Value,
-    connection_type: &'static DestinationConnectionType,
+    connection_type: &'static ConnectionType,
     owner_identifier: Identifier,
     arg_name: String,
     destination_process_identifier: Identifier,
@@ -34,14 +28,14 @@ impl DestinationConnectionImpl {
     pub fn new(owner_id: &Identifier, dest_process: Arc<Mutex<dyn Process>>, connection_manifest: Value, arg_name: String) -> JuizResult<Self> {
         log::trace!("# DestinationConnectionImpl::new() called");
         let manif = check_connection_manifest(connection_manifest.clone())?;
-        let mut connection_type = &DestinationConnectionType::Pull;
+        let mut connection_type = &ConnectionType::Pull;
         let destination_process_identifier = juiz_lock(&dest_process)?.identifier().clone();
         match obj_get_str(&manif, "type") {
             Err(_) => {},
             Ok(typ_str) => {
                 if typ_str == "pull" {}
                 else if typ_str == "push" {
-                    connection_type = &DestinationConnectionType::Push;
+                    connection_type = &ConnectionType::Push;
                 } else {
                     return Err(anyhow::Error::from(JuizError::ConnectionTypeError { manifest: connection_manifest }));
                 }
@@ -73,7 +67,7 @@ impl JuizObject for DestinationConnectionImpl {
     fn profile_full(&self) -> JuizResult<Value> {
         Ok(jvalue!({
             "identifier": self.identifier(), 
-            "connection_type": destination_connection_type_str(self.connection_type),
+            "connection_type": self.connection_type.to_string(),
             "arg_name": self.arg_name().to_owned(),
             "owner_identifier": self.owner_identifier.to_owned(),
             "destination_process_identifier": self.destination_process_identifier.to_owned(),
@@ -83,19 +77,17 @@ impl JuizObject for DestinationConnectionImpl {
 }
 
 impl Connection for DestinationConnectionImpl {
-
-}
-
-impl DestinationConnection for DestinationConnectionImpl {
-
-
     fn arg_name(&self) -> &String {
         &self.arg_name
     }
 
-    fn connection_type(&self) -> &DestinationConnectionType {
+    fn connection_type(&self) -> &ConnectionType {
         &self.connection_type
     }
+
+}
+
+impl DestinationConnection for DestinationConnectionImpl {
 
     fn execute_destination(&self) -> JuizResult<Value> {
         let proc = juiz_lock(&self.destination_process).context("DestinationConnectionImpl.execute_destination()")?;
