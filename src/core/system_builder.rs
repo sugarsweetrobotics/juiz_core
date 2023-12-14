@@ -182,7 +182,7 @@ pub mod system_builder {
     pub fn setup_connections(system: &System, manifest: &serde_json::Value) -> JuizResult<()> {
         log::trace!("system_builder::setup_connections() called");
         for c in get_array(manifest)?.iter() {
-            connection_builder::create_connections(system, &c)?;
+            connection_builder::create_connections(system, &c).context("connection_builder::create_connections faled in system_builder::setup_connections()")?;
         } 
         Ok(())
     }

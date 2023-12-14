@@ -10,7 +10,7 @@ use crate::object::{ObjectCore, JuizObjectCoreHolder, JuizObjectClass};
 use crate::value::{obj_get_str, obj_merge, obj_insert};
 use crate::{JuizResult, Container, BrokerProxy, Broker, JuizObject, CoreBroker, Value, JuizError, Identifier, Process, jvalue};
 use crate::utils::juiz_lock;
-use crate::utils::manifest_util::{id_from_manifest, when_contains_do_mut};
+use crate::utils::manifest_util::{id_from_manifest, when_contains_do_mut, construct_id};
 use super::system_builder::system_builder;
 use crate::utils::when_contains_do;
 
@@ -75,13 +75,70 @@ impl System {
         juiz_lock(&self.core_broker)?.store().process(id)
     }
 
+    pub fn process_from_typename_and_name(&self, type_name: &str, name: &str) -> JuizResult<Arc<Mutex<dyn Process>>> {
+        let id = construct_id("Process", type_name, name, "core", "core");
+        juiz_lock(&self.core_broker)?.store().process(&id)
+    }
+
     pub fn container_from_id(&self, id: &Identifier) -> JuizResult<Arc<Mutex<dyn Container>>> {
         juiz_lock(&self.core_broker)?.store().container(id)
+    }
+
+    pub fn container_from_typename_and_name(&self, type_name: &str, name: &str) -> JuizResult<Arc<Mutex<dyn Container>>> {
+        let id = construct_id("Container", type_name, name, "core", "core");
+        juiz_lock(&self.core_broker)?.store().container(&id)
+    }
+
+    pub fn container_process_from_id(&self, id: &Identifier) -> JuizResult<Arc<Mutex<dyn Process>>> {
+        juiz_lock(&self.core_broker)?.store().container_process(id)
+    }
+
+    pub fn any_process_from_id(&self, id: &Identifier) -> JuizResult<Arc<Mutex<dyn Process>>> {
+        let result = self.process_from_id(id);
+        if result.is_ok() {
+            return result;
+        }
+        self.container_process_from_id(id)
+    }
+
+    pub fn container_process_from_typename_and_name(&self, type_name: &str, name: &str) -> JuizResult<Arc<Mutex<dyn Process>>> {
+        let id = construct_id("ContainerProcess", type_name, name, "core", "core");
+        juiz_lock(&self.core_broker)?.store().process(&id)
+    }
+
+    pub fn any_process_from_typename_and_name(&self, type_name: &str, name: &str) -> JuizResult<Arc<Mutex<dyn Process>>> {
+        let result = self.process_from_typename_and_name(type_name, name);
+        if result.is_ok() {
+            return result;
+        }
+        self.container_process_from_typename_and_name(type_name, name)
     }
 
     pub fn process_from_manifest(&self, manifest: &Value) -> JuizResult<Arc<Mutex<dyn Process>>> {
         let id = id_from_manifest(manifest)?.to_string();
         self.process_from_id(&id)
+    }
+
+    pub fn container_from_manifest(&self, manifest: &Value) -> JuizResult<Arc<Mutex<dyn Container>>> {
+        let id = id_from_manifest(manifest)?.to_string();
+        self.container_from_id(&id)
+    }
+
+    pub fn container_process_from_manifest(&self, manifest: &Value) -> JuizResult<Arc<Mutex<dyn Process>>> {
+        let id = id_from_manifest(manifest)?.to_string();
+        self.container_process_from_id(&id)
+    }
+
+    pub fn any_process_from_manifest(&self, manifest: &Value) -> JuizResult<Arc<Mutex<dyn Process>>> {
+        
+        let id_result = id_from_manifest(manifest);
+        if id_result.is_ok() {
+            return self.any_process_from_id(&id_result.unwrap().to_string());
+        }
+
+        let type_name = obj_get_str(manifest, "type_name")?;
+        let name = obj_get_str(manifest, "name")?;
+        self.any_process_from_typename_and_name(type_name, name)
     }
 
     fn setup(&mut self) -> JuizResult<()> {

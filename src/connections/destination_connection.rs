@@ -1,14 +1,15 @@
 
-use crate::{Value, Identifier, JuizResult};
+use crate::{Value, Identifier, JuizResult, JuizObject};
+
+use super::connection::Connection;
 
 pub enum DestinationConnectionType {
     Pull,
     Push
 }
 
-pub trait DestinationConnection {
+pub trait DestinationConnection : Connection {
 
-    fn identifier(&self) -> &Identifier;
 
     fn arg_name(&self) -> &String;
 
@@ -18,5 +19,4 @@ pub trait DestinationConnection {
 
     fn push(&self, value: &Value) -> JuizResult<Value>;
 
-    fn profile_full(&self) -> JuizResult<Value>;
 }

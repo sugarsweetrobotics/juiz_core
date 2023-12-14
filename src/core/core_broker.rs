@@ -7,7 +7,6 @@ use std::sync::Mutex;
 use anyhow::Context;
 
 use crate::Container;
-use crate::ContainerProcess;
 use crate::JuizObject;
 use crate::brokers::broker_proxy::ProcessBrokerProxy;
 use crate::brokers::broker_proxy::SystemBrokerProxy;
@@ -95,7 +94,7 @@ impl CoreBroker {
         self.store_mut().register_container(p)
     }
 
-    pub fn create_container_process_ref(&mut self, container: Arc<Mutex<dyn Container>>, manifest: Value) -> JuizResult<Arc<Mutex<dyn ContainerProcess>>> {
+    pub fn create_container_process_ref(&mut self, container: Arc<Mutex<dyn Container>>, manifest: Value) -> JuizResult<Arc<Mutex<dyn Process>>> {
         log::trace!("CoreBroker::create_container_process(manifest={}) called", manifest);
         let typ_name = type_name(&manifest)?;
         let arc_pf = self.core_store.container_process_factory(typ_name).with_context(||format!("CoreBroker::create_container_process({})", typ_name))?;

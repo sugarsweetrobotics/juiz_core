@@ -4,14 +4,14 @@
 use anyhow::Context;
 use serde_json::Value;
 
-use crate::{Process, JuizError, Identifier, utils::{manifest_checker::check_connection_manifest, juiz_lock}, JuizResult};
+use crate::{Process, JuizError, Identifier, utils::{manifest_checker::check_connection_manifest, juiz_lock}, JuizResult, JuizObject, object::{JuizObjectCoreHolder, ObjectCore, JuizObjectClass}};
 use std::sync::{Mutex, Arc};
 use crate::value::*;
 use core::fmt::Debug;
 use std::clone::Clone;
 use crate::connections::destination_connection::DestinationConnectionType;
 
-use super::DestinationConnection;
+use super::{DestinationConnection, connection::Connection};
 
 pub fn destination_connection_type_str(typ: &'static DestinationConnectionType) -> String {
     match typ {
@@ -20,7 +20,7 @@ pub fn destination_connection_type_str(typ: &'static DestinationConnectionType) 
     }
 }
 pub struct DestinationConnectionImpl{
-    connection_id: Identifier,
+    core: ObjectCore, 
     manifest: Value,
     connection_type: &'static DestinationConnectionType,
     owner_identifier: Identifier,
@@ -47,8 +47,9 @@ impl DestinationConnectionImpl {
                 }
             }
         };
+        let connection_id = obj_get_str(&manif, "id")?;
         Ok(DestinationConnectionImpl{
-            connection_id: obj_get_str(&manif, "id")?.to_string(),
+            core: ObjectCore::create(JuizObjectClass::Connection("DestinationConnection"), "DestinationConnection", connection_id),
             owner_identifier:owner_id.clone(),
             destination_process: dest_process, 
             destination_process_identifier,
@@ -59,21 +60,34 @@ impl DestinationConnectionImpl {
 
 }
 
-impl DestinationConnection for DestinationConnectionImpl {
-
-
-    fn identifier(&self) -> &Identifier {
-        &self.connection_id
+impl JuizObjectCoreHolder for DestinationConnectionImpl {
+    fn core(&self) -> &crate::object::ObjectCore {
+        &self.core
     }
+}
+
+
+impl JuizObject for DestinationConnectionImpl {
+
+    
     fn profile_full(&self) -> JuizResult<Value> {
         Ok(jvalue!({
-            "connection_id": self.connection_id,
+            "identifier": self.identifier(), 
             "connection_type": destination_connection_type_str(self.connection_type),
             "arg_name": self.arg_name().to_owned(),
             "owner_identifier": self.owner_identifier.to_owned(),
             "destination_process_identifier": self.destination_process_identifier.to_owned(),
         }))
     }
+
+}
+
+impl Connection for DestinationConnectionImpl {
+
+}
+
+impl DestinationConnection for DestinationConnectionImpl {
+
 
     fn arg_name(&self) -> &String {
         &self.arg_name
@@ -102,6 +116,13 @@ impl<'a> Debug for DestinationConnectionImpl {
 
 impl Clone for DestinationConnectionImpl {
     fn clone(&self) -> Self {
-        Self {connection_id: self.identifier().clone(), owner_identifier: self.owner_identifier.clone(), destination_process: self.destination_process.clone(), destination_process_identifier: self.destination_process_identifier.clone(), manifest: self.manifest.clone(), arg_name: self.arg_name.clone(), connection_type: self.connection_type }
+        Self {
+            core: self.core.clone(),
+            owner_identifier: self.owner_identifier.clone(), 
+            destination_process: self.destination_process.clone(), 
+            destination_process_identifier: self.destination_process_identifier.clone(), 
+            manifest: self.manifest.clone(), 
+            arg_name: self.arg_name.clone(), 
+            connection_type: self.connection_type }
     }
 }

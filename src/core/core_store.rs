@@ -2,7 +2,7 @@ use std::{collections::HashMap, sync::{Mutex, Arc}};
 
 use anyhow::Context;
 
-use crate::{ProcessFactory, JuizError, Identifier, Process, JuizResult, utils::{juiz_lock, manifest_util::get_hashmap_mut}, ContainerFactory, Container, ContainerProcessFactory, ContainerProcess, Value, jvalue};
+use crate::{ProcessFactory, JuizError, Identifier, Process, JuizResult, utils::{juiz_lock, manifest_util::get_hashmap_mut}, ContainerFactory, Container, ContainerProcessFactory, Value, jvalue};
 
 
 
@@ -16,7 +16,7 @@ pub struct CoreStore {
     containers: HashMap<Identifier, Arc<Mutex<dyn Container>>> ,
 
     container_process_factories: HashMap<String, Arc<Mutex<dyn ContainerProcessFactory>>>,
-    container_processes: HashMap<Identifier, Arc<Mutex<dyn ContainerProcess>>> ,
+    container_processes: HashMap<Identifier, Arc<Mutex<dyn Process>>> ,
 
     broker_factories_manifests: HashMap<Identifier, Value>,
     brokers_manifests: HashMap<Identifier, Value>,
@@ -102,7 +102,7 @@ impl CoreStore {
         self.container(&id)
     }
 
-    pub fn register_container_process(&mut self, p: Arc<Mutex<dyn ContainerProcess>>) -> JuizResult<Arc<Mutex<dyn ContainerProcess>>> {
+    pub fn register_container_process(&mut self, p: Arc<Mutex<dyn Process>>) -> JuizResult<Arc<Mutex<dyn Process>>> {
         let id = juiz_lock(&p)?.identifier().clone();
         log::trace!("CoreStore::register_container_process(Process(id={:?}, manifest={})) called", id, juiz_lock(&p)?.manifest());
         self.container_processes.insert(id.clone(), p);
@@ -151,7 +151,7 @@ impl CoreStore {
     }
 
 
-    pub fn container_process(&self, id: &Identifier) -> JuizResult<Arc<Mutex<dyn ContainerProcess>>> {
+    pub fn container_process(&self, id: &Identifier) -> JuizResult<Arc<Mutex<dyn Process>>> {
         match self.container_processes.get(id) {
             Some(p) => Ok(Arc::clone(p)),
             None => {

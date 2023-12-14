@@ -1,6 +1,6 @@
 use crate::{JuizResult, Value, Identifier, jvalue, identifier::identifier_new};
 
-
+#[derive(Clone)]
 pub enum JuizObjectClass {
 
     Process(&'static str),
@@ -9,6 +9,7 @@ pub enum JuizObjectClass {
     ProcessFactory(&'static str),
     ContainerFactory(&'static str),
     ContainerProcessFactory(&'static str),
+    Connection(&'static str),
     ExecutionContext(&'static str),
     ExecutionContextFactory(&'static str),
 
@@ -18,6 +19,7 @@ pub enum JuizObjectClass {
     BrokerProxyFactory(&'static str),
     System(&'static str),
 }
+
 
 impl JuizObjectClass {
 
@@ -29,6 +31,7 @@ impl JuizObjectClass {
             JuizObjectClass::ContainerFactory(_) => "ContainerFactory",
             JuizObjectClass::ContainerProcess(_) => "ContainerProcess",
             JuizObjectClass::ContainerProcessFactory(_) => "ContainerProcessFactory",
+            JuizObjectClass::Connection(_) => "Connection",
             JuizObjectClass::ExecutionContext(_) => "ExecutionContext",
             JuizObjectClass::ExecutionContextFactory(_) => "ExecutionContextFactory",
 
@@ -49,6 +52,12 @@ pub struct ObjectCore {
     name: String,
     broker_type_name: String,
     broker_name: String,
+}
+
+impl Clone for ObjectCore {
+    fn clone(&self) -> Self {
+        Self { identifier: self.identifier.clone(), class_name: self.class_name.clone(), type_name: self.type_name.clone(), name: self.name.clone(), broker_type_name: self.broker_type_name.clone(), broker_name: self.broker_name.clone() }
+    }
 }
 
 impl ObjectCore {

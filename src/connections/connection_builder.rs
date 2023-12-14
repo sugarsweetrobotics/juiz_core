@@ -2,14 +2,22 @@
 
 pub mod connection_builder {
     use std::sync::{Arc, Mutex};
+    use anyhow::Context;
+
     use crate::{processes::Process, Value, System, utils::{get_value, get_str, juiz_lock}, JuizResult};
 
     pub fn create_connections(system: &System, manifest: &Value) -> JuizResult<Value> {
         log::trace!("connection_builder::create_connections(manifest={:?}) called", manifest);
         connect(
-            system.process_from_manifest(get_value(manifest, "source")?)?,
-            system.process_from_manifest(get_value(manifest, "destination")?)?,
-            &get_str(manifest, "arg_name")?.to_string(),
+            system.any_process_from_manifest(
+                get_value(manifest, "source")
+                    .context("When loading 'source' value but not found in connection_builder::create_connectin()")?)
+                .context("System::process_from_manifest(source) failed in connection_builder::create_connection()")?,
+            system.any_process_from_manifest(
+                get_value(manifest, "destination")
+                    .context("When loading 'destination' value but not found in connection_builder::create_connectin()")?)
+                .context("System::process_from_manifest(destination) failed in connection_builder::create_connection()")?,
+            &get_str(manifest, "arg_name").context("When loading arg_name failed in connection_builder::create_connection()")?.to_string(),
             manifest.clone()
         )
     }

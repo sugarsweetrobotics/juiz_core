@@ -2,14 +2,14 @@ use std::{sync::{Arc, Mutex}, cell::RefCell};
 
 use anyhow::Context;
 
-use crate::{jvalue, core::Plugin, Value, utils::juiz_lock, JuizResult, ContainerProcessFactory, ContainerProcess, JuizObject, object::{JuizObjectCoreHolder, ObjectCore, JuizObjectClass}, value::obj_merge};
+use crate::{jvalue, core::Plugin, Value, utils::juiz_lock, JuizResult, ContainerProcessFactory, Process, JuizObject, object::{JuizObjectCoreHolder, ObjectCore, JuizObjectClass}, value::obj_merge};
 
 #[allow(dead_code)]
 pub struct ContainerProcessFactoryWrapper {
     core: ObjectCore,
     plugin: Plugin,
     container_process_factory: Arc<Mutex<dyn ContainerProcessFactory>>,
-    container_processes: RefCell<Vec<Arc<Mutex<dyn ContainerProcess>>>>
+    container_processes: RefCell<Vec<Arc<Mutex<dyn Process>>>>
 }
 
 impl ContainerProcessFactoryWrapper {
@@ -47,7 +47,7 @@ impl JuizObject for ContainerProcessFactoryWrapper {
 
 impl ContainerProcessFactory for ContainerProcessFactoryWrapper {
 
-    fn create_container_process(&self, container: Arc<Mutex<dyn crate::Container>>, manifest: Value) -> JuizResult<Arc<Mutex<dyn ContainerProcess>>> {
+    fn create_container_process(&self, container: Arc<Mutex<dyn crate::Container>>, manifest: Value) -> JuizResult<Arc<Mutex<dyn Process>>> {
         log::trace!("ContainerProcessFactoryWrapper::create_container_process(manifest={}) called", manifest);
         let p = juiz_lock(&self.container_process_factory).with_context(||format!("ContainerProcessFactoryWrapper::create_container_process(manifest:{manifest:}) failed."))?.create_container_process(container, manifest)?;
         self.container_processes.borrow_mut().push(Arc::clone(&p));

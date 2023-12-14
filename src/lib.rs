@@ -11,7 +11,7 @@ pub mod containers;
 pub use object::JuizObject;
 pub use value::{Value, jvalue};
 pub use processes::{Process, ProcessFunction, ProcessFactory, create_process_factory};
-pub use containers::{Container, ContainerFactory, ContainerProcessFactory, create_container_factory, ContainerProcess};
+pub use containers::{Container, ContainerFactory, ContainerProcessFactory, create_container_factory};
 pub use identifier::Identifier;
 pub use core::error::JuizError;
 pub use brokers::{Broker, BrokerProxy, BrokerFactory, BrokerProxyFactory};

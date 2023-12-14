@@ -25,21 +25,23 @@ async fn main() -> JuizResult<()> {
                     "name": "increment_b"
                 },
             ],
-            /*
+            
             "connections": [
                 {
                     "id": "con01",
                     "arg_name": "arg1",
                     "source" : {
                         "type_name": "increment_process",
-                        "name": "increment_b"
+                        "name": "increment_b",
+                        //"id": "core://core/Process/increment_b:increment_process"
                     }, 
                     "destination" : {
                         "type_name": "increment_process",
-                        "name": "increment_a"
+                        "name": "increment_a",
+                        "id": "core://core/Process/increment_a:increment_process"
                     }
                 }
-            ]*/
+            ]
         }
     );
 

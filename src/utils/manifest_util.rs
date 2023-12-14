@@ -1,16 +1,31 @@
+use anyhow::Context;
 use serde_json::Map;
-use crate::{Value, JuizError, JuizResult, value::obj_get_str};
+use crate::{Value, JuizError, JuizResult, value::obj_get_str, Identifier};
 
-pub fn id_from_manifest(manifest: &serde_json::Value) -> JuizResult<String> {
-    match obj_get_str(manifest, "type_name") {
-        Ok(type_name) => {
-            let name = obj_get_str(manifest, "name")?;
-            match obj_get_str(manifest, "broker_type") {
-                Err(_) => Ok("core://".to_string() + name + ":" + type_name),
-                Ok(broker_type) => Ok(broker_type.to_string() + "://" + name + ":" + type_name)
-            }
-        },
-        Err(_) => Ok(obj_get_str(manifest, "identifier")?.to_string())
+pub fn construct_id(class_name: &str, type_name: &str, name: &str, broker_type: &str, broker_name: &str) -> Identifier {
+    broker_type.to_string() + "://" + broker_name + "/" + class_name + "/" + name + ":" + type_name
+}
+
+pub fn id_from_manifest(manifest: &serde_json::Value) -> JuizResult<Identifier> {
+    let id_result = obj_get_str(manifest, "id");
+    if id_result.is_ok() {
+        return Ok(id_result.ok().unwrap().to_string());
+    }
+    let identifier_result = obj_get_str(manifest, "identifier");
+    if identifier_result.is_ok() {
+        return Ok(identifier_result.ok().unwrap().to_string());
+    }
+
+    let type_name = obj_get_str(manifest, "type_name").context("id_from_manifest() failed. 'id' or 'identifier' can't be found. Now the manifest must have class_name, type_name, and name. But type_name is not found.")?;
+    let name = obj_get_str(manifest, "name").context("id_from_manifest() failed. 'id' or 'identifier' can't be found. Now the manifest must have class_name, type_name, and name. But name is not found.")?;
+    let class_name = obj_get_str(manifest, "class_name").context("id_from_manifest() failed. 'id' or 'identifier' can't be found. Now the manifest must have class_name, type_name, and name. But class_name is not found.")?;
+
+    match obj_get_str(manifest, "broker_type") {
+        Err(_) => Ok(construct_id(class_name, type_name, name, "core", "core")),
+        Ok(broker_type) => {
+            let broker_name = obj_get_str(manifest, "broker_name").context("id_from_manifest() failed. 'id' or 'identifier' can't be found, but broker_type is found. Now the manifest must have type_name, name, and broker_name. But broker_name is not found.")?;
+            Ok(construct_id(class_name, type_name, name, broker_type, broker_name))
+        }     
     }
 }
 

@@ -1,14 +1,14 @@
 
 use crate::{Value, Identifier, JuizResult};
 
+use super::connection::Connection;
+
 pub enum SourceConnectionType {
     Pull,
     Push
 }
 
-pub trait SourceConnection {
-
-    fn identifier(&self) -> &Identifier;
+pub trait SourceConnection : Connection {
 
     fn arg_name(&self) -> &String;
 
@@ -21,8 +21,5 @@ pub trait SourceConnection {
     // fn source_process_id(&self) -> &Identifier;
 
     fn pull(&self) -> JuizResult<Value>;
-
-
-    fn profile_full(&self) -> JuizResult<Value>;
 }
 
