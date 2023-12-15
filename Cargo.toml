@@ -30,8 +30,8 @@ utoipa = { version="4.1.0", features = ["axum_extras"] }
 
 [workspace]
 members = [
-    "timer_ec",
-    "one_shot_ec", 
+    "ecs/timer_ec",
+    "ecs/one_shot_ec", 
     "http_broker",
     "container_examples",
     "increment_process",
@@ -40,8 +40,8 @@ members = [
     "container_examples/example_container_increment",
 ]
 default-members = [
-    "timer_ec",
-    "one_shot_ec",
+    "ecs/timer_ec",
+    "ecs/one_shot_ec",
     "http_broker",
     "container_examples",
     "increment_process",
