@@ -1,9 +1,10 @@
 use anyhow::Context;
 use serde_json::Map;
-use crate::{Value, JuizError, JuizResult, value::obj_get_str, Identifier};
+use crate::{Value, JuizError, JuizResult, value::obj_get_str, Identifier, identifier::identifier_new};
 
 pub fn construct_id(class_name: &str, type_name: &str, name: &str, broker_type: &str, broker_name: &str) -> Identifier {
-    broker_type.to_string() + "://" + broker_name + "/" + class_name + "/" + name + ":" + type_name
+    //broker_type.to_string() + "://" + broker_name + "/" + class_name + "/" + name + ":" + type_name
+    identifier_new(broker_type, broker_name, class_name, type_name, name)
 }
 
 pub fn id_from_manifest(manifest: &serde_json::Value) -> JuizResult<Identifier> {

@@ -5,8 +5,8 @@ use anyhow::Context;
 
 use crate::object::{ObjectCore, JuizObjectCoreHolder, JuizObjectClass};
 use crate::value::obj_get_str;
-use crate::{jvalue, Value, JuizResult, BrokerProxy, JuizObject};
-use crate::brokers::{BrokerProxyFactory, MessengerBrokerProxy, MessengerBrokerProxyCoreFactory};
+use crate::{jvalue, Value, JuizResult, JuizObject};
+use crate::brokers::{BrokerProxyFactory, BrokerProxy, MessengerBrokerProxy, MessengerBrokerProxyCoreFactory};
 
 
 

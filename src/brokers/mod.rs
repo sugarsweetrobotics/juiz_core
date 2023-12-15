@@ -9,7 +9,7 @@ pub mod broker_factories_wrapper;
 pub mod local;
 pub mod messenger;
 pub mod crud;
-pub mod http;
+// pub mod _http_;
 
 pub use broker::Broker;
 pub use broker_factory::BrokerFactory;
@@ -19,4 +19,4 @@ pub use broker_proxy_factory::BrokerProxyFactory;
 pub use local::*;
 pub use messenger::*;
 pub use crud::*;
-pub use http::*;
+// pub use _http_::*;

@@ -503,6 +503,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "http_broker"
+version = "0.1.0"
+dependencies = [
+ "axum",
+ "env_logger",
+ "futures",
+ "juiz_core",
+ "log",
+ "serde",
+ "tokio",
+ "utoipa",
+ "utoipa-rapidoc",
+ "utoipa-redoc",
+ "utoipa-swagger-ui",
+ "uuid",
+]
+
+[[package]]
 name = "httparse"
 version = "1.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1152,6 +1170,17 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.39",
+]
+
+[[package]]
+name = "timer_ec"
+version = "0.1.0"
+dependencies = [
+ "env_logger",
+ "futures",
+ "juiz_core",
+ "log",
+ "tokio",
 ]
 
 [[package]]

@@ -81,6 +81,27 @@ pub fn obj_get_str<'a>(value: &'a Value, key: &str) -> JuizResult<&'a str> {
     }
 }
 
+pub fn obj_get_i64<'a>(value: &'a Value, key: &str) -> JuizResult<i64> {
+    let obj = obj_get(value, key)?;
+    match obj.as_i64() {
+        None  => Err(anyhow::Error::from(JuizError::ValueWithKeyIsNotNumError{value: value.clone(), key: key.to_string()})),
+        Some(s) => return Ok(s)
+    }
+}
+
+pub fn obj_get_f64<'a>(value: &'a Value, key: &str) -> JuizResult<f64> {
+    let obj = obj_get(value, key)?;
+    match obj.as_f64() {
+        None  => {
+            match obj.as_i64() {
+                None => Err(anyhow::Error::from(JuizError::ValueWithKeyIsNotNumError{value: value.clone(), key: key.to_string()})),    
+                Some(i) => return Ok(i as f64)
+            }
+        },
+        Some(s) => return Ok(s)
+    }
+}
+
 pub fn obj_get_bool(value: &Value, key: &str) -> JuizResult<bool> {
     let obj = obj_get(value, key)?;
     match obj.as_bool() {

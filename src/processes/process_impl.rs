@@ -215,3 +215,7 @@ impl Drop for ProcessImpl {
         //self.source_connections.drop();
     }
 }
+
+unsafe impl Send for ProcessImpl {
+
+}

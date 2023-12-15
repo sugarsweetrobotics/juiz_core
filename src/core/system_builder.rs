@@ -6,7 +6,14 @@ pub mod system_builder {
 
     use anyhow::Context;
 
-    use crate::{jvalue, brokers::{broker_factories_wrapper::BrokerFactoriesWrapper, local::local_broker::{SenderReceiverPair, create_local_broker_factory}, http_broker::HTTPBroker, local::local_broker_proxy::create_local_broker_proxy_factory}, System, Value, JuizResult, core::Plugin, ProcessFactory, processes::ProcessFactoryWrapper, containers::{container_factory_wrapper::ContainerFactoryWrapper, container_process_factory_wrapper::ContainerProcessFactoryWrapper}, utils::{get_array, get_hashmap, when_contains_do, juiz_lock, manifest_util::when_contains_do_mut}, connections::connection_builder::connection_builder, value::obj_get_str, ContainerFactory, ContainerProcessFactory, BrokerFactory, BrokerProxyFactory};
+    use crate::{jvalue, 
+        brokers::{BrokerFactory, BrokerProxyFactory, broker_factories_wrapper::BrokerFactoriesWrapper, 
+        local::local_broker::{SenderReceiverPair, create_local_broker_factory}, 
+            // http_broker::HTTPBroker, 
+            local::local_broker_proxy::create_local_broker_proxy_factory, BrokerProxy}, 
+            System, Value, JuizResult, core::Plugin, ProcessFactory, 
+            processes::ProcessFactoryWrapper, 
+            containers::{container_factory_wrapper::ContainerFactoryWrapper, container_process_factory_wrapper::ContainerProcessFactoryWrapper}, utils::{get_array, get_hashmap, when_contains_do, juiz_lock, manifest_util::when_contains_do_mut}, connections::connection_builder::connection_builder, value::{obj_get_str, obj_get}, ContainerFactory, ContainerProcessFactory, ecs::{ExecutionContextFactory, execution_context_holder::ExecutionContextHolder, execution_context_holder_factory::ExecutionContextHolderFactory}};
  
     pub fn setup_plugins(system: &mut System, manifest: &Value) -> JuizResult<()> {
         log::trace!("system_builder::setup_plugins({}) called", manifest);
@@ -19,6 +26,9 @@ pub mod system_builder {
         })?;
         let _ = when_contains_do(manifest, "container_factories", |v| {
             setup_container_factories(system, v).with_context(||format!("system_builder::setup_container_factories(manifest={manifest:}) failed."))
+        })?;
+        let _ = when_contains_do(manifest, "ec_factories", |v| {
+            setup_execution_context_factories(system, v).with_context(||format!("system_builder::setup_execution_context_factories(manifest={manifest:}) failed."))
         })?;
         Ok(())
     }
@@ -47,7 +57,7 @@ pub mod system_builder {
                     let ppf = juiz_lock(&pf)?;
                     log::debug!("ProcessFactory(type_name={:?}) created.", ppf.type_name());
                 }
-                system.core_broker().lock().unwrap().store_mut().register_process_factory(ProcessFactoryWrapper::new(plugin, pf)?)?;
+                system.core_broker().lock().unwrap().store_mut().processes.register_factory(ProcessFactoryWrapper::new(plugin, pf)?)?;
             }
         }
         Ok(())
@@ -69,7 +79,7 @@ pub mod system_builder {
                     let ccf = juiz_lock(&cf)?;
                     log::debug!("ContainerFactory(type_name={:?}) created.", ccf.type_name());
                 }
-                system.core_broker().lock().unwrap().store_mut().register_container_factory(ContainerFactoryWrapper::new(plugin, cf).context("ContainerFactoryWrapper::new()")?)?;
+                system.core_broker().lock().unwrap().store_mut().containers.register_factory(ContainerFactoryWrapper::new(plugin, cf).context("ContainerFactoryWrapper::new()")?)?;
                 when_contains_do(v, "processes", |vv| {
                     setup_container_process_factories(system, vv)
                 })?;
@@ -91,12 +101,43 @@ pub mod system_builder {
                     let ccpf = juiz_lock(&cpf)?;
                     log::debug!("ContainerProcessFactory(type_name={:?}) created.", ccpf.type_name());
                 }
-                system.core_broker().lock().unwrap().store_mut().register_container_process_factory(ContainerProcessFactoryWrapper::new(plugin, cpf)?)?;
+                system.core_broker().lock().unwrap().store_mut().container_processes.register_factory(ContainerProcessFactoryWrapper::new(plugin, cpf)?)?;
             }
         }
         Ok(())
     }
-    
+
+
+    fn setup_execution_context_factories(system: &System, manifest: &serde_json::Value) -> JuizResult<()> {
+        for (name, value) in get_hashmap(manifest)?.iter() {
+            let plugin_filename = concat_dirname(value, plugin_name_to_file_name(name))?;
+            let cpf;
+            unsafe {
+                type ECFactorySymbolType<'a> = libloading::Symbol<'a, unsafe extern "Rust" fn() -> JuizResult<Arc<Mutex<dyn ExecutionContextFactory>>>>;
+                let plugin: Plugin = Plugin::load(plugin_filename.as_path())?;
+                {
+                    let symbol = plugin.load_symbol::<ECFactorySymbolType>(b"execution_context_factory")?;
+                    cpf = (symbol)().with_context(||format!("calling symbol 'execution_context_factory'. arg is {manifest:}"))?;
+                    let ccpf = juiz_lock(&cpf)?;
+                    log::debug!("ExecutionContextFactory(type_name={:?}) created.", ccpf.type_name());
+                }
+                system.core_broker().lock().unwrap().store_mut().ecs.register_factory(ExecutionContextHolderFactory::new(plugin, cpf)?)?;
+            }
+        }
+        Ok(())
+    }
+
+    pub fn setup_local_broker_factory(system: &mut System) -> JuizResult<()> {
+        log::debug!("system_builder::setup_local_broker_factory() called");
+        let (c_sender, c_receiver) = mpsc::channel::<Value>();
+        let (p_sender, p_receiver) = mpsc::channel::<Value>();
+        let lbf = create_local_broker_factory(system.core_broker().clone(), Arc::new(Mutex::new(SenderReceiverPair(p_sender, c_receiver))))?;
+        let _wrapper = system.register_broker_factories_wrapper(BrokerFactoriesWrapper::new(None, 
+            lbf, 
+            create_local_broker_proxy_factory(Arc::new(Mutex::new(SenderReceiverPair(c_sender, p_receiver)))
+        )?)?)?;
+        Ok(())
+    }
 
     fn setup_broker_factories(system: &mut System, manifest: &Value) -> JuizResult<()> {
         log::trace!("system_builder::setup_broker_factories() called");
@@ -105,14 +146,14 @@ pub mod system_builder {
             let bf;
             let bpf;
             unsafe {
-                type BrokerFactorySymbolType<'a> = libloading::Symbol<'a, unsafe extern "Rust" fn() -> JuizResult<Arc<Mutex<dyn BrokerFactory>>>>;
+                type BrokerFactorySymbolType<'a> = libloading::Symbol<'a, unsafe extern "Rust" fn(Arc<Mutex<dyn BrokerProxy>>) -> JuizResult<Arc<Mutex<dyn BrokerFactory>>>>;
                 type BrokerProxyFactorySymbolType<'a> = libloading::Symbol<'a, unsafe extern "Rust" fn() -> JuizResult<Arc<Mutex<dyn BrokerProxyFactory>>>>;
                 let plugin: Plugin = Plugin::load(plugin_filename.as_path())?;
                 {
                     // println!("!!!!!!!ContainerName: {}", (name.to_owned() + "::container_factory"));
                     //let symbol = plugin.load_symbol::<ContainerFactorySymbolType>((name.to_owned() + "::container_factory").as_bytes())?;
                     let symbol_bf = plugin.load_symbol::<BrokerFactorySymbolType>(b"broker_factory")?;
-                    bf = (symbol_bf)().with_context(||format!("calling symbol 'broker_factory'. arg is {manifest:}"))?;
+                    bf = (symbol_bf)(system.core_broker().clone()).with_context(||format!("calling symbol 'broker_factory'. arg is {manifest:}"))?;
                     log::debug!("BrokerFactory(type_name={:?}) created.", juiz_lock(&bf)?.type_name());
                     let symbol_bpf = plugin.load_symbol::<BrokerProxyFactorySymbolType>(b"broker_proxy_factory")?;
                     bpf = (symbol_bpf)().with_context(||format!("calling symbol 'broker_proxy_factory'. arg is {manifest:}"))?;
@@ -147,17 +188,7 @@ pub mod system_builder {
         Ok(())
     }
 
-    pub fn setup_local_broker_factory(system: &mut System) -> JuizResult<()> {
-        log::debug!("system_builder::setup_local_broker_factory() called");
-        let (c_sender, c_receiver) = mpsc::channel::<Value>();
-        let (p_sender, p_receiver) = mpsc::channel::<Value>();
-        let lbf = create_local_broker_factory(system.core_broker().clone(), Arc::new(Mutex::new(SenderReceiverPair(p_sender, c_receiver))))?;
-        let _wrapper = system.register_broker_factories_wrapper(BrokerFactoriesWrapper::new(None, 
-            lbf, 
-            create_local_broker_proxy_factory(Arc::new(Mutex::new(SenderReceiverPair(c_sender, p_receiver)))
-        )?)?)?;
-        Ok(())
-    }
+    
 
     pub fn setup_local_broker(system: &mut System) -> JuizResult<()> {
         log::trace!("system_builder::setup_local_broker() called");
@@ -167,16 +198,40 @@ pub mod system_builder {
         })).context("system.create_broker() failed in system_builder::setup_local_broker()")?;
         system.register_broker(local_broker)?;
 
-        let http_broker = HTTPBroker::new(
-            system.core_broker().clone(), "http_broker_0")?;
-        system.register_broker(http_broker)?;
+        //let http_broker = HTTPBroker::new(
+        //    system.core_broker().clone(), "http_broker_0")?;
+        //system.register_broker(http_broker)?;
         Ok(())
     }
 
-    pub fn setup_brokers(_system: &System, _manifest: &Value) -> JuizResult<()> {
+    pub fn setup_brokers(system: &mut System, manifest: &Value) -> JuizResult<()> {
         log::trace!("system_builder::setup_brokers() called");
-
+        for p in get_array(manifest)?.iter() {
+            let _ = system.create_broker(&p)?;
+        }
         Ok(())
+    }
+
+    pub fn setup_ecs(system: &System, manifest: &Value) -> JuizResult<()> {
+        log::trace!("system_builder::setup_ecs({manifest}) called");
+        for p in get_array(manifest)?.iter() {
+            let ec = juiz_lock(system.core_broker())?.create_ec_ref(p.clone())?;
+            match obj_get(p, "bind") {
+                Err(_) => {},
+                Ok(binds_obj) => {
+                    for b in get_array(binds_obj)?.iter() {
+                        setup_ec_bind(system, Arc::clone(&ec), b)?;
+                    }
+                }
+            };
+        } 
+        Ok(())
+    }
+
+    fn setup_ec_bind(system: &System, ec: Arc<Mutex<ExecutionContextHolder>>, bind_info: &Value) -> JuizResult<()> {
+        let process_info = obj_get(bind_info, "target")?;
+        let target_process = system.any_process_from_manifest(process_info)?;
+        juiz_lock(&ec)?.bind(target_process)
     }
 
     pub fn setup_connections(system: &System, manifest: &serde_json::Value) -> JuizResult<()> {

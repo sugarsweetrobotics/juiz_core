@@ -1,0 +1,28 @@
+[package]
+name = "http_broker"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+log = "0.4.20"
+juiz_core = { path="../" }
+env_logger = "0.10.1"
+tokio = { version = "1.35", features = ["full"] }
+futures = "0.3.29"
+#example_container = { path="./example_container"}
+#example_container_get = { path="./example_container_get"}
+#example_container_increment = { path="./example_container_increment"}
+
+serde = "1.0.193"
+axum = "0.7.2"
+uuid = "1.6.1"
+utoipa-swagger-ui = { version = "5.0.0", features = ["axum"] }
+utoipa-redoc = { version="2.0.0", features = ["axum"] }
+utoipa-rapidoc = { version="2.0.0", features = ["axum"] }
+utoipa = { version="4.1.0", features = ["axum_extras"] }

@@ -100,6 +100,17 @@ pub enum JuizError {
     CRUDBrokerParameterIsInvalidTypeError {  },
     #[error("CRUDBroker can not detect method. Given method_name is {method_name:}")]
     CRUDBRokerCanNotFindMethodError { method_name: String },
+    #[error("ExecutionContextCore is not connected to any process.")]
+    ExecutionContextCoreNotConnectedToProcessError {  },
+
+    #[error("Factory({type_name:}) is already loaded.")]
+    FactoryOfSameTypeNameAlreadyExistsError { type_name: String },
+    #[error("Factory({type_name:}) can not be found.")]
+    FactoryCanNotFoundError { type_name: String },
+    #[error("Object({id:}) can not be found.")]
+    ObjectCanNotFoundByIdError { id: String },
+    #[error("Value is not Num representation (value={value:}, key={key:})")]
+    ValueWithKeyIsNotNumError { value: serde_json::Value, key: String },
 
     /*
     ProcessManifestError,

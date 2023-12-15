@@ -1,10 +1,10 @@
 use std::{sync::{Arc, Mutex}, time::Duration, ops::Deref};
 
-use crate::{JuizResult, Value, JuizError, brokers::messenger_broker_proxy_factory::create_messenger_broker_proxy_factory, BrokerProxyFactory};
+use crate::{JuizResult, Value, JuizError, brokers::messenger_broker_proxy_factory::create_messenger_broker_proxy_factory};
 
 use super::local_broker::SenderReceiverPair;
 
-use crate::brokers::{MessengerBrokerProxy, MessengerBrokerProxyCore, MessengerBrokerProxyCoreFactory};
+use crate::brokers::{BrokerProxyFactory, MessengerBrokerProxy, MessengerBrokerProxyCore, MessengerBrokerProxyCoreFactory};
 
 pub type LocalBrokerProxy = MessengerBrokerProxy;
 pub struct LocalBrokerProxyCore {

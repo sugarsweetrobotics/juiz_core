@@ -1,8 +1,8 @@
 
 
-use crate::{JuizResult, utils::juiz_lock, JuizError, Value, Broker, BrokerProxy};
+use crate::{JuizResult, utils::juiz_lock, JuizError, Value};
 use std::sync::{Arc, Mutex};
-use crate::{core::Plugin, BrokerFactory, BrokerProxyFactory};
+use crate::{core::Plugin, brokers::{Broker, BrokerProxy, BrokerFactory, BrokerProxyFactory}};
 
 #[allow(dead_code)]
 pub struct BrokerFactoriesWrapper {

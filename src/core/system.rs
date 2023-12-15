@@ -5,10 +5,10 @@ use std::time::Duration;
 
 use anyhow::Context;
 
-use crate::brokers::broker_factories_wrapper::BrokerFactoriesWrapper;
+use crate::brokers::{BrokerProxy, Broker,  broker_factories_wrapper::BrokerFactoriesWrapper};
 use crate::object::{ObjectCore, JuizObjectCoreHolder, JuizObjectClass};
 use crate::value::{obj_get_str, obj_merge, obj_insert};
-use crate::{JuizResult, Container, BrokerProxy, Broker, JuizObject, CoreBroker, Value, JuizError, Identifier, Process, jvalue};
+use crate::{JuizResult, Container, JuizObject, CoreBroker, Value, JuizError, Identifier, Process, jvalue};
 use crate::utils::juiz_lock;
 use crate::utils::manifest_util::{id_from_manifest, when_contains_do_mut, construct_id};
 use super::system_builder::system_builder;
@@ -72,25 +72,25 @@ impl System {
     }
 
     pub fn process_from_id(&self, id: &Identifier) -> JuizResult<Arc<Mutex<dyn Process>>> {
-        juiz_lock(&self.core_broker)?.store().process(id)
+        juiz_lock(&self.core_broker)?.store().processes.get(id)
     }
 
     pub fn process_from_typename_and_name(&self, type_name: &str, name: &str) -> JuizResult<Arc<Mutex<dyn Process>>> {
         let id = construct_id("Process", type_name, name, "core", "core");
-        juiz_lock(&self.core_broker)?.store().process(&id)
+        juiz_lock(&self.core_broker)?.store().processes.get(&id)
     }
 
     pub fn container_from_id(&self, id: &Identifier) -> JuizResult<Arc<Mutex<dyn Container>>> {
-        juiz_lock(&self.core_broker)?.store().container(id)
+        juiz_lock(&self.core_broker)?.store().containers.get(id)
     }
 
     pub fn container_from_typename_and_name(&self, type_name: &str, name: &str) -> JuizResult<Arc<Mutex<dyn Container>>> {
         let id = construct_id("Container", type_name, name, "core", "core");
-        juiz_lock(&self.core_broker)?.store().container(&id)
+        juiz_lock(&self.core_broker)?.store().containers.get(&id)
     }
 
     pub fn container_process_from_id(&self, id: &Identifier) -> JuizResult<Arc<Mutex<dyn Process>>> {
-        juiz_lock(&self.core_broker)?.store().container_process(id)
+        juiz_lock(&self.core_broker)?.store().container_processes.get(id)
     }
 
     pub fn any_process_from_id(&self, id: &Identifier) -> JuizResult<Arc<Mutex<dyn Process>>> {
@@ -103,7 +103,7 @@ impl System {
 
     pub fn container_process_from_typename_and_name(&self, type_name: &str, name: &str) -> JuizResult<Arc<Mutex<dyn Process>>> {
         let id = construct_id("ContainerProcess", type_name, name, "core", "core");
-        juiz_lock(&self.core_broker)?.store().process(&id)
+        juiz_lock(&self.core_broker)?.store().container_processes.get(&id)
     }
 
     pub fn any_process_from_typename_and_name(&self, type_name: &str, name: &str) -> JuizResult<Arc<Mutex<dyn Process>>> {
@@ -156,6 +156,7 @@ impl System {
             system_builder::setup_containers(self, v).context("system_builder::setup_containers in System::setup() failed")
         })?;
 
+
         system_builder::setup_local_broker_factory(self).context("system_builder::setup_local_broker_factory in System::setup() failed.")?;
         system_builder::setup_local_broker(self).context("system_builder::setup_local_broker in System::setup() failed.")?;
 
@@ -163,14 +164,19 @@ impl System {
             system_builder::setup_brokers(self, v).context("system_builder::setup_brokers in System::setup() failed.")
         })?;
 
-        let _ =  when_contains_do(&self.manifest, "connections", |v| {
-            system_builder::setup_connections(self, v).context("system_builder::setup_connections in System::setup() failed.")
-        })?;
-
         for (type_name, broker) in self.brokers.iter() {
             log::info!("starting Broker({type_name:})");
             let _ = juiz_lock(&broker)?.start().context("Broker(type_name={type_name:}).start() in System::setup() failed.")?;
         }
+
+        let _ = when_contains_do(&self.manifest, "ecs", |v| {
+            system_builder::setup_ecs(self, v).context("system_builder::setup_ecs in System::setup() failed")
+        })?;
+
+        let _ =  when_contains_do(&self.manifest, "connections", |v| {
+            system_builder::setup_connections(self, v).context("system_builder::setup_connections in System::setup() failed.")
+        })?;
+
 
         log::debug!("System::setup() successfully finished.");
         Ok(())
@@ -241,9 +247,9 @@ impl System {
         if self.broker_factories.contains_key(&type_name) {
             return Err(anyhow::Error::from(JuizError::BrokerFactoryOfSameTypeNameAlreadyExistsError{type_name: type_name}));
         }
-        self.broker_factories.insert(type_name, Arc::clone(&bf));
+        self.broker_factories.insert(type_name.clone(), Arc::clone(&bf));
 
-        juiz_lock(&self.core_broker())?.store_mut().register_broker_factory_manifest("local", juiz_lock(&bf)?.profile_full()?)?;
+        juiz_lock(&self.core_broker())?.store_mut().register_broker_factory_manifest(type_name.as_str(), juiz_lock(&bf)?.profile_full()?)?;
         
         Ok(bf)
     }
@@ -255,11 +261,12 @@ impl System {
         }
     }
 
-    pub fn create_broker(&self, manifest: &Value) -> JuizResult<Arc<Mutex<dyn Broker>>> {
+    pub fn create_broker(&mut self, manifest: &Value) -> JuizResult<Arc<Mutex<dyn Broker>>> {
         log::trace!("System::create_broker({manifest:}) called");
         let type_name = obj_get_str(manifest, "type_name")?;
         let bf = self.broker_factories_wrapper(type_name)?;
-        juiz_lock(bf).context("Locking BrokerFactoriesWrapper in System::create_broker() failed.")?.create_broker(&manifest).context("BrokerFactoriesWrapper.create_broker() failed in System::create_broker()")
+        let b = juiz_lock(bf).context("Locking BrokerFactoriesWrapper in System::create_broker() failed.")?.create_broker(&manifest).context("BrokerFactoriesWrapper.create_broker() failed in System::create_broker()")?;
+        self.register_broker(b)
     }
 
     pub(crate) fn register_broker(&mut self, broker: Arc<Mutex<dyn Broker>>) -> JuizResult<Arc<Mutex<dyn Broker>>> {

@@ -3,9 +3,9 @@ use std::{sync::{Arc, Mutex}, time::Duration};
 use anyhow::Context;
 use serde_json::Map;
 
-use crate::{jvalue, BrokerProxy, JuizResult, Identifier, Value, JuizError, value::{obj_get_str, obj_get}, JuizObject, object::{ObjectCore, JuizObjectClass, JuizObjectCoreHolder}, brokers::broker_proxy::{ContainerBrokerProxy, ContainerProcessBrokerProxy}};
+use crate::{jvalue, JuizResult, Identifier, Value, JuizError, value::{obj_get_str, obj_get}, JuizObject, object::{ObjectCore, JuizObjectClass, JuizObjectCoreHolder}, brokers::broker_proxy::{ContainerBrokerProxy, ContainerProcessBrokerProxy}};
 
-use super::super::broker_proxy::{SystemBrokerProxy, ProcessBrokerProxy};
+use super::super::broker_proxy::{BrokerProxy, SystemBrokerProxy, ProcessBrokerProxy};
 
 
 

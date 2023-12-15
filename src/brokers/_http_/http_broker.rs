@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use crate::{Broker, BrokerProxy, JuizResult, JuizObject, object::{ObjectCore, JuizObjectClass, JuizObjectCoreHolder}};
+use crate::{brokers::{Broker, BrokerProxy}, JuizResult, JuizObject, object::{ObjectCore, JuizObjectClass, JuizObjectCoreHolder}};
 
 use crate::brokers::CRUDBroker;
 
@@ -47,10 +47,11 @@ struct ApiDoc;
 impl Broker for HTTPBroker {
     fn start(&mut self) -> JuizResult<()> {
         
-        log::trace!("HTTPBroker::start() called");
+        log::info!("HTTPBroker::start() called");
         let crud_broker = Arc::clone(&self.crud_broker);
         let join_handle = tokio::task::spawn(
             async move  {
+                println!("HTTPBroker::routine() start!!!");
                 let app = Router::new()
                     .merge(SwaggerUi::new("/swagger-ui")
                     .url("/api-docs/openapi.json", ApiDoc::openapi()))
@@ -68,6 +69,7 @@ impl Broker for HTTPBroker {
     }
 
     fn stop(&mut self) -> crate::JuizResult<()> {
+        log::trace!("HTTPBroker::stop() called");
         self.thread_handle.take().unwrap().abort();
         Ok(())
     }

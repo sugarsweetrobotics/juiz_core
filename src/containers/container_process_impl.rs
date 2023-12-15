@@ -121,3 +121,8 @@ impl<T: 'static> Process for ContainerProcessImpl<T> {
     }
 }
 
+
+
+
+unsafe impl<T: 'static> Send for ContainerProcessImpl<T> {
+}
