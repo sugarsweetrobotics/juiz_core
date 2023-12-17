@@ -30,6 +30,30 @@ pub fn id_from_manifest(manifest: &serde_json::Value) -> JuizResult<Identifier> 
     }
 }
 
+
+pub fn id_from_manifest_and_class_name(manifest: &serde_json::Value, class_name: &str) -> JuizResult<Identifier> {
+    let id_result = obj_get_str(manifest, "id");
+    if id_result.is_ok() {
+        return Ok(id_result.ok().unwrap().to_string());
+    }
+    let identifier_result = obj_get_str(manifest, "identifier");
+    if identifier_result.is_ok() {
+        return Ok(identifier_result.ok().unwrap().to_string());
+    }
+
+    let type_name = obj_get_str(manifest, "type_name").context("id_from_manifest() failed. 'id' or 'identifier' can't be found. Now the manifest must have class_name, type_name, and name. But type_name is not found.")?;
+    let name = obj_get_str(manifest, "name").context("id_from_manifest() failed. 'id' or 'identifier' can't be found. Now the manifest must have class_name, type_name, and name. But name is not found.")?;
+    //let class_name = obj_get_str(manifest, "class_name").context("id_from_manifest() failed. 'id' or 'identifier' can't be found. Now the manifest must have class_name, type_name, and name. But class_name is not found.")?;
+
+    match obj_get_str(manifest, "broker_type") {
+        Err(_) => Ok(construct_id(class_name, type_name, name, "core", "core")),
+        Ok(broker_type) => {
+            let broker_name = obj_get_str(manifest, "broker_name").context("id_from_manifest() failed. 'id' or 'identifier' can't be found, but broker_type is found. Now the manifest must have type_name, name, and broker_name. But broker_name is not found.")?;
+            Ok(construct_id(class_name, type_name, name, broker_type, broker_name))
+        }
+    }
+}
+
 pub fn when_contains_do<T, F:Fn(&Value)->JuizResult<T>>(manifest: &Value, key: &str, func: F) -> JuizResult<Option<T>> {
     match manifest.as_object() {
         None => Err(anyhow::Error::from(JuizError::ValueIsNotObjectError { value: manifest.clone() })),
@@ -59,6 +83,13 @@ pub fn get_array<'a>(manifest: &'a Value) -> JuizResult<&'a Vec<Value>> {
         None => Err(anyhow::Error::from(JuizError::ValueIsNotArrayError{value: manifest.clone()})),
         Some(arr) => Ok(arr)
     }
+}
+
+pub fn get_array_mut<'a>(manifest: &'a mut Value) -> JuizResult<&'a mut Vec<Value>> {
+    if !manifest.is_array() {
+        return Err(anyhow::Error::from(JuizError::ValueIsNotArrayError{value: manifest.clone()}));
+    }
+    return Ok(manifest.as_array_mut().unwrap());
 }
 
 pub fn get_hashmap<'a>(manifest: &'a Value) -> JuizResult<&'a Map<String, Value>> {

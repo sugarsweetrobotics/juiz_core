@@ -2,11 +2,15 @@
 use crate::{Identifier, Value, JuizResult, JuizObject};
 
 
+
+
 pub trait SystemBrokerProxy {
     fn system_profile_full(&self) -> JuizResult<Value>;
 }
 
 pub trait ProcessBrokerProxy {
+
+    fn process_list(&self) -> JuizResult<Value>;
 
     fn process_profile_full(&self, id: &Identifier) -> JuizResult<Value>;
 
@@ -20,16 +24,50 @@ pub trait ProcessBrokerProxy {
 
 pub trait ContainerBrokerProxy {
 
+    fn container_list(&self) -> JuizResult<Value>;
+
     fn container_profile_full(&self, id: &Identifier) -> JuizResult<Value>;
 }
 
 pub trait ContainerProcessBrokerProxy {
 
+    fn container_process_list(&self) -> JuizResult<Value>;
+
     fn container_process_profile_full(&self, id: &Identifier) -> JuizResult<Value>;
 }
 
+pub trait ExecutionContextBrokerProxy {
+    
+    fn ec_list(&self) -> JuizResult<Value>;
 
-pub trait BrokerProxy : Send + JuizObject + SystemBrokerProxy + ProcessBrokerProxy + ContainerBrokerProxy + ContainerProcessBrokerProxy {
+    fn ec_profile_full(&self, id: &Identifier) -> JuizResult<Value>;
+}
+pub trait BrokerBrokerProxy {
+    
+    fn broker_list(&self) -> JuizResult<Value>;
+
+    fn broker_profile_full(&self, id: &Identifier) -> JuizResult<Value>;
+}
+
+pub trait ConnectionBrokerProxy {
+
+    fn connection_list(&self) -> JuizResult<Value>;
+
+    fn connection_profile_full(&self, id: &Identifier) -> JuizResult<Value>;
+
+    fn connection_create(&self, manifest: Value) -> JuizResult<Value>;
+
+}
+
+pub trait BrokerProxy : Send + JuizObject + SystemBrokerProxy + ProcessBrokerProxy + ContainerBrokerProxy + ContainerProcessBrokerProxy + ExecutionContextBrokerProxy + BrokerBrokerProxy + ConnectionBrokerProxy {
 
     fn is_in_charge_for_process(&self, _id: &Identifier) -> JuizResult<bool>;
+
+    fn any_process_list(&self) -> JuizResult<Value> {
+        todo!()
+    }
+
+    fn any_process_profile_full(&self, id: &Identifier) -> JuizResult<Value> {
+        self.process_profile_full(id).or_else(|_e| { self.container_process_profile_full(id)})   
+    }
 }

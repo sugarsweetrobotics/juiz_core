@@ -111,6 +111,12 @@ pub enum JuizError {
     ObjectCanNotFoundByIdError { id: String },
     #[error("Value is not Num representation (value={value:}, key={key:})")]
     ValueWithKeyIsNotNumError { value: serde_json::Value, key: String },
+    #[error("HTTPBrokerProxy can not resolve url from name of proxy (given name is {given_name:})")]
+    BrokerNameCanNotResolveToURLError { given_name: String },
+    #[error("CoreStore can not find broker (by id= {id:})")]
+    BrokerProfileNotFoundError { id : String },
+    #[error("ProcessProxy construct can not accept class ({class_name:?})")]
+    ProcessProxyCanNotAcceptClassError { class_name: String },
 
     /*
     ProcessManifestError,

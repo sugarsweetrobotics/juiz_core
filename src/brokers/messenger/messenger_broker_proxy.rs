@@ -3,7 +3,7 @@ use std::{sync::{Arc, Mutex}, time::Duration};
 use anyhow::Context;
 use serde_json::Map;
 
-use crate::{jvalue, JuizResult, Identifier, Value, JuizError, value::{obj_get_str, obj_get}, JuizObject, object::{ObjectCore, JuizObjectClass, JuizObjectCoreHolder}, brokers::broker_proxy::{ContainerBrokerProxy, ContainerProcessBrokerProxy}};
+use crate::{jvalue, JuizResult, Identifier, Value, JuizError, value::{obj_get_str, obj_get}, JuizObject, object::{ObjectCore, JuizObjectClass, JuizObjectCoreHolder}, brokers::broker_proxy::{ContainerBrokerProxy, ContainerProcessBrokerProxy, ExecutionContextBrokerProxy, BrokerBrokerProxy, ConnectionBrokerProxy}};
 
 use super::super::broker_proxy::{BrokerProxy, SystemBrokerProxy, ProcessBrokerProxy};
 
@@ -67,6 +67,37 @@ impl MessengerBrokerProxy {
             }
         }
     }
+
+    pub fn read(&self, class_name: &str, function_name: &str) -> JuizResult<Value> {
+        self.send_recv_and(
+            "READ", 
+            class_name, 
+            function_name,
+            jvalue!({}), 
+            &[],
+            |value| Ok(obj_get(&value, "return")?.clone()))
+    }
+
+    pub fn read_by_id(&self, class_name: &str, function_name: &str, id: &Identifier) -> JuizResult<Value> {
+        self.send_recv_and(
+            "READ", 
+            class_name, 
+            function_name,
+            jvalue!({}), 
+            &[("id".to_owned(), id.clone())],
+            |value| Ok(obj_get(&value, "return")?.clone()))
+    }
+
+    pub fn update_by_id(&self, class_name: &str, function_name: &str, args: Value, id: &Identifier) -> JuizResult<Value>  {
+        self.send_recv_and(
+            "UPDATE",
+            class_name,  
+            function_name, 
+            jvalue!({"id": id, "args": args}), 
+            &[("id".to_owned(), id.clone())],
+            |value| Ok(obj_get(&value, "return")?.clone()))
+    }
+    
 }
 
 impl JuizObjectCoreHolder for MessengerBrokerProxy {
@@ -79,39 +110,24 @@ impl JuizObject for MessengerBrokerProxy {}
 
 impl SystemBrokerProxy for MessengerBrokerProxy {
     fn system_profile_full(&self) -> JuizResult<Value> {
-        log::trace!("MessengerBrokerProxy::system_profile_full() called");
-        self.send_recv_and("READ", "system", "profile_full", 
-            jvalue!({}), &[], |value| Ok(obj_get(&value, "return")?.clone()))
+        self.read("system", "profile_full")
     }
 }
 
 impl ProcessBrokerProxy for MessengerBrokerProxy {
 
     fn process_call(&self, id: &Identifier, args: crate::Value) -> crate::JuizResult<crate::Value> {
-        self.send_recv_and(
-            "UPDATE",
-            "process", 
-            "call", 
-            jvalue!({"id": id, "args": args}), 
-            &[("id".to_owned(), id.clone())],
-            |value| Ok(obj_get(&value, "return")?.clone()))
+        self.update_by_id("process", "execute", args, id)
     }
 
     fn process_execute(&self, id: &crate::Identifier) -> crate::JuizResult<crate::Value> {
-        self.send_recv_and(
-            "UPDATE",
-            "process", 
-            "execute", 
-            jvalue!({"id": id}), 
-            &[("id".to_owned(), id.clone())],
-            |value| Ok(obj_get(&value, "return")?.clone()))
+        self.update_by_id("process", "execute", jvalue!({}), id)
     }
 
     fn process_connect_to(&mut self, 
         source_process_id: &crate::Identifier, 
         arg_name: &String, target_process_id: &crate::Identifier,
         manifest: crate::Value) -> crate::JuizResult<crate::Value> {
-            
         self.send_recv_and(
             "UPDATE", 
             "process", "connect_to", jvalue!({
@@ -125,34 +141,66 @@ impl ProcessBrokerProxy for MessengerBrokerProxy {
     }
 
     fn process_profile_full(&self, id: &Identifier) -> JuizResult<Value> {
-        self.send_recv_and(
-            "READ", 
-            "process", 
-            "profile_full",
-            jvalue!({"id": id}),
-            &[("id".to_owned(), id.clone())], |value| Ok(obj_get(&value, "return")?.clone()))
+        self.read_by_id("process", "profile_full", id)
+    }
+
+    fn process_list(&self) -> JuizResult<Value> {
+        self.read("process", "list")
     }
 }
 
 impl ContainerBrokerProxy for MessengerBrokerProxy {
     fn container_profile_full(&self, id: &Identifier) -> JuizResult<Value> {
-        self.send_recv_and(
-            "READ", 
-            "container", 
-            "profile_full",
-            jvalue!({"id": id}),
-            &[("id".to_owned(), id.clone())], |value| Ok(obj_get(&value, "return")?.clone()))
+        self.read_by_id("container", "profile_full", id)
+    }
+
+    fn container_list(&self) -> JuizResult<Value> {
+        self.read("container", "list")
     }
 }
 
 impl ContainerProcessBrokerProxy for MessengerBrokerProxy {
     fn container_process_profile_full(&self, id: &Identifier) -> JuizResult<Value> {
-        self.send_recv_and(
-            "READ", 
-            "container_process", 
-            "profile_full",
-            jvalue!({"id": id}),
-            &[("id".to_owned(), id.clone())], |value| Ok(obj_get(&value, "return")?.clone()))
+        self.read_by_id("container_process", "profile_full", id)
+    }
+
+    fn container_process_list(&self) -> JuizResult<Value> {
+        self.read("container_process", "list")
+    }
+}
+
+impl ExecutionContextBrokerProxy for MessengerBrokerProxy {
+
+    fn ec_profile_full(&self, id: &Identifier) -> JuizResult<Value> {
+        self.read_by_id("execution_context", "profile_full", id)
+    }
+
+    fn ec_list(&self) -> JuizResult<Value> {
+        self.read("execution_context", "list")
+    }
+}
+
+impl BrokerBrokerProxy for MessengerBrokerProxy {
+    fn broker_list(&self) -> JuizResult<Value> {
+        self.read("broker", "list")
+    }
+
+    fn broker_profile_full(&self, id: &Identifier) -> JuizResult<Value> {
+        self.read_by_id("broker", "profile_full", id)
+    }
+}
+
+impl ConnectionBrokerProxy for MessengerBrokerProxy {
+    fn connection_list(&self) -> JuizResult<Value> {
+        todo!()
+    }
+
+    fn connection_profile_full(&self, _id: &Identifier) -> JuizResult<Value> {
+        todo!()
+    }
+
+    fn connection_create(&self, _manifest: Value) -> JuizResult<Value> {
+        todo!()
     }
 }
 

@@ -2,20 +2,19 @@
 
 use crate::{JuizResult, utils::juiz_lock, JuizError, Value};
 use std::sync::{Arc, Mutex};
-use crate::{core::Plugin, brokers::{Broker, BrokerProxy, BrokerFactory, BrokerProxyFactory}};
+use crate::{core::Plugin, brokers::{Broker, BrokerFactory, BrokerProxyFactory}};
 
 #[allow(dead_code)]
 pub struct BrokerFactoriesWrapper {
     type_name: String,
     plugin: Option<Plugin>, 
     pub broker_factory: Arc<Mutex<dyn BrokerFactory>>,
-    broker_proxy_factory: Arc<Mutex<dyn BrokerProxyFactory>>,
+    pub broker_proxy_factory: Arc<Mutex<dyn BrokerProxyFactory>>,
 }
 
 impl BrokerFactoriesWrapper {
 
     pub fn new(plugin: Option<Plugin>, broker_factory: Arc<Mutex<dyn BrokerFactory>>, broker_proxy_factory: Arc<Mutex<dyn BrokerProxyFactory>>) -> JuizResult<Arc<Mutex<BrokerFactoriesWrapper>>> {
-
         let type_name_bf = juiz_lock(&broker_factory)?.type_name().to_string();
         let type_name_bpf = juiz_lock(&broker_proxy_factory)?.type_name().to_string();
         if type_name_bf != type_name_bpf {
@@ -42,7 +41,7 @@ impl BrokerFactoriesWrapper {
         juiz_lock(&self.broker_factory)?.create_broker(manifest.clone())
     }
 
-    pub fn create_broker_proxy(&self, manifest: &Value) -> JuizResult<Arc<Mutex<dyn BrokerProxy>>> {
-        juiz_lock(&self.broker_proxy_factory)?.create_broker_proxy(manifest.clone())
-    }
+    //pub fn create_broker_proxy(&self, manifest: &Value) -> JuizResult<Arc<Mutex<dyn BrokerProxy>>> {
+    //    juiz_lock(&self.broker_proxy_factory)?.create_broker_proxy(manifest.clone())
+    //}
 }

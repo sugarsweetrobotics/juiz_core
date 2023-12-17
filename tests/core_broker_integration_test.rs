@@ -22,7 +22,7 @@ fn new_process_factory(cb: &mut CoreBroker) -> Arc<Mutex<dyn ProcessFactory>> {
             }, 
         }, 
     });
-    let result_pf = cb.store_mut().register_process_factory(
+    let result_pf = cb.store_mut().processes.register_factory(
         ProcessFactoryImpl::new(manifest, increment_function).unwrap());
     assert!(result_pf.is_ok(), "register_process_factory failed. Error is {:?}", result_pf.err());
     Arc::clone(&result_pf.ok().unwrap())
@@ -42,6 +42,8 @@ fn new_core_broker() -> CoreBroker {
 #[cfg(test)]
 #[test]
 fn core_broker_process_factory_integration_test() {
+    use juiz_core::brokers::broker_proxy::ProcessBrokerProxy;
+
     let mut cb = new_core_broker();
     let _pf = new_process_factory(&mut cb);
 
@@ -80,6 +82,8 @@ fn core_broker_process_factory_integration_test() {
 #[cfg(test)]
 #[test]
 fn core_broker_process_factory_integration_connection_test() {
+    use juiz_core::brokers::broker_proxy::ProcessBrokerProxy;
+
     let mut cb = new_core_broker();
     let _pf = new_process_factory(&mut cb);
     
@@ -123,7 +127,7 @@ fn core_broker_process_factory_integration_connection_test() {
             print!("Return value is {:?}", ev);
         }
     }
-    let p2_result2 = cb.store().process(&id2);
+    let p2_result2 = cb.store().processes.get(&id2);
     assert!(p2_result2.is_ok(), "Process 2 can not acquire. Error is {:?}", p2_result2.err());
     
     let output = p2_result2.ok().unwrap().lock().unwrap().get_output();

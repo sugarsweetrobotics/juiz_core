@@ -18,6 +18,8 @@ pub enum JuizObjectClass {
     BrokerProxy(&'static str),
     BrokerProxyFactory(&'static str),
     System(&'static str),
+
+    ProcessProxy(&'static str),
 }
 
 
@@ -41,6 +43,7 @@ impl JuizObjectClass {
             JuizObjectClass::BrokerProxyFactory(_) => "BrokerProxyFactory",
 
             JuizObjectClass::System(_) => "System",
+            JuizObjectClass::ProcessProxy(_) => "ProcessProxy",
         }
     }
 }
@@ -61,11 +64,11 @@ impl Clone for ObjectCore {
 }
 
 impl ObjectCore {
-    /*
-    pub fn new(class_name: JuizObjectClass, type_name: &str, object_name: &str, broker_name: &str, broker_type_name: &str) -> ObjectCore{
-        let identifier = identifier_new(broker_type_name, broker_name, class_name.as_str(), type_name, object_name);
-        ObjectCore { identifier, class_name, type_name, name: object_name, broker_type_name, broker_name}
-    }*/
+    
+    pub fn new(identifier: Identifier, class_name: JuizObjectClass, type_name: &str, object_name: &str, broker_name: &str, broker_type_name: &str) -> ObjectCore{
+        //let identifier = identifier_new(broker_type_name, broker_name, class_name.as_str(), type_name, object_name);
+        ObjectCore { identifier, class_name, type_name: type_name.to_string(), name: object_name.to_string(), broker_type_name: broker_type_name.to_string(), broker_name: broker_name.to_string()}
+    }
 
     pub fn create<T: ToString, D: ToString>(class_name: JuizObjectClass, type_name: T, object_name: D) -> ObjectCore{
         let identifier = identifier_new("core", "core", class_name.as_str(), type_name.to_string().as_str(), object_name.to_string().as_str());

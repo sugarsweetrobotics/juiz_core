@@ -1,28 +1,22 @@
-use std::sync::{Mutex, Arc};
-
-use axum::{extract::{State, Path}, response::IntoResponse, Json, Router, routing};
-
-use crate::{jvalue, brokers::crud_broker::{CRUDBroker, read_class}, utils::juiz_lock, Value, JuizResult};
-
-use super::json_wrap;
+use utoipa::OpenApi;
 
 #[utoipa::path(
     get,
-    path = "/system/{function}",
+    path = "/api/system/profile_full",
     responses(
-        (status = 200, description = "Get System Profile", body = [String])
-    )
+        (status = 200, description = "System")
+    ),
+    tag = "system",
 )]
-pub async fn profile_handler(
-    Path(function_name): Path<String>,
-    State(crud_broker): State<Arc<Mutex<CRUDBroker>>>
-) -> impl IntoResponse {
-    json_wrap(read_class(&crud_broker, "system", function_name.as_str()))
+pub async fn profile_handler_dummy() {
 }
 
-pub fn system_router(crud_broker: Arc<Mutex<CRUDBroker>>) -> Router {
-    Router::new()
-        //.route("/:function_name", get(system_get_handler))
-        .route("/system/:function", routing::get(profile_handler))
-        .with_state(Arc::clone(&crud_broker))
-}
+#[derive(OpenApi)]
+#[openapi(
+    paths(
+        profile_handler_dummy,
+    ),
+    components(schemas(
+    ))
+)]
+pub struct ApiDoc;

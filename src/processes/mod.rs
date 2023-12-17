@@ -1,5 +1,6 @@
 
 pub mod process;
+pub mod process_proxy;
 pub mod process_impl;
 pub mod process_factory;
 pub mod process_factory_impl;

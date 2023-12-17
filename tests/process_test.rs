@@ -1,4 +1,6 @@
 
+mod identifier_test;
+
 extern crate juiz_core;
 use crate::juiz_core::*;
 use crate::juiz_core::processes::process_impl::*;

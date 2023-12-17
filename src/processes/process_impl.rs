@@ -4,6 +4,7 @@ use std::collections::HashMap;
 use std::sync::{Mutex, Arc};
 use serde_json::Map;
 
+
 use crate::identifier::{identifier_from_manifest, create_identifier_from_manifest};
 use crate::object::{JuizObjectCoreHolder, ObjectCore, JuizObjectClass};
 use crate::utils::manifest_util::get_hashmap_mut;
@@ -31,13 +32,13 @@ pub fn argument_manifest(process_manifest: &Value) -> JuizResult<&Map<String, Va
 
 impl ProcessImpl {
 
-    pub fn new(manif: Value, func: fn(Value) -> JuizResult<Value>) -> JuizResult<Self> {
+    pub fn new_with_class(class_name: JuizObjectClass, manif: Value, func: fn(Value) -> JuizResult<Value>) -> JuizResult<Self> {
         log::trace!("ProcessImpl::new(manifest={}) called", manif);
         let manifest = check_process_manifest(manif)?;
         let type_name = obj_get_str(&manifest, "type_name")?;
         let object_name = obj_get_str(&manifest, "name")?;
         Ok(ProcessImpl{
-            core: ObjectCore::create(JuizObjectClass::Process("ProcessImpl"), 
+            core: ObjectCore::create(class_name, 
                 type_name,
                 object_name,
             ),
@@ -49,14 +50,19 @@ impl ProcessImpl {
             output_memo: RefCell::new(jvalue!(null)) })
     }
 
-    pub(crate) fn clousure_new(manif: Value, func: Box<impl Fn(Value) -> JuizResult<Value> + 'static>) -> JuizResult<Self> {
+
+    pub fn new(manif: Value, func: fn(Value) -> JuizResult<Value>) -> JuizResult<Self> {
+        ProcessImpl::new_with_class(JuizObjectClass::Process("ProcessImpl"), manif, func)
+    }
+
+    pub(crate) fn clousure_new_with_class_name(class_name: JuizObjectClass, manif: Value, func: Box<impl Fn(Value) -> JuizResult<Value> + 'static>) -> JuizResult<Self> {
         log::trace!("ProcessImpl::new(manifest={}) called", manif);
         
         let manifest = check_process_manifest(manif)?;
         let type_name = obj_get_str(&manifest, "type_name")?;
         let object_name = obj_get_str(&manifest, "name")?;
         Ok(ProcessImpl{
-            core: ObjectCore::create(JuizObjectClass::Process("ProcessImpl"),
+            core: ObjectCore::create(class_name,
             type_name, object_name),
             manifest: manifest.clone(), 
             function: func, 
@@ -64,6 +70,10 @@ impl ProcessImpl {
             source_connections: HashMap::new(),
             destination_connections: HashMap::new(),
             output_memo: RefCell::new(jvalue!(null)) })
+    }
+
+    pub(crate) fn _clousure_new(manif: Value, func: Box<impl Fn(Value) -> JuizResult<Value> + 'static>) -> JuizResult<Self> {
+        ProcessImpl::clousure_new_with_class_name(JuizObjectClass::Process("ProcessImpl"), manif, func)
     }
 
     pub fn source_connection(&mut self, name: &String) -> Option<&Box<dyn SourceConnection>> {
@@ -93,6 +103,8 @@ impl ProcessImpl {
         }
         return Ok(output)
     }
+
+    
 
 }
 
@@ -190,7 +202,7 @@ impl Process for ProcessImpl {
     }
 
     fn connected_from(&mut self, source: Arc<Mutex<dyn Process>>, connecting_arg: &String, connection_manifest: Value) -> JuizResult<Value> {
-        println!("ProcessImpl(id={:?}).connected_from(source=Process()) called", self.identifier());
+        log::info!("ProcessImpl(id={:?}).connected_from(source=Process()) called", self.identifier());
         self.source_connections.insert(connecting_arg.clone(), 
             Box::new(SourceConnectionImpl::new(self.identifier().clone(), source, connection_manifest.clone(), connecting_arg.clone())?)
         );
@@ -198,7 +210,7 @@ impl Process for ProcessImpl {
     }
 
     fn connection_to(&mut self, destination: Arc<Mutex<dyn Process>>, arg_name: &String, connection_manifest: Value) -> JuizResult<Value> {
-        println!("ProcessImpl(id={:?}).connect_to(destination=Process()) called", self.identifier());
+        log::info!("ProcessImpl(id={:?}).connection_to(destination=Process()) called", self.identifier());
         self.destination_connections.insert(
             arg_name.clone(), 
             Box::new(DestinationConnectionImpl::new(
@@ -207,6 +219,23 @@ impl Process for ProcessImpl {
                 connection_manifest.clone(), 
                 arg_name.clone())?));
         Ok(connection_manifest)
+    }
+
+    
+    fn source_connections(&self) -> JuizResult<Vec<&Box<dyn SourceConnection>>> {
+        let mut v: Vec<&Box<dyn SourceConnection>> = Vec::new();
+        for c in self.source_connections.values() {
+            v.push(c);
+        }
+        Ok(v)
+    }
+
+    fn destination_connections(&self) -> JuizResult<Vec<&Box<dyn DestinationConnection>>> {
+        let mut v: Vec<&Box<dyn DestinationConnection>> = Vec::new();
+        for c in self.destination_connections.values() {
+            v.push(c);
+        }
+        Ok(v)
     }
 }
 

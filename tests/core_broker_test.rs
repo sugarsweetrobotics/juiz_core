@@ -1,7 +1,7 @@
 extern crate juiz_core;
 use crate::juiz_core::{Value, jvalue};
 use crate::juiz_core::processes::process_impl::*;
-use crate::juiz_core::processes::Process;
+
 use crate::juiz_core::*;
 use std::sync::{Arc, Mutex};
 
@@ -32,6 +32,8 @@ fn new_increment_process<'a> () -> ProcessImpl  {
 #[cfg(test)]
 #[test]
 fn core_broker_test() {
+    use juiz_core::brokers::broker_proxy::ProcessBrokerProxy;
+
     
     let result = CoreBroker::new(jvalue!(
         {
@@ -47,7 +49,7 @@ fn core_broker_test() {
     let p = new_increment_process();
     let id = p.identifier().clone();
 
-    let result = cb.store_mut().register_process(Arc::new(Mutex::new(p)));
+    let result = cb.store_mut().processes.register(Arc::new(Mutex::new(p)));
 
     assert!(result.is_ok());
 

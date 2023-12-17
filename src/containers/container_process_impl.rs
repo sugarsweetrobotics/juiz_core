@@ -28,7 +28,7 @@ impl<T: 'static> ContainerProcessImpl<T> {
         let manifest = check_process_manifest(manif)?;
         let container_clone = Arc::clone(&container);
         let container_identifier = juiz_lock(&container)?.identifier().clone();
-        let proc = ProcessImpl::clousure_new(manifest.clone(), Box::new(move |args: Value| {
+        let proc = ProcessImpl::clousure_new_with_class_name(JuizObjectClass::ContainerProcess("ProcessImpl"), manifest.clone(), Box::new(move |args: Value| {
             let mut locked_container = juiz_lock(&container)?;
             match locked_container.downcast_mut::<ContainerImpl<T>>() {
                 None => Err(anyhow::Error::from(JuizError::ContainerDowncastingError{identifier: locked_container.identifier().clone()})),
@@ -118,6 +118,14 @@ impl<T: 'static> Process for ContainerProcessImpl<T> {
 
     fn connection_to(&mut self, target: Arc<Mutex<dyn Process>>, connect_arg_to: &String, connection_manifest: crate::Value) -> crate::JuizResult<crate::Value> {
         self.process.connection_to(target, connect_arg_to, connection_manifest)
+    }
+
+    fn source_connections(&self) -> JuizResult<Vec<&Box<dyn crate::connections::SourceConnection>>> {
+        self.process.source_connections()
+    }
+
+    fn destination_connections(&self) -> JuizResult<Vec<&Box<dyn crate::connections::DestinationConnection>>> {
+        self.process.destination_connections()
     }
 }
 

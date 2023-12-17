@@ -132,10 +132,10 @@ pub mod system_builder {
         let (c_sender, c_receiver) = mpsc::channel::<Value>();
         let (p_sender, p_receiver) = mpsc::channel::<Value>();
         let lbf = create_local_broker_factory(system.core_broker().clone(), Arc::new(Mutex::new(SenderReceiverPair(p_sender, c_receiver))))?;
+        let lbpf = create_local_broker_proxy_factory(Arc::new(Mutex::new(SenderReceiverPair(c_sender, p_receiver))))?;
+        //juiz_lock(system.core_broker())?.store_mut().broker_proxies.register_factory(lbpf.clone())?;
         let _wrapper = system.register_broker_factories_wrapper(BrokerFactoriesWrapper::new(None, 
-            lbf, 
-            create_local_broker_proxy_factory(Arc::new(Mutex::new(SenderReceiverPair(c_sender, p_receiver)))
-        )?)?)?;
+            lbf, lbpf)?)?;
         Ok(())
     }
 
@@ -165,7 +165,6 @@ pub mod system_builder {
         Ok(())
     }
 
-     
     pub fn setup_processes(system: &System, manifest: &Value) -> JuizResult<()> {
         log::trace!("system_builder::setup_processes() called");
         for p in get_array(manifest)?.iter() {
@@ -187,8 +186,6 @@ pub mod system_builder {
         } 
         Ok(())
     }
-
-    
 
     pub fn setup_local_broker(system: &mut System) -> JuizResult<()> {
         log::trace!("system_builder::setup_local_broker() called");
@@ -237,7 +234,7 @@ pub mod system_builder {
     pub fn setup_connections(system: &System, manifest: &serde_json::Value) -> JuizResult<()> {
         log::trace!("system_builder::setup_connections() called");
         for c in get_array(manifest)?.iter() {
-            connection_builder::create_connections(system, &c).context("connection_builder::create_connections faled in system_builder::setup_connections()")?;
+            connection_builder::create_connection(system, &c).context("connection_builder::create_connections faled in system_builder::setup_connections()")?;
         } 
         Ok(())
     }

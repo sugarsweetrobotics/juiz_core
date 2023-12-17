@@ -1,6 +1,6 @@
-use std::{collections::HashMap, sync::{Mutex, Arc}};
+use std::{collections::{HashMap, hash_map::Values}, sync::{Mutex, Arc}};
 
-use crate::{ProcessFactory, JuizError, Identifier, Process, JuizResult, utils::{juiz_lock, manifest_util::get_hashmap_mut}, ContainerFactory, Container, ContainerProcessFactory, Value, jvalue, JuizObject, ecs::{execution_context_holder::ExecutionContextHolder, execution_context_holder_factory::ExecutionContextHolderFactory}};
+use crate::{jvalue, ProcessFactory, JuizError, Identifier, Process, JuizResult, utils::{juiz_lock, manifest_util::{get_hashmap_mut, get_array_mut}}, ContainerFactory, Container, ContainerProcessFactory, Value, JuizObject, ecs::{execution_context_holder::ExecutionContextHolder, execution_context_holder_factory::ExecutionContextHolderFactory}, value::obj_get_str, brokers::{BrokerProxyFactory, BrokerProxy}};
 
 
 pub struct StoreWorker<T, TF> where T: JuizObject + ?Sized, TF: JuizObject + ?Sized {
@@ -15,6 +15,9 @@ impl<T, TF> StoreWorker<T, TF> where T: JuizObject + ?Sized, TF: JuizObject + ?S
         Box::new(StoreWorker { name: name.to_string(), factories: HashMap::new(), objects: HashMap::new() })
     }
 
+    pub fn objects(&self) -> Values<String, Arc<Mutex<T>>> {
+        self.objects.values()
+    }
 
     pub fn register_factory(&mut self, pf: Arc<Mutex<TF>>) -> JuizResult<Arc<Mutex<TF>>> {
         let type_name = juiz_lock(&pf)?.type_name().to_string();
@@ -87,6 +90,24 @@ impl<T, TF> StoreWorker<T, TF> where T: JuizObject + ?Sized, TF: JuizObject + ?S
         });
         Ok(prof)
     }
+
+    pub fn list_ids(&self) -> JuizResult<Value> {
+        let mut prof = jvalue!([]);
+        let o_array = get_array_mut(&mut prof)?;
+        self.objects.iter().for_each(|(identifier, _arc_obj)| {
+            /*match juiz_lock(&arc_obj) {
+                Err(e) => {
+                    o_array.push(jvalue!(format!("Err({})", e)));
+                },
+                Ok(_p) => {
+                    o_array.push(jvalue!(identifier));
+                }
+            }*/
+            o_array.push(jvalue!(identifier));
+
+        });
+        Ok(prof)
+    }
 }
 
 pub struct CoreStore {
@@ -97,6 +118,7 @@ pub struct CoreStore {
     pub containers: Box<StoreWorker::<dyn Container, dyn ContainerFactory>>,
     pub container_processes: Box<StoreWorker::<dyn Process, dyn ContainerProcessFactory>>,
     pub ecs: Box<StoreWorker::<ExecutionContextHolder, ExecutionContextHolderFactory>>,
+    pub broker_proxies: Box<StoreWorker::<dyn BrokerProxy, dyn BrokerProxyFactory>>,
 }
 
 
@@ -104,6 +126,7 @@ impl CoreStore {
     pub fn new() -> CoreStore {
         CoreStore{
             brokers_manifests: HashMap::new(),
+            broker_proxies: StoreWorker::new("broker_proxy"),
             broker_factories_manifests: HashMap::new(),
             
             processes: StoreWorker::new("process"), 
@@ -128,10 +151,24 @@ impl CoreStore {
         Ok(jvalue!(self.broker_factories_manifests))
     }
 
-    fn brokers_profile_full(&self) -> JuizResult<Value> {
+    pub fn broker_profile_full(&self, id: &Identifier) -> JuizResult<Value> {
+        match self.brokers_manifests.get(id) {
+            Some(p) => Ok(p.clone()),
+            None => {
+                Err(anyhow::Error::from(JuizError::BrokerProfileNotFoundError{id: id.to_string()}))
+            }
+        }
+    }
+
+    pub fn brokers_profile_full(&self) -> JuizResult<Value> {
         Ok(jvalue!(self.brokers_manifests))
     }
 
+    pub fn brokers_list_ids(&self) -> JuizResult<Value> {
+        let vec_value = self.brokers_manifests.values().collect::<Vec<&Value>>();
+        let vec_str = vec_value.iter().map(|pv| { obj_get_str(*pv, "identifier").unwrap().to_string() }).collect::<Vec<String>>();
+        Ok(jvalue!(vec_str))
+    }
 
     pub fn profile_full(&self) -> JuizResult<Value> {
         

@@ -1,4 +1,6 @@
+use crate::identifier::connection_identifier_new;
 use crate::jvalue;
+
 use crate::{JuizObject, JuizError, JuizResult, object::{ObjectCore, JuizObjectClass}, Value, Identifier, utils::check_connection_manifest, value::obj_get_str};
 
 
@@ -53,15 +55,28 @@ impl Clone for ConnectionCore {
     }
 }
 
+fn manifest_to_connection_id<'a>(manifest: &'a Value, source_id: &Identifier, destination_id: &Identifier) -> JuizResult<Identifier> {
+    match obj_get_str(manifest, "id") {
+        Ok(id) => Ok(id.to_string()),
+        Err(_) => {
+            let arg_name = obj_get_str(manifest, "arg_name")?;
+
+            let id = connection_identifier_new(source_id.to_string(), destination_id.to_string(), arg_name);
+            Ok(id)
+        }
+    }
+}
+
 impl ConnectionCore { 
 
     pub fn new(connection_impl_class_name: &'static str, source_process_identifier: Identifier, destination_process_identifier: Identifier, arg_name: String, connection_manifest: &Value) -> JuizResult<Self> {
         log::trace!("ConnectionCore::new() called");
         let manif = check_connection_manifest(connection_manifest.clone())?;
         let connection_type = connection_type_from(obj_get_str(&manif, "type"))?;
-        let connection_id = obj_get_str(&manif, "id")?;
-        Ok(ConnectionCore {
-            core: ObjectCore::create(JuizObjectClass::Connection(connection_impl_class_name), connection_impl_class_name, connection_id),
+        let connection_id = manifest_to_connection_id(&manif, &source_process_identifier, &destination_process_identifier)?;
+       
+       Ok(ConnectionCore {
+            core: ObjectCore::new(connection_id.clone(), JuizObjectClass::Connection(connection_impl_class_name), "Connection", connection_id.as_str(), "core", "core"),
             source_process_identifier,
             destination_process_identifier,
             manifest: manif,

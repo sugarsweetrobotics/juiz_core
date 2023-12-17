@@ -13,9 +13,10 @@ pub mod crud;
 
 pub use broker::Broker;
 pub use broker_factory::BrokerFactory;
+pub use broker_factory::create_broker_factory_impl;
 pub use broker_proxy::BrokerProxy;
 pub use broker_proxy_factory::BrokerProxyFactory;
-
+pub use broker_proxy_factory::create_broker_proxy_factory_impl;
 pub use local::*;
 pub use messenger::*;
 pub use crud::*;

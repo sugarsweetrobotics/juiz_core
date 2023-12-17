@@ -7,7 +7,7 @@ use anyhow::Context;
 
 use crate::brokers::{BrokerProxy, Broker,  broker_factories_wrapper::BrokerFactoriesWrapper};
 use crate::object::{ObjectCore, JuizObjectCoreHolder, JuizObjectClass};
-use crate::value::{obj_get_str, obj_merge, obj_insert};
+use crate::value::{obj_get_str, obj_merge};
 use crate::{JuizResult, Container, JuizObject, CoreBroker, Value, JuizError, Identifier, Process, jvalue};
 use crate::utils::juiz_lock;
 use crate::utils::manifest_util::{id_from_manifest, when_contains_do_mut, construct_id};
@@ -70,6 +70,8 @@ impl System {
     pub(crate) fn core_broker(&self) -> &Arc<Mutex<CoreBroker>> {
         &self.core_broker
     }
+
+
 
     pub fn process_from_id(&self, id: &Identifier) -> JuizResult<Arc<Mutex<dyn Process>>> {
         juiz_lock(&self.core_broker)?.store().processes.get(id)
@@ -141,6 +143,14 @@ impl System {
         self.any_process_from_typename_and_name(type_name, name)
     }
 
+    pub fn process_proxy(&self, id: &Identifier) -> JuizResult<Arc<Mutex<dyn Process>>> {
+        juiz_lock(&self.core_broker)?.process_proxy_from_identifier(id)
+    }
+
+    pub fn container_process_proxy(&self, id: &Identifier) -> JuizResult<Arc<Mutex<dyn Process>>> {
+        juiz_lock(&self.core_broker)?.container_process_proxy_from_identifier(id)
+    }
+
     fn setup(&mut self) -> JuizResult<()> {
         log::trace!("System::setup() called");
         let manifest_copied = self.manifest.clone();
@@ -182,7 +192,6 @@ impl System {
         Ok(())
     }
 
-    
     pub fn wait_for_singal(&mut self) -> JuizResult<()> {
         let term = Arc::new(AtomicBool::new(false));
         let _ = signal_hook::flag::register(signal_hook::consts::SIGINT, Arc::clone(&term));
@@ -223,22 +232,7 @@ impl System {
 
     pub fn broker_proxy(&self, manifest: &Value) -> JuizResult<Arc<Mutex<dyn BrokerProxy>>> {
         log::trace!("System::broker_proxy({}) called", manifest);
-        let mut type_name = obj_get_str(manifest, "type_name")?;
-        if type_name == "core" {
-            type_name = "local";
-        }
-
-        let mut manifest_copied = manifest.clone();
-        match obj_get_str(manifest, "name") {
-            Ok(_) => {},
-            Err(_) => {
-                let counter = 0;
-                let name = type_name.to_string() + counter.to_string().as_str();
-                obj_insert(&mut manifest_copied, "name", jvalue!(name))?;
-            }
-        };
-        let bfw = self.broker_factories_wrapper(type_name)?;
-        juiz_lock(bfw)?.create_broker_proxy(&manifest_copied).context("System::broker_proxy()")
+        juiz_lock(&self.core_broker)?.broker_proxy_from_manifest(manifest)
     }
 
     pub fn register_broker_factories_wrapper(&mut self, bf: Arc<Mutex<BrokerFactoriesWrapper>>) -> JuizResult<Arc<Mutex<BrokerFactoriesWrapper>>> {
@@ -250,7 +244,7 @@ impl System {
         self.broker_factories.insert(type_name.clone(), Arc::clone(&bf));
 
         juiz_lock(&self.core_broker())?.store_mut().register_broker_factory_manifest(type_name.as_str(), juiz_lock(&bf)?.profile_full()?)?;
-        
+        juiz_lock(&self.core_broker())?.store_mut().broker_proxies.register_factory(juiz_lock(&bf)?.broker_proxy_factory.clone())?;
         Ok(bf)
     }
 
