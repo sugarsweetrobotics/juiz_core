@@ -1,0 +1,15 @@
+[package]
+name = "container_examples"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+
+[dependencies]
+juiz_core = { path="../../" }
+env_logger = "0.10.1"
+tokio = { version = "1.35", features = ["full"] }
+#example_container = { path="./example_container"}
+#example_container_get = { path="./example_container_get"}
+#example_container_increment = { path="./example_container_increment"}

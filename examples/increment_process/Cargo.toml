@@ -1,0 +1,19 @@
+[package]
+name = "increment_process"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+
+[lib]
+crate-type = ["cdylib"]
+
+
+[dependencies]
+juiz_core = { path = "../../" }
+tokio = { version = "1", features = ["full"] }
+
+libloading = "0.8.1"
+
+env_logger = "0.10.1"
