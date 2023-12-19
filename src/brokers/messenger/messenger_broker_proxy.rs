@@ -97,6 +97,16 @@ impl MessengerBrokerProxy {
             &[("id".to_owned(), id.clone())],
             |value| Ok(obj_get(&value, "return")?.clone()))
     }
+
+    pub fn create(&self, class_name: &str, function_name: &str, args: Value) -> JuizResult<Value>  {
+        self.send_recv_and(
+            "CREATE",
+            class_name,  
+            function_name, 
+            args, 
+            &[],
+            |value| Ok(obj_get(&value, "return")?.clone()))
+    }
     
 }
 
@@ -124,28 +134,42 @@ impl ProcessBrokerProxy for MessengerBrokerProxy {
         self.update_by_id("process", "execute", jvalue!({}), id)
     }
 
-    fn process_connect_to(&mut self, 
-        source_process_id: &crate::Identifier, 
-        arg_name: &String, target_process_id: &crate::Identifier,
-        manifest: crate::Value) -> crate::JuizResult<crate::Value> {
-        self.send_recv_and(
-            "UPDATE", 
-            "process", "connect_to", jvalue!({
-            "source_process_id": source_process_id,
-            "arg_name": arg_name,
-            "target_process_id": target_process_id,
-            "manifest": manifest
-        }), 
-        &[], 
-        |value| Ok(obj_get(&value, "return")?.clone()))
-    }
-
     fn process_profile_full(&self, id: &Identifier) -> JuizResult<Value> {
         self.read_by_id("process", "profile_full", id)
     }
 
     fn process_list(&self) -> JuizResult<Value> {
         self.read("process", "list")
+    }
+
+    fn process_try_connect_to(&mut self, source_process_id: &Identifier, arg_name: &String, destination_process_id: &Identifier, manifest: Value) -> JuizResult<Value> {
+        self.send_recv_and(
+            "UPDATE", 
+            "process", 
+            "try_connect_to", 
+            jvalue!({
+                "source_process_id": source_process_id,
+                "arg_name": arg_name,
+                "destination_process_id": destination_process_id,
+                "manifest": manifest
+            }), 
+            &[], 
+            |value| Ok(obj_get(&value, "return")?.clone()))
+    }
+
+    fn process_notify_connected_from(&mut self, source_process_id: &Identifier, arg_name: &String, destination_process_id: &Identifier, manifest: Value) -> JuizResult<Value> {
+        self.send_recv_and(
+            "UPDATE", 
+            "process", 
+            "notify_connected_from", 
+            jvalue!({
+                "source_process_id": source_process_id,
+                "arg_name": arg_name,
+                "destination_process_id": destination_process_id,
+                "manifest": manifest
+            }), 
+            &[], 
+            |value| Ok(obj_get(&value, "return")?.clone()))
     }
 }
 
@@ -192,15 +216,15 @@ impl BrokerBrokerProxy for MessengerBrokerProxy {
 
 impl ConnectionBrokerProxy for MessengerBrokerProxy {
     fn connection_list(&self) -> JuizResult<Value> {
-        todo!()
+        self.read("connection", "list")
     }
 
-    fn connection_profile_full(&self, _id: &Identifier) -> JuizResult<Value> {
-        todo!()
+    fn connection_profile_full(&self, id: &Identifier) -> JuizResult<Value> {
+        self.read_by_id("connection", "profile_full", id)
     }
 
-    fn connection_create(&self, _manifest: Value) -> JuizResult<Value> {
-        todo!()
+    fn connection_create(&mut self, manifest: Value) -> JuizResult<Value> {
+        self.create("connection", "create", manifest)
     }
 }
 

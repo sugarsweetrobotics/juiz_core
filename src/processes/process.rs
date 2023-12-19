@@ -39,9 +39,9 @@ pub trait Process : Send + JuizObject{
 
     fn get_output(&self) -> Option<Value>;
 
-    fn connected_from<'b>(&'b mut self, source: Arc<Mutex<dyn Process>>, connecting_arg: &String, connection_manifest: Value) -> JuizResult<Value>;
+    fn notify_connected_from<'b>(&'b mut self, source: Arc<Mutex<dyn Process>>, connecting_arg: &String, connection_manifest: Value) -> JuizResult<Value>;
 
-    fn connection_to(&mut self, target: Arc<Mutex<dyn Process>>, connect_arg_to: &String, connection_manifest: Value) -> JuizResult<Value>;
+    fn try_connect_to(&mut self, target: Arc<Mutex<dyn Process>>, connect_arg_to: &String, connection_manifest: Value) -> JuizResult<Value>;
     
     fn source_connections(&self) -> JuizResult<Vec<&Box<dyn SourceConnection>>>;
     fn destination_connections(&self) -> JuizResult<Vec<&Box<dyn DestinationConnection>>>;

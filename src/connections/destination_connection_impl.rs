@@ -20,10 +20,10 @@ pub struct DestinationConnectionImpl{
 
 impl DestinationConnectionImpl {
 
-    pub fn new(owner_identifier: &Identifier, dest_process: Arc<Mutex<dyn Process>>, connection_manifest: Value, arg_name: String) -> JuizResult<Self> {
+    pub fn new(owner_identifier: &Identifier, destination_process_id: &Identifier, dest_process: Arc<Mutex<dyn Process>>, connection_manifest: Value, arg_name: String) -> JuizResult<Self> {
         log::trace!("# DestinationConnectionImpl::new() called");
         let manifest = check_connection_manifest(connection_manifest.clone())?;
-        let destination_process_identifier = juiz_lock(&dest_process)?.identifier().clone();
+        let destination_process_identifier = destination_process_id.clone();// juiz_lock(&dest_process).context("DestinationConnection::new()")?.identifier().clone();
         Ok(DestinationConnectionImpl{
             core: ConnectionCore::new("DestinationConnection", 
                 owner_identifier.to_string(), 

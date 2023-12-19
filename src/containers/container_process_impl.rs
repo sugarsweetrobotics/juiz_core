@@ -112,12 +112,12 @@ impl<T: 'static> Process for ContainerProcessImpl<T> {
         self.process.get_output()
     }
 
-    fn connected_from<'b>(&'b mut self, source: Arc<Mutex<dyn Process>>, connecting_arg: &String, connection_manifest: crate::Value) -> crate::JuizResult<crate::Value> {
-        self.process.connected_from(source, connecting_arg, connection_manifest)
+    fn notify_connected_from<'b>(&'b mut self, source: Arc<Mutex<dyn Process>>, connecting_arg: &String, connection_manifest: crate::Value) -> crate::JuizResult<crate::Value> {
+        self.process.notify_connected_from(source, connecting_arg, connection_manifest)
     }
 
-    fn connection_to(&mut self, target: Arc<Mutex<dyn Process>>, connect_arg_to: &String, connection_manifest: crate::Value) -> crate::JuizResult<crate::Value> {
-        self.process.connection_to(target, connect_arg_to, connection_manifest)
+    fn try_connect_to(&mut self, target: Arc<Mutex<dyn Process>>, connect_arg_to: &String, connection_manifest: crate::Value) -> crate::JuizResult<crate::Value> {
+        self.process.try_connect_to(target, connect_arg_to, connection_manifest)
     }
 
     fn source_connections(&self) -> JuizResult<Vec<&Box<dyn crate::connections::SourceConnection>>> {

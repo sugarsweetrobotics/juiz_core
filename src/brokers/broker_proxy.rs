@@ -18,8 +18,9 @@ pub trait ProcessBrokerProxy {
 
     fn process_execute(&self, id: &Identifier) -> JuizResult<Value>;
 
-    fn process_connect_to(&mut self, source_process_id: &Identifier, arg_name: &String, target_process_id: &Identifier, manifest: Value) -> JuizResult<Value>;
+    fn process_try_connect_to(&mut self, source_process_id: &Identifier, arg_name: &String, destination_process_id: &Identifier, manifest: Value) -> JuizResult<Value>;
 
+    fn process_notify_connected_from(&mut self, source_process_id: &Identifier, arg_name: &String, destination_process_id: &Identifier, manifest: Value) -> JuizResult<Value>;
 }
 
 pub trait ContainerBrokerProxy {
@@ -55,7 +56,7 @@ pub trait ConnectionBrokerProxy {
 
     fn connection_profile_full(&self, id: &Identifier) -> JuizResult<Value>;
 
-    fn connection_create(&self, manifest: Value) -> JuizResult<Value>;
+    fn connection_create(&mut self, manifest: Value) -> JuizResult<Value>;
 
 }
 
@@ -68,6 +69,11 @@ pub trait BrokerProxy : Send + JuizObject + SystemBrokerProxy + ProcessBrokerPro
     }
 
     fn any_process_profile_full(&self, id: &Identifier) -> JuizResult<Value> {
-        self.process_profile_full(id).or_else(|_e| { self.container_process_profile_full(id)})   
+        log::info!("BrokerProxy.any_process_profile_full({id}) called");
+        let result = self.process_profile_full(id).or_else(|_e| {
+            println!("Error {_e}");
+            self.container_process_profile_full(id)
+        });
+        result
     }
 }

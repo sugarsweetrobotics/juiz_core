@@ -8,6 +8,11 @@ async fn main() -> JuizResult<()>{
 
             "name": "test_system",
             "plugins": {
+                "process_factories": {
+                    "increment_process": {
+                        "path": "./target/debug"
+                    }
+                },
                 "container_factories": {
                     "example_container": {
                         "path": "./target/debug",
@@ -32,6 +37,12 @@ async fn main() -> JuizResult<()>{
                     "type_name": "http",
                     "name": "localhost:3000"
                 }  
+            ],
+            "processes": [
+                {
+                    "type_name": "increment_process",
+                    "name": "increment_a"
+                },
             ],
             "containers": [
                 {

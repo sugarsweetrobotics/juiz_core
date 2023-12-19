@@ -23,7 +23,7 @@ pub struct ProcessProxy {
 impl ProcessProxy {
 
     pub fn new(class_name: JuizObjectClass, identifier: &Identifier, broker_proxy: Arc<Mutex<dyn BrokerProxy>>) -> JuizResult<Arc<Mutex<ProcessProxy>>> {
-        let id_struct = digest_identifier(identifier);
+        let id_struct = IdentifierStruct::from(identifier.clone());
         let class_name_str = match class_name {
             JuizObjectClass::Process(_) => Ok("process"),
             JuizObjectClass::ContainerProcess(_) => Ok("container_process"),
@@ -47,20 +47,22 @@ impl JuizObjectCoreHolder for ProcessProxy {
 impl JuizObject for ProcessProxy {
 
     fn profile_full(&self) -> JuizResult<Value> {
+        juiz_lock(&self.broker_proxy)?.any_process_profile_full(self.identifier())
+        /*
         match self.class_name_str.as_str() {
             "process" => juiz_lock(&self.broker_proxy)?.process_profile_full(self.identifier()),
             "container_process" => juiz_lock(&self.broker_proxy)?.container_process_profile_full(self.identifier()),
             _ => { Err(anyhow::Error::from(JuizError::ProcessProxyCanNotAcceptClassError{class_name: self.class_name_str.clone()}))}
         }
+        */
     }
 }
 
 impl Process for ProcessProxy {
     
-    fn call(&self, _args: crate::Value) -> JuizResult<Value> {
-        // self.broker.call_process(&self.identifier(), args)
-        todo!("To be implemented");
-
+    fn call(&self, args: crate::Value) -> JuizResult<Value> {
+        //juiz_lock(&self.broker_proxy)?.any_process_call(args)
+        todo!()
     }
 
     fn is_updated(& self) -> JuizResult<bool> {
@@ -95,12 +97,18 @@ impl Process for ProcessProxy {
         todo!()
     }
 
-    fn connected_from<'b>(&'b mut self, _source: Arc<Mutex<dyn Process>>, _connecting_arg: &String, _connection_manifest: Value) -> JuizResult<Value> {
-        todo!()
+    fn notify_connected_from<'b>(&'b mut self, source: Arc<Mutex<dyn Process>>, arg_name: &String, manifest: Value) -> JuizResult<Value> {
+        log::trace!("ProcessProxy::notify_connected_from() called");
+        let source_process_id = juiz_lock(&source)?.identifier().clone();
+        let destination_process_id = self.identifier();
+        juiz_lock(&self.broker_proxy)?.process_notify_connected_from(&source_process_id, arg_name, destination_process_id, manifest)
     }
 
-    fn connection_to(&mut self, _target: Arc<Mutex<dyn Process>>, _connect_arg_to: &String, _connection_manifest: Value) -> JuizResult<Value> {
-        todo!()
+    fn try_connect_to(&mut self, destination: Arc<Mutex<dyn Process>>, arg_name: &String,manifest: Value) -> JuizResult<Value> {
+        log::trace!("ProcessProxy::try_connect_to() called");
+        let source_process_id = self.identifier();
+        let destination_process_id = juiz_lock(&destination)?.identifier().clone();
+        juiz_lock(&self.broker_proxy)?.process_try_connect_to(source_process_id, arg_name, &destination_process_id, manifest)
     }
 
     fn source_connections(&self) -> JuizResult<Vec<&Box<dyn crate::connections::SourceConnection>>> {

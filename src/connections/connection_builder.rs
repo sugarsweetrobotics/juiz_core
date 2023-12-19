@@ -36,10 +36,10 @@ pub mod connection_builder {
         log::debug!("connection_builder::connect({manifest}) called");
         let source_connect_result_manifest;
         {
-            source_connect_result_manifest = juiz_lock(&source)?.connection_to(Arc::clone(&destination), arg_name, manifest)?.clone();
+            source_connect_result_manifest = juiz_lock(&source)?.try_connect_to(Arc::clone(&destination), arg_name, manifest)?.clone();
             log::trace!("source_connection, connected!");
         }
-        let result = juiz_lock(&destination)?.connected_from(source, arg_name, source_connect_result_manifest);
+        let result = juiz_lock(&destination)?.notify_connected_from(source, arg_name, source_connect_result_manifest);
         log::trace!("destination_connection, connected!");
         Ok(result.expect("destination_connection_failed."))
     }

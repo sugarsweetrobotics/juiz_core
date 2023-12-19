@@ -69,7 +69,7 @@ fn handle_function(crud_broker: Arc<Mutex<CRUDBroker>>, value: Value) -> JuizRes
     let args = obj_get(&value, "arguments")?;
     let params = to_param(obj_get_obj(&value, "params")?)?;
     let result = match method_name {
-        //"CREATE" => juiz_lock(&crud_broker)?.create_class(class_name, function_name, args, params),
+        "CREATE" => juiz_lock(&crud_broker)?.create_class(class_name, function_name, args.clone(), params),
         "READ" =>  juiz_lock(&crud_broker)?.read_class(class_name, function_name, params),
         "UPDATE" =>  juiz_lock(&crud_broker)?.update_class(class_name, function_name, args.clone(), params),
         _ => {

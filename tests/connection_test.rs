@@ -43,9 +43,9 @@ fn simple_connection_invoke_test() {
         "id": "con1"
     });
     // rp1 -> rp2
-    let result1 = rp2.lock().unwrap().connected_from(Arc::clone(&rp1), &"arg1".to_string(), manifeset.clone());
+    let result1 = rp2.lock().unwrap().notify_connected_from(Arc::clone(&rp1), &"arg1".to_string(), manifeset.clone());
     assert!(result1.is_ok(), "Failed to connected_from function. Error is {:?}", result1.err());
-    let result2 = rp1.lock().unwrap().connection_to(Arc::clone(&rp2), &"arg1".to_string(), manifeset.clone());
+    let result2 = rp1.lock().unwrap().try_connect_to(Arc::clone(&rp2), &"arg1".to_string(), manifeset.clone());
     assert!(result2.is_ok(), "Failed to connect_to function. Error is {:?}", result2.err());
 
     let result = rp2.lock().unwrap().invoke();
@@ -69,9 +69,9 @@ fn simple_connection_execute_test() {
     });
 
     // rp1 -> rp2
-    let result1 = rp2.lock().unwrap().connected_from(Arc::clone(&rp1), &"arg1".to_string(), manifeset.clone());
+    let result1 = rp2.lock().unwrap().notify_connected_from(Arc::clone(&rp1), &"arg1".to_string(), manifeset.clone());
     assert!(result1.is_ok(), "Failed to connected_from function. Error is {:?}", result1.err());
-    let result2 = rp1.lock().unwrap().connection_to(Arc::clone(&rp2), &"arg1".to_string(), manifeset.clone());
+    let result2 = rp1.lock().unwrap().try_connect_to(Arc::clone(&rp2), &"arg1".to_string(), manifeset.clone());
     assert!(result2.is_ok(), "Failed to connect_to function. Error is {:?}", result2.err());
 
 

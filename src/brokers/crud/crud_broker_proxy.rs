@@ -39,6 +39,7 @@ impl JuizObject for CRUDBrokerProxyHolder {
 
 impl ContainerProcessBrokerProxy for CRUDBrokerProxyHolder {
     fn container_process_profile_full(&self, id: &Identifier) -> JuizResult<Value> {
+        log::info!("CRUDBrokerProxy.contaienr_process_profile_full({id}) called");
         self.broker.read("container_process", "profile_full", HashMap::from([("identifier".to_string(), id.to_owned())]))
     }
 
@@ -60,6 +61,7 @@ impl ContainerBrokerProxy for CRUDBrokerProxyHolder {
 
 impl ProcessBrokerProxy for CRUDBrokerProxyHolder {
     fn process_profile_full(&self, id: &Identifier) -> JuizResult<Value> {
+        log::info!("CRUDBrokerProxy.process_profile_full({id}) called");
         self.broker.read("process", "profile_full", HashMap::from([("identifier".to_string(), id.to_owned())]))
     }
 
@@ -71,12 +73,34 @@ impl ProcessBrokerProxy for CRUDBrokerProxyHolder {
         self.broker.update("process", "list", jvalue!({}), HashMap::from([("identifier".to_string(), id.to_owned())]))
     }
 
-    fn process_connect_to(&mut self, _source_process_id: &Identifier, _arg_name: &String, _target_process_id: &Identifier, _manifest: Value) -> JuizResult<Value> {
-        todo!()
-    }
-
     fn process_list(&self) -> JuizResult<Value> {
         self.broker.read("process", "list", HashMap::new())
+    }
+
+    fn process_try_connect_to(&mut self, source_process_id: &Identifier, arg_name: &String, destination_process_id: &Identifier, manifest: Value) -> JuizResult<Value> {
+        self.broker.update(
+            "process", 
+            "try_connect_to", 
+            jvalue!({
+                "source_process_id": source_process_id,
+                "arg_name": arg_name,
+                "destination_process_id": destination_process_id,
+                "manifest": manifest
+            }), 
+            HashMap::from([]))
+    }
+
+    fn process_notify_connected_from(&mut self, source_process_id: &Identifier, arg_name: &String, destination_process_id: &Identifier, manifest: Value) -> JuizResult<Value> {
+        self.broker.update(
+            "process", 
+            "notify_connected_from", 
+            jvalue!({
+                "source_process_id": source_process_id,
+                "arg_name": arg_name,
+                "destination_process_id": destination_process_id,
+                "manifest": manifest
+            }), 
+            HashMap::from([]))
     }
 }
 
@@ -112,12 +136,12 @@ impl ConnectionBrokerProxy for CRUDBrokerProxyHolder {
         self.broker.read("connection", "list", HashMap::new())
     }
 
-    fn connection_profile_full(&self, _id: &Identifier) -> JuizResult<Value> {
-        todo!()
+    fn connection_profile_full(&self, id: &Identifier) -> JuizResult<Value> {
+        self.broker.read("connection", "profile_full", HashMap::from([("id".to_string(), id.to_owned())]))
     }
 
-    fn connection_create(&self, _manifest: Value) -> JuizResult<Value> {
-        todo!()
+    fn connection_create(&mut self, manifest: Value) -> JuizResult<Value> {
+        self.broker.create("connection", "create", manifest, HashMap::new())
     }
 }
 

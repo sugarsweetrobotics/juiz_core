@@ -1,9 +1,20 @@
 use std::{sync::{Arc, Mutex}, collections::HashMap};
 
+
 use juiz_core::{JuizResult, brokers::{BrokerProxyFactory, BrokerProxy, create_broker_proxy_factory_impl}, Value, jvalue, value::obj_get_str, JuizError};
 
 use juiz_core::brokers::{CRUDBrokerProxy, CRUDBrokerProxyHolder};
 
+use thiserror::Error;
+
+#[derive(Error, Debug, PartialEq)]
+enum HTTPBrokerError {
+    #[error("General Error")]
+    GeneralError{},
+
+    #[error("HTTPStatusError (status_code={status_code:}), message_body={message}")]
+    HTTPStatusError { status_code: reqwest::StatusCode, message: String },
+}
 
 fn name_to_host_and_port<'a>(name: &'a String) -> JuizResult<(&'a str, i64)> {
     let mut tokens = name.split(':');
@@ -49,6 +60,10 @@ impl CRUDBrokerProxy for HTTPBrokerProxy {
             .send() {
             Err(e) => Err(anyhow::Error::from(e)),
             Ok(response) => {
+                log::error!("response: {:?}", response);
+                if response.status() != 200 {
+                    return Err(anyhow::Error::from(HTTPBrokerError::GeneralError{}));
+                }
                 response.json().map_err(|e| anyhow::Error::from(e))
             }
         }
@@ -65,7 +80,7 @@ impl CRUDBrokerProxy for HTTPBrokerProxy {
     }
 
     fn read(&self, class_name: &str, function_name: &str, param: std::collections::HashMap<String, String>) -> JuizResult<Value> {
-        println!("HTTPBrokerProxy.read()");
+        log::info!("HTTPBrokerProxy.read() called");
         
         let client = reqwest::blocking::Client::new();
         let url  =construct_url(&self.base_url, class_name, function_name, &param);
@@ -73,6 +88,9 @@ impl CRUDBrokerProxy for HTTPBrokerProxy {
         match client.get(url).send() {
             Err(e) => Err(anyhow::Error::from(e)),
             Ok(response) => {
+                if response.status() != 200 {
+                    return Err(anyhow::Error::from(HTTPBrokerError::HTTPStatusError{status_code: response.status(), message: format!("{:?}", response) }));
+                }
                 response.json().map_err(|e| anyhow::Error::from(e))
             }
         }

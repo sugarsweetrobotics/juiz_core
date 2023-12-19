@@ -2,6 +2,7 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::sync::{Mutex, Arc};
+use anyhow::Context;
 use serde_json::Map;
 
 
@@ -11,7 +12,7 @@ use crate::utils::manifest_util::get_hashmap_mut;
 use crate::value::{obj_get_str, obj_get_obj, obj_merge_mut};
 use crate::{Value, jvalue, Process, Identifier, JuizError, JuizResult, JuizObject};
 
-use crate::utils::{check_manifest_before_call, check_process_manifest};
+use crate::utils::{check_manifest_before_call, check_process_manifest, juiz_lock};
 use crate::connections::{SourceConnection, SourceConnectionImpl, DestinationConnection, DestinationConnectionImpl};
 
 pub struct ProcessImpl {
@@ -134,6 +135,7 @@ impl JuizObject for ProcessImpl {
         obj_merge_mut(&mut v, &jvalue!({
             "source_connections": sc_profs,
             "destination_connections": dc_profs,
+            "arguments": self.manifest.get("arguments").unwrap(),
         }))?;
         Ok(v)
     }
@@ -201,20 +203,22 @@ impl Process for ProcessImpl {
         Some(self.output_memo.borrow().clone())
     }
 
-    fn connected_from(&mut self, source: Arc<Mutex<dyn Process>>, connecting_arg: &String, connection_manifest: Value) -> JuizResult<Value> {
-        log::info!("ProcessImpl(id={:?}).connected_from(source=Process()) called", self.identifier());
+    fn notify_connected_from(&mut self, source: Arc<Mutex<dyn Process>>, connecting_arg: &String, connection_manifest: Value) -> JuizResult<Value> {
+        log::info!("ProcessImpl(id={:?}).notify_connected_from(source=Process()) called", self.identifier());
         self.source_connections.insert(connecting_arg.clone(), 
             Box::new(SourceConnectionImpl::new(self.identifier().clone(), source, connection_manifest.clone(), connecting_arg.clone())?)
         );
         Ok(connection_manifest)
     }
 
-    fn connection_to(&mut self, destination: Arc<Mutex<dyn Process>>, arg_name: &String, connection_manifest: Value) -> JuizResult<Value> {
-        log::info!("ProcessImpl(id={:?}).connection_to(destination=Process()) called", self.identifier());
+    fn try_connect_to(&mut self, destination: Arc<Mutex<dyn Process>>, arg_name: &String, connection_manifest: Value) -> JuizResult<Value> {
+        log::info!("ProcessImpl(id={:?}).try_connect_to(destination=Process()) called", self.identifier());
+        let destination_id = juiz_lock(&destination).context("ProcessImpl::try_connect_to()")?.identifier().clone();
         self.destination_connections.insert(
             arg_name.clone(), 
             Box::new(DestinationConnectionImpl::new(
                 &self.identifier(), 
+                &destination_id,
                 destination, 
                 connection_manifest.clone(), 
                 arg_name.clone())?));

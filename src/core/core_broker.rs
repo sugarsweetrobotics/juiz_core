@@ -21,8 +21,9 @@ use crate::brokers::broker_proxy::SystemBrokerProxy;
 
 use crate::ecs::execution_context_holder::ExecutionContextHolder;
 
-use crate::identifier::digest_identifier;
+use crate::identifier::IdentifierStruct;
 
+use crate::identifier::identifier_from_manifest;
 use crate::object::JuizObjectClass;
 use crate::object::JuizObjectCoreHolder;
 use crate::object::ObjectCore;
@@ -220,7 +221,10 @@ impl CoreBroker {
     }
 
     pub fn process_proxy_from_identifier(&mut self, identifier: &Identifier) -> JuizResult<Arc<Mutex<dyn Process>>> {
-        let id_struct = digest_identifier(identifier);
+        let id_struct = IdentifierStruct::from(identifier.clone());
+        if id_struct.broker_name == "core" && id_struct.broker_type_name == "core" {
+            return self.process_from_id(identifier)
+        }
         let broker_proxy = self.broker_proxy(&id_struct.broker_type_name, &id_struct.broker_name)?;
         Ok(ProcessProxy::new(JuizObjectClass::Process("ProcessProxy"),identifier, broker_proxy)?)
     }
@@ -230,7 +234,10 @@ impl CoreBroker {
     }
 
     pub fn container_process_proxy_from_identifier(&mut self, identifier: &Identifier) -> JuizResult<Arc<Mutex<dyn Process>>> {
-        let id_struct = digest_identifier(identifier);
+        let id_struct = IdentifierStruct::from(identifier.clone());
+        if id_struct.broker_name == "core" && id_struct.broker_type_name == "core" {
+            return self.container_process_from_id(identifier)
+        }
         let broker_proxy = self.broker_proxy(&id_struct.broker_type_name, &id_struct.broker_name)?;
         Ok(ProcessProxy::new(JuizObjectClass::ContainerProcess("ProcessProxy"), identifier, broker_proxy)?)
     }
@@ -239,11 +246,19 @@ impl CoreBroker {
         self.container_process_proxy_from_identifier(&id_from_manifest_and_class_name(manifest, "ContainerProcess")?)
     }
 
+    pub fn any_process_proxy_from_identifier(&mut self, identifier: &Identifier) -> JuizResult<Arc<Mutex<dyn Process>>> {
+        log::trace!("CoreBroker::any_process_proxy_from_identifier({identifier}) called");
+        let mut id_struct = IdentifierStruct::from(identifier.clone());
+        let p = self.process_proxy_from_identifier(&id_struct.set_class_name("Process").to_identifier());
+        if p.is_ok() {
+            return p;
+        }
+        self.container_process_proxy_from_identifier(&id_struct.set_class_name("ContainerProcess").to_identifier())
+    }
 
-    pub fn any_process_proxy_from_manifest(&self, manifest: &Value) -> JuizResult<Arc<Mutex<dyn Process>>> {
-        //let identifier = identifier_from_manifest(broker_type_name, broker_name, class_name, manifest)
-        let _p = self.any_process_from_manifest(manifest);
-        todo!("implement CoreBroker::any_process_proxy_from_manifest function");
+    pub fn any_process_proxy_from_manifest(&mut self, manifest: &Value) -> JuizResult<Arc<Mutex<dyn Process>>> {
+        let identifier = identifier_from_manifest("core", "core", "Process", manifest)?;
+        self.any_process_proxy_from_identifier(&identifier)
     }
 }
 
@@ -281,9 +296,6 @@ impl ProcessBrokerProxy for CoreBroker {
         juiz_lock(&self.store().processes.get(id)?).with_context(||format!("locking process(id={id:}) in CoreBroker::execute_process() function"))?.execute()
     }
 
-    fn process_connect_to(&mut self, source_process_id: &Identifier, arg_name: &String, target_process_id: &Identifier, manifest: Value) -> JuizResult<Value> {
-        connection_builder::connect(self.store().processes.get(source_process_id)?, self.store().processes.get(target_process_id)?, arg_name, manifest)
-    }
 
     fn process_profile_full(&self, id: &Identifier) -> JuizResult<Value> {
         juiz_lock(&self.store().processes.get(id)?).with_context(||format!("locking process(id={id:}) in CoreBroker::process_profile_full() function"))?.profile_full()
@@ -292,6 +304,17 @@ impl ProcessBrokerProxy for CoreBroker {
     fn process_list(&self) -> JuizResult<Value> {
         self.store().processes.list_ids()
     }
+
+    fn process_try_connect_to(&mut self, source_process_id: &Identifier, arg_name: &String, destination_process_id: &Identifier, manifest: Value) -> JuizResult<Value> {
+        let destination_process = self.any_process_proxy_from_identifier(destination_process_id)?;
+        juiz_lock(&self.any_process_proxy_from_identifier(source_process_id)?)?.try_connect_to(destination_process, arg_name, manifest)
+    }
+
+    fn process_notify_connected_from(&mut self, source_process_id: &Identifier, arg_name: &String, destination_process_id: &Identifier, manifest: Value) -> JuizResult<Value> {
+        let source_process = self.any_process_proxy_from_identifier(source_process_id)?;//self.store().processes.get(source_process_id)?;
+        // let destination_process = self.any_process_proxy_from_identifier(destination_process_id)?;
+        juiz_lock(&self.any_process_proxy_from_identifier(destination_process_id)?)?.notify_connected_from(source_process, arg_name, manifest)
+     }
 }
 
 impl ContainerBrokerProxy for CoreBroker {
@@ -345,12 +368,44 @@ impl ConnectionBrokerProxy for CoreBroker {
         todo!()
     }
 
-    fn connection_create(&self, manifest: Value) -> JuizResult<Value> {
-        let source = self.any_process_proxy_from_manifest(obj_get(&manifest, "source")?)?;
-        let destination = self.any_process_proxy_from_manifest(obj_get(&manifest, "destination")?)?;
+    fn connection_create(&mut self, manifest: Value) -> JuizResult<Value> {
+        log::trace!("CoreBroker::connection_create({manifest}) called");
+        let (source_id, destination_id) = check_connection_source_destination(&manifest)?;
+        let source = self.any_process_proxy_from_identifier(&source_id)?;
+        let destination = self.any_process_proxy_from_identifier(&destination_id)?;
         let arg_name = obj_get_str(&manifest, "arg_name")?;
         connection_builder::connect(source, destination, &arg_name.to_string(), manifest)
     }
+}
+
+fn check_if_both_side_is_on_same_host(source_id: Identifier, destination_id: Identifier) -> JuizResult<(Identifier, Identifier)> {
+    log::trace!("check_if_both_side_is_on_same_host({source_id}, {destination_id}) called");
+    let mut source_id_struct = IdentifierStruct::from(source_id);
+    let mut destination_id_struct = IdentifierStruct::from(destination_id);
+    if (source_id_struct.broker_name == destination_id_struct.broker_name) &&
+        (source_id_struct.broker_type_name == destination_id_struct.broker_type_name) {
+        source_id_struct.broker_name = "core".to_owned();
+        source_id_struct.broker_type_name = "core".to_owned();
+        destination_id_struct.broker_name = "core".to_owned();
+        destination_id_struct.broker_type_name = "core".to_owned();
+    }
+    Ok((source_id_struct.to_identifier(), destination_id_struct.to_identifier()))
+}
+
+fn check_connection_source_destination(manifest: &Value) -> JuizResult<(Identifier, Identifier)> {
+    let source = obj_get(manifest, "source")?;
+    let destination = obj_get(manifest, "destination")?;
+
+    let source_id_result = obj_get_str(source, "identifier");
+    let destination_id_result = obj_get_str(destination, "identifier");
+    
+    // まずIDが両方ともあったら、brokerが同じものを指していたらcore/coreに直して接続する
+    if source_id_result.is_ok() && destination_id_result.is_ok() {
+        return check_if_both_side_is_on_same_host(source_id_result.unwrap().to_owned(), destination_id_result.unwrap().to_owned());
+    }
+
+    // IDがない場合はProcessかContainerProcessかが曖昧だが一旦Processで
+    return Ok((id_from_manifest(source)?, id_from_manifest(destination)?))
 }
 
 impl BrokerProxy for CoreBroker {

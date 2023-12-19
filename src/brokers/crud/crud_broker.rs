@@ -29,8 +29,8 @@ impl CRUDBroker {
     }
 
     pub fn create_class(&self, class_name: &str, function_name: &str, value: Value, params: HashMap<String, String>) -> JuizResult<Value> {
-        log::trace!("CRUDBroker::create_class() called");
-        let cb = juiz_lock(&self.core_broker)?;
+        log::trace!("CRUDBroker::create_class({class_name}, {function_name}, {value}) called");
+        let mut cb = juiz_lock(&self.core_broker)?;
         match class_name {
             "system" => {
                 match function_name {
@@ -40,14 +40,20 @@ impl CRUDBroker {
                 }
             },
             "process" => {
-                let id = params_get(params, "identifier")?;
                 match function_name {
-                    "call" => return cb.process_call(&id, value),
                     _ => {
                         return Err(anyhow::Error::from(JuizError::CRUDBrokerCanNotFindFunctionError{class_name:class_name.to_string(), function_name: function_name.to_string()}));
                     }
                 }
             },
+            "connection" => {
+                match function_name {
+                    "create" => return cb.connection_create(value),
+                    _ => {
+                        return Err(anyhow::Error::from(JuizError::CRUDBrokerCanNotFindFunctionError{class_name:class_name.to_string(), function_name: function_name.to_string()}));
+                    }
+                }
+            }
             _ => {
                 Ok(jvalue!({}))
             }

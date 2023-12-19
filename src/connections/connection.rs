@@ -75,7 +75,7 @@ impl ConnectionCore {
         let connection_type = connection_type_from(obj_get_str(&manif, "type"))?;
         let connection_id = manifest_to_connection_id(&manif, &source_process_identifier, &destination_process_identifier)?;
        
-       Ok(ConnectionCore {
+        Ok(ConnectionCore {
             core: ObjectCore::new(connection_id.clone(), JuizObjectClass::Connection(connection_impl_class_name), "Connection", connection_id.as_str(), "core", "core"),
             source_process_identifier,
             destination_process_identifier,
