@@ -82,7 +82,7 @@ fn core_broker_process_factory_integration_test() {
 #[cfg(test)]
 #[test]
 fn core_broker_process_factory_integration_connection_test() {
-    use juiz_core::brokers::broker_proxy::ProcessBrokerProxy;
+    use juiz_core::brokers::broker_proxy::{ProcessBrokerProxy, ConnectionBrokerProxy};
 
     let mut cb = new_core_broker();
     let _pf = new_process_factory(&mut cb);
@@ -110,11 +110,15 @@ fn core_broker_process_factory_integration_connection_test() {
     //assert!(cb.is_in_charge_for_process(&id2));
     
 
-    let con_result = cb.process_connect_to(&id1,
-         &"arg1".to_string(), 
-         &id2, 
-        jvalue!({
-            "id": "con01",
+    let con_result = cb.connection_create(
+         jvalue!({
+            "source": {
+                "identifier": id1
+            },
+            "destination": {
+                "identifier": id2,
+            },
+            "arg_name": "arg1"
         }));
     assert!(con_result.is_ok(), "CoreBroker::connect() failed. Error is {:?}", con_result.err());
 

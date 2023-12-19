@@ -28,7 +28,7 @@ impl CRUDBroker {
         Ok(Arc::new(Mutex::new(CRUDBroker{core_broker})))
     }
 
-    pub fn create_class(&self, class_name: &str, function_name: &str, value: Value, params: HashMap<String, String>) -> JuizResult<Value> {
+    pub fn create_class(&self, class_name: &str, function_name: &str, value: Value, _params: HashMap<String, String>) -> JuizResult<Value> {
         log::trace!("CRUDBroker::create_class({class_name}, {function_name}, {value}) called");
         let mut cb = juiz_lock(&self.core_broker)?;
         match class_name {

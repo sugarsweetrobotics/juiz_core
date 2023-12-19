@@ -60,7 +60,7 @@ impl JuizObject for ProcessProxy {
 
 impl Process for ProcessProxy {
     
-    fn call(&self, args: crate::Value) -> JuizResult<Value> {
+    fn call(&self, _args: crate::Value) -> JuizResult<Value> {
         //juiz_lock(&self.broker_proxy)?.any_process_call(args)
         todo!()
     }
