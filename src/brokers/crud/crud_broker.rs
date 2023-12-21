@@ -131,6 +131,7 @@ impl CRUDBroker {
                 match function_name {
                     "profile_full" => return cb.ec_profile_full(&params_get(params, "identifier")?),
                     "list" => return cb.ec_list(),
+                    "get_state" => return cb.ec_get_state(&params_get(params, "identifier")?),
                     _ => {
                         return Err(anyhow::Error::from(JuizError::CRUDBrokerCanNotFindFunctionError{class_name:class_name.to_string(), function_name: function_name.to_string()}));
                     }
@@ -144,7 +145,7 @@ impl CRUDBroker {
 
     pub fn update_class(&self, class_name: &str, function_name: &str, value: Value, params: HashMap<String, String>) -> JuizResult<Value> {
         log::trace!("CRUDBroker::update_class() called");
-        let cb = juiz_lock(&self.core_broker)?;
+        let mut cb = juiz_lock(&self.core_broker)?;
         match class_name {
             "system" => {
                 match function_name {
@@ -161,6 +162,15 @@ impl CRUDBroker {
                     _ => {
                         return Err(anyhow::Error::from(JuizError::CRUDBrokerCanNotFindFunctionError{class_name:class_name.to_string(), function_name: function_name.to_string()}));
                     },
+                }
+            },
+            "execution_context" => {
+                match function_name {
+                    "start" => return cb.ec_start(&params_get(params, "identifier")?),
+                    "stop" => return cb.ec_stop(&params_get(params, "identifier")?),
+                    _ => {
+                        return Err(anyhow::Error::from(JuizError::CRUDBrokerCanNotFindFunctionError{class_name:class_name.to_string(), function_name: function_name.to_string()}));
+                    }
                 }
             },
             _ => {

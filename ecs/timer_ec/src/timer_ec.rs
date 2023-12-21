@@ -1,34 +1,39 @@
 use std::{sync::{atomic::AtomicBool, Arc, Mutex, atomic::Ordering::SeqCst}, time::Duration};
 
-use juiz_core::{jvalue, ecs::{ExecutionContext, ExecutionContextCore, ExecutionContextFactory}, JuizResult, utils::juiz_lock, value::{obj_get_str, obj_get_f64}, Value};
+use juiz_core::{jvalue, ecs::{ExecutionContext, ExecutionContextCore, ExecutionContextFactory}, JuizResult, utils::juiz_lock, value::{obj_get_str, obj_get_f64}, Value, JuizError};
 
 pub struct TimerEC {
-    thread_handle: Option<tokio::task::JoinHandle<()>>,
-    end_flag: Arc<Mutex<AtomicBool>>,
+    //thread_handle: Option<tokio::task::JoinHandle<()>>,
+    //end_flag: Arc<Mutex<AtomicBool>>,
     rate: f64,
-    name: String
+    name: String,
+    timeout: Duration, 
 }
 
 impl TimerEC {
     pub fn new(name: &str, rate: f64) -> Arc<Mutex<TimerEC>> {
+        let rate_sec: u64 = rate.floor() as u64;
+        let rate_nsec: u32 = ((rate - rate.floor()) * (1000_000_000.0)) as u32;
+        let timeout = Duration::new(rate_sec, rate_nsec);
         Arc::new(Mutex::new(TimerEC{
-            thread_handle: None,
-            end_flag: Arc::new(Mutex::new(AtomicBool::from(false))),
+            //thread_handle: None,
+            //end_flag: Arc::new(Mutex::new(AtomicBool::from(false))),
             rate,
             name: name.to_string(),
+            timeout,
         }))
     }
 }
 
 impl ExecutionContext for TimerEC {
-    fn on_starting(&mut self, svc: Arc<Mutex<ExecutionContextCore>>) -> JuizResult<()> {
+
+    /* fn on_starting_(&mut self, svc: Arc<Mutex<ExecutionContextCore>>) -> JuizResult<()> {
         let rate_sec: u64 = self.rate.floor() as u64;
         let rate_nsec: u32 = ((self.rate - self.rate.floor()) * (1000_000_000.0)) as u32;
         let timeout = Duration::new(rate_sec, rate_nsec);
 
         juiz_lock(&self.end_flag)?.swap(false, SeqCst);
         let end_flag = Arc::clone(&self.end_flag);
-        //svc_.
         log::trace!("TimerEC::start() called");
         //let core = self.core.clone();
         let join_handle = tokio::task::spawn(async move {
@@ -69,7 +74,7 @@ impl ExecutionContext for TimerEC {
         let _ = futures::executor::block_on(self.thread_handle.take().unwrap())?;
         log::debug!("TimerEC stopped.");
         Ok(())
-    }
+    }*/
 
     fn name(&self) -> &str {
         self.name.as_str()
@@ -83,6 +88,21 @@ impl ExecutionContext for TimerEC {
         Ok(jvalue!({
             "rate": self.rate,
         }))
+    }
+
+    fn execute(&self, core: &Arc<Mutex<ExecutionContextCore>>) -> JuizResult<bool> {
+        log::trace!("TimerExecutionContext.execute called");
+        std::thread::sleep(self.timeout);
+        match core.lock() {
+            Err(e) => {
+                log::error!("Error({e:?}) in Locking ECServiceFunction");
+                return Err(anyhow::Error::from(JuizError::ExecutionContextCanNotLockStateError{}));
+            },
+            Ok(svc_func) => { 
+                let _ = svc_func.svc().map_err(|e| -> () {log::error!("Error({e:?}) in Service function in ExecutionContext."); }); 
+            }
+        }
+        return Ok(true);
     }
 }
 

@@ -42,6 +42,12 @@ pub trait ExecutionContextBrokerProxy {
     fn ec_list(&self) -> JuizResult<Value>;
 
     fn ec_profile_full(&self, id: &Identifier) -> JuizResult<Value>;
+
+    fn ec_get_state(&self, id: &Identifier) -> JuizResult<Value>;
+
+    fn ec_start(&mut self, id: &Identifier) -> JuizResult<Value>;
+
+    fn ec_stop(&mut self, id: &Identifier) -> JuizResult<Value>;
 }
 pub trait BrokerBrokerProxy {
     

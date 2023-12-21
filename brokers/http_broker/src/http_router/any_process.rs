@@ -2,6 +2,7 @@ use utoipa::OpenApi;
 
 use super::IdentifierQuery;
 
+use axum::extract::Query;
 
 #[utoipa::path(
     get,
@@ -14,7 +15,8 @@ use super::IdentifierQuery;
     ),
     tag = "any_process",
 )]
-pub fn profile_handler_dummy() {
+pub fn profile_handler_dummy(
+    query: Query<IdentifierQuery>,) {
 }
 
 #[utoipa::path(

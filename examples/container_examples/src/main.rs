@@ -1,7 +1,6 @@
 use juiz_core::{System, jvalue, JuizResult};
 
-#[tokio::main]
-async fn main() -> JuizResult<()>{
+fn main() -> JuizResult<()>{
 
     let manifest = jvalue!(
         {

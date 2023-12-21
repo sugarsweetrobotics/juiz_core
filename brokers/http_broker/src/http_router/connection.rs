@@ -4,6 +4,7 @@ use utoipa::OpenApi;
 use super::IdentifierQuery;
 
 use utoipa::ToSchema;
+use axum::extract::Query;
 
 
 #[allow(dead_code)]
@@ -47,7 +48,8 @@ pub fn create_dummy() {
     ),
     tag = "connection",
 )]
-pub fn profile_handler_dummy() {
+pub fn profile_handler_dummy(
+    query: Query<IdentifierQuery>,) {
 }
 
 #[utoipa::path(

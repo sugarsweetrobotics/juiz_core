@@ -18,16 +18,6 @@ impl OneShotEC {
 }
 
 impl ExecutionContext for OneShotEC {
-    fn on_starting(&mut self, svc: Arc<Mutex<ExecutionContextCore>>) -> crate::JuizResult<()> {
-        juiz_lock(&svc)?.svc().and(Ok(()))
-    }
-
-    fn on_stopping(&mut self, _core: Arc<Mutex<ExecutionContextCore>>) -> crate::JuizResult<()> {
-        log::debug!("OneShotEC::on_stopping() called");
-        
-        log::debug!("OneShotEC stopped.");
-        Ok(())
-    }
 
     fn name(&self) -> &str {
         self.name.as_str()
@@ -39,5 +29,10 @@ impl ExecutionContext for OneShotEC {
 
     fn profile(&self) -> crate::JuizResult<crate::Value> {
         todo!()
+    }
+
+    fn execute(&self, core: &Arc<Mutex<ExecutionContextCore>>) -> crate::JuizResult<bool> {
+        let _ = juiz_lock(core)?.svc().and(Ok(()))?;
+        return Ok(false);
     }
 }

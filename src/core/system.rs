@@ -25,6 +25,7 @@ pub struct System {
     broker_factories: HashMap<String, Arc<Mutex<BrokerFactoriesWrapper>>>,
     brokers: HashMap<String, Arc<Mutex<dyn Broker>>>,
     broker_proxies: HashMap<String, Arc<Mutex<dyn BrokerProxy>>>,
+    pub tokio_runtime: tokio::runtime::Runtime,
 }
 
 fn check_system_manifest(manifest: Value) -> JuizResult<Value> {
@@ -64,6 +65,8 @@ impl System {
             broker_factories: HashMap::new(),
             brokers: HashMap::new(),
             broker_proxies: HashMap::new(),
+            tokio_runtime: tokio::runtime::Builder::new_multi_thread().thread_name("juiz_core::System").worker_threads(4).enable_all().build().unwrap(),
+
         })
     }
 
@@ -192,6 +195,19 @@ impl System {
         Ok(())
     }
 
+    fn cleanup(&mut self) -> JuizResult<()> {
+        log::trace!("System::cleanup() called");
+        system_builder::cleanup_ecs(self).context("system_builder::cleanup_ecs in System::cleanup() failed")?;
+        system_builder::cleanup_brokers(self).context("system_builder::cleanup_ecs in System::cleanup() failed")?;
+        Ok(())
+    }
+
+    pub fn cleanup_brokers(&mut self) -> JuizResult<()> {
+        log::trace!("System::cleanup_brokers() called");
+        self.brokers.clear();
+        Ok(())
+    }
+
     pub fn wait_for_singal(&mut self) -> JuizResult<()> {
         let term = Arc::new(AtomicBool::new(false));
         let _ = signal_hook::flag::register(signal_hook::consts::SIGINT, Arc::clone(&term));
@@ -214,19 +230,23 @@ impl System {
     pub fn run(&mut self) -> JuizResult<()> {
         log::debug!("System::run() called");
         log::debug!("Juiz System Now Started.");
+       // let tokio_runtime = tokio::runtime::Builder::new_multi_thread().thread_name("juiz_core::System").worker_threads(4).enable_all().build().unwrap();
         self.setup().context("System::setup() in System::run() failed.")?;
         self.wait_for_singal().context("System::wait_for_signal() in System::run() failed.")?;
         log::debug!("System::run() exit");
+        self.cleanup()?;
         Ok(())
     }
 
-    pub fn run_and_do(&mut self, func: fn(&mut System) -> JuizResult<()>) -> JuizResult<()> {
+    pub fn run_and_do(&mut self,  func: fn(&mut System) -> JuizResult<()>) -> JuizResult<()> {
         log::debug!("System::run_and_do() called");
+        //let tokio_runtime = tokio::runtime::Builder::new_multi_thread().thread_name("juiz_core::System").worker_threads(4).enable_all().build().unwrap();
         self.setup().context("System::setup() in System::run_and_do() failed.")?;
         log::debug!("Juiz System Now Started.");
         (func)(self).context("User function passed for System::run_and_do() failed.")?;
         self.wait_for_singal().context("System::wait_for_signal() in System::run_and_do() failed.")?;
         log::debug!("System::run() exit");
+        self.cleanup()?;
         Ok(())
     }
 
@@ -278,4 +298,6 @@ impl System {
         Ok(broker)
     }
 
+
+    
 }

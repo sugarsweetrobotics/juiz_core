@@ -8,7 +8,7 @@ use utoipa::OpenApi;
     ),
     tag = "system",
 )]
-pub async fn profile_handler_dummy() {
+pub async fn profile_handler_dummy(){
 }
 
 #[derive(OpenApi)]

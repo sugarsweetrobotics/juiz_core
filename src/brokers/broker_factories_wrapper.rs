@@ -2,7 +2,7 @@
 
 use crate::{JuizResult, utils::juiz_lock, JuizError, Value};
 use std::sync::{Arc, Mutex};
-use crate::{core::Plugin, brokers::{Broker, BrokerFactory, BrokerProxyFactory}};
+use crate::{core::Plugin, brokers::{Broker, BrokerProxy, BrokerFactory, BrokerProxyFactory}};
 
 #[allow(dead_code)]
 pub struct BrokerFactoriesWrapper {
@@ -41,7 +41,7 @@ impl BrokerFactoriesWrapper {
         juiz_lock(&self.broker_factory)?.create_broker(manifest.clone())
     }
 
-    //pub fn create_broker_proxy(&self, manifest: &Value) -> JuizResult<Arc<Mutex<dyn BrokerProxy>>> {
-    //    juiz_lock(&self.broker_proxy_factory)?.create_broker_proxy(manifest.clone())
-    //}
+    pub fn create_broker_proxy(&self, manifest: &Value) -> JuizResult<Arc<Mutex<dyn BrokerProxy>>> {
+        juiz_lock(&self.broker_proxy_factory)?.create_broker_proxy(manifest.clone())
+    }
 }

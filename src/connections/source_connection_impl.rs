@@ -74,7 +74,7 @@ impl SourceConnection for SourceConnectionImpl {
 
 impl<'a> Debug for SourceConnectionImpl {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("SourceConnection").field("source_process", &self.source_process.try_lock().unwrap().identifier()).field("owner_id", &self.owner_identifier()).finish()
+        f.debug_struct("SourceConnection").field("source_process", &self.source_process.lock().unwrap().identifier()).field("owner_id", &self.owner_identifier()).finish()
     }
 }
 

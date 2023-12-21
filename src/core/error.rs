@@ -117,6 +117,8 @@ pub enum JuizError {
     BrokerProfileNotFoundError { id : String },
     #[error("ProcessProxy construct can not accept class ({class_name:?})")]
     ProcessProxyCanNotAcceptClassError { class_name: String },
+    #[error("Execution Context Can not Lock its State")]
+    ExecutionContextCanNotLockStateError {  },
 
     /*
     ProcessManifestError,

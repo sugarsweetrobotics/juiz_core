@@ -1,6 +1,6 @@
 use std::{collections::{HashMap, hash_map::Values}, sync::{Mutex, Arc}};
 
-use crate::{jvalue, ProcessFactory, JuizError, Identifier, Process, JuizResult, utils::{juiz_lock, manifest_util::{get_hashmap_mut, get_array_mut}}, ContainerFactory, Container, ContainerProcessFactory, Value, JuizObject, ecs::{execution_context_holder::ExecutionContextHolder, execution_context_holder_factory::ExecutionContextHolderFactory}, value::obj_get_str, brokers::{BrokerProxyFactory, BrokerProxy}};
+use crate::{jvalue, ProcessFactory, JuizError, Identifier, Process, JuizResult, utils::{juiz_lock, manifest_util::{get_hashmap_mut, get_array_mut}, sync_util::juiz_try_lock}, ContainerFactory, Container, ContainerProcessFactory, Value, JuizObject, ecs::{execution_context_holder::ExecutionContextHolder, execution_context_holder_factory::ExecutionContextHolderFactory}, value::obj_get_str, brokers::{BrokerProxyFactory, BrokerProxy}};
 
 
 pub struct StoreWorker<T, TF> where T: JuizObject + ?Sized, TF: JuizObject + ?Sized {
@@ -76,10 +76,13 @@ impl<T, TF> StoreWorker<T, TF> where T: JuizObject + ?Sized, TF: JuizObject + ?S
     }
 
     pub fn objects_profile_full(&self) -> JuizResult<Value> {
+        let name = &self.name;
+        log::trace!("StoreWorker({name})::objects_profile_full() called");
         let mut prof = jvalue!({});
         let o_hashmap = get_hashmap_mut(&mut prof)?;
         self.objects.iter().for_each(|(identifier, arc_obj)| {
-            match juiz_lock(&arc_obj) {
+            log::trace!(" - {identifier}");
+            match juiz_try_lock(&arc_obj) {
                 Err(e) => {
                     o_hashmap.insert(identifier.clone(), jvalue!(format!("Err({})", e)));
                 },
@@ -107,6 +110,11 @@ impl<T, TF> StoreWorker<T, TF> where T: JuizObject + ?Sized, TF: JuizObject + ?S
 
         });
         Ok(prof)
+    }
+
+    pub fn cleanup_objects(&mut self) -> JuizResult<()> {
+        self.objects.clear();
+        Ok(())
     }
 }
 

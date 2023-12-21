@@ -129,6 +129,18 @@ impl ExecutionContextBrokerProxy for CRUDBrokerProxyHolder {
     fn ec_profile_full(&self, id: &Identifier) -> JuizResult<Value> { 
         self.broker.read("execution_context", "profile_full", HashMap::from([("id".to_string(), id.to_owned())]))
     }
+
+    fn ec_get_state(&self, id: &Identifier) -> JuizResult<Value> {
+        self.broker.read("execution_context", "get_state", HashMap::from([("id".to_string(), id.to_owned())]))
+    }
+
+    fn ec_start(&mut self, id: &Identifier) -> JuizResult<Value> {
+        self.broker.update("execution_context", "start", jvalue!({}), HashMap::from([("id".to_owned(), id.to_owned())]))
+    }
+
+    fn ec_stop(&mut self, id: &Identifier) -> JuizResult<Value> {
+        self.broker.update("execution_context", "stop", jvalue!({}), HashMap::from([("id".to_owned(), id.to_owned())]))
+    }
 }
 
 impl ConnectionBrokerProxy for CRUDBrokerProxyHolder {

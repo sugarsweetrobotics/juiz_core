@@ -1,6 +1,7 @@
 use utoipa::OpenApi;
 
 use super::IdentifierQuery;
+use axum::extract::Query;
 
 
 #[utoipa::path(
@@ -14,7 +15,8 @@ use super::IdentifierQuery;
     ),
     tag = "container",
 )]
-pub fn profile_handler_dummy() {
+pub fn profile_handler_dummy(
+    query: Query<IdentifierQuery>,) {
 }
 
 

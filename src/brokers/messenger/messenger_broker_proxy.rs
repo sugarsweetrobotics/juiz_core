@@ -202,6 +202,18 @@ impl ExecutionContextBrokerProxy for MessengerBrokerProxy {
     fn ec_list(&self) -> JuizResult<Value> {
         self.read("execution_context", "list")
     }
+
+    fn ec_get_state(&self, id: &Identifier) -> JuizResult<Value> {
+        self.read_by_id("execution_context", "get_state", id)
+    }
+
+    fn ec_start(&mut self, id: &Identifier) -> JuizResult<Value> {
+        self.update_by_id("execution_context", "start", jvalue!({}), id)
+    }
+
+    fn ec_stop(&mut self, id: &Identifier) -> JuizResult<Value> {
+        self.update_by_id("execution_context", "stop", jvalue!({}), id)
+    }
 }
 
 impl BrokerBrokerProxy for MessengerBrokerProxy {

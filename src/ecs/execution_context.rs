@@ -10,19 +10,22 @@ pub trait ECServiceFunction : Fn()->JuizResult<()> + Send + Sync {
 
 }
 
-pub trait ExecutionContext {
+pub trait ExecutionContext : Send {
 
     fn name(&self) -> &str;
 
     fn type_name(&self) -> &str;
 
-    fn on_starting(&mut self, _svc: Arc<Mutex<ExecutionContextCore>>) -> JuizResult<()> {
+    fn on_starting(&mut self, _core: &Arc<Mutex<ExecutionContextCore>>) -> JuizResult<()> {
         Ok(())
     }
 
-    fn on_stopping(&mut self, _core: Arc<Mutex<ExecutionContextCore>>) -> JuizResult<()> {
+    fn on_stopping(&mut self, _core: &Arc<Mutex<ExecutionContextCore>>) -> JuizResult<()> {
         Ok(())
     }
 
     fn profile(&self) -> JuizResult<Value>;
+
+    /// 周期的に呼ばれる関数。自身をSTOPしたいならfalseを返すこと。
+    fn execute(&self, core: &Arc<Mutex<ExecutionContextCore>>) -> JuizResult<bool>;
 }

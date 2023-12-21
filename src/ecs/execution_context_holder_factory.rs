@@ -9,6 +9,7 @@ pub struct ExecutionContextHolderFactory {
     core: ObjectCore,
     ec_factory: Arc<Mutex<dyn ExecutionContextFactory>>,
     plugin: Plugin,
+    //tokio_runtime: &'static tokio::runtime::Runtime,
 }
 
 impl ExecutionContextHolderFactory {
@@ -29,6 +30,7 @@ impl ExecutionContextHolderFactory {
         Ok(
             ExecutionContextHolder::new(
                 f.type_name(), 
+                //self.tokio_runtime,
                 f.create(manifest)?
             )?
         )

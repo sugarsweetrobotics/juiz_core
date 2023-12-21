@@ -1,6 +1,7 @@
 use std::{sync::{Arc, Mutex, atomic::AtomicBool, mpsc}, time::Duration, collections::HashMap};
 
 use serde_json::Map;
+use tokio::runtime;
 
 use crate::{jvalue, JuizResult, JuizError, Value, value::{obj_get_str, obj_get, obj_get_obj}, utils::juiz_lock, JuizObject, object::{ObjectCore, JuizObjectClass, JuizObjectCoreHolder}, CoreBroker};
 use crate::brokers::Broker;
@@ -16,6 +17,7 @@ pub struct MessengerBroker {
     end_flag: Arc<Mutex<AtomicBool>>,
     crud_broker: Arc<Mutex<CRUDBroker>>, 
     messenger: Arc<Mutex<dyn MessengerBrokerCore>>,
+    tokio_runtime: Option<runtime::Runtime>,
 }
 
 pub type SenderType = dyn Fn(Value) -> JuizResult<()>;
@@ -43,7 +45,9 @@ impl MessengerBroker {
                 messenger,
                 crud_broker: CRUDBroker::new(core_broker.clone())?,
                 end_flag: Arc::new(Mutex::new(AtomicBool::from(false))),
-            })))
+                //tokio_runtime: Some(runtime::Builder::new_multi_thread().enable_all().build().unwrap()),
+                tokio_runtime: Some(tokio::runtime::Builder::new_multi_thread().thread_name("messenger_broker").worker_threads(4).enable_all().build().unwrap()), 
+           })))
     }
 }
 
@@ -101,8 +105,10 @@ impl Broker for MessengerBroker {
         let sender_receiver = self.messenger.clone();
 
         let cb = self.crud_broker.clone();
-        let join_handle = tokio::task::spawn(async move
-         {
+//        let join_handle = tokio::task::spawn(async move
+
+        self.thread_handle = Some(self.tokio_runtime.as_mut().unwrap().spawn(
+        async move {
                 let timeout = Duration::new(0, 100*1000*1000);
 
                 loop {
@@ -138,8 +144,8 @@ impl Broker for MessengerBroker {
                 }
                 log::debug!("LocalBroker::routine() end!!!");
             }
-        );
-        self.thread_handle = Some(join_handle);
+        ));
+//        self.thread_handle = Some(join_handle);
         Ok(())
     }
 

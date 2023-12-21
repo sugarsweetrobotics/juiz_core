@@ -209,6 +209,11 @@ pub mod system_builder {
         Ok(())
     }
 
+    pub fn cleanup_brokers(system: &mut System) -> JuizResult<()> {
+        log::trace!("system_builder::cleanup_ecs() called");
+        system.cleanup_brokers()
+    }
+
     pub fn setup_ecs(system: &System, manifest: &Value) -> JuizResult<()> {
         log::trace!("system_builder::setup_ecs({manifest}) called");
         for p in get_array(manifest)?.iter() {
@@ -223,6 +228,11 @@ pub mod system_builder {
             };
         } 
         Ok(())
+    }
+
+    pub fn cleanup_ecs(system: &System) -> JuizResult<()> {
+        log::trace!("system_builder::cleanup_ecs() called");
+        juiz_lock(system.core_broker())?.cleanup_ecs()
     }
 
     fn setup_ec_bind(system: &System, ec: Arc<Mutex<ExecutionContextHolder>>, bind_info: &Value) -> JuizResult<()> {

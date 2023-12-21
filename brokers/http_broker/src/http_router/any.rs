@@ -49,8 +49,8 @@ pub async fn object_patch_handler(
     State(crud_broker): State<Arc<Mutex<CRUDBroker>>>, 
     Json(body): Json<Value>,
 ) -> impl IntoResponse {
-
     let map = query_to_map(&query);
+    log::trace!("debug:{:?}", query);
     log::trace!("HTTPBroker/object_patch_handler({class_name}, {function_name}, {body}, {map:?}) called");
     json_wrap(update_class(&crud_broker, class_name.as_str(), function_name.as_str(), body, map))
 }
@@ -72,6 +72,7 @@ pub async fn object_get_handler(
     query: Query<IdentifierQuery>,
     State(crud_broker): State<Arc<Mutex<CRUDBroker>>>, 
 ) -> impl IntoResponse {
+    log::trace!("debug:{:?}", query);
     let map = query_to_map(&query);
     log::trace!("HTTPBroker/object_get_handler({class_name}, {function_name}, {map:?}) called");
     json_wrap(read_class(&crud_broker, class_name.as_str(), function_name.as_str(), map))

@@ -21,6 +21,7 @@ use crate::brokers::broker_proxy::SystemBrokerProxy;
 
 use crate::ecs::execution_context_holder::ExecutionContextHolder;
 
+
 use crate::identifier::IdentifierStruct;
 
 use crate::identifier::identifier_from_manifest;
@@ -260,6 +261,14 @@ impl CoreBroker {
         let identifier = identifier_from_manifest("core", "core", "Process", manifest)?;
         self.any_process_proxy_from_identifier(&identifier)
     }
+
+
+    pub fn cleanup_ecs(&mut self) -> JuizResult<()> {
+        for ec in self.store_mut().ecs.objects() {
+            juiz_lock(&ec)?.stop()?;
+        }
+        self.store_mut().ecs.cleanup_objects()
+    }
 }
 
 
@@ -281,7 +290,9 @@ impl JuizObject for CoreBroker {
 impl SystemBrokerProxy for CoreBroker {
     fn system_profile_full(&self) -> JuizResult<Value> {
         log::trace!("CoreBroker::system_profile_full() called");
-        self.profile_full()
+        let result = self.profile_full();
+        log::trace!("CoreBroker::system_profile_full() exit");
+        result
     }
 }
 
@@ -355,6 +366,19 @@ impl ExecutionContextBrokerProxy for CoreBroker {
     fn ec_profile_full(&self, id: &Identifier) -> JuizResult<Value> {
         juiz_lock(&self.store().ecs.get(id)?).with_context(||format!("locking ec(id={id:}) in CoreBroker::ec_profile_full() function"))?.profile_full()
     }
+
+    fn ec_get_state(&self, id: &Identifier) -> JuizResult<Value> {
+        Ok(jvalue!(juiz_lock(&self.store().ecs.get(id)?).with_context(||format!("locking ec(id={id:}) in CoreBroker::ec_get_state() function"))?.get_state()?.to_string()))
+    }
+
+    fn ec_start(&mut self, id: &Identifier) -> JuizResult<Value> {
+        juiz_lock(&self.store().ecs.get(id)?).with_context(||format!("locking ec(id={id:}) in CoreBroker::ec_get_state() function"))?.start()
+    }
+
+    fn ec_stop(&mut self, id: &Identifier) -> JuizResult<Value> {
+        juiz_lock(&self.store().ecs.get(id)?).with_context(||format!("locking ec(id={id:}) in CoreBroker::ec_get_state() function"))?.stop()
+    }
+
 }
 
 impl ConnectionBrokerProxy for CoreBroker {

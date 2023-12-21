@@ -22,7 +22,7 @@ pub mod broker;
 pub mod execution_context;
 pub mod connection;
 
-#[derive(Deserialize, IntoParams)]
+#[derive(Deserialize, IntoParams, Debug)]
 pub struct IdentifierQuery {
     identifier: Option<String>,
 }
@@ -78,7 +78,7 @@ pub fn app_new(crud_broker: Arc<Mutex<CRUDBroker>>) -> Router {
     api.merge(connection::ApiDoc::openapi());
     
     Router::new()
-            .merge(SwaggerUi::new("/swagger-ui")
+            .merge(SwaggerUi::new("/docs")
             .url("/api-docs/openapi.json", api))
             .nest("/api/", any::object_router(crud_broker.clone()))
 
