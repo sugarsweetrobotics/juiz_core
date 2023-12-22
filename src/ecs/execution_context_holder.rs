@@ -1,17 +1,17 @@
-use std::sync::{Mutex, Arc, atomic::{AtomicI64, AtomicBool}};
+use std::sync::{Mutex, Arc, atomic::{AtomicI64, AtomicBool}, RwLock};
 
 
 
 use tokio::runtime;
 
-use crate::{jvalue, JuizResult, utils::juiz_lock, object::{ObjectCore, JuizObjectClass, JuizObjectCoreHolder}, JuizObject, Process, Value, value::obj_merge_mut, JuizError, ecs::execution_context_core::ExecutionContextState};
+use crate::{jvalue, JuizResult, utils::{juiz_lock, sync_util::{juiz_borrow, juiz_borrow_mut}}, object::{ObjectCore, JuizObjectClass, JuizObjectCoreHolder}, JuizObject, Process, Value, value::obj_merge_mut, JuizError, ecs::execution_context_core::ExecutionContextState};
 
 use super::{execution_context::ExecutionContext, execution_context_core::ExecutionContextCore};
 
 pub struct ExecutionContextHolder{
     object_core: ObjectCore,
     core: Arc<Mutex<ExecutionContextCore>>,
-    execution_context: Arc<Mutex<dyn ExecutionContext>>,
+    execution_context: Arc<RwLock<dyn ExecutionContext>>,
     thread_handle: Option<tokio::task::JoinHandle<()>>,
     //tokio_runtime: &'static runtime::Runtime,
     tokio_runtime: runtime::Runtime,
@@ -20,12 +20,12 @@ pub struct ExecutionContextHolder{
 
 impl ExecutionContextHolder {
 
-    pub fn new(type_name: &str, ec: Arc<Mutex<dyn ExecutionContext>>) -> JuizResult<Arc<Mutex<ExecutionContextHolder>>> {
+    pub fn new(type_name: &str, ec: Arc<RwLock<dyn ExecutionContext>>) -> JuizResult<Arc<Mutex<ExecutionContextHolder>>> {
         Ok(Arc::new(Mutex::new(
             ExecutionContextHolder { 
                 object_core: ObjectCore::create(JuizObjectClass::ExecutionContext("ExecutionContext"), 
                     type_name, 
-                    juiz_lock(&ec)?.name()), 
+                    juiz_borrow(&ec)?.name()), 
                 core: ExecutionContextCore::new(), 
                 execution_context: ec.clone(),
                 //tokio_runtime: runtime,
@@ -45,7 +45,7 @@ impl ExecutionContextHolder {
             juiz_lock(&self.end_flag)?.swap(false, std::sync::atomic::Ordering::SeqCst);
         }        
         let core = self.core.clone();
-        let ec = self.execution_context.clone();
+        let mut ec = self.execution_context.clone();
 
         let end_flag = Arc::clone(&self.end_flag);
 
@@ -56,7 +56,7 @@ impl ExecutionContextHolder {
             move || {
 
                 {
-                    match juiz_lock(&ec) {
+                    match juiz_borrow_mut(&mut ec) {
                         Err(e) => {
                             log::error!("ExecutionContextHolder.routine() error: {e:?}");
                             return;
@@ -101,7 +101,7 @@ impl ExecutionContextHolder {
                     };
 
                     {
-                        match juiz_lock(&ec) {
+                        match juiz_borrow(&ec) {
                             Err(e) => {
                                 log::error!("ExecutionContextHolder.routine() error: {e:?}");
                                 break;
@@ -122,7 +122,7 @@ impl ExecutionContextHolder {
                     }
                 }
                 {
-                    match juiz_lock(&ec) {
+                    match juiz_borrow_mut(&mut ec) {
                         Err(e) => {
                             log::error!("ExecutionContextHolder.routine() error: {e:?}");
                             return;
@@ -211,7 +211,7 @@ impl JuizObject for ExecutionContextHolder {
     fn profile_full(&self) -> JuizResult<Value> {
         log::trace!("ExecutionContextHolder()::profile_full() called");
         let mut v = self.object_core.profile_full()?;
-        let ecv = juiz_lock(&self.execution_context)?.profile()?;
+        let ecv = juiz_borrow(&self.execution_context)?.profile()?;
         obj_merge_mut(&mut v, &ecv)?;
 
         let cv = juiz_lock(&self.core)?.profile()?;

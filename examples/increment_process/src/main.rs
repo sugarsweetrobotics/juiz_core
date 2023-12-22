@@ -76,7 +76,7 @@ fn main() -> JuizResult<()> {
                 {
                     "type_name": "TimerEC",
                     "name": "timer0",
-                    "rate": 1.0,
+                    "rate": 0.05,
                     "bind": [
                         {
                             "target": {

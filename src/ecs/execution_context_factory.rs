@@ -1,4 +1,4 @@
-use std::sync::{Mutex, Arc};
+use std::sync::{Mutex, Arc, RwLock};
 
 use crate::{JuizResult, Value};
 
@@ -9,6 +9,6 @@ pub trait ExecutionContextFactory {
 
     fn type_name(&self) -> &str;
 
-    fn create(&self, manifest: Value) -> JuizResult<Arc<Mutex<dyn ExecutionContext>>>;
+    fn create(&self, manifest: Value) -> JuizResult<Arc<RwLock<dyn ExecutionContext>>>;
 }
 

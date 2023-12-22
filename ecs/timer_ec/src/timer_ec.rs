@@ -1,4 +1,4 @@
-use std::{sync::{atomic::AtomicBool, Arc, Mutex, atomic::Ordering::SeqCst}, time::Duration};
+use std::{sync::{atomic::AtomicBool, Arc, Mutex, atomic::Ordering::SeqCst, RwLock}, time::Duration};
 
 use juiz_core::{jvalue, ecs::{ExecutionContext, ExecutionContextCore, ExecutionContextFactory}, JuizResult, utils::juiz_lock, value::{obj_get_str, obj_get_f64}, Value, JuizError};
 
@@ -11,11 +11,11 @@ pub struct TimerEC {
 }
 
 impl TimerEC {
-    pub fn new(name: &str, rate: f64) -> Arc<Mutex<TimerEC>> {
+    pub fn new(name: &str, rate: f64) -> Arc<RwLock<TimerEC>> {
         let rate_sec: u64 = rate.floor() as u64;
         let rate_nsec: u32 = ((rate - rate.floor()) * (1000_000_000.0)) as u32;
         let timeout = Duration::new(rate_sec, rate_nsec);
-        Arc::new(Mutex::new(TimerEC{
+        Arc::new( RwLock::new(TimerEC{
             //thread_handle: None,
             //end_flag: Arc::new(Mutex::new(AtomicBool::from(false))),
             rate,
@@ -115,7 +115,7 @@ impl ExecutionContextFactory for TimerECFactory {
         "TimerEC"
     }
 
-    fn create(&self, manifest: Value) -> JuizResult<Arc<Mutex<dyn ExecutionContext>>> {
+    fn create(&self, manifest: Value) -> JuizResult<Arc<RwLock<dyn ExecutionContext>>> {
         let name = obj_get_str(&manifest, "name")?;
         let rate = obj_get_f64(&manifest, "rate")?;
         Ok(

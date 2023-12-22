@@ -10,7 +10,7 @@ pub trait ECServiceFunction : Fn()->JuizResult<()> + Send + Sync {
 
 }
 
-pub trait ExecutionContext : Send {
+pub trait ExecutionContext : Send + Sync {
 
     fn name(&self) -> &str;
 

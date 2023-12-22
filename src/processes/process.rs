@@ -5,7 +5,7 @@ use crate::{Identifier, Value, JuizResult, JuizObject, connections::{SourceConne
 
 pub type ProcessFunction=dyn Fn(Value) -> JuizResult<Value>;
 
-pub trait Process : Send + JuizObject{
+pub trait Process : Send + JuizObject {
 
     fn call(&self, _args: Value) -> JuizResult<Value>;
 
