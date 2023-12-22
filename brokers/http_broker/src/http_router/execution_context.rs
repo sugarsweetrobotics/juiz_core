@@ -21,8 +21,8 @@ use juiz_core::Value;
     tag = "execution_context",
 )]
 pub fn start_dummy(
-    query: Query<IdentifierQuery>,
-    Json(body): Json<Value>) {
+    _query: Query<IdentifierQuery>,
+    Json(_body): Json<Value>) {
 }
 
 #[utoipa::path(
@@ -37,8 +37,8 @@ pub fn start_dummy(
     tag = "execution_context",
 )]
 pub fn stop_dummy(
-    query: Query<IdentifierQuery>,
-    Json(body): Json<Value>) {
+    _query: Query<IdentifierQuery>,
+    Json(_body): Json<Value>) {
 }
 
 
@@ -54,7 +54,7 @@ pub fn stop_dummy(
     tag = "execution_context",
 )]
 pub fn profile_handler_dummy(
-    query: Query<IdentifierQuery>,) {
+    _query: Query<IdentifierQuery>,) {
 }
 
 
@@ -70,7 +70,7 @@ pub fn profile_handler_dummy(
     tag = "execution_context",
 )]
 pub fn get_state_dummy(
-    query: Query<IdentifierQuery>,) {
+    _query: Query<IdentifierQuery>,) {
 }
 
 #[utoipa::path(

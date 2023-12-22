@@ -1,6 +1,6 @@
-use std::{sync::{atomic::AtomicBool, Arc, Mutex, atomic::Ordering::SeqCst, RwLock}, time::Duration};
+use std::{sync::{Arc, Mutex, RwLock}, time::Duration};
 
-use juiz_core::{jvalue, ecs::{ExecutionContext, ExecutionContextCore, ExecutionContextFactory}, JuizResult, utils::juiz_lock, value::{obj_get_str, obj_get_f64}, Value, JuizError};
+use juiz_core::{jvalue, ecs::{ExecutionContext, ExecutionContextCore, ExecutionContextFactory}, JuizResult, value::{obj_get_str, obj_get_f64}, Value, JuizError};
 
 pub struct TimerEC {
     //thread_handle: Option<tokio::task::JoinHandle<()>>,

@@ -49,7 +49,7 @@ pub fn create_dummy() {
     tag = "connection",
 )]
 pub fn profile_handler_dummy(
-    query: Query<IdentifierQuery>,) {
+    _query: Query<IdentifierQuery>,) {
 }
 
 #[utoipa::path(

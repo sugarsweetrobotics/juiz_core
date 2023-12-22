@@ -4,8 +4,6 @@ use juiz_core::{System, jvalue, JuizResult};
 
 // #[tokio::main]
 fn main() -> JuizResult<()> {
-    let runtime: tokio::runtime::Runtime = tokio::runtime::Builder::new_multi_thread().thread_name("juiz_core::System").worker_threads(4).enable_all().build().unwrap();
-
     let manifest = jvalue!(
         {
 

@@ -4,7 +4,7 @@ use std::sync::{Mutex, Arc, atomic::AtomicI64};
 
 
 
-use crate::{jvalue, JuizResult, Process, utils::juiz_lock, Value, JuizError, Identifier};
+use crate::{jvalue, JuizResult, Process, utils::juiz_lock, Value, Identifier};
 
 
 pub enum ExecutionContextState {
@@ -72,7 +72,7 @@ impl ExecutionContextCore {
         let id_list = self.target_processes.iter().map(|tp| -> Identifier {
             match juiz_lock(tp) {
                 Ok(p) => p.identifier().clone(),
-                Err(e) => "Error {e:?}".to_owned()
+                Err(_e) => "Error {e:?}".to_owned()
             }
         });
         Ok(jvalue!({

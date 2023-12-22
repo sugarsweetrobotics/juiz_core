@@ -1,4 +1,4 @@
-use std::sync::{Mutex, Arc, RwLock};
+use std::sync::{Arc, RwLock};
 
 use crate::{JuizResult, Value};
 
