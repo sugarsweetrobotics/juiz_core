@@ -1,13 +1,13 @@
 
 use std::cell::RefCell;
-use std::collections::HashMap;
+
 use std::sync::{Mutex, Arc};
 use anyhow::Context;
 use serde_json::Map;
 
 use crate::identifier::{identifier_from_manifest, create_identifier_from_manifest};
 use crate::object::{JuizObjectCoreHolder, ObjectCore, JuizObjectClass};
-use crate::utils::manifest_util::get_hashmap_mut;
+
 use crate::value::{obj_get_str, obj_get_obj, obj_merge_mut};
 use crate::{Value, jvalue, Process, Identifier, JuizError, JuizResult, JuizObject};
 
@@ -22,7 +22,6 @@ pub struct ProcessImpl {
     manifest: Value,
     function: Box<dyn Fn(Value) -> JuizResult<Value>>,
     identifier: Identifier,
-    destination_connections: HashMap<String, Box<dyn DestinationConnection>>,
     output_memo: RefCell<Value>,
 
     outlet: Outlet,
@@ -52,7 +51,7 @@ impl ProcessImpl {
             function: Box::new(func), 
             identifier: create_identifier_from_manifest("Process", &manifest)?,
             // source_connections: HashMap::new(),
-            destination_connections: HashMap::new(),
+            //destination_connections: HashMap::new(),
             output_memo: RefCell::new(jvalue!(null)),
             outlet: Outlet::new(),
             inlets: Self::create_inlets(&manifest)?,
@@ -102,7 +101,7 @@ impl ProcessImpl {
             function: func, 
             identifier: identifier_from_manifest("core", "core", "Process", &manifest)?,
             // source_connections: HashMap::new(),
-            destination_connections: HashMap::new(),
+            // destination_connections: HashMap::new(),
             output_memo: RefCell::new(jvalue!(null)),
             outlet: Outlet::new(),
             inlets: Self::create_inlets(&manifest)?,
@@ -125,15 +124,6 @@ impl ProcessImpl {
         Ok(Value::from(value_map))
     }
 
-    fn push_to_destinations(&self, output: Value) -> JuizResult<Value> {
-        for (_k, v) in self.destination_connections.iter() {
-            let _ = v.push(&output)?;
-        }
-        return Ok(output)
-    }
-
-    
-
 }
 
 impl JuizObjectCoreHolder for ProcessImpl {
@@ -146,16 +136,19 @@ impl JuizObject for ProcessImpl {
 
 
     fn profile_full(&self) -> JuizResult<Value> {
+        /*
         let mut dc_profs = jvalue!({});
         let dc_map = get_hashmap_mut(&mut dc_profs)?;
         for (key, value) in self.destination_connections.iter() {
             dc_map.insert(key.to_owned(), value.profile_full()?);
         }
+        **/
 
         let mut v = self.core.profile_full()?;
         obj_merge_mut(&mut v, &jvalue!({
             "inlets": self.inlets.iter().map(|inlet| { inlet.profile_full().unwrap() }).collect::<Vec<Value>>(),
-            "destination_connections": dc_profs,
+            "outlet": self.outlet.profile_full()?,
+//            "destination_connections": dc_profs,
             "arguments": self.manifest.get("arguments").unwrap(),
         }))?;
         Ok(v)
@@ -210,11 +203,11 @@ impl Process for ProcessImpl {
     }
 
     fn execute(&self) -> JuizResult<Value> {
-        self.push_to_destinations(self.invoke()?)
+        self.outlet.push(self.invoke()?)
     }
 
     fn push_by(&self, arg_name: &String, value: &Value) -> JuizResult<Value> {
-        self.push_to_destinations(self.invoke_exclude(arg_name, value.clone())?)
+        self.outlet.push(self.invoke_exclude(arg_name, value.clone())?)
     }
     
     fn get_output(&self) -> Option<Value> {
@@ -243,7 +236,7 @@ impl Process for ProcessImpl {
     fn try_connect_to(&mut self, destination: Arc<Mutex<dyn Process>>, arg_name: &String, connection_manifest: Value) -> JuizResult<Value> {
         log::info!("ProcessImpl(id={:?}).try_connect_to(destination=Process()) called", self.identifier());
         let destination_id = juiz_lock(&destination).context("ProcessImpl::try_connect_to()")?.identifier().clone();
-        self.destination_connections.insert(
+        self.outlet.insert(
             arg_name.clone(), 
             Box::new(DestinationConnectionImpl::new(
                 &self.identifier(), 
@@ -267,11 +260,7 @@ impl Process for ProcessImpl {
     
 
     fn destination_connections(&self) -> JuizResult<Vec<&Box<dyn DestinationConnection>>> {
-        let mut v: Vec<&Box<dyn DestinationConnection>> = Vec::new();
-        for c in self.destination_connections.values() {
-            v.push(c);
-        }
-        Ok(v)
+        self.outlet.destination_connections()
     }
 }
 
