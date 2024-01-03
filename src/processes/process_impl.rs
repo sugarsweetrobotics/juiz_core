@@ -5,7 +5,6 @@ use std::sync::{Mutex, Arc};
 use anyhow::Context;
 use serde_json::Map;
 
-
 use crate::identifier::{identifier_from_manifest, create_identifier_from_manifest};
 use crate::object::{JuizObjectCoreHolder, ObjectCore, JuizObjectClass};
 use crate::utils::manifest_util::get_hashmap_mut;
@@ -15,14 +14,19 @@ use crate::{Value, jvalue, Process, Identifier, JuizError, JuizResult, JuizObjec
 use crate::utils::{check_manifest_before_call, check_process_manifest, juiz_lock};
 use crate::connections::{SourceConnection, SourceConnectionImpl, DestinationConnection, DestinationConnectionImpl};
 
+use super::inlet::Inlet;
+use super::outlet::Outlet;
+
 pub struct ProcessImpl {
     core: ObjectCore,
     manifest: Value,
     function: Box<dyn Fn(Value) -> JuizResult<Value>>,
     identifier: Identifier,
-    source_connections: HashMap<String, Box<dyn SourceConnection>>,
     destination_connections: HashMap<String, Box<dyn DestinationConnection>>,
     output_memo: RefCell<Value>,
+
+    outlet: Outlet,
+    inlets: Vec<Inlet>,
 }
 
 
@@ -38,7 +42,8 @@ impl ProcessImpl {
         let manifest = check_process_manifest(manif)?;
         let type_name = obj_get_str(&manifest, "type_name")?;
         let object_name = obj_get_str(&manifest, "name")?;
-        Ok(ProcessImpl{
+
+        Ok(Self{
             core: ObjectCore::create(class_name, 
                 type_name,
                 object_name,
@@ -46,14 +51,42 @@ impl ProcessImpl {
             manifest: manifest.clone(), 
             function: Box::new(func), 
             identifier: create_identifier_from_manifest("Process", &manifest)?,
-            source_connections: HashMap::new(),
+            // source_connections: HashMap::new(),
             destination_connections: HashMap::new(),
-            output_memo: RefCell::new(jvalue!(null)) })
+            output_memo: RefCell::new(jvalue!(null)),
+            outlet: Outlet::new(),
+            inlets: Self::create_inlets(&manifest)?,
+        })
     }
 
+    fn create_inlets(manifest: &Value) -> JuizResult<Vec<Inlet>> {
+        let mut vec_inlet: Vec<Inlet> = Vec::new();
+        for (k, v) in argument_manifest(&manifest)?.into_iter() {
+            vec_inlet.push(Inlet::new(k.to_owned(), v.get("default").unwrap().clone()))
+        }
+        Ok(vec_inlet)
+    }
+
+    pub fn inlet(&self, name: &str) -> Option<&Inlet> {
+        for inlet in self.inlets.iter() {
+            if inlet.name() == name {
+                return Some(inlet)
+            }
+        }
+        None
+    }
+    
+    pub fn inlet_mut(&mut self, name: &str) -> Option<&mut Inlet> {
+        for inlet in self.inlets.iter_mut() {
+            if inlet.name() == name {
+                return Some(inlet)
+            }
+        }
+        None
+    }
 
     pub fn new(manif: Value, func: fn(Value) -> JuizResult<Value>) -> JuizResult<Self> {
-        ProcessImpl::new_with_class(JuizObjectClass::Process("ProcessImpl"), manif, func)
+        Self::new_with_class(JuizObjectClass::Process("ProcessImpl"), manif, func)
     }
 
     pub(crate) fn clousure_new_with_class_name(class_name: JuizObjectClass, manif: Value, func: Box<impl Fn(Value) -> JuizResult<Value> + 'static>) -> JuizResult<Self> {
@@ -62,38 +95,32 @@ impl ProcessImpl {
         let manifest = check_process_manifest(manif)?;
         let type_name = obj_get_str(&manifest, "type_name")?;
         let object_name = obj_get_str(&manifest, "name")?;
-        Ok(ProcessImpl{
+        Ok(Self{
             core: ObjectCore::create(class_name,
             type_name, object_name),
             manifest: manifest.clone(), 
             function: func, 
             identifier: identifier_from_manifest("core", "core", "Process", &manifest)?,
-            source_connections: HashMap::new(),
+            // source_connections: HashMap::new(),
             destination_connections: HashMap::new(),
-            output_memo: RefCell::new(jvalue!(null)) })
+            output_memo: RefCell::new(jvalue!(null)),
+            outlet: Outlet::new(),
+            inlets: Self::create_inlets(&manifest)?,
+        })
     }
 
     pub(crate) fn _clousure_new(manif: Value, func: Box<impl Fn(Value) -> JuizResult<Value> + 'static>) -> JuizResult<Self> {
         ProcessImpl::clousure_new_with_class_name(JuizObjectClass::Process("ProcessImpl"), manif, func)
     }
-
-    pub fn source_connection(&mut self, name: &String) -> Option<&Box<dyn SourceConnection>> {
-        self.source_connections.get(name)
-    }
-
+    
     fn collect_values_exclude(&self, arg_name: &String, arg_value: Value) -> JuizResult<Value>{
         log::trace!("ProcessImpl({:?}).collect_values_exclude({:?}) called.", &self.identifier, arg_name);
         let mut value_map: Map<String, Value> = Map::new();
         value_map.insert(arg_name.clone(), arg_value.clone());
         
-        for (k, v) in argument_manifest(&self.manifest)?.into_iter() {
-            if k == arg_name { continue; }
-            match self.source_connections.get(k) {
-                None => { value_map.insert(k.clone(), v.get("default").unwrap().clone()); }
-                Some(con) => {
-                    value_map.insert(k.clone(), con.pull()?);                        
-                }
-            }
+        for inlet in self.inlets.iter() {
+            if inlet.name() == arg_name { continue; }
+            value_map.insert(inlet.name().clone(), inlet.collect_value());
         }
         Ok(Value::from(value_map))
     }
@@ -119,12 +146,6 @@ impl JuizObject for ProcessImpl {
 
 
     fn profile_full(&self) -> JuizResult<Value> {
-        let mut sc_profs = jvalue!({});
-        let sc_map = get_hashmap_mut(&mut sc_profs)?;
-        for (key, value) in self.source_connections.iter() {
-            sc_map.insert(key.to_owned(), value.profile_full()?);
-        }
-
         let mut dc_profs = jvalue!({});
         let dc_map = get_hashmap_mut(&mut dc_profs)?;
         for (key, value) in self.destination_connections.iter() {
@@ -133,7 +154,7 @@ impl JuizObject for ProcessImpl {
 
         let mut v = self.core.profile_full()?;
         obj_merge_mut(&mut v, &jvalue!({
-            "source_connections": sc_profs,
+            "inlets": self.inlets.iter().map(|inlet| { inlet.profile_full().unwrap() }).collect::<Vec<Value>>(),
             "destination_connections": dc_profs,
             "arguments": self.manifest.get("arguments").unwrap(),
         }))?;
@@ -160,11 +181,11 @@ impl Process for ProcessImpl {
         if self.output_memo.borrow().is_null() {
             return Ok(true)
         }
-        for (k, p) in self.source_connections.iter() {
-            if k == arg_name { continue; }
-            if p.is_source_updated()? {
-                return Ok(true);
-            } 
+        for inlet in self.inlets.iter() {
+            if inlet.name() == arg_name { continue; }
+            if inlet.is_updated()? {
+                return Ok(true)
+            }
         }
         Ok(false)
     }
@@ -205,9 +226,17 @@ impl Process for ProcessImpl {
 
     fn notify_connected_from(&mut self, source: Arc<Mutex<dyn Process>>, connecting_arg: &String, connection_manifest: Value) -> JuizResult<Value> {
         log::info!("ProcessImpl(id={:?}).notify_connected_from(source=Process()) called", self.identifier());
-        self.source_connections.insert(connecting_arg.clone(), 
-            Box::new(SourceConnectionImpl::new(self.identifier().clone(), source, connection_manifest.clone(), connecting_arg.clone())?)
-        );
+        let id = self.identifier().clone();
+        match self.inlet_mut(connecting_arg.as_str()) {
+            None => { 
+                return Err(anyhow::Error::from(JuizError::ArgumentCanNotFoundByNameError{name: connecting_arg.clone()}));
+            },
+            Some(inlet) => {
+                inlet.insert(
+                    Box::new(SourceConnectionImpl::new(id, source, connection_manifest.clone(), connecting_arg.clone())?)
+                )
+            }
+        }
         Ok(connection_manifest)
     }
 
@@ -228,11 +257,14 @@ impl Process for ProcessImpl {
     
     fn source_connections(&self) -> JuizResult<Vec<&Box<dyn SourceConnection>>> {
         let mut v: Vec<&Box<dyn SourceConnection>> = Vec::new();
-        for c in self.source_connections.values() {
-            v.push(c);
+        for inlet in self.inlets.iter() {
+            for sc in inlet.source_connections() {
+                v.push(&sc);
+            }
         }
         Ok(v)
     }
+    
 
     fn destination_connections(&self) -> JuizResult<Vec<&Box<dyn DestinationConnection>>> {
         let mut v: Vec<&Box<dyn DestinationConnection>> = Vec::new();

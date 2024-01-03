@@ -76,14 +76,6 @@ impl IdentifierStruct {
 
 ///
 ///
-/// # Examples
-///
-/// ```
-/// use juiz_core::identifier::digest_identifier;
-/// idenetifier = "core://core/Process/hoge_func0::hoge_function"
-/// assert_eq!(digest_identifier(identifier), IdentifierStruct{
-/// });
-/// ```
 fn digest_identifier(identifier: &Identifier) -> IdentifierStruct {
     let re = regex::Regex::new(r"^(.+?)://(.+?)/(.+?)/(.+?)::(.+?)$").unwrap();
     let caps = re.captures(identifier).unwrap();

@@ -119,6 +119,10 @@ pub enum JuizError {
     ProcessProxyCanNotAcceptClassError { class_name: String },
     #[error("Execution Context Can not Lock its State")]
     ExecutionContextCanNotLockStateError {  },
+    
+    #[error("Process Argument can not found by name ({name})")]
+    ArgumentCanNotFoundByNameError{ name: String },
+    
 
     /*
     ProcessManifestError,

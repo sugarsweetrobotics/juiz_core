@@ -25,6 +25,7 @@ futures = "0.3.29"
 
 [workspace]
 members = [
+    ".",
     "ecs/timer_ec",
     "ecs/one_shot_ec", 
     "brokers/http_broker",
@@ -35,6 +36,7 @@ members = [
     "examples/container_examples/example_container_increment",
 ]
 default-members = [
+    ".",
     "ecs/timer_ec",
     "ecs/one_shot_ec",
     "brokers/http_broker",

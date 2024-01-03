@@ -7,14 +7,6 @@ pub mod connection_builder {
     use crate::{processes::Process, Value, System, utils::{get_value, get_str, juiz_lock}, JuizResult, CoreBroker};
 
     ///
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use juiz_core::connections::connection_builder::connection_builder::create_connection;
-    ///
-    /// assert_eq!(create_connection(system, manifest), );
-    /// ```
     pub fn create_connection(system: &System, manifest: &Value) -> JuizResult<Value> {
         
         log::trace!("connection_builder::create_connections(manifest={:?}) called", manifest);

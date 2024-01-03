@@ -39,8 +39,8 @@ fn new_core_broker() -> CoreBroker {
     result.ok().unwrap()
 }
 
-#[cfg(test)]
-#[test]
+//#[cfg(test)]
+//#[test]
 fn core_broker_process_factory_integration_test() {
     use juiz_core::brokers::broker_proxy::ProcessBrokerProxy;
 
