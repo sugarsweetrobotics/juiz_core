@@ -5,6 +5,7 @@ pub mod process_impl;
 pub mod process_factory;
 pub mod process_factory_impl;
 pub mod process_factory_wrapper;
+pub mod argument;
 
 pub mod inlet;
 pub mod outlet;
@@ -14,3 +15,16 @@ pub use process_factory::ProcessFactory;
 pub use process_factory_impl::create_process_factory;
 pub use process_factory_wrapper::ProcessFactoryWrapper;
 
+use crate::{Value, JuizResult, JuizError};
+
+pub use self::argument::Argument;
+
+
+pub fn arg<'t>(args: &'t Vec<Argument>, name: &str) -> JuizResult<&'t Value> {
+    for a in args.iter() {
+        if a.name == name {
+            return Ok(&a.value);
+        }
+    }
+    Err(anyhow::Error::from(JuizError::ArgumentCanNotFoundByNameError{name: name.to_owned()}))
+}

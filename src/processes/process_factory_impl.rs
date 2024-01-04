@@ -1,22 +1,23 @@
 
 use std::sync::{Mutex, Arc};
 use crate::{value::obj_get_str, Process, ProcessFactory, processes::process_impl::ProcessImpl, JuizError, Value, JuizResult, utils::check_process_factory_manifest, JuizObject, object::{ObjectCore, JuizObjectCoreHolder, JuizObjectClass}};
+use super::process_impl::{FunctionType, FunctionTrait};
 
 #[repr(C)]
 pub struct ProcessFactoryImpl {
     core: ObjectCore,
     manifest: Value,
-    function: fn(Value) -> JuizResult<Value>,
+    function: FunctionType,
 }
 
-pub fn create_process_factory(manifest: crate::Value, function: fn(Value) -> JuizResult<Value>) -> JuizResult<Arc<Mutex<dyn ProcessFactory>>> {
+pub fn create_process_factory(manifest: crate::Value, function: FunctionType) -> JuizResult<Arc<Mutex<dyn ProcessFactory>>> {
     log::trace!("create_process_factory called");
     ProcessFactoryImpl::new(manifest, function)
 }
 
 impl ProcessFactoryImpl {
 
-    pub fn new(manifest: crate::Value, function: fn(Value) -> JuizResult<Value>) -> JuizResult<Arc<Mutex<dyn ProcessFactory>>> {
+    pub fn new(manifest: crate::Value, function: FunctionType) -> JuizResult<Arc<Mutex<dyn ProcessFactory>>> {
         let type_name = obj_get_str(&manifest, "type_name")?;
         Ok(Arc::new(Mutex::new(
             ProcessFactoryImpl{

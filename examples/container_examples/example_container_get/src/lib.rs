@@ -4,7 +4,7 @@ pub mod example_container_get {
     use std::sync::{Arc, Mutex};
 
     use example_container::example_container::ExampleContainer;
-    use juiz_core::{jvalue, JuizResult, Value, ContainerProcessFactory, containers::create_container_process_factory};
+    use juiz_core::{jvalue, JuizResult, Value, ContainerProcessFactory, containers::create_container_process_factory, processes::Argument};
 
     
     #[no_mangle]
@@ -18,7 +18,7 @@ pub mod example_container_get {
     }
 
 
-    fn get_function(container: &mut Box<ExampleContainer>, _v: Value) -> JuizResult<Value> {
+    fn get_function(container: &mut Box<ExampleContainer>, _v: Vec<Argument>) -> JuizResult<Value> {
         return Ok(jvalue!(container.value));
     }
 

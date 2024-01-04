@@ -3,41 +3,28 @@ use std::sync::Arc;
 use std::sync::Mutex;
 
 use crate::juiz_core::*;
-use crate::juiz_core::processes::process_impl::*;
 use juiz_core::processes::Process;
 use crate::juiz_core::connections::connect;
-    
-#[allow(dead_code)]
-fn increment_function(v: Value) -> JuizResult<Value> {
-    let i = v["arg1"].as_i64().unwrap();
-    return Ok(jvalue!(i+1));
-}
 
-fn new_increment_process<'a> (name: String) -> ProcessImpl {
-    let manifest = serde_json::json!({
-        "name": name,
-        "type_name": "increment",
-        "arguments" : {
-            "arg1": {
-                "description": "test_argument",
-                "default": 1,
-            }, 
-        }, 
-    });
-    let p = ProcessImpl::new(manifest, increment_function);
-    assert!(p.is_ok(), "ProcessImpl::new() failed. Error is '{:?}'", p.err());
-    p.unwrap()
+mod common;
+
+
+fn setup() -> (Arc<Mutex<dyn Process>>, Arc<Mutex<dyn Process>>){
+
+    let p1 = common::new_increment_process("process1");
+    let p2 = common::new_increment_process("process2");
+
+    let rp1: Arc<Mutex<dyn Process>> = Arc::new(Mutex::new(p1));
+    let rp2: Arc<Mutex<dyn Process>> = Arc::new(Mutex::new(p2));
+
+    return (rp1, rp2);
+
 }
 
 #[cfg(test)]
 #[test]
 fn simple_connection_invoke_test() {
-    //use std::borrow::BorrowMut
-    let p1 = new_increment_process("process1".to_string());
-    let p2 = new_increment_process("process2".to_string());
-
-    let rp1: Arc<Mutex<dyn Process>> = Arc::new(Mutex::new(p1));
-    let rp2: Arc<Mutex<dyn Process>> = Arc::new(Mutex::new(p2));
+    let (rp1, rp2) = setup();
 
     let manifeset =jvalue!({
         "id": "con1"
@@ -54,14 +41,7 @@ fn simple_connection_invoke_test() {
 
 #[test]
 fn simple_connection_execute_test() {
-    //use std::borrow::BorrowMut;
-
-
-    let p1 = new_increment_process("process1".to_string());
-    let p2 = new_increment_process("process2".to_string());
-
-    let rp1: Arc<Mutex<dyn Process>> = Arc::new(Mutex::new(p1));
-    let rp2: Arc<Mutex<dyn Process>> = Arc::new(Mutex::new(p2));
+    let (rp1, rp2) = setup();
 
 
     let manifeset =jvalue!({
@@ -91,14 +71,7 @@ fn simple_connection_execute_test() {
 #[cfg(test)]
 #[test]
 fn simple_connection_builder_invoke_test() {
-    //use std::borrow::BorrowMut;
-
-    
-    let p1 = new_increment_process("process1".to_string());
-    let p2 = new_increment_process("process2".to_string());
-
-    let rp1: Arc<Mutex<dyn Process>> = Arc::new(Mutex::new(p1));
-    let rp2: Arc<Mutex<dyn Process>> = Arc::new(Mutex::new(p2));
+    let (rp1, rp2) = setup();
 
     let manifest =jvalue!({
         "id": "con1"

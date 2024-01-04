@@ -11,19 +11,22 @@ use crate::object::{JuizObjectCoreHolder, ObjectCore, JuizObjectClass};
 use crate::value::{obj_get_str, obj_get_obj, obj_merge_mut};
 use crate::{Value, jvalue, Process, Identifier, JuizError, JuizResult, JuizObject};
 
-use crate::utils::{check_manifest_before_call, check_process_manifest, juiz_lock};
+use crate::utils::{check_manifest_before_call, check_process_manifest, juiz_lock, get_hashmap};
 use crate::connections::{SourceConnection, SourceConnectionImpl, DestinationConnection, DestinationConnectionImpl};
 
+use super::argument::Argument;
 use super::inlet::Inlet;
 use super::outlet::Outlet;
+
+pub type FunctionType = fn(Vec<Argument>) -> JuizResult<Value>;
+pub type FunctionTrait = dyn Fn(Vec<Argument>) -> JuizResult<Value>;
 
 pub struct ProcessImpl {
     core: ObjectCore,
     manifest: Value,
-    function: Box<dyn Fn(Value) -> JuizResult<Value>>,
+    function: Box<FunctionTrait>,
     identifier: Identifier,
     output_memo: RefCell<Value>,
-
     outlet: Outlet,
     inlets: Vec<Inlet>,
 }
@@ -33,10 +36,9 @@ pub fn argument_manifest(process_manifest: &Value) -> JuizResult<&Map<String, Va
     obj_get_obj(process_manifest, "arguments")
 }
 
-
 impl ProcessImpl {
 
-    pub fn new_with_class(class_name: JuizObjectClass, manif: Value, func: fn(Value) -> JuizResult<Value>) -> JuizResult<Self> {
+    pub fn new_with_class(class_name: JuizObjectClass, manif: Value, func: FunctionType) -> JuizResult<Self> {
         log::trace!("ProcessImpl::new(manifest={}) called", manif);
         let manifest = check_process_manifest(manif)?;
         let type_name = obj_get_str(&manifest, "type_name")?;
@@ -84,11 +86,11 @@ impl ProcessImpl {
         None
     }
 
-    pub fn new(manif: Value, func: fn(Value) -> JuizResult<Value>) -> JuizResult<Self> {
+    pub fn new(manif: Value, func: FunctionType) -> JuizResult<Self> {
         Self::new_with_class(JuizObjectClass::Process("ProcessImpl"), manif, func)
     }
 
-    pub(crate) fn clousure_new_with_class_name(class_name: JuizObjectClass, manif: Value, func: Box<impl Fn(Value) -> JuizResult<Value> + 'static>) -> JuizResult<Self> {
+    pub(crate) fn clousure_new_with_class_name(class_name: JuizObjectClass, manif: Value, func: Box<FunctionTrait>) -> JuizResult<Self> {
         log::trace!("ProcessImpl::new(manifest={}) called", manif);
         
         let manifest = check_process_manifest(manif)?;
@@ -108,7 +110,7 @@ impl ProcessImpl {
         })
     }
 
-    pub(crate) fn _clousure_new(manif: Value, func: Box<impl Fn(Value) -> JuizResult<Value> + 'static>) -> JuizResult<Self> {
+    pub(crate) fn _clousure_new(manif: Value, func: Box<FunctionTrait>) -> JuizResult<Self> {
         ProcessImpl::clousure_new_with_class_name(JuizObjectClass::Process("ProcessImpl"), manif, func)
     }
     
@@ -122,6 +124,20 @@ impl ProcessImpl {
             value_map.insert(inlet.name().clone(), inlet.collect_value());
         }
         Ok(Value::from(value_map))
+    }
+
+    fn to_arguments(&self, value: Value) -> JuizResult<Vec<Argument>> {
+        let mut args: Vec<Argument> = Vec::new();
+        let arg_map = get_hashmap(&value).context("ProcessImpl.to_arguments()")?;
+        for (arg_name, _v) in argument_manifest(&self.manifest).context("check_arguments")? {
+            match arg_map.get(arg_name) {
+                None => return Err(anyhow::Error::from(JuizError::ArgumentMissingWhenCallingError{process_manifest: self.manifest.clone(), given_argument: value.clone(), missing_arg_name: arg_name.clone()})),
+                Some(a) => {
+                    args.push(Argument::new(arg_name, a.to_owned()));
+                }
+            };
+        }
+        Ok(args)
     }
 
 }
@@ -153,6 +169,7 @@ impl JuizObject for ProcessImpl {
         }))?;
         Ok(v)
     }
+
 }
 
 impl Process for ProcessImpl {
@@ -161,9 +178,11 @@ impl Process for ProcessImpl {
         &self.manifest
     }
 
+    
+
     fn call(&self, args: Value) -> JuizResult<Value> {
         check_manifest_before_call(&(self.manifest), &args)?;
-        Ok((self.function)(args)?)
+        Ok((self.function)(self.to_arguments(args)?)?)
     }
 
     fn is_updated(&self) -> JuizResult<bool> {

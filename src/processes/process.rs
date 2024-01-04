@@ -44,6 +44,8 @@ pub trait Process : Send + JuizObject {
     fn try_connect_to(&mut self, target: Arc<Mutex<dyn Process>>, connect_arg_to: &String, connection_manifest: Value) -> JuizResult<Value>;
     
     fn source_connections(&self) -> JuizResult<Vec<&Box<dyn SourceConnection>>>;
+
     fn destination_connections(&self) -> JuizResult<Vec<&Box<dyn DestinationConnection>>>;
 }
+
 

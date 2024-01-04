@@ -4,27 +4,8 @@ use juiz_core::JuizResult;
 
 use crate::juiz_core::value::*;
 use crate::juiz_core::processes::process_factory_impl::ProcessFactoryImpl;
-    
-#[allow(dead_code)]
-fn increment_function(v: Value) -> JuizResult<Value> {
-    let i = v["arg1"].as_i64().unwrap();
-    return Ok(jvalue!(i+1));
-}
 
-static mut COUNTER: i64 = 0;
-  
-
-#[allow(dead_code)]
-fn execution_function(_v: Value) -> JuizResult<Value> {
-    #[allow(unused)]
-    let mut val: i64 = 0;
-    unsafe {
-        COUNTER = COUNTER + 1;
-        val = COUNTER;
-    }
-    return Ok(jvalue!(val));
-}
-
+mod common;
 
 #[test]
 fn simple_process_create_test() {
@@ -37,7 +18,7 @@ fn simple_process_create_test() {
             }, 
         }, 
     });
-    let result_pf = ProcessFactoryImpl::new(manifest, increment_function);
+    let result_pf = ProcessFactoryImpl::new(manifest, common::increment_function);
     assert!(result_pf.is_ok());
     let proc_manifest = jvalue!(
         {

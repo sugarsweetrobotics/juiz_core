@@ -1,15 +1,15 @@
 use std::sync::{Mutex, Arc};
-use super::container_process_impl::ContainerProcessImpl;
+use super::container_process_impl::{ContainerProcessImpl, ContainerFunctionType};
 use crate::{ContainerProcessFactory, Value, JuizResult, Container, value::obj_get_str, Process, JuizObject, object::{JuizObjectCoreHolder, ObjectCore, JuizObjectClass}};
 
 struct ContainerProcessFactoryImpl<T> {
     core: ObjectCore,
     manifest: Value,
-    function: fn(&mut Box<T>, Value) -> JuizResult<Value>,
+    function: ContainerFunctionType<T>,
 }
 
 impl<T: 'static> ContainerProcessFactoryImpl<T> {
-    pub fn new(manifest: crate::Value, function: fn(&mut Box<T>, Value) -> JuizResult<Value>) -> JuizResult<Arc<Mutex<dyn ContainerProcessFactory>>> {
+    pub fn new(manifest: crate::Value, function: ContainerFunctionType<T>) -> JuizResult<Arc<Mutex<dyn ContainerProcessFactory>>> {
         let type_name = obj_get_str(&manifest, "type_name")?;
         Ok(Arc::new(Mutex::new(
             ContainerProcessFactoryImpl{
@@ -30,7 +30,7 @@ impl<T: 'static> ContainerProcessFactoryImpl<T> {
     }
 }
 
-pub fn create_container_process_factory<T: 'static>(manifest: crate::Value, function: fn(&mut Box<T>, Value) -> JuizResult<Value>) -> JuizResult<Arc<Mutex<dyn ContainerProcessFactory>>> {
+pub fn create_container_process_factory<T: 'static>(manifest: crate::Value, function: ContainerFunctionType<T>) -> JuizResult<Arc<Mutex<dyn ContainerProcessFactory>>> {
     log::trace!("create_container_process_factory({}) called", manifest);
     ContainerProcessFactoryImpl::<T>::new(manifest, function)
 }

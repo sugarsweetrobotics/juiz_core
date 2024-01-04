@@ -5,11 +5,7 @@ use crate::juiz_core::processes::process_impl::*;
 use crate::juiz_core::*;
 use std::sync::{Arc, Mutex};
 
-#[allow(dead_code)]
-fn increment_function(v: Value) -> JuizResult<Value> {
-    let i = v["arg1"].as_i64().unwrap();
-    return Ok(jvalue!(i+1));
-}
+mod common;
 
 fn new_increment_process<'a> () -> ProcessImpl  {
     let manifest = serde_json::json!({
@@ -23,7 +19,7 @@ fn new_increment_process<'a> () -> ProcessImpl  {
             }, 
         }, 
     });
-    let p = ProcessImpl::new(manifest, increment_function);
+    let p = ProcessImpl::new(manifest, common::increment_function);
     assert!(p.is_ok() , "ProcessImpl::new() failed. Error is {:?}", p.err());
     p.unwrap()
 }

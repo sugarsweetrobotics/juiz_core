@@ -5,11 +5,7 @@ use juiz_core::processes::process_factory_impl::ProcessFactoryImpl;
 
 use crate::juiz_core::*;
 
-#[allow(dead_code)]
-fn increment_function(v: Value) -> JuizResult<Value> {
-    let i = v["arg1"].as_i64().unwrap();
-    return Ok(jvalue!(i+1));
-}
+mod common;
 
 
 fn new_process_factory(cb: &mut CoreBroker) -> Arc<Mutex<dyn ProcessFactory>> {
@@ -23,7 +19,7 @@ fn new_process_factory(cb: &mut CoreBroker) -> Arc<Mutex<dyn ProcessFactory>> {
         }, 
     });
     let result_pf = cb.store_mut().processes.register_factory(
-        ProcessFactoryImpl::new(manifest, increment_function).unwrap());
+        ProcessFactoryImpl::new(manifest, common::increment_function).unwrap());
     assert!(result_pf.is_ok(), "register_process_factory failed. Error is {:?}", result_pf.err());
     Arc::clone(&result_pf.ok().unwrap())
 }

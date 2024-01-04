@@ -1,15 +1,15 @@
 use std::sync::{Arc, Mutex};
 
-use crate::{Process, JuizObject, processes::process_impl::ProcessImpl, Identifier, Value, JuizResult, Container, utils::{juiz_lock, check_process_manifest}, JuizError, jvalue, value::{obj_get_str, obj_merge}, object::{ObjectCore, JuizObjectClass, JuizObjectCoreHolder}};
+use crate::{Process, JuizObject, processes::{process_impl::ProcessImpl, argument::Argument}, Identifier, Value, JuizResult, Container, utils::{juiz_lock, check_process_manifest}, JuizError, jvalue, value::{obj_get_str, obj_merge}, object::{ObjectCore, JuizObjectClass, JuizObjectCoreHolder}};
 
 use super::container_impl::ContainerImpl;
 //use crate::containers::container_process_impl::JuizObjectClass::ContainerProcess;
 
-
+use crate::processes::process_impl::{FunctionTrait, FunctionType};
 
 pub type ContainerProcessFunction<T>=dyn Fn (&mut Box<T>, Value) -> JuizResult<Value> + 'static;
-
-
+pub type ContainerFunctionTrait<T>=dyn Fn(&mut Box<T>, Vec<Argument>) -> JuizResult<Value> + 'static;
+pub type ContainerFunctionType<T>=fn (&mut Box<T>, Vec<Argument>) -> JuizResult<Value>;
 
 #[allow(dead_code)]
 pub struct ContainerProcessImpl<T: 'static> {
@@ -17,18 +17,18 @@ pub struct ContainerProcessImpl<T: 'static> {
     process: ProcessImpl,
     pub container: Arc<Mutex<dyn Container>>,
     container_identifier: Identifier,
-    function: fn (&mut Box<T>, Value) -> JuizResult<Value>
+    function: ContainerFunctionType<T>,
 }
 
 impl<T: 'static> ContainerProcessImpl<T> {
 
-    pub fn new<'a> (manif: Value, container: Arc<Mutex<dyn Container>>, function: fn (&mut Box<T>, Value) -> JuizResult<Value>) -> JuizResult<Self> {
+    pub fn new<'a> (manif: Value, container: Arc<Mutex<dyn Container>>, function: ContainerFunctionType<T>) -> JuizResult<Self> {
         log::trace!("ContainerProcessImpl::new(manifest={}) called", manif);
         //let identifier = create_identifier_from_manifest("ContainerProcess", &manif)?;
         let manifest = check_process_manifest(manif)?;
         let container_clone = Arc::clone(&container);
         let container_identifier = juiz_lock(&container)?.identifier().clone();
-        let proc = ProcessImpl::clousure_new_with_class_name(JuizObjectClass::ContainerProcess("ProcessImpl"), manifest.clone(), Box::new(move |args: Value| {
+        let proc = ProcessImpl::clousure_new_with_class_name(JuizObjectClass::ContainerProcess("ProcessImpl"), manifest.clone(), Box::new(move |args| {
             let mut locked_container = juiz_lock(&container)?;
             match locked_container.downcast_mut::<ContainerImpl<T>>() {
                 None => Err(anyhow::Error::from(JuizError::ContainerDowncastingError{identifier: locked_container.identifier().clone()})),
