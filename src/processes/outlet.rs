@@ -1,8 +1,8 @@
-use std::collections::HashMap;
+use std::{collections::HashMap};
 
 use crate::{jvalue, connections::DestinationConnection, Value, JuizResult};
 
-
+use super::Output;
 
 
 pub struct Outlet {
@@ -19,7 +19,7 @@ impl Outlet {
         }
     }
 
-    pub fn push(&self, output: Value) -> JuizResult<Value> {
+    pub fn push(&self, output: Output) -> JuizResult<Output> {
         for (_name, dc) in self.destination_connections.iter() {
             let _ = dc.push(&output)?;
         }        

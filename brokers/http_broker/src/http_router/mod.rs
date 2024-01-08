@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use std::sync::{Mutex, Arc};
 use juiz_core::brokers::CRUDBroker;
 
+use juiz_core::processes::Output;
 use utoipa::OpenApi;
 use axum::Router;
 use utoipa_swagger_ui::SwaggerUi;
@@ -51,6 +52,21 @@ pub fn json_wrap(result: JuizResult<Value>) -> impl IntoResponse {
         }
     }
 }
+
+pub fn json_output_wrap(result: JuizResult<Output>) -> impl IntoResponse {
+    match result {
+        Err(e) => {
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(
+                jvalue!({
+                    "message": format!("Internal Server Error:  {:#}, {:}", e, e.to_string())
+                }))).into_response()
+        },
+        Ok(v) => {
+            Json(v.value).into_response()
+        }
+    }
+}
+
 
 
 

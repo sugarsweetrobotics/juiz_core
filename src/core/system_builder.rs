@@ -10,7 +10,7 @@ pub mod system_builder {
         brokers::{BrokerFactory, BrokerProxyFactory, broker_factories_wrapper::BrokerFactoriesWrapper, 
         local::local_broker::{SenderReceiverPair, create_local_broker_factory}, 
             // http_broker::HTTPBroker, 
-            local::local_broker_proxy::create_local_broker_proxy_factory, BrokerProxy}, 
+            local::local_broker_proxy::create_local_broker_proxy_factory, BrokerProxy, local_broker::ByteSenderReceiverPair}, 
             System, Value, JuizResult, core::Plugin, ProcessFactory, 
             processes::ProcessFactoryWrapper, 
             containers::{container_factory_wrapper::ContainerFactoryWrapper, container_process_factory_wrapper::ContainerProcessFactoryWrapper}, utils::{get_array, get_hashmap, when_contains_do, juiz_lock, manifest_util::when_contains_do_mut}, connections::connection_builder::connection_builder, value::{obj_get_str, obj_get}, ContainerFactory, ContainerProcessFactory, ecs::{ExecutionContextFactory, execution_context_holder::ExecutionContextHolder, execution_context_holder_factory::ExecutionContextHolderFactory}};
@@ -131,7 +131,9 @@ pub mod system_builder {
         log::debug!("system_builder::setup_local_broker_factory() called");
         let (c_sender, c_receiver) = mpsc::channel::<Value>();
         let (p_sender, p_receiver) = mpsc::channel::<Value>();
-        let lbf = create_local_broker_factory(system.core_broker().clone(), Arc::new(Mutex::new(SenderReceiverPair(p_sender, c_receiver))))?;
+        let (c_b_sender, c_b_receiver) = mpsc::channel::<Vec<u8>>();
+        let (p_b_sender, p_b_receiver) = mpsc::channel::<Vec<u8>>();
+        let lbf = create_local_broker_factory(system.core_broker().clone(), Arc::new(Mutex::new(SenderReceiverPair(p_sender, c_receiver))), Arc::new(Mutex::new(ByteSenderReceiverPair(p_b_sender, c_b_receiver))))?;
         let lbpf = create_local_broker_proxy_factory(Arc::new(Mutex::new(SenderReceiverPair(c_sender, p_receiver))))?;
         //juiz_lock(system.core_broker())?.store_mut().broker_proxies.register_factory(lbpf.clone())?;
         let _wrapper = system.register_broker_factories_wrapper(BrokerFactoriesWrapper::new(None, 

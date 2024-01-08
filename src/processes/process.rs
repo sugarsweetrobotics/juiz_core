@@ -3,11 +3,13 @@ use std::sync::{Mutex, Arc};
 
 use crate::{Identifier, Value, JuizResult, JuizObject, connections::{SourceConnection, DestinationConnection}};
 
-pub type ProcessFunction=dyn Fn(Value) -> JuizResult<Value>;
+use super::Output;
+
+pub type ProcessFunction=dyn Fn(Value) -> JuizResult<Output>;
 
 pub trait Process : Send + JuizObject {
 
-    fn call(&self, _args: Value) -> JuizResult<Value>;
+    fn call(&self, _args: Value) -> JuizResult<Output>;
 
     fn is_updated(& self) -> JuizResult<bool>;
 
@@ -22,9 +24,9 @@ pub trait Process : Send + JuizObject {
      * この方法は配下すべてに問い合わせが波及するので、updateされたかどうかをconnectionにpushする仕組みが必要
      * TODO: 
      */
-    fn invoke<'b>(&self) -> JuizResult<Value>;
+    fn invoke<'b>(&self) -> JuizResult<Output>;
 
-    fn invoke_exclude<'b>(&self, arg_name: &String, value: Value) -> JuizResult<Value>;
+    fn invoke_exclude<'b>(&self, arg_name: &String, value: Output) -> JuizResult<Output>;
 
     /*
      * executeは自信をinvokeしてから、自分の出力側接続先をすべてexecuteする。
@@ -33,11 +35,11 @@ pub trait Process : Send + JuizObject {
      * 
      * 自分の配下はinvokeによってinvokeされるが、配下の枝分かれ先はexecuteされない
      */
-    fn execute(&self) -> JuizResult<Value>;
+    fn execute(&self) -> JuizResult<Output>;
 
-    fn push_by(&self, arg_name: &String, value: &Value) -> JuizResult<Value>;
+    fn push_by(&self, arg_name: &String, value: &Output) -> JuizResult<Output>;
 
-    fn get_output(&self) -> Option<Value>;
+    fn get_output(&self) -> Option<Output>;
 
     fn notify_connected_from<'b>(&'b mut self, source: Arc<Mutex<dyn Process>>, connecting_arg: &String, connection_manifest: Value) -> JuizResult<Value>;
 

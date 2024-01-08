@@ -1,0 +1,16 @@
+[package]
+name = "cv_camera_capture"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+juiz_core = { path="../../../" }
+env_logger = "0.10.1"
+opencv = {version="0.88.6", features=["clang-runtime"]}
+
+cv_camera_container = { path="../cv_camera_container/" }

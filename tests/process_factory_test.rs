@@ -30,6 +30,6 @@ fn simple_process_create_test() {
     let result = p.ok().unwrap().lock().unwrap().call(jvalue!({"arg1": 3}));
     assert!(result.is_ok());
     let res_value = result.ok().unwrap();
-    assert!(res_value.is_i64());
-    assert!(res_value.as_i64().unwrap() == 4);
+    assert!(res_value.value.is_i64());
+    assert!(res_value.value.as_i64().unwrap() == 4);
 }

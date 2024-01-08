@@ -64,7 +64,7 @@ fn core_broker_process_factory_integration_test() {
     }));
     match retval {
         Ok(vv) => {
-            assert_eq!(vv.as_i64().unwrap(), 2);
+            assert_eq!(vv.value.as_i64().unwrap(), 2);
         }, 
         Err(ev) => {
             print!("Return value is {:?}", ev);
@@ -121,7 +121,7 @@ fn core_broker_process_factory_integration_connection_test() {
     let retval = cb.process_execute(&id1);
     match retval {
         Ok(vv) => {
-            assert_eq!(vv.as_i64().unwrap(), 2);
+            assert_eq!(vv.value.as_i64().unwrap(), 2);
         }, 
         Err(ev) => {
             print!("Return value is {:?}", ev);
@@ -135,6 +135,6 @@ fn core_broker_process_factory_integration_connection_test() {
 
     //
     // 1 (default) -> proc1 -> 2 -> procec2 -> 3. Answer must be 3.
-    assert_eq!(output, Some(jvalue!(3)), "Error. Execution output of Process 2 is wrong.");
+    assert_eq!(output.unwrap().value, jvalue!(3), "Error. Execution output of Process 2 is wrong.");
 
 }

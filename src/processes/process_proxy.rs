@@ -12,6 +12,8 @@ use crate::object::JuizObjectCoreHolder;
 use crate::object::ObjectCore;
 use crate::identifier::*;
 
+use super::Output;
+
 #[allow(unused)]
 pub struct ProcessProxy {
     core: ObjectCore,
@@ -60,7 +62,7 @@ impl JuizObject for ProcessProxy {
 
 impl Process for ProcessProxy {
     
-    fn call(&self, _args: crate::Value) -> JuizResult<Value> {
+    fn call(&self, _args: crate::Value) -> JuizResult<Output> {
         //juiz_lock(&self.broker_proxy)?.any_process_call(args)
         todo!()
     }
@@ -77,23 +79,23 @@ impl Process for ProcessProxy {
         todo!()
     }
 
-    fn invoke<'b>(&self) -> JuizResult<Value> {
+    fn invoke<'b>(&self) -> JuizResult<Output> {
         todo!()
     }
 
-    fn invoke_exclude<'b>(&self, _arg_name: &String, _value: Value) -> JuizResult<Value> {
+    fn invoke_exclude<'b>(&self, _arg_name: &String, _value: Output) -> JuizResult<Output> {
         todo!()
     }
 
-    fn execute(&self) -> JuizResult<Value> {
+    fn execute(&self) -> JuizResult<Output> {
         todo!()
     }
 
-    fn push_by(&self, _arg_name: &String, _value: &Value) -> JuizResult<Value> {
+    fn push_by(&self, _arg_name: &String, _value: &Output) -> JuizResult<Output> {
         todo!()
     }
 
-    fn get_output(&self) -> Option<Value> {
+    fn get_output(&self) -> Option<Output> {
         todo!()
     }
 

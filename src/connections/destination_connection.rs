@@ -1,12 +1,12 @@
 
-use crate::{Value, JuizResult};
+use crate::{Value, JuizResult, processes::Output};
 
 use super::connection::Connection;
 
 pub trait DestinationConnection : Connection {
 
-    fn execute_destination(&self) -> JuizResult<Value>;
+    fn execute_destination(&self) -> JuizResult<Output>;
 
-    fn push(&self, value: &Value) -> JuizResult<Value>;
+    fn push(&self, value: &Output) -> JuizResult<Output>;
 
 }

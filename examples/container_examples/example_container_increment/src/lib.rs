@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use example_container::example_container::ExampleContainer;
 //use example_container::ExampleContainer;
-use juiz_core::{jvalue, JuizResult, Value, ContainerProcessFactory, containers::create_container_process_factory, processes::{Argument, arg}};
+use juiz_core::{jvalue, JuizResult, Value, ContainerProcessFactory, containers::create_container_process_factory, processes::{Argument, arg, Output}};
 
 
 #[no_mangle]
@@ -22,10 +22,10 @@ pub unsafe extern "Rust" fn manifest() -> Value {
 }
 
 
-fn increment_function(container: &mut Box<ExampleContainer>, v: Vec<Argument>) -> JuizResult<Value> {
+fn increment_function(container: &mut Box<ExampleContainer>, v: Vec<Argument>) -> JuizResult<Output> {
     let i = arg(&v, "arg1")?.as_i64().unwrap();
     container.value = container.value + i;
-    return Ok(jvalue!(container.value));
+    return Ok(Output::new(jvalue!(container.value)));
 }
 
 

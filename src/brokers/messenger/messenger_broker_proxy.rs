@@ -3,7 +3,7 @@ use std::{sync::{Arc, Mutex}, time::Duration};
 use anyhow::Context;
 use serde_json::Map;
 
-use crate::{jvalue, JuizResult, Identifier, Value, JuizError, value::{obj_get_str, obj_get}, JuizObject, object::{ObjectCore, JuizObjectClass, JuizObjectCoreHolder}, brokers::broker_proxy::{ContainerBrokerProxy, ContainerProcessBrokerProxy, ExecutionContextBrokerProxy, BrokerBrokerProxy, ConnectionBrokerProxy}};
+use crate::{jvalue, JuizResult, Identifier, Value, JuizError, value::{obj_get_str, obj_get}, JuizObject, object::{ObjectCore, JuizObjectClass, JuizObjectCoreHolder}, brokers::broker_proxy::{ContainerBrokerProxy, ContainerProcessBrokerProxy, ExecutionContextBrokerProxy, BrokerBrokerProxy, ConnectionBrokerProxy}, processes::Output};
 
 use super::super::broker_proxy::{BrokerProxy, SystemBrokerProxy, ProcessBrokerProxy};
 
@@ -21,6 +21,7 @@ pub type ReceiverType = dyn Fn(Duration) -> JuizResult<Value>;
 pub struct SendReceivePair(pub Box<SenderType>, pub Box<ReceiverType>);
 pub trait MessengerBrokerProxyCore : Send {
     fn send_and_receive(&self, v: Value, timeout: Duration) -> JuizResult<Value>;
+    fn send_and_receive_output(&self, v: Value, timeout: Duration) -> JuizResult<Output>;
 }
 
 pub trait MessengerBrokerProxyCoreFactory { 
@@ -68,6 +69,31 @@ impl MessengerBrokerProxy {
         }
     }
 
+    pub fn send_recv_output_and<F: Fn(Output)->JuizResult<T>, T>(&self, method_name: &str, class_name: &str, function_name: &str, arguments: Value, params: &[(String, String)], func: F) -> JuizResult<T> {
+        log::trace!("MessengerBrokerProxy::send_recv_output_and({class_name}, {function_name}, {arguments}) called");
+        //let SendReceivePair(sndr, recvr) = self.messenger.send_receive()?;
+        let value = self.messenger.send_and_receive_output(jvalue!({
+            "method_name": method_name,
+            "class_name": class_name,
+            "function_name": function_name, 
+            "arguments": arguments,
+            "params": to_map(params),
+        }), Duration::new(3, 0)).context("MessengerBrokerProxyCore.send_and_receive() failed in MessengerBrokerProxy.send_recv_and()")?;
+        //let value = (recvr)(timeout)?;
+        let response_function_name = obj_get_str(&value.value, "function_name")?;
+        match response_function_name {
+            "RequestFunctionNameNotSupported" => {
+                return Err(anyhow::Error::from(JuizError::BrokerProxyRequestFunctionNameNotSupportedError{request_function_name: function_name.to_string()}));
+            },
+            _ => {
+                if response_function_name != function_name {
+                    return Err(anyhow::Error::from(JuizError::BrokerProxyFunctionNameInResponseDoesNotMatchError{function_name: function_name.to_string(), response_function_name: response_function_name.to_string()}));
+                }
+                func(value)
+            }
+        }
+    }
+
     pub fn read(&self, class_name: &str, function_name: &str) -> JuizResult<Value> {
         self.send_recv_and(
             "READ", 
@@ -86,6 +112,16 @@ impl MessengerBrokerProxy {
             jvalue!({}), 
             &[("id".to_owned(), id.clone())],
             |value| Ok(obj_get(&value, "return")?.clone()))
+    }
+
+    pub fn update_output_by_id(&self, class_name: &str, function_name: &str, args: Value, id: &Identifier) -> JuizResult<Output>  {
+        self.send_recv_output_and(
+            "UPDATE",
+            class_name,  
+            function_name, 
+            jvalue!({"id": id, "args": args}), 
+            &[("id".to_owned(), id.clone())],
+            |value| Ok(Output::new(obj_get(&value.value, "return")?.clone())))
     }
 
     pub fn update_by_id(&self, class_name: &str, function_name: &str, args: Value, id: &Identifier) -> JuizResult<Value>  {
@@ -126,12 +162,12 @@ impl SystemBrokerProxy for MessengerBrokerProxy {
 
 impl ProcessBrokerProxy for MessengerBrokerProxy {
 
-    fn process_call(&self, id: &Identifier, args: crate::Value) -> crate::JuizResult<crate::Value> {
-        self.update_by_id("process", "execute", args, id)
+    fn process_call(&self, id: &Identifier, args: crate::Value) -> crate::JuizResult<Output> {
+        self.update_output_by_id("process", "execute", args, id)
     }
 
-    fn process_execute(&self, id: &crate::Identifier) -> crate::JuizResult<crate::Value> {
-        self.update_by_id("process", "execute", jvalue!({}), id)
+    fn process_execute(&self, id: &crate::Identifier) -> crate::JuizResult<Output> {
+        self.update_output_by_id("process", "execute", jvalue!({}), id)
     }
 
     fn process_profile_full(&self, id: &Identifier) -> JuizResult<Value> {

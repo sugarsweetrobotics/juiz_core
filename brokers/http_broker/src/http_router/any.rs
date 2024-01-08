@@ -5,7 +5,7 @@ use axum::{extract::{State, Path, Query}, response::IntoResponse, Json, Router, 
 
 use juiz_core::{brokers::crud_broker::{CRUDBroker, update_class, read_class, create_class, delete_class}, Value};
 
-use super::{IdentifierQuery, json_wrap, query_to_map};
+use super::{IdentifierQuery, json_wrap, json_output_wrap, query_to_map};
 use utoipa::OpenApi;
 
 #[utoipa::path(
@@ -28,7 +28,7 @@ pub async fn object_post_handler(
 ) -> impl IntoResponse {
     let map = query_to_map(&query);
     log::trace!("HTTPBroker/object_post_handler({class_name}, {function_name}, {body}, {map:?}) called");
-    json_wrap(create_class(&crud_broker, class_name.as_str(), function_name.as_str(), body, map))
+    json_output_wrap(create_class(&crud_broker, class_name.as_str(), function_name.as_str(), body, map))
 }
 
 #[utoipa::path(
@@ -52,7 +52,7 @@ pub async fn object_patch_handler(
     let map = query_to_map(&query);
     log::trace!("debug:{:?}", query);
     log::trace!("HTTPBroker/object_patch_handler({class_name}, {function_name}, {body}, {map:?}) called");
-    json_wrap(update_class(&crud_broker, class_name.as_str(), function_name.as_str(), body, map))
+    json_output_wrap(update_class(&crud_broker, class_name.as_str(), function_name.as_str(), body, map))
 }
 
 
@@ -75,7 +75,7 @@ pub async fn object_get_handler(
     log::trace!("debug:{:?}", query);
     let map = query_to_map(&query);
     log::trace!("HTTPBroker/object_get_handler({class_name}, {function_name}, {map:?}) called");
-    json_wrap(read_class(&crud_broker, class_name.as_str(), function_name.as_str(), map))
+    json_output_wrap(read_class(&crud_broker, class_name.as_str(), function_name.as_str(), map))
 }
 
 #[utoipa::path(

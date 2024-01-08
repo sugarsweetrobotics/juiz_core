@@ -6,6 +6,7 @@ pub mod process_factory;
 pub mod process_factory_impl;
 pub mod process_factory_wrapper;
 pub mod argument;
+pub mod output;
 
 pub mod inlet;
 pub mod outlet;
@@ -18,6 +19,7 @@ pub use process_factory_wrapper::ProcessFactoryWrapper;
 use crate::{Value, JuizResult, JuizError};
 
 pub use self::argument::Argument;
+pub use self::output::Output;
 
 
 pub fn arg<'t>(args: &'t Vec<Argument>, name: &str) -> JuizResult<&'t Value> {

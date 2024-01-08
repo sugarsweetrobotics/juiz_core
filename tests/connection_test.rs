@@ -36,7 +36,7 @@ fn simple_connection_invoke_test() {
     assert!(result2.is_ok(), "Failed to connect_to function. Error is {:?}", result2.err());
 
     let result = rp2.lock().unwrap().invoke();
-    assert_eq!(result.unwrap().as_i64().unwrap(), 3);
+    assert_eq!(result.unwrap().value.as_i64().unwrap(), 3);
 }
 
 #[test]
@@ -62,7 +62,7 @@ fn simple_connection_execute_test() {
     assert!(result1.is_ok(), "Error of ConnectionRack.execute(). Error is {:?}", result1.err());
     let result = rp2.lock().unwrap().get_output();
     assert!(result.is_some());
-    assert_eq!(result.unwrap().as_i64().unwrap(), 3);
+    assert_eq!(result.unwrap().value.as_i64().unwrap(), 3);
 }
 
 
@@ -82,5 +82,5 @@ fn simple_connection_builder_invoke_test() {
     assert!(result1.is_ok(), "Failed to ConnectionBuilder::connected function. Error is {:?}", result1.err());
     
     let result = rp2.lock().unwrap().invoke();
-    assert_eq!(result.unwrap().as_i64().unwrap(), 3);
+    assert_eq!(result.unwrap().value.as_i64().unwrap(), 3);
 }

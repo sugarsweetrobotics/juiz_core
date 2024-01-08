@@ -39,6 +39,10 @@ impl MessengerBrokerProxyCore for LocalBrokerProxyCore {
                 return anyhow::Error::from(JuizError::LocalBrokerProxyReceiveTimeoutError{error: e});
         })
     }
+
+    fn send_and_receive_output(&self, v: Value, timeout: Duration) -> JuizResult<crate::processes::Output> {
+        todo!("Outputクラスをどう扱うか。")
+    }
 }
 
 impl LocalBrokerProxyCore {

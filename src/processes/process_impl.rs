@@ -14,19 +14,20 @@ use crate::{Value, jvalue, Process, Identifier, JuizError, JuizResult, JuizObjec
 use crate::utils::{check_manifest_before_call, check_process_manifest, juiz_lock, get_hashmap};
 use crate::connections::{SourceConnection, SourceConnectionImpl, DestinationConnection, DestinationConnectionImpl};
 
+use super::Output;
 use super::argument::Argument;
 use super::inlet::Inlet;
 use super::outlet::Outlet;
 
-pub type FunctionType = fn(Vec<Argument>) -> JuizResult<Value>;
-pub type FunctionTrait = dyn Fn(Vec<Argument>) -> JuizResult<Value>;
+pub type FunctionType = fn(Vec<Argument>) -> JuizResult<Output>;
+pub type FunctionTrait = dyn Fn(Vec<Argument>) -> JuizResult<Output>;
 
 pub struct ProcessImpl {
     core: ObjectCore,
     manifest: Value,
     function: Box<FunctionTrait>,
     identifier: Identifier,
-    output_memo: RefCell<Value>,
+    output_memo: RefCell<Output>,
     outlet: Outlet,
     inlets: Vec<Inlet>,
 }
@@ -54,7 +55,7 @@ impl ProcessImpl {
             identifier: create_identifier_from_manifest("Process", &manifest)?,
             // source_connections: HashMap::new(),
             //destination_connections: HashMap::new(),
-            output_memo: RefCell::new(jvalue!(null)),
+            output_memo: RefCell::new(Output::new(jvalue!(null))),
             outlet: Outlet::new(),
             inlets: Self::create_inlets(&manifest)?,
         })
@@ -104,7 +105,7 @@ impl ProcessImpl {
             identifier: identifier_from_manifest("core", "core", "Process", &manifest)?,
             // source_connections: HashMap::new(),
             // destination_connections: HashMap::new(),
-            output_memo: RefCell::new(jvalue!(null)),
+            output_memo: RefCell::new(Output::new(jvalue!(null))),
             outlet: Outlet::new(),
             inlets: Self::create_inlets(&manifest)?,
         })
@@ -180,9 +181,9 @@ impl Process for ProcessImpl {
 
     
 
-    fn call(&self, args: Value) -> JuizResult<Value> {
+    fn call(&self, args: Value) -> JuizResult<Output> {
         check_manifest_before_call(&(self.manifest), &args)?;
-        Ok((self.function)(self.to_arguments(args)?)?)
+        (self.function)(self.to_arguments(args)?)
     }
 
     fn is_updated(&self) -> JuizResult<bool> {
@@ -190,7 +191,7 @@ impl Process for ProcessImpl {
     }
 
     fn is_updated_exclude(&self, arg_name: &String) -> JuizResult<bool> {
-        if self.output_memo.borrow().is_null() {
+        if self.output_memo.borrow().value.is_null() {
             return Ok(true)
         }
         for inlet in self.inlets.iter() {
@@ -202,38 +203,38 @@ impl Process for ProcessImpl {
         Ok(false)
     }
 
-    fn invoke<'b>(&'b self) -> JuizResult<Value> {
+    fn invoke<'b>(&'b self) -> JuizResult<Output> {
         log::trace!("Processimpl({:?})::invoke() called", self.identifier());
-        self.invoke_exclude(&"".to_string(), jvalue!({}))
+        self.invoke_exclude(&"".to_string(), Output::new(jvalue!({})))
     }
 
 
-    fn invoke_exclude<'b>(&self, arg_name: &String, value: Value) -> JuizResult<Value> {
+    fn invoke_exclude<'b>(&self, arg_name: &String, value: Output) -> JuizResult<Output> {
         if !self.is_updated_exclude(arg_name)? {
-            if self.output_memo.borrow().is_null() {
+            if self.output_memo.borrow().value.is_null() {
                 return Err(anyhow::Error::from(JuizError::ProcessOutputMemoIsNotInitializedError{id: self.identifier().clone()}));
             }
-            return Ok(self.output_memo.borrow().clone());
+            return Ok(Output::new(self.output_memo.borrow().value.clone()));
         }
         
-        let result_value = self.call(self.collect_values_exclude(arg_name, value)?)?;
-        self.output_memo.borrow_mut().clone_from(&result_value);
+        let result_value = self.call(self.collect_values_exclude(arg_name, value.value)?)?;
+        self.output_memo.borrow_mut().value.clone_from(&result_value.value);
         Ok(result_value)
     }
 
-    fn execute(&self) -> JuizResult<Value> {
+    fn execute(&self) -> JuizResult<Output> {
         self.outlet.push(self.invoke()?)
     }
 
-    fn push_by(&self, arg_name: &String, value: &Value) -> JuizResult<Value> {
-        self.outlet.push(self.invoke_exclude(arg_name, value.clone())?)
+    fn push_by(&self, arg_name: &String, value: &Output) -> JuizResult<Output> {
+        self.outlet.push(self.invoke_exclude(arg_name, Output::new(value.value.clone()))?)
     }
     
-    fn get_output(&self) -> Option<Value> {
-        if self.output_memo.borrow().is_null() {
+    fn get_output(&self) -> Option<Output> {
+        if self.output_memo.borrow().value.is_null() {
             return None
         }
-        Some(self.output_memo.borrow().clone())
+        Some(Output::new(self.output_memo.borrow().value.clone()))
     }
 
     fn notify_connected_from(&mut self, source: Arc<Mutex<dyn Process>>, connecting_arg: &String, connection_manifest: Value) -> JuizResult<Value> {

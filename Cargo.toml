@@ -20,12 +20,15 @@ serde = "1.0.193"
 axum = "0.7.2"
 uuid = "1.6.1"
 futures = "0.3.29"
+opencv = {version="0.88.6", features=["clang-runtime"]}
+
 
 # example_container = { path="container_examples/example_container" }
 
 [workspace]
 members = [
     ".",
+    "app/juiz_command",
     "ecs/timer_ec",
     "ecs/one_shot_ec", 
     "brokers/http_broker",
@@ -34,9 +37,12 @@ members = [
     "examples/container_examples/example_container",
     "examples/container_examples/example_container_get",
     "examples/container_examples/example_container_increment",
+    "examples/opencv_examples/cv_camera_container",
+    "examples/opencv_examples/cv_camera_capture",
 ]
 default-members = [
     ".",
+    "app/juiz_command",
     "ecs/timer_ec",
     "ecs/one_shot_ec",
     "brokers/http_broker",
@@ -45,4 +51,6 @@ default-members = [
     "examples/container_examples/example_container",
     "examples/container_examples/example_container_get",
     "examples/container_examples/example_container_increment",
+    "examples/opencv_examples/cv_camera_container",
+    "examples/opencv_examples/cv_camera_capture",
 ]

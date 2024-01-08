@@ -28,6 +28,7 @@ use crate::identifier::identifier_from_manifest;
 use crate::object::JuizObjectClass;
 use crate::object::JuizObjectCoreHolder;
 use crate::object::ObjectCore;
+use crate::processes::Output;
 use crate::processes::process_proxy::ProcessProxy;
 use crate::utils::check_corebroker_manifest;
 use crate::utils::juiz_lock;
@@ -299,11 +300,11 @@ impl SystemBrokerProxy for CoreBroker {
 
 impl ProcessBrokerProxy for CoreBroker { 
 
-    fn process_call(&self, id: &Identifier, args: Value) -> JuizResult<Value> {
+    fn process_call(&self, id: &Identifier, args: Value) -> JuizResult<Output> {
         juiz_lock(&self.store().processes.get(id)?)?.call(args)
     }
 
-    fn process_execute(&self, id: &Identifier) -> JuizResult<Value> {
+    fn process_execute(&self, id: &Identifier) -> JuizResult<Output> {
         juiz_lock(&self.store().processes.get(id)?).with_context(||format!("locking process(id={id:}) in CoreBroker::execute_process() function"))?.execute()
     }
 

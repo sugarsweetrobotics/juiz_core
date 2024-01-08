@@ -1,13 +1,13 @@
 use std::{collections::HashMap, sync::{Mutex, Arc}};
 
-use crate::{jvalue, brokers::{BrokerProxy, broker_proxy::{SystemBrokerProxy, ProcessBrokerProxy, ContainerBrokerProxy, ContainerProcessBrokerProxy, BrokerBrokerProxy, ExecutionContextBrokerProxy, ConnectionBrokerProxy}}, JuizObject, object::{JuizObjectCoreHolder, ObjectCore, JuizObjectClass}, Value, JuizResult, Identifier};
+use crate::{jvalue, brokers::{BrokerProxy, broker_proxy::{SystemBrokerProxy, ProcessBrokerProxy, ContainerBrokerProxy, ContainerProcessBrokerProxy, BrokerBrokerProxy, ExecutionContextBrokerProxy, ConnectionBrokerProxy}}, JuizObject, object::{JuizObjectCoreHolder, ObjectCore, JuizObjectClass}, Value, JuizResult, Identifier, processes::Output};
 
 
 pub trait CRUDBrokerProxy : Send + Sync {
     fn create(&self, class_name: &str, function_name: &str, payload: Value, param: HashMap<String, String>) -> JuizResult<Value>;
     fn delete(&self, class_name: &str, function_name: &str, param: HashMap<String, String>) -> JuizResult<Value>;
     fn read(&self, class_name: &str, function_name: &str, param: HashMap<String, String>) -> JuizResult<Value>;
-    fn update(&self, class_name: &str, function_name: &str, payload: Value, param: HashMap<String, String>) -> JuizResult<Value>;
+    fn update(&self, class_name: &str, function_name: &str, payload: Value, param: HashMap<String, String>) -> JuizResult<Output>;
 }
 
 
@@ -65,11 +65,11 @@ impl ProcessBrokerProxy for CRUDBrokerProxyHolder {
         self.broker.read("process", "profile_full", HashMap::from([("identifier".to_string(), id.to_owned())]))
     }
 
-    fn process_call(&self, id: &Identifier, args: Value) -> JuizResult<Value> {
+    fn process_call(&self, id: &Identifier, args: Value) -> JuizResult<Output> {
         self.broker.update("process", "list", args, HashMap::from([("identifier".to_string(), id.to_owned())]))
     }
 
-    fn process_execute(&self, id: &Identifier) -> JuizResult<Value> {
+    fn process_execute(&self, id: &Identifier) -> JuizResult<Output> {
         self.broker.update("process", "list", jvalue!({}), HashMap::from([("identifier".to_string(), id.to_owned())]))
     }
 
@@ -78,7 +78,7 @@ impl ProcessBrokerProxy for CRUDBrokerProxyHolder {
     }
 
     fn process_try_connect_to(&mut self, source_process_id: &Identifier, arg_name: &String, destination_process_id: &Identifier, manifest: Value) -> JuizResult<Value> {
-        self.broker.update(
+        Ok(self.broker.update(
             "process", 
             "try_connect_to", 
             jvalue!({
@@ -87,11 +87,11 @@ impl ProcessBrokerProxy for CRUDBrokerProxyHolder {
                 "destination_process_id": destination_process_id,
                 "manifest": manifest
             }), 
-            HashMap::from([]))
+            HashMap::from([]))?.value)
     }
 
     fn process_notify_connected_from(&mut self, source_process_id: &Identifier, arg_name: &String, destination_process_id: &Identifier, manifest: Value) -> JuizResult<Value> {
-        self.broker.update(
+        Ok(self.broker.update(
             "process", 
             "notify_connected_from", 
             jvalue!({
@@ -100,7 +100,7 @@ impl ProcessBrokerProxy for CRUDBrokerProxyHolder {
                 "destination_process_id": destination_process_id,
                 "manifest": manifest
             }), 
-            HashMap::from([]))
+            HashMap::from([]))?.value)
     }
 }
 
@@ -135,11 +135,11 @@ impl ExecutionContextBrokerProxy for CRUDBrokerProxyHolder {
     }
 
     fn ec_start(&mut self, id: &Identifier) -> JuizResult<Value> {
-        self.broker.update("execution_context", "start", jvalue!({}), HashMap::from([("id".to_owned(), id.to_owned())]))
+        Ok(self.broker.update("execution_context", "start", jvalue!({}), HashMap::from([("id".to_owned(), id.to_owned())]))?.value)
     }
 
     fn ec_stop(&mut self, id: &Identifier) -> JuizResult<Value> {
-        self.broker.update("execution_context", "stop", jvalue!({}), HashMap::from([("id".to_owned(), id.to_owned())]))
+        Ok(self.broker.update("execution_context", "stop", jvalue!({}), HashMap::from([("id".to_owned(), id.to_owned())]))?.value)
     }
 }
 

@@ -3,7 +3,7 @@
 
 use anyhow::Context;
 
-use crate::{Value, Process, JuizResult, Identifier, utils::juiz_lock, JuizObject, object::{JuizObjectCoreHolder, ObjectCore}};
+use crate::{Value, Process, JuizResult, Identifier, utils::juiz_lock, JuizObject, object::{JuizObjectCoreHolder, ObjectCore}, processes::Output};
 use std::sync::{Mutex, Arc};
 use core::fmt::Debug;
 use std::clone::Clone;
@@ -61,12 +61,12 @@ impl SourceConnection for SourceConnectionImpl {
         proc.is_updated()
     }
 
-    fn invoke_source(&mut self) -> JuizResult<Value> {
+    fn invoke_source(&mut self) -> JuizResult<Output> {
         let proc = juiz_lock(&self.source_process).context("in SourceConnectionImpl.invoke_source()")?;
         proc.invoke()
     }
  
-    fn pull(&self) -> JuizResult<Value> {
+    fn pull(&self) -> JuizResult<Output> {
         log::trace!("SourceConnectionImpl({:?}).pull() called", self.identifier());
         juiz_lock(&self.source_process).context("SourceConnectionImpl.pull()")?.invoke()
     }

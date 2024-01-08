@@ -230,7 +230,6 @@ impl System {
     pub fn run(&mut self) -> JuizResult<()> {
         log::debug!("System::run() called");
         log::debug!("Juiz System Now Started.");
-       // let tokio_runtime = tokio::runtime::Builder::new_multi_thread().thread_name("juiz_core::System").worker_threads(4).enable_all().build().unwrap();
         self.setup().context("System::setup() in System::run() failed.")?;
         self.wait_for_singal().context("System::wait_for_signal() in System::run() failed.")?;
         log::debug!("System::run() exit");
@@ -240,12 +239,22 @@ impl System {
 
     pub fn run_and_do(&mut self,  func: fn(&mut System) -> JuizResult<()>) -> JuizResult<()> {
         log::debug!("System::run_and_do() called");
-        //let tokio_runtime = tokio::runtime::Builder::new_multi_thread().thread_name("juiz_core::System").worker_threads(4).enable_all().build().unwrap();
         self.setup().context("System::setup() in System::run_and_do() failed.")?;
         log::debug!("Juiz System Now Started.");
         (func)(self).context("User function passed for System::run_and_do() failed.")?;
         self.wait_for_singal().context("System::wait_for_signal() in System::run_and_do() failed.")?;
-        log::debug!("System::run() exit");
+        log::debug!("System::run_and_do() exit");
+        self.cleanup()?;
+        Ok(())
+    }
+
+    pub fn run_and_do_once(&mut self,  func: fn(&mut System) -> JuizResult<()>) -> JuizResult<()> {
+        log::debug!("System::run_and_do_once() called");
+        self.setup().context("System::setup() in System::run_and_do_once() failed.")?;
+        log::debug!("Juiz System Now Started.");
+        (func)(self).context("User function passed for System::run_and_do_once() failed.")?;
+        //self.wait_for_singal().context("System::wait_for_signal() in System::run_and_do() failed.")?;
+        log::debug!("System::run_and_do_once() exit");
         self.cleanup()?;
         Ok(())
     }

@@ -1,7 +1,7 @@
 use std::{sync::{Arc, Mutex}, collections::HashMap};
 
 
-use juiz_core::{JuizResult, brokers::{BrokerProxyFactory, BrokerProxy, create_broker_proxy_factory_impl}, Value, jvalue, value::obj_get_str, JuizError};
+use juiz_core::{JuizResult, brokers::{BrokerProxyFactory, BrokerProxy, create_broker_proxy_factory_impl}, Value, jvalue, value::obj_get_str, JuizError, processes::Output};
 
 use juiz_core::brokers::{CRUDBrokerProxy, CRUDBrokerProxyHolder};
 
@@ -96,14 +96,17 @@ impl CRUDBrokerProxy for HTTPBrokerProxy {
         }
     }
 
-    fn update(&self, class_name: &str, function_name: &str, payload: Value, param: std::collections::HashMap<String, String>) -> JuizResult<Value> {
+    fn update(&self, class_name: &str, function_name: &str, payload: Value, param: std::collections::HashMap<String, String>) -> JuizResult<Output> {
         let client = reqwest::blocking::Client::new();
         match client.patch(construct_url(&self.base_url, class_name, function_name, &param))
             .json(&payload)
             .send() {
             Err(e) => Err(anyhow::Error::from(e)),
             Ok(response) => {
-                response.json().map_err(|e| anyhow::Error::from(e))
+                match response.json() {
+                    Err(e) => Err(anyhow::Error::from(e)),
+                    Ok(v) => Ok(Output::new(v))
+                }
             }
         }
     }

@@ -69,7 +69,7 @@ impl Inlet {
             match sc.pull() {
                 Err(_) => {},
                 Ok(value) => {
-                    v = value;
+                    v = value.value;
                 }
             }
         }

@@ -80,12 +80,10 @@ fn handle_function(crud_broker: Arc<Mutex<CRUDBroker>>, value: Value) -> JuizRes
             Err(anyhow::Error::from(JuizError::CRUDBRokerCanNotFindMethodError{method_name: method_name.to_string()}))
         }
     }?;
-    return Ok(jvalue!(
-        {
-            "function_name": jvalue!(function_name),
-            "return": result
-        }
-    ));
+    return Ok(jvalue!({
+        "function_name": jvalue!(function_name),
+        "return": result.value,
+    }));
 }
 
 impl JuizObjectCoreHolder for MessengerBroker {
