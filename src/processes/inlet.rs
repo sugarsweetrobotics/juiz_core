@@ -63,17 +63,17 @@ impl Inlet {
     }
    
     // データを収集。pullする。あとからの接続を優先
-    pub fn collect_value(&self) -> Value {
+    pub fn collect_value(&self) -> JuizResult<Value> {
         let mut v: Value = self.default_value.clone();
         for sc in self.source_connections.iter() {
             match sc.pull() {
                 Err(_) => {},
                 Ok(value) => {
-                    v = value.value;
+                    v = value.get_value()?;
                 }
             }
         }
-        return v;
+        return Ok(v);
     }
 
     pub(crate) fn insert(&mut self, con: Box<crate::connections::SourceConnectionImpl>) {

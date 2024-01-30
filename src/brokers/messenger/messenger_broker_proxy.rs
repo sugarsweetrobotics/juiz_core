@@ -80,8 +80,8 @@ impl MessengerBrokerProxy {
             "params": to_map(params),
         }), Duration::new(3, 0)).context("MessengerBrokerProxyCore.send_and_receive() failed in MessengerBrokerProxy.send_recv_and()")?;
         //let value = (recvr)(timeout)?;
-        let response_function_name = obj_get_str(&value.value, "function_name")?;
-        match response_function_name {
+        let response_function_name = obj_get_str(&value.get_value()?, "function_name")?.to_owned();
+        match response_function_name.as_str() {
             "RequestFunctionNameNotSupported" => {
                 return Err(anyhow::Error::from(JuizError::BrokerProxyRequestFunctionNameNotSupportedError{request_function_name: function_name.to_string()}));
             },
@@ -121,7 +121,7 @@ impl MessengerBrokerProxy {
             function_name, 
             jvalue!({"id": id, "args": args}), 
             &[("id".to_owned(), id.clone())],
-            |value| Ok(Output::new(obj_get(&value.value, "return")?.clone())))
+            |value| Ok(Output::new_from_value(obj_get(&value.get_value()?, "return")?.clone())))
     }
 
     pub fn update_by_id(&self, class_name: &str, function_name: &str, args: Value, id: &Identifier) -> JuizResult<Value>  {

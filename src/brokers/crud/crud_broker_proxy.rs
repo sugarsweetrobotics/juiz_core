@@ -87,7 +87,7 @@ impl ProcessBrokerProxy for CRUDBrokerProxyHolder {
                 "destination_process_id": destination_process_id,
                 "manifest": manifest
             }), 
-            HashMap::from([]))?.value)
+            HashMap::from([]))?.get_value()?)
     }
 
     fn process_notify_connected_from(&mut self, source_process_id: &Identifier, arg_name: &String, destination_process_id: &Identifier, manifest: Value) -> JuizResult<Value> {
@@ -100,7 +100,7 @@ impl ProcessBrokerProxy for CRUDBrokerProxyHolder {
                 "destination_process_id": destination_process_id,
                 "manifest": manifest
             }), 
-            HashMap::from([]))?.value)
+            HashMap::from([]))?.get_value()?)
     }
 }
 
@@ -135,11 +135,11 @@ impl ExecutionContextBrokerProxy for CRUDBrokerProxyHolder {
     }
 
     fn ec_start(&mut self, id: &Identifier) -> JuizResult<Value> {
-        Ok(self.broker.update("execution_context", "start", jvalue!({}), HashMap::from([("id".to_owned(), id.to_owned())]))?.value)
+        Ok(self.broker.update("execution_context", "start", jvalue!({}), HashMap::from([("id".to_owned(), id.to_owned())]))?.get_value()?)
     }
 
     fn ec_stop(&mut self, id: &Identifier) -> JuizResult<Value> {
-        Ok(self.broker.update("execution_context", "stop", jvalue!({}), HashMap::from([("id".to_owned(), id.to_owned())]))?.value)
+        Ok(self.broker.update("execution_context", "stop", jvalue!({}), HashMap::from([("id".to_owned(), id.to_owned())]))?.get_value()?)
     }
 }
 

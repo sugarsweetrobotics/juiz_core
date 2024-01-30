@@ -23,7 +23,7 @@ pub mod cv_camera_capture {
         let mut frame: opencv::core::Mat = Mat::default();
 		container.camera.read(&mut frame)?;
 		
-        return Ok(Output::new(jvalue!({})));
+        return Ok(Output::new_from_value(jvalue!({})));
     }
 
 

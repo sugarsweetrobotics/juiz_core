@@ -74,8 +74,6 @@ impl System {
         &self.core_broker
     }
 
-
-
     pub fn process_from_id(&self, id: &Identifier) -> JuizResult<Arc<Mutex<dyn Process>>> {
         juiz_lock(&self.core_broker)?.store().processes.get(id)
     }
@@ -216,10 +214,16 @@ impl System {
             self.spin();
             std::thread::sleep(self.sleep_time);
         }
+        Ok(())
+    }
+
+    fn stop(&mut self) -> JuizResult<()> {
+
         for (type_name, broker) in self.brokers.iter() {
             log::info!("stopping Broker({type_name:})");
             let _ = juiz_lock(&broker)?.stop()?;
         }
+
         Ok(())
     }
 
@@ -232,6 +236,7 @@ impl System {
         log::debug!("Juiz System Now Started.");
         self.setup().context("System::setup() in System::run() failed.")?;
         self.wait_for_singal().context("System::wait_for_signal() in System::run() failed.")?;
+        self.stop()?;
         log::debug!("System::run() exit");
         self.cleanup()?;
         Ok(())
@@ -244,6 +249,7 @@ impl System {
         (func)(self).context("User function passed for System::run_and_do() failed.")?;
         self.wait_for_singal().context("System::wait_for_signal() in System::run_and_do() failed.")?;
         log::debug!("System::run_and_do() exit");
+        self.stop()?;
         self.cleanup()?;
         Ok(())
     }
@@ -254,6 +260,7 @@ impl System {
         log::debug!("Juiz System Now Started.");
         (func)(self).context("User function passed for System::run_and_do_once() failed.")?;
         //self.wait_for_singal().context("System::wait_for_signal() in System::run_and_do() failed.")?;
+        self.stop()?;
         log::debug!("System::run_and_do_once() exit");
         self.cleanup()?;
         Ok(())

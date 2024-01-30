@@ -122,6 +122,8 @@ pub enum JuizError {
     
     #[error("Process Argument can not found by name ({name})")]
     ArgumentCanNotFoundByNameError{ name: String },
+    #[error("Output does not contain Value type.")]
+    OutputDoesNotContainValueTypeError {  },
     
 
     /*

@@ -3,7 +3,6 @@ use std::sync::{Mutex, Arc};
 use juiz_core::{jvalue, JuizResult, Value, ProcessFactory, create_process_factory, processes::{arg, Argument, Output}};
 
 
-#[no_mangle]
 pub unsafe extern "Rust" fn manifest() -> Value { 
 
     return jvalue!({
@@ -21,7 +20,7 @@ pub unsafe extern "Rust" fn manifest() -> Value {
 
 fn increment_function(args: Vec<Argument>) -> JuizResult<Output> {
     let i = arg(&args, "arg1")?.as_i64().unwrap();
-    return Ok(Output::new(jvalue!(i+1)));
+    return Ok(Output::new_from_value(jvalue!(i+1)));
 }
 
 #[no_mangle]

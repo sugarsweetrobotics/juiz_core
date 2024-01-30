@@ -6,7 +6,7 @@ use juiz_core::{jvalue, Value, JuizResult, processes::{process_impl::ProcessImpl
 #[allow(dead_code)]
 pub fn increment_function(v: Vec<Argument>) -> JuizResult<Output> {
     let i = arg(&v, "arg1")?.as_i64().unwrap();
-    return Ok(Output::new(jvalue!(i+1)));
+    return Ok(Output::new_from_value(jvalue!(i+1)));
 }
 
 #[allow(dead_code)]
@@ -36,7 +36,7 @@ pub fn execution_function(_v: Vec<Argument>) -> JuizResult<Output> {
         COUNTER = COUNTER + 1;
         val = COUNTER;
     }
-    return Ok(Output::new(jvalue!(val)));
+    return Ok(Output::new_from_value(jvalue!(val)));
 }
 
 #[allow(dead_code)]

@@ -48,14 +48,14 @@ impl CRUDBroker {
             },
             "connection" => {
                 match function_name {
-                    "create" => return Ok(Output::new(cb.connection_create(value)?)),
+                    "create" => return Ok(Output::new_from_value(cb.connection_create(value)?)),
                     _ => {
                         return Err(anyhow::Error::from(JuizError::CRUDBrokerCanNotFindFunctionError{class_name:class_name.to_string(), function_name: function_name.to_string()}));
                     }
                 }
             }
             _ => {
-                Ok(Output::new(jvalue!({})))
+                Ok(Output::new_from_value(jvalue!({})))
             }
         }
     }
@@ -66,7 +66,7 @@ impl CRUDBroker {
         match class_name {
             "system" => {
                 match function_name {
-                    "profile_full" => return Ok(Output::new(cb.system_profile_full()?)),
+                    "profile_full" => return Ok(Output::new_from_value(cb.system_profile_full()?)),
                     _ => {
                         return Err(anyhow::Error::from(JuizError::CRUDBrokerCanNotFindFunctionError{class_name:class_name.to_string(), function_name: function_name.to_string()}));
                     }
@@ -76,9 +76,9 @@ impl CRUDBroker {
                 match function_name {
                     "profile_full" => {
                         let id = params_get(params, "identifier").context("CRUDBroker.read_class()")?;
-                        return Ok(Output::new(cb.broker_profile_full(&id)?))
+                        return Ok(Output::new_from_value(cb.broker_profile_full(&id)?))
                     },
-                    "list" => return Ok(Output::new(cb.broker_list()?)),
+                    "list" => return Ok(Output::new_from_value(cb.broker_list()?)),
                     _ => {
                         return Err(anyhow::Error::from(JuizError::CRUDBrokerCanNotFindFunctionError{class_name:class_name.to_string(), function_name: function_name.to_string()}));
                     }
@@ -88,9 +88,9 @@ impl CRUDBroker {
                 match function_name {
                     "profile_full" => {
                         let id = params_get(params, "identifier")?;
-                        return Ok(Output::new(cb.process_profile_full(&id)?))
+                        return Ok(Output::new_from_value(cb.process_profile_full(&id)?))
                     },
-                    "list" => return Ok(Output::new(cb.process_list()?)),
+                    "list" => return Ok(Output::new_from_value(cb.process_list()?)),
                     _ => {
                         return Err(anyhow::Error::from(JuizError::CRUDBrokerCanNotFindFunctionError{class_name:class_name.to_string(), function_name: function_name.to_string()}));
                     }
@@ -99,8 +99,8 @@ impl CRUDBroker {
             "container" => {
                 
                 match function_name {
-                    "profile_full" => return Ok(Output::new(cb.container_profile_full(&params_get(params, "identifier")?)?)),
-                    "list" => return Ok(Output::new(cb.container_list()?)),
+                    "profile_full" => return Ok(Output::new_from_value(cb.container_profile_full(&params_get(params, "identifier")?)?)),
+                    "list" => return Ok(Output::new_from_value(cb.container_list()?)),
                     _ => {
                         return Err(anyhow::Error::from(JuizError::CRUDBrokerCanNotFindFunctionError{class_name:class_name.to_string(), function_name: function_name.to_string()}));
                     }
@@ -108,8 +108,8 @@ impl CRUDBroker {
             },
             "container_process" => {
                 match function_name {
-                    "profile_full" => return Ok(Output::new(cb.container_process_profile_full(&params_get(params, "identifier")?)?)),
-                    "list" => return Ok(Output::new(cb.container_process_list()?)),
+                    "profile_full" => return Ok(Output::new_from_value(cb.container_process_profile_full(&params_get(params, "identifier")?)?)),
+                    "list" => return Ok(Output::new_from_value(cb.container_process_list()?)),
                     _ => {
                         return Err(anyhow::Error::from(JuizError::CRUDBrokerCanNotFindFunctionError{class_name:class_name.to_string(), function_name: function_name.to_string()}));
                     }
@@ -119,9 +119,9 @@ impl CRUDBroker {
                 match function_name {
                     "profile_full" => {
                         let id = params_get(params, "identifier")?;
-                        return Ok(Output::new(cb.connection_profile_full(&id)?))
+                        return Ok(Output::new_from_value(cb.connection_profile_full(&id)?))
                     },
-                    "list" => return Ok(Output::new(cb.connection_list()?)),
+                    "list" => return Ok(Output::new_from_value(cb.connection_list()?)),
                     _ => {
                         return Err(anyhow::Error::from(JuizError::CRUDBrokerCanNotFindFunctionError{class_name:class_name.to_string(), function_name: function_name.to_string()}));
                     }
@@ -129,16 +129,16 @@ impl CRUDBroker {
             },
             "execution_context" => {
                 match function_name {
-                    "profile_full" => return Ok(Output::new(cb.ec_profile_full(&params_get(params, "identifier")?)?)),
-                    "list" => return Ok(Output::new(cb.ec_list()?)),
-                    "get_state" => return Ok(Output::new(cb.ec_get_state(&params_get(params, "identifier")?)?)),
+                    "profile_full" => return Ok(Output::new_from_value(cb.ec_profile_full(&params_get(params, "identifier")?)?)),
+                    "list" => return Ok(Output::new_from_value(cb.ec_list()?)),
+                    "get_state" => return Ok(Output::new_from_value(cb.ec_get_state(&params_get(params, "identifier")?)?)),
                     _ => {
                         return Err(anyhow::Error::from(JuizError::CRUDBrokerCanNotFindFunctionError{class_name:class_name.to_string(), function_name: function_name.to_string()}));
                     }
                 }
             },
             _ => {
-                Ok(Output::new(jvalue!({})))
+                Ok(Output::new_from_value(jvalue!({})))
             }
         }
     }
@@ -166,15 +166,15 @@ impl CRUDBroker {
             },
             "execution_context" => {
                 match function_name {
-                    "start" => return Ok(Output::new(cb.ec_start(&params_get(params, "identifier")?)?)),
-                    "stop" => return Ok(Output::new(cb.ec_stop(&params_get(params, "identifier")?)?)),
+                    "start" => return Ok(Output::new_from_value(cb.ec_start(&params_get(params, "identifier")?)?)),
+                    "stop" => return Ok(Output::new_from_value(cb.ec_stop(&params_get(params, "identifier")?)?)),
                     _ => {
                         return Err(anyhow::Error::from(JuizError::CRUDBrokerCanNotFindFunctionError{class_name:class_name.to_string(), function_name: function_name.to_string()}));
                     }
                 }
             },
             _ => {
-                Ok(Output::new(jvalue!({})))
+                Ok(Output::new_from_value(jvalue!({})))
             }
         }
     }

@@ -62,7 +62,11 @@ pub fn json_output_wrap(result: JuizResult<Output>) -> impl IntoResponse {
                 }))).into_response()
         },
         Ok(v) => {
-            Json(v.value).into_response()
+            let result = v.get_value();
+            //if result.is_err() {
+            //    abort();
+            //}
+            Json(result.unwrap()).into_response()
         }
     }
 }

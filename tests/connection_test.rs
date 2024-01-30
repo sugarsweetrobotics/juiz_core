@@ -36,7 +36,7 @@ fn simple_connection_invoke_test() {
     assert!(result2.is_ok(), "Failed to connect_to function. Error is {:?}", result2.err());
 
     let result = rp2.lock().unwrap().invoke();
-    assert_eq!(result.unwrap().value.as_i64().unwrap(), 3);
+    assert_eq!(result.unwrap().get_value().unwrap().as_i64().unwrap(), 3);
 }
 
 #[test]
@@ -54,15 +54,19 @@ fn simple_connection_execute_test() {
     let result2 = rp1.lock().unwrap().try_connect_to(Arc::clone(&rp2), &"arg1".to_string(), manifeset.clone());
     assert!(result2.is_ok(), "Failed to connect_to function. Error is {:?}", result2.err());
 
-
+    //let p =  
     let result_old = rp2.lock().unwrap().get_output();
-    assert!(result_old.is_none());
+    println!("hogehoge= {:?}", result_old.is_none());
+    let f = result_old.is_none();
+    assert!(f == false);
 
     let result1 = rp1.lock().unwrap().execute();
     assert!(result1.is_ok(), "Error of ConnectionRack.execute(). Error is {:?}", result1.err());
     let result = rp2.lock().unwrap().get_output();
-    assert!(result.is_some());
-    assert_eq!(result.unwrap().value.as_i64().unwrap(), 3);
+    assert_eq!(result.is_some(), true);
+    let v = result.unwrap();
+    println!("value = {:?}", v.get_value());
+    assert_eq!(v.get_value().unwrap().as_i64().unwrap(), 3);
 }
 
 
@@ -82,5 +86,5 @@ fn simple_connection_builder_invoke_test() {
     assert!(result1.is_ok(), "Failed to ConnectionBuilder::connected function. Error is {:?}", result1.err());
     
     let result = rp2.lock().unwrap().invoke();
-    assert_eq!(result.unwrap().value.as_i64().unwrap(), 3);
+    assert_eq!(result.unwrap().get_value().unwrap().as_i64().unwrap(), 3);
 }

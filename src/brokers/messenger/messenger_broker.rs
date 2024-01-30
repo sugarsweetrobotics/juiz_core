@@ -82,7 +82,7 @@ fn handle_function(crud_broker: Arc<Mutex<CRUDBroker>>, value: Value) -> JuizRes
     }?;
     return Ok(jvalue!({
         "function_name": jvalue!(function_name),
-        "return": result.value,
+        "return": result.get_value()?,
     }));
 }
 

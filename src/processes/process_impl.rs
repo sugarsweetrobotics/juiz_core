@@ -27,7 +27,7 @@ pub struct ProcessImpl {
     manifest: Value,
     function: Box<FunctionTrait>,
     identifier: Identifier,
-    output_memo: RefCell<Output>,
+    //output_memo: RefCell<Output>,
     outlet: Outlet,
     inlets: Vec<Inlet>,
 }
@@ -55,7 +55,7 @@ impl ProcessImpl {
             identifier: create_identifier_from_manifest("Process", &manifest)?,
             // source_connections: HashMap::new(),
             //destination_connections: HashMap::new(),
-            output_memo: RefCell::new(Output::new(jvalue!(null))),
+            //output_memo: RefCell::new(Output::new_from_value(jvalue!(null))),
             outlet: Outlet::new(),
             inlets: Self::create_inlets(&manifest)?,
         })
@@ -105,7 +105,7 @@ impl ProcessImpl {
             identifier: identifier_from_manifest("core", "core", "Process", &manifest)?,
             // source_connections: HashMap::new(),
             // destination_connections: HashMap::new(),
-            output_memo: RefCell::new(Output::new(jvalue!(null))),
+            // output_memo: RefCell::new(Output::new_from_value(jvalue!(null))),
             outlet: Outlet::new(),
             inlets: Self::create_inlets(&manifest)?,
         })
@@ -122,7 +122,7 @@ impl ProcessImpl {
         
         for inlet in self.inlets.iter() {
             if inlet.name() == arg_name { continue; }
-            value_map.insert(inlet.name().clone(), inlet.collect_value());
+            value_map.insert(inlet.name().clone(), inlet.collect_value()?);
         }
         Ok(Value::from(value_map))
     }
@@ -191,7 +191,7 @@ impl Process for ProcessImpl {
     }
 
     fn is_updated_exclude(&self, arg_name: &String) -> JuizResult<bool> {
-        if self.output_memo.borrow().value.is_null() {
+        if self.outlet.is_buffer_empty()? {
             return Ok(true)
         }
         for inlet in self.inlets.iter() {
@@ -205,20 +205,22 @@ impl Process for ProcessImpl {
 
     fn invoke<'b>(&'b self) -> JuizResult<Output> {
         log::trace!("Processimpl({:?})::invoke() called", self.identifier());
-        self.invoke_exclude(&"".to_string(), Output::new(jvalue!({})))
+        self.invoke_exclude(&"".to_string(), Output::new_from_value(jvalue!({})))
     }
 
 
     fn invoke_exclude<'b>(&self, arg_name: &String, value: Output) -> JuizResult<Output> {
         if !self.is_updated_exclude(arg_name)? {
-            if self.output_memo.borrow().value.is_null() {
+            if self.outlet.is_buffer_empty()? {
                 return Err(anyhow::Error::from(JuizError::ProcessOutputMemoIsNotInitializedError{id: self.identifier().clone()}));
             }
-            return Ok(Output::new(self.output_memo.borrow().value.clone()));
+            //return Ok(Output::new_from_value(self.output_memo.borrow().get_value()?.clone()));
+            return Ok(Output::new_from_value(self.outlet.get_value()?));
         }
         
-        let result_value = self.call(self.collect_values_exclude(arg_name, value.value)?)?;
-        self.output_memo.borrow_mut().value.clone_from(&result_value.value);
+        let result_value = self.call(self.collect_values_exclude(arg_name, value.get_value()?)?)?;
+        //self.output_memo.borrow_mut().get_value()?.clone_from(&result_value.get_value()?);
+        self.outlet.set_value(result_value.get_value()?);
         Ok(result_value)
     }
 
@@ -227,14 +229,14 @@ impl Process for ProcessImpl {
     }
 
     fn push_by(&self, arg_name: &String, value: &Output) -> JuizResult<Output> {
-        self.outlet.push(self.invoke_exclude(arg_name, Output::new(value.value.clone()))?)
+        self.outlet.push(self.invoke_exclude(arg_name, Output::new_from_value(value.get_value()?))?)
     }
     
     fn get_output(&self) -> Option<Output> {
-        if self.output_memo.borrow().value.is_null() {
-            return None
+        match self.outlet.get_value() {
+            Err(_) => None,
+            Ok(v) => Some(Output::new_from_value(v))
         }
-        Some(Output::new(self.output_memo.borrow().value.clone()))
     }
 
     fn notify_connected_from(&mut self, source: Arc<Mutex<dyn Process>>, connecting_arg: &String, connection_manifest: Value) -> JuizResult<Value> {

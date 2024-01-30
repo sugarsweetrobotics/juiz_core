@@ -56,7 +56,7 @@ fn core_broker_test() {
     }));
     match retval {
         Ok(vv) => {
-            assert_eq!(vv.value.as_i64().unwrap(), 2);
+            assert_eq!(vv.get_value().unwrap().as_i64().unwrap(), 2);
         }, 
         Err(ev) => {
             print!("Return value is {:?}", ev);

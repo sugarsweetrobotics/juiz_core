@@ -105,7 +105,7 @@ impl CRUDBrokerProxy for HTTPBrokerProxy {
             Ok(response) => {
                 match response.json() {
                     Err(e) => Err(anyhow::Error::from(e)),
-                    Ok(v) => Ok(Output::new(v))
+                    Ok(v) => Ok(Output::new_from_value(v))
                 }
             }
         }

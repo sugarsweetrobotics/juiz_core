@@ -25,7 +25,7 @@ pub unsafe extern "Rust" fn manifest() -> Value {
 fn increment_function(container: &mut Box<ExampleContainer>, v: Vec<Argument>) -> JuizResult<Output> {
     let i = arg(&v, "arg1")?.as_i64().unwrap();
     container.value = container.value + i;
-    return Ok(Output::new(jvalue!(container.value)));
+    return Ok(Output::new_from_value(jvalue!(container.value)));
 }
 
 

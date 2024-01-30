@@ -19,7 +19,7 @@ pub mod example_container_get {
 
 
     fn get_function(container: &mut Box<ExampleContainer>, _v: Vec<Argument>) -> JuizResult<Output> {
-        return Ok(Output::new(jvalue!(container.value)));
+        return Ok(Output::new_from_value(jvalue!(container.value)));
     }
 
 
