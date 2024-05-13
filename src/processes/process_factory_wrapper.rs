@@ -1,20 +1,22 @@
-use std::{sync::{Arc, Mutex}, cell::RefCell};
+use std::{cell::RefCell, rc::Rc, sync::{Arc, Mutex}};
 
 use anyhow::Context;
 
-use crate::{jvalue, ProcessFactory, core::Plugin, Process, Value, utils::juiz_lock, JuizResult, JuizObject, object::{ObjectCore, JuizObjectCoreHolder, JuizObjectClass}, value::obj_merge};
+use crate::{core::Plugin, jvalue, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, utils::juiz_lock, value::obj_merge, JuizError, JuizObject, JuizResult, Process, ProcessFactory, Value};
+
+use super::capsule::Capsule;
 
 #[allow(dead_code)]
 pub struct ProcessFactoryWrapper {
     core: ObjectCore,
-    plugin: Plugin,
+    plugin: Rc<Plugin>,
     process_factory: Arc<Mutex<dyn ProcessFactory>>,
     processes: RefCell<Vec<Arc<Mutex<dyn Process>>>>
 }
 
 impl ProcessFactoryWrapper {
     
-    pub fn new(plugin: Plugin, process_factory: Arc<Mutex<dyn ProcessFactory>>) -> JuizResult<Arc<Mutex<dyn ProcessFactory>>> {
+    pub fn new(plugin: Rc<Plugin>, process_factory: Arc<Mutex<dyn ProcessFactory>>) -> JuizResult<Arc<Mutex<dyn ProcessFactory>>> {
         let pf = juiz_lock(&process_factory)?;
         let type_name = pf.type_name();
         Ok(Arc::new(Mutex::new(ProcessFactoryWrapper{
@@ -34,12 +36,12 @@ impl JuizObjectCoreHolder for ProcessFactoryWrapper {
 
 impl JuizObject for ProcessFactoryWrapper {
 
-    fn profile_full(&self) -> JuizResult<Value> {
+    fn profile_full(&self) -> JuizResult<Capsule> {
         let v = self.core.profile_full()?;
-        obj_merge(v, &jvalue!({
+        Ok(obj_merge(v, &jvalue!({
             "plugin": self.plugin.profile_full()?,
-            "process_factory": juiz_lock(&self.process_factory)?.profile_full()?
-        }))
+            "process_factory": juiz_lock(&self.process_factory)?.profile_full()?.as_value().ok_or(anyhow::Error::from(JuizError::CapsuleIsNotValueTypeError{}))?
+        }))?.into())
     }
 
 }

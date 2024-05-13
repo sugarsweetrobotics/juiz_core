@@ -36,7 +36,7 @@ fn simple_connection_invoke_test() {
     assert!(result2.is_ok(), "Failed to connect_to function. Error is {:?}", result2.err());
 
     let result = rp2.lock().unwrap().invoke();
-    assert_eq!(result.unwrap().get_value().unwrap().as_i64().unwrap(), 3);
+    assert_eq!(result.unwrap().as_value().unwrap().as_i64().unwrap(), 3);
 }
 
 #[test]
@@ -65,8 +65,8 @@ fn simple_connection_execute_test() {
     let result = rp2.lock().unwrap().get_output();
     assert_eq!(result.is_some(), true);
     let v = result.unwrap();
-    println!("value = {:?}", v.get_value());
-    assert_eq!(v.get_value().unwrap().as_i64().unwrap(), 3);
+    println!("value = {:?}", v.as_value());
+    assert_eq!(v.as_value().unwrap().as_i64().unwrap(), 3);
 }
 
 
@@ -86,5 +86,13 @@ fn simple_connection_builder_invoke_test() {
     assert!(result1.is_ok(), "Failed to ConnectionBuilder::connected function. Error is {:?}", result1.err());
     
     let result = rp2.lock().unwrap().invoke();
-    assert_eq!(result.unwrap().get_value().unwrap().as_i64().unwrap(), 3);
+    assert!(result.is_ok());
+    let output = result.unwrap();
+    assert!(output.is_value());
+    let value = output.as_value();
+    assert!(value.is_some());
+    let i64_val = value.unwrap();
+    println!("i64_val={}",i64_val);
+    assert!(i64_val.is_i64());
+    assert_eq!(i64_val.as_i64().unwrap(), 3);
 }

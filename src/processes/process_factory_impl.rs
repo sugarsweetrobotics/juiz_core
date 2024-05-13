@@ -1,7 +1,7 @@
 
 use std::sync::{Mutex, Arc};
 use crate::{value::obj_get_str, Process, ProcessFactory, processes::process_impl::ProcessImpl, JuizError, Value, JuizResult, utils::check_process_factory_manifest, JuizObject, object::{ObjectCore, JuizObjectCoreHolder, JuizObjectClass}};
-use super::process_impl::{FunctionType, FunctionTrait};
+use super::process_impl::FunctionType;
 
 #[repr(C)]
 pub struct ProcessFactoryImpl {

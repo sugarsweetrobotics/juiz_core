@@ -3,13 +3,14 @@ use std::sync::{Mutex, Arc};
 
 use crate::{Identifier, Value, JuizResult, JuizObject, connections::{SourceConnection, DestinationConnection}};
 
-use super::Output;
+use super::capsule::{Capsule, CapsuleMap};
 
+/*
 pub type ProcessFunction=dyn Fn(Value) -> JuizResult<Output>;
-
+*/
 pub trait Process : Send + JuizObject {
 
-    fn call(&self, _args: Value) -> JuizResult<Output>;
+    fn call(&self, _args: CapsuleMap) -> JuizResult<Capsule>;
 
     fn is_updated(& self) -> JuizResult<bool>;
 
@@ -24,9 +25,9 @@ pub trait Process : Send + JuizObject {
      * この方法は配下すべてに問い合わせが波及するので、updateされたかどうかをconnectionにpushする仕組みが必要
      * TODO: 
      */
-    fn invoke<'b>(&self) -> JuizResult<Output>;
+    fn invoke<'b>(&self) -> JuizResult<Capsule>;
 
-    fn invoke_exclude<'b>(&self, arg_name: &String, value: Output) -> JuizResult<Output>;
+    fn invoke_exclude<'b>(&self, arg_name: &String, value: Capsule) -> JuizResult<Capsule>;
 
     /*
      * executeは自信をinvokeしてから、自分の出力側接続先をすべてexecuteする。
@@ -35,15 +36,15 @@ pub trait Process : Send + JuizObject {
      * 
      * 自分の配下はinvokeによってinvokeされるが、配下の枝分かれ先はexecuteされない
      */
-    fn execute(&self) -> JuizResult<Output>;
+    fn execute(&self) -> JuizResult<Capsule>;
 
-    fn push_by(&self, arg_name: &String, value: &Output) -> JuizResult<Output>;
+    fn push_by(&self, arg_name: &String, value: &Capsule) -> JuizResult<Capsule>;
 
-    fn get_output(&self) -> Option<Output>;
+    fn get_output(&self) -> Option<Capsule>;
 
-    fn notify_connected_from<'b>(&'b mut self, source: Arc<Mutex<dyn Process>>, connecting_arg: &String, connection_manifest: Value) -> JuizResult<Value>;
+    fn notify_connected_from<'b>(&'b mut self, source: Arc<Mutex<dyn Process>>, connecting_arg: &String, connection_manifest: Value) -> JuizResult<Capsule>;
 
-    fn try_connect_to(&mut self, target: Arc<Mutex<dyn Process>>, connect_arg_to: &String, connection_manifest: Value) -> JuizResult<Value>;
+    fn try_connect_to(&mut self, target: Arc<Mutex<dyn Process>>, connect_arg_to: &String, connection_manifest: Value) -> JuizResult<Capsule>;
     
     fn source_connections(&self) -> JuizResult<Vec<&Box<dyn SourceConnection>>>;
 

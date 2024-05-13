@@ -1,7 +1,7 @@
 use std::{sync::{Arc, Mutex}, collections::HashMap};
 
 
-use juiz_core::{JuizResult, brokers::{BrokerProxyFactory, BrokerProxy, create_broker_proxy_factory_impl}, Value, jvalue, value::obj_get_str, JuizError, processes::Output};
+use juiz_core::{brokers::{create_broker_proxy_factory_impl, BrokerProxy, BrokerProxyFactory}, jvalue, processes::capsule::{Capsule, CapsuleMap}, value::obj_get_str, JuizError, JuizResult, Value};
 
 use juiz_core::brokers::{CRUDBrokerProxy, CRUDBrokerProxyHolder};
 
@@ -52,8 +52,13 @@ fn construct_url(base_url: &String, class_name: &str, function_name: &str, param
     return url + "?" + m.collect::<Vec<String>>().join("&").as_str();
 }
 
+
+fn to_payload<'a>(_payload: &'a CapsuleMap) -> JuizResult<&'a Value> {
+    todo!();
+}
+
 impl CRUDBrokerProxy for HTTPBrokerProxy {
-    fn create(&self, class_name: &str, function_name: &str, payload: Value, param: std::collections::HashMap<String, String>) -> JuizResult<Value> {
+    fn create(&self, class_name: &str, function_name: &str, payload: Value, param: std::collections::HashMap<String, String>) -> JuizResult<Capsule> {
         let client = reqwest::blocking::Client::new();
         match client.post(construct_url(&self.base_url, class_name, function_name, &param))
             .json(&payload)
@@ -64,22 +69,22 @@ impl CRUDBrokerProxy for HTTPBrokerProxy {
                 if response.status() != 200 {
                     return Err(anyhow::Error::from(HTTPBrokerError::GeneralError{}));
                 }
-                response.json().map_err(|e| anyhow::Error::from(e))
+                Ok(response.json::<Value>().map_err(|e| anyhow::Error::from(e))?.into())
             }
         }
     }
 
-    fn delete(&self, class_name: &str, function_name: &str, param: std::collections::HashMap<String, String>) -> JuizResult<Value> {
+    fn delete(&self, class_name: &str, function_name: &str, param: std::collections::HashMap<String, String>) -> JuizResult<Capsule> {
         let client = reqwest::blocking::Client::new();
         match client.delete(construct_url(&self.base_url, class_name, function_name, &param)).send() {
             Err(e) => Err(anyhow::Error::from(e)),
             Ok(response) => {
-                response.json().map_err(|e| anyhow::Error::from(e))
+                Ok(response.json::<Value>().map_err(|e| anyhow::Error::from(e))?.into())
             }
         }
     }
 
-    fn read(&self, class_name: &str, function_name: &str, param: std::collections::HashMap<String, String>) -> JuizResult<Value> {
+    fn read(&self, class_name: &str, function_name: &str, param: std::collections::HashMap<String, String>) -> JuizResult<Capsule> {
         log::info!("HTTPBrokerProxy.read() called");
         
         let client = reqwest::blocking::Client::new();
@@ -91,21 +96,22 @@ impl CRUDBrokerProxy for HTTPBrokerProxy {
                 if response.status() != 200 {
                     return Err(anyhow::Error::from(HTTPBrokerError::HTTPStatusError{status_code: response.status(), message: format!("{:?}", response) }));
                 }
-                response.json().map_err(|e| anyhow::Error::from(e))
+                Ok(response.json::<Value>().map_err(|e| anyhow::Error::from(e))?.into())
             }
         }
     }
 
-    fn update(&self, class_name: &str, function_name: &str, payload: Value, param: std::collections::HashMap<String, String>) -> JuizResult<Output> {
+
+    fn update(&self, class_name: &str, function_name: &str, payload: CapsuleMap, param: std::collections::HashMap<String, String>) -> JuizResult<Capsule> {
         let client = reqwest::blocking::Client::new();
         match client.patch(construct_url(&self.base_url, class_name, function_name, &param))
-            .json(&payload)
+            .json(to_payload(&payload)?)
             .send() {
             Err(e) => Err(anyhow::Error::from(e)),
             Ok(response) => {
-                match response.json() {
+                match response.json::<Value>() {
                     Err(e) => Err(anyhow::Error::from(e)),
-                    Ok(v) => Ok(Output::new_from_value(v))
+                    Ok(v) => Ok(v.into())
                 }
             }
         }

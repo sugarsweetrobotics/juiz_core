@@ -37,6 +37,7 @@ fn new_core_broker() -> CoreBroker {
 
 //#[cfg(test)]
 //#[test]
+#[allow(dead_code)]
 fn core_broker_process_factory_integration_test() {
     use juiz_core::brokers::broker_proxy::ProcessBrokerProxy;
 
@@ -59,12 +60,12 @@ fn core_broker_process_factory_integration_test() {
 
     //assert!(cb.is_in_charge_for_process(&id));
 
-    let retval = cb.process_call(&id, jvalue!({
-        "arg1": 1,
-    }));
+    let retval = cb.process_call(&id, vec!(("arg1", jvalue!(
+        1
+    ))).into());
     match retval {
         Ok(vv) => {
-            assert_eq!(vv.get_value().unwrap().as_i64().unwrap(), 2);
+            assert_eq!(vv.as_value().unwrap().as_i64().unwrap(), 2);
         }, 
         Err(ev) => {
             print!("Return value is {:?}", ev);
@@ -121,7 +122,7 @@ fn core_broker_process_factory_integration_connection_test() {
     let retval = cb.process_execute(&id1);
     match retval {
         Ok(vv) => {
-            assert_eq!(vv.get_value().unwrap().as_i64().unwrap(), 2);
+            assert_eq!(vv.as_value().unwrap().as_i64().unwrap(), 2);
         }, 
         Err(ev) => {
             print!("Return value is {:?}", ev);
@@ -135,6 +136,6 @@ fn core_broker_process_factory_integration_connection_test() {
 
     //
     // 1 (default) -> proc1 -> 2 -> procec2 -> 3. Answer must be 3.
-    assert_eq!(output.unwrap().get_value().unwrap(), jvalue!(3), "Error. Execution output of Process 2 is wrong.");
+    assert_eq!(output.unwrap().as_value().unwrap().clone(), jvalue!(3), "Error. Execution output of Process 2 is wrong.");
 
 }

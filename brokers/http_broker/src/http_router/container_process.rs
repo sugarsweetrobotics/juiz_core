@@ -1,7 +1,8 @@
+use juiz_core::Value;
 use utoipa::OpenApi;
 
 use super::IdentifierQuery;
-use axum::extract::Query;
+use axum::{extract::Query, Json};
 
 
 #[utoipa::path(
@@ -30,11 +31,30 @@ pub fn profile_handler_dummy(
 pub fn list_dummy() {
 }
 
+#[utoipa::path(
+    patch,
+    path = "/api/container_process/call",
+    params(
+        IdentifierQuery
+    ),
+    request_body = Value,
+    responses(
+        (status = 200, description = "System")
+    ),
+    tag = "container_process",
+)]
+pub fn call_dummy(
+_query: Query<IdentifierQuery>,
+Json(_body): Json<Value>) {
+}
+
+
 #[derive(OpenApi)]
 #[openapi(
     paths(
         profile_handler_dummy,
         list_dummy,
+        call_dummy,
     ),
     components(schemas(
     ))

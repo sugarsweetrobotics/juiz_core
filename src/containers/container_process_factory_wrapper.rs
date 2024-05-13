@@ -1,20 +1,20 @@
-use std::{sync::{Arc, Mutex}, cell::RefCell};
+use std::{cell::RefCell, rc::Rc, sync::{Arc, Mutex}};
 
 use anyhow::Context;
 
-use crate::{jvalue, core::Plugin, Value, utils::juiz_lock, JuizResult, ContainerProcessFactory, Process, JuizObject, object::{JuizObjectCoreHolder, ObjectCore, JuizObjectClass}, value::obj_merge};
+use crate::{core::Plugin, jvalue, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, processes::capsule::Capsule, utils::juiz_lock, value::obj_merge, ContainerProcessFactory, JuizError, JuizObject, JuizResult, Process, Value};
 
 #[allow(dead_code)]
 pub struct ContainerProcessFactoryWrapper {
     core: ObjectCore,
-    plugin: Plugin,
+    plugin: Rc<Plugin>,
     container_process_factory: Arc<Mutex<dyn ContainerProcessFactory>>,
     container_processes: RefCell<Vec<Arc<Mutex<dyn Process>>>>
 }
 
 impl ContainerProcessFactoryWrapper {
     
-    pub fn new(plugin: Plugin, container_process_factory: Arc<Mutex<dyn ContainerProcessFactory>>) -> JuizResult<Arc<Mutex<dyn ContainerProcessFactory>>> {
+    pub fn new(plugin: Rc<Plugin>, container_process_factory: Arc<Mutex<dyn ContainerProcessFactory>>) -> JuizResult<Arc<Mutex<dyn ContainerProcessFactory>>> {
         let cpf = juiz_lock(&container_process_factory)?;
         let type_name = cpf.type_name();
         Ok(Arc::new(Mutex::new(ContainerProcessFactoryWrapper{
@@ -35,12 +35,12 @@ impl JuizObjectCoreHolder for ContainerProcessFactoryWrapper {
 
 impl JuizObject for ContainerProcessFactoryWrapper {
     
-    fn profile_full(&self) -> JuizResult<Value> {
-        obj_merge(self.core.profile_full()?, &jvalue!({
+    fn profile_full(&self) -> JuizResult<Capsule> {
+        Ok(obj_merge(self.core.profile_full()?.try_into()?, &jvalue!({
             "plugin": self.plugin.profile_full()?,
-            "container_process_factory": juiz_lock(&self.container_process_factory)?.profile_full()?,
+            "container_process_factory": juiz_lock(&self.container_process_factory)?.profile_full()?.as_value().ok_or(anyhow::Error::from(JuizError::CapsuleIsNotValueTypeError{}))?,
             //container_processes: RefCell<Vec<Arc<Mutex<dyn ContainerProcess>>>>
-        }))
+        }))?.into())
     }
 }
 

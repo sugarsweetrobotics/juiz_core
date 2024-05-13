@@ -38,8 +38,8 @@ pub enum JuizError {
     MutexLockFailedError { error: String },
     #[error("Process tried to use output_memo, but borrowing value failed.")]
     ProcessOutputMemoIsNotInitializedError { id: String },
-    #[error("Process checked given argument({given_argument:}) but the argument does not contain the predefined specification ({process_manifest:})")]
-    ArgumentMissingWhenCallingError { process_manifest: Value, given_argument: Value, missing_arg_name: String },
+    #[error("Process checked given argument but the argument does not contain the predefined specification ({process_manifest:})")]
+    ArgumentMissingWhenCallingError { process_manifest: Value, missing_arg_name: String },
     #[error("Process manifest includes invalid value type string. Manifest is ({manifest:}), type string is ({type_string:}")]
     ManifestArgumentDefaultValueIsInvalidTypeError {manifest: Value, type_string: String  },
     #[error("Process manifest includes invalid value type in default arugment value.Value is ({value:}")]
@@ -72,16 +72,16 @@ pub enum JuizError {
     BrokerFactoryCanNotFoundError { type_name: String },
     #[error("BrokerStopFailedError (type_name={type_name:})")]
     BrokerStopFailedError { type_name: String },
-    #[error("LocalBrokerProxy::send() Failed. (SendError({send_error:}))")]
-    LocalBrokerProxySendError { send_error: mpsc::SendError<serde_json::Value> },
+    #[error("LocalBrokerProxy::send() Failed. (SendError())")]
+    LocalBrokerProxySendError {},
     #[error("LocalBrokerProxy::recv() Timeout. (RecvTimeoutError({error:}))")]
     LocalBrokerProxyReceiveTimeoutError{ error: mpsc::RecvTimeoutError },
     #[error("BrokerProxy::recv() failed. Function request(name={function_name:}) does not match to the response({response_function_name:})")]
     BrokerProxyFunctionNameInResponseDoesNotMatchError { function_name: String, response_function_name: String },
     #[error("Requested Function Name ({request_function_name:}) is not supported by Broker")]
     BrokerProxyRequestFunctionNameNotSupportedError { request_function_name: String },
-    #[error("Broker Send Error (err={error:})")]
-    BrokerSendError { error: mpsc::SendError<serde_json::Value> },
+    #[error("Broker Send Error ()")]
+    BrokerSendError {},
     #[error("Broker can not Lock sender mutex.")]
     BrokerSendCanNotLockSenderError {  },
     #[error("Broker can not Lock receiver mutex.")]
@@ -124,6 +124,26 @@ pub enum JuizError {
     ArgumentCanNotFoundByNameError{ name: String },
     #[error("Output does not contain Value type.")]
     OutputDoesNotContainValueTypeError {  },
+    #[error("Output does not contain Mat type.")]
+    OutputDoesNotContainMatTypeError {  },
+    #[error("Output is empty")]
+    OutputIsEmptyError {  },
+    #[error("ArgumentError (msg={message:})")]
+    ArgumentError { message: String },
+    #[error("Return Value Capsule is not Value Type.")]
+    ReturnValueIsNotValueTypeError {  },
+    #[error("Return Value Capsule is not Mat Type.")]
+    ReturnValueIsNotMatTypeError {  },
+    #[error("Capsule is not ValueType Error.")]
+    CapsuleIsNotValueTypeError {  },
+    #[error("Capsule does not contain param named {name:} Error.")]
+    CapsuleDoesNotIncludeParamError{ name: String },
+    #[error("Function Argument type is not valid.")]
+    ArguemntTypeIsInvalidError {  },
+    #[error("COnnection ID ({identifier}) is invalid.")]
+    InvalidConnectionIdentifierError { identifier: String },
+    #[error("Connection ID ({identifier}) can not be found.")]
+    ConnectionCanNotBeFoundError { identifier: String },
     
 
     /*

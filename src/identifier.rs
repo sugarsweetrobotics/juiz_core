@@ -1,4 +1,4 @@
-use crate::{Value, JuizResult, value::obj_get_str};
+use crate::{value::obj_get_str, JuizError, JuizResult, Value};
 
 pub type Identifier = String;
 
@@ -12,7 +12,40 @@ pub fn identifier_new(broker_type_name: &str, broker_name: &str, class_name: &st
 }
 
 pub fn connection_identifier_new(source_id: Identifier, destination_id: Identifier, arg_name: &str) -> Identifier {
-    "connnection://".to_string() + source_id.as_str() + "|" + arg_name + "|" + destination_id.as_str()
+    "connection://".to_string() + source_id.as_str() + "|" + arg_name + "|" + destination_id.as_str()
+}
+
+
+pub fn connection_identifier_split(connection_id: Identifier) -> JuizResult<(String, String, String)> {
+    //todo!("not implemented connection_identifier_split");
+    let tokens = connection_id[13..].split('|').collect::<Vec<&str>>();
+    if tokens.len() != 3 {
+        return Err(anyhow::Error::from(JuizError::InvalidConnectionIdentifierError{identifier: connection_id}));
+    }
+    Ok((tokens[0].to_owned(), tokens[2].to_owned(), tokens[1].to_owned()))
+    //"connnection://".to_string() + source_id.as_str() + "|" + arg_name + "|" + destination_id.as_str()
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::JuizResult;
+
+    use super::{connection_identifier_new, connection_identifier_split};
+
+
+    #[test]
+    fn connection_identifier_test() -> JuizResult<()> {
+        let source_id = "core://core/ContainerProcess/read0::cv_camera_capture_read";
+        let destination_id = "core://core/Process/cv_cvt_color0::cv_cvt_color";
+        let arg_name = "src";
+        let con_id = connection_identifier_new(source_id.to_owned(), destination_id.to_owned(), arg_name);
+        let (sid, did, argn) = connection_identifier_split(con_id)?;
+        assert_eq!(source_id, sid);
+        assert_eq!(destination_id, did);
+        assert_eq!(arg_name, argn.as_str());
+
+        Ok(())
+    }
 }
 
 pub fn identifier_from_manifest(default_broker_type_name: &str, default_broker_name: &str, class_name: &str, manifest: &Value) -> JuizResult<Identifier> {

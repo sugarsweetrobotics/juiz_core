@@ -4,8 +4,8 @@
 use anyhow::Context;
 use serde_json::Value;
 
-use crate::{processes::Output, Process, Identifier, utils::{manifest_checker::check_connection_manifest, juiz_lock}, JuizResult, JuizObject, object::JuizObjectCoreHolder};
-use std::{sync::{Mutex, Arc}};
+use crate::{object::JuizObjectCoreHolder, processes::capsule::Capsule, utils::{juiz_lock, manifest_checker::check_connection_manifest}, Identifier, JuizObject, JuizResult, Process};
+use std::sync::{Mutex, Arc};
 
 use core::fmt::Debug;
 use std::clone::Clone;
@@ -49,9 +49,8 @@ impl JuizObjectCoreHolder for DestinationConnectionImpl {
 
 impl JuizObject for DestinationConnectionImpl {
 
-    
-    fn profile_full(&self) -> JuizResult<Value> {
-        self.core.profile_full()
+    fn profile_full(&self) -> JuizResult<Capsule> {
+        Ok(self.core.profile_full()?.into())
     }
 
 }
@@ -64,12 +63,12 @@ impl Connection for DestinationConnectionImpl {
 
 impl DestinationConnection for DestinationConnectionImpl {
 
-    fn execute_destination(&self) -> JuizResult<Output> {
+    fn execute_destination(&self) -> JuizResult<Capsule> {
         let proc = juiz_lock(&self.destination_process).context("DestinationConnectionImpl.execute_destination()")?;
         proc.execute()
     }
 
-    fn push(&self, value: &Output) -> JuizResult<Output> {
+    fn push(&self, value: &Capsule) -> JuizResult<Capsule> {
         let proc = juiz_lock(&self.destination_process).context("DestinationConnectionImpl.push()")?;
         proc.push_by(self.arg_name(), value)
     }

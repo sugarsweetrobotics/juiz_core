@@ -56,11 +56,9 @@ fn no_default_manifest_process_test() {
 #[cfg(test)]
 #[test]
 fn call_process_test() {
-    match common::new_increment_process("incremnet").call(jvalue!({
-        "arg1": 1,
-    })) {
+    match common::new_increment_process("incremnet").call(vec!(("arg1", jvalue!(1))).into()) {
         Ok(vv) => {
-            assert_eq!(vv.get_value().unwrap().as_i64().unwrap(), 2);
+            assert_eq!(vv.as_value().unwrap().as_i64().unwrap(), 2);
         }, 
         Err(ev) => {
             print!("Return value is {:?}", ev);
@@ -73,7 +71,7 @@ fn call_process_test() {
 fn invoke_process_test() {
     match common::new_increment_process("increment").invoke() {
         Ok(vv) => {
-            assert_eq!(vv.get_value().unwrap().as_i64(), Some(2), "Error. vv is {:?}", vv.get_value().unwrap().to_string());
+            assert_eq!(vv.as_value().unwrap().as_i64(), Some(2), "Error. vv is {:?}", vv.as_value().unwrap().to_string());
         }, 
         Err(ev) => {
             print!("Return value is {:?}", ev);
@@ -87,7 +85,7 @@ fn invoke_process_test() {
 fn execute_process_test() {
     match common::new_execution_process("execute").execute() {
         Ok(vv) => {
-            assert_eq!(vv.get_value().unwrap().as_i64(), Some(1), "Error. vv is {:?}", vv.get_value().unwrap().to_string());
+            assert_eq!(vv.as_value().unwrap().as_i64(), Some(1), "Error. vv is {:?}", vv.as_value().unwrap().to_string());
         }, 
         Err(ev) => {
             print!("Return value is {:?}", ev);
@@ -98,9 +96,7 @@ fn execute_process_test() {
 #[cfg(test)]
 #[test]
 fn call_invalid_argument_process_test() {
-    match common::new_increment_process("increment").call(jvalue!({
-        "arg2": 1,
-    })) {
+    match common::new_increment_process("increment").call(vec!(("arg2", jvalue!(1))).into()) {
         Ok(_vv) => {
             assert!(false, "Process must be return error.");
         }, 

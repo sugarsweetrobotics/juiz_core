@@ -68,7 +68,7 @@ impl<T, TF> StoreWorker<T, TF> where T: JuizObject + ?Sized, TF: JuizObject + ?S
                     o_hashmap.insert(identifier.clone(), jvalue!(format!("Err({})", e)));
                 },
                 Ok(p) => {
-                    o_hashmap.insert(identifier.clone(), p.profile_full().unwrap());
+                    o_hashmap.insert(identifier.clone(), p.profile_full().unwrap().try_into().unwrap());
                 }
             }
         });
@@ -87,7 +87,7 @@ impl<T, TF> StoreWorker<T, TF> where T: JuizObject + ?Sized, TF: JuizObject + ?S
                     o_hashmap.insert(identifier.clone(), jvalue!(format!("Err({})", e)));
                 },
                 Ok(p) => {
-                    o_hashmap.insert(identifier.clone(), p.profile_full().unwrap());
+                    o_hashmap.insert(identifier.clone(), p.profile_full().unwrap().try_into().unwrap());
                 }
             }
         });
@@ -150,6 +150,7 @@ impl CoreStore {
     }
 
     pub fn register_broker_factory_manifest(&mut self, type_name: &str, b: Value) -> JuizResult<()> {
+        log::trace!("core_store::register_broker_factory_manifest(type_name={type_name:?}) called");
         self.broker_factories_manifests.insert(type_name.to_string(), b);
         Ok(())
     }

@@ -1,11 +1,11 @@
 
 
 use std::sync::{Mutex, Arc};
-use axum::{extract::{State, Path, Query}, response::IntoResponse, Json, Router, routing};
+use axum::{response::IntoResponse, extract::{Path, Query, State}, routing, Json, Router};
 
-use juiz_core::{brokers::crud_broker::{CRUDBroker, update_class, read_class, create_class, delete_class}, Value};
+use juiz_core::{brokers::crud_broker::CRUDBroker, processes::capsule::{Capsule, CapsuleMap}, utils::juiz_lock, Value};
 
-use super::{IdentifierQuery, json_wrap, json_output_wrap, query_to_map};
+use super::{IdentifierQuery, json_output_wrap, query_to_map};
 use utoipa::OpenApi;
 
 #[utoipa::path(
@@ -28,7 +28,31 @@ pub async fn object_post_handler(
 ) -> impl IntoResponse {
     let map = query_to_map(&query);
     log::trace!("HTTPBroker/object_post_handler({class_name}, {function_name}, {body}, {map:?}) called");
-    json_output_wrap(create_class(&crud_broker, class_name.as_str(), function_name.as_str(), body, map))
+    //json_output_wrap(create_class(&crud_broker, class_name.as_str(), function_name.as_str(), body, map))
+    json_output_wrap(juiz_lock(&crud_broker).and_then(|cb| {
+        cb.create_class(construct_capsule_map(body_to_capsule_map(body), "CREATE", class_name.as_str(), function_name.as_str(), query))
+    }))
+}
+
+fn body_to_capsule_map(body: Value) -> CapsuleMap {
+    let capsule: Capsule = body.into();
+    let mut capsule_map = CapsuleMap::new();
+    capsule_map.insert("body".to_owned(), capsule);
+    capsule_map
+}
+
+
+fn construct_capsule_map(mut capsule_map: CapsuleMap, method_name: &str, class_name: &str, function_name: &str, query: Query<IdentifierQuery>) -> CapsuleMap {
+    capsule_map.set_param("method_name", method_name);
+    capsule_map.set_param("class_name", class_name);
+    capsule_map.set_param("function_name", function_name);
+    match query.identifier.clone() {
+        None => {},
+        Some(v) => {
+            capsule_map.set_param("identifier", v.as_str());
+        }
+    }
+    capsule_map
 }
 
 #[utoipa::path(
@@ -52,7 +76,15 @@ pub async fn object_patch_handler(
     let map = query_to_map(&query);
     log::trace!("debug:{:?}", query);
     log::trace!("HTTPBroker/object_patch_handler({class_name}, {function_name}, {body}, {map:?}) called");
-    json_output_wrap(update_class(&crud_broker, class_name.as_str(), function_name.as_str(), body, map))
+    //let result = update_class(&crud_broker, class_name.as_str(), function_name.as_str(), body.try_into().unwrap(), map);
+    //let method_name = "UPDATE";
+    json_output_wrap(juiz_lock(&crud_broker).and_then(|cb| {
+        cb.update_class(construct_capsule_map(body_to_capsule_map(body), "UPDATE", class_name.as_str(), function_name.as_str(), query))
+    }))
+    /*
+    let result = update_class(&crud_broker, construct_capsule_map(body_to_capsule_map(body), method_name, class_name.as_str(), function_name.as_str(), query));
+    json_output_wrap(result)
+    */
 }
 
 
@@ -75,7 +107,12 @@ pub async fn object_get_handler(
     log::trace!("debug:{:?}", query);
     let map = query_to_map(&query);
     log::trace!("HTTPBroker/object_get_handler({class_name}, {function_name}, {map:?}) called");
-    json_output_wrap(read_class(&crud_broker, class_name.as_str(), function_name.as_str(), map))
+    //json_output_wrap(read_class(&crud_broker, class_name.as_str(), function_name.as_str(), map))
+    //let method_name = "READ";
+    //json_output_wrap(read_class(&crud_broker, construct_capsule_map(CapsuleMap::new(), method_name, class_name.as_str(), function_name.as_str(), query)))
+    json_output_wrap(juiz_lock(&crud_broker).and_then(|cb| {
+        cb.read_class(construct_capsule_map(CapsuleMap::new(), "READ", class_name.as_str(), function_name.as_str(), query))
+    }))
 }
 
 #[utoipa::path(
@@ -96,7 +133,12 @@ pub async fn object_delete_handler(
 ) -> impl IntoResponse {
     let map = query_to_map(&query);
     log::trace!("HTTPBroker/object_delete_handler({class_name}, {function_name}, {map:?}) called");
-    json_wrap(delete_class(&crud_broker, class_name.as_str(), function_name.as_str(), map))
+    //json_wrap(delete_class(&crud_broker, class_name.as_str(), function_name.as_str(), map))
+    //let method_name = "DELETE";
+    //json_wrap(delete_class(&crud_broker, construct_capsule_map(CapsuleMap::new(), method_name, class_name.as_str(), function_name.as_str(), query)))
+    json_output_wrap(juiz_lock(&crud_broker).and_then(|cb| {
+        cb.create_class(construct_capsule_map(CapsuleMap::new(), "DELETE", class_name.as_str(), function_name.as_str(), query))
+    }))
 }
 
 pub fn object_router(crud_broker: Arc<Mutex<CRUDBroker>>) -> Router {

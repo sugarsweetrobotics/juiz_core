@@ -7,8 +7,9 @@ use anyhow::Context;
 
 use crate::brokers::{BrokerProxy, Broker,  broker_factories_wrapper::BrokerFactoriesWrapper};
 use crate::object::{ObjectCore, JuizObjectCoreHolder, JuizObjectClass};
+use crate::processes::capsule::Capsule;
 use crate::value::{obj_get_str, obj_merge};
-use crate::{JuizResult, Container, JuizObject, CoreBroker, Value, JuizError, Identifier, Process, jvalue};
+use crate::{jvalue, Container, CoreBroker, Identifier, JuizError, JuizObject, JuizResult, Process, Value};
 use crate::utils::juiz_lock;
 use crate::utils::manifest_util::{id_from_manifest, when_contains_do_mut, construct_id};
 use super::system_builder::system_builder;
@@ -42,12 +43,12 @@ impl JuizObjectCoreHolder for System {
 }
 
 impl JuizObject for System {
-    fn profile_full(&self) -> JuizResult<Value> {
-        let bf = juiz_lock(self.core_broker())?.profile_full()?;
+    fn profile_full(&self) -> JuizResult<Capsule> {
+        let bf: Value = juiz_lock(self.core_broker())?.profile_full()?.try_into()?;
         let p = self.core.profile_full()?;
-        obj_merge(p, &jvalue!({
+        Ok(obj_merge(p, &jvalue!({
             "core_broker": bf,
-        }))
+        }))?.into())
     }
 }
 
@@ -74,6 +75,8 @@ impl System {
         &self.core_broker
     }
 
+
+    ///
     pub fn process_from_id(&self, id: &Identifier) -> JuizResult<Arc<Mutex<dyn Process>>> {
         juiz_lock(&self.core_broker)?.store().processes.get(id)
     }
@@ -82,7 +85,8 @@ impl System {
         let id = construct_id("Process", type_name, name, "core", "core");
         juiz_lock(&self.core_broker)?.store().processes.get(&id)
     }
-
+    
+    
     pub fn container_from_id(&self, id: &Identifier) -> JuizResult<Arc<Mutex<dyn Container>>> {
         juiz_lock(&self.core_broker)?.store().containers.get(id)
     }
@@ -273,14 +277,15 @@ impl System {
 
     pub fn register_broker_factories_wrapper(&mut self, bf: Arc<Mutex<BrokerFactoriesWrapper>>) -> JuizResult<Arc<Mutex<BrokerFactoriesWrapper>>> {
         let type_name = juiz_lock(&bf)?.type_name().to_string();
-        log::debug!("System::register_broker_factories_wrapper(BrokerFactory(type_name={:?})) called", type_name);
+        log::trace!("System::register_broker_factories_wrapper(BrokerFactory(type_name={:?})) called", type_name);
         if self.broker_factories.contains_key(&type_name) {
+            log::error!("system does not contains broker factory with type_name='{type_name:}'.");
             return Err(anyhow::Error::from(JuizError::BrokerFactoryOfSameTypeNameAlreadyExistsError{type_name: type_name}));
         }
         self.broker_factories.insert(type_name.clone(), Arc::clone(&bf));
-
-        juiz_lock(&self.core_broker())?.store_mut().register_broker_factory_manifest(type_name.as_str(), juiz_lock(&bf)?.profile_full()?)?;
+        juiz_lock(&self.core_broker())?.store_mut().register_broker_factory_manifest(type_name.as_str(), juiz_lock(&bf)?.profile_full()?.try_into()?)?;
         juiz_lock(&self.core_broker())?.store_mut().broker_proxies.register_factory(juiz_lock(&bf)?.broker_proxy_factory.clone())?;
+        log::trace!("System::register_broker_factories_wrapper(BrokerFactory(type_name={:?})) exit", type_name);
         Ok(bf)
     }
 
@@ -308,7 +313,7 @@ impl System {
         log::trace!("System::register_broker(type_name={type_name:}) called");
         
         self.brokers.insert(type_name.clone(), Arc::clone(&broker));
-        let p =juiz_lock(&broker).context("Locking passed broker failed.")?.profile_full().context("Broker::profile_full")?;
+        let p: Value  =juiz_lock(&broker).context("Locking passed broker failed.")?.profile_full().context("Broker::profile_full")?.try_into()?;
         juiz_lock(&self.core_broker()).context("Blocking CoreBroker failed.")?.store_mut().register_broker_manifest(type_name.as_str(), p)?;
         
         Ok(broker)

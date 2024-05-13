@@ -1,26 +1,12 @@
 use juiz_core::{System, jvalue, JuizResult};
 use std::env;
-use structopt::StructOpt;
 
-#[derive(StructOpt)]
-#[structopt(about = "Juiz Command")]
-enum Juiz {
-    Process(JuizProcess),
-}
-
-#[derive(StructOpt)]
-#[structopt(about = "Juiz Command")]
-enum JuizProcess {
-    List {
-        #[structopt(short, long)]
-        debug: bool,
-    }
-}
-
+/*
 fn task2(system: &mut System) -> JuizResult<()> {
 
     Ok(())
 }
+*/
 
 
 fn task1(system: &mut System) -> JuizResult<()> {
@@ -33,7 +19,7 @@ fn task1(system: &mut System) -> JuizResult<()> {
             Ok(())
         }
 
-        fn show_process_list(system: &mut System, args: &[String]) -> JuizResult<()> {
+        fn show_process_list(_system: &mut System, args: &[String]) -> JuizResult<()> {
             println!("show_process_list({:?})", args);
             Ok(())
         }

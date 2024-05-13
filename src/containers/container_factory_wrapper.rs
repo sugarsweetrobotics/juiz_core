@@ -1,20 +1,20 @@
-use std::{sync::{Arc, Mutex}, cell::RefCell};
+use std::{cell::RefCell, rc::Rc, sync::{Arc, Mutex}};
 
 use anyhow::Context;
 
-use crate::{jvalue, ContainerFactory, core::Plugin, Container, Value, utils::juiz_lock, JuizResult, JuizObject, object::{ObjectCore, JuizObjectClass, JuizObjectCoreHolder}, value::obj_merge};
+use crate::{core::Plugin, jvalue, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, processes::capsule::Capsule, utils::juiz_lock, value::obj_merge, Container, ContainerFactory, JuizError, JuizObject, JuizResult, Value};
 
 #[allow(dead_code)]
 pub struct ContainerFactoryWrapper {
     core: ObjectCore,
-    plugin: Plugin,
+    plugin: Rc<Plugin>,
     container_factory: Arc<Mutex<dyn ContainerFactory>>,
     containers: RefCell<Vec<Arc<Mutex<dyn Container>>>>
 }
 
 impl ContainerFactoryWrapper {
     
-    pub fn new(plugin: Plugin, container_factory: Arc<Mutex<dyn ContainerFactory>>) -> JuizResult<Arc<Mutex<dyn ContainerFactory>>> {
+    pub fn new(plugin: Rc<Plugin>, container_factory: Arc<Mutex<dyn ContainerFactory>>) -> JuizResult<Arc<Mutex<dyn ContainerFactory>>> {
         let cf = juiz_lock(&container_factory)?;
         let type_name = cf.type_name();
         Ok(Arc::new(Mutex::new(ContainerFactoryWrapper{
@@ -34,13 +34,13 @@ impl JuizObjectCoreHolder for ContainerFactoryWrapper {
 
 impl JuizObject for ContainerFactoryWrapper {
 
-    fn profile_full(&self) -> JuizResult<Value> {
-        obj_merge(self.core.profile_full()?, &jvalue!(
+    fn profile_full(&self) -> JuizResult<Capsule> {
+        Ok(obj_merge(self.core.profile_full()?, &jvalue!(
             {
                 "plugin": self.plugin.profile_full()?,
-                "container_factory": juiz_lock(&self.container_factory)?.profile_full()?
+                "container_factory": juiz_lock(&self.container_factory)?.profile_full()?.as_value().ok_or(anyhow::Error::from(JuizError::CapsuleIsNotValueTypeError{}))?,
             }
-        ))
+        ))?.into())
     }
 }
 

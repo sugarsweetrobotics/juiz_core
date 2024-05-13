@@ -3,11 +3,12 @@ use std::collections::HashMap;
 use std::sync::{Mutex, Arc};
 use juiz_core::brokers::CRUDBroker;
 
-use juiz_core::processes::Output;
+use juiz_core::processes::capsule::Capsule;
+
 use utoipa::OpenApi;
 use axum::Router;
 use utoipa_swagger_ui::SwaggerUi;
-use axum::{response::IntoResponse, http::StatusCode, Json, extract::Query};
+use axum::{response::{Response, IntoResponse}, body::Body, http::StatusCode, Json, extract::Query};
 use serde::Deserialize;
 use utoipa::IntoParams;
 
@@ -22,6 +23,7 @@ pub mod container_process;
 pub mod broker;
 pub mod execution_context;
 pub mod connection;
+use cv_convert::TryFromCv;
 
 #[derive(Deserialize, IntoParams, Debug)]
 pub struct IdentifierQuery {
@@ -39,7 +41,7 @@ pub fn query_to_map(query: &Query<IdentifierQuery>) -> HashMap<String, String> {
     map
 }
 
-pub fn json_wrap(result: JuizResult<Value>) -> impl IntoResponse {
+pub fn json_wrap(result: JuizResult<Capsule>) -> impl IntoResponse {
     match result {
         Err(e) => {
             (StatusCode::INTERNAL_SERVER_ERROR, Json(
@@ -48,12 +50,13 @@ pub fn json_wrap(result: JuizResult<Value>) -> impl IntoResponse {
                 }))).into_response()
         },
         Ok(v) => {
-            Json(v).into_response()
+            Json::<Value>(v.try_into().unwrap()).into_response()
         }
     }
 }
 
-pub fn json_output_wrap(result: JuizResult<Output>) -> impl IntoResponse {
+pub fn json_output_wrap(result: JuizResult<Capsule>) -> impl IntoResponse {
+    //log::trace!("json_output_wrap() called");
     match result {
         Err(e) => {
             (StatusCode::INTERNAL_SERVER_ERROR, Json(
@@ -62,11 +65,35 @@ pub fn json_output_wrap(result: JuizResult<Output>) -> impl IntoResponse {
                 }))).into_response()
         },
         Ok(v) => {
-            let result = v.get_value();
-            //if result.is_err() {
-            //    abort();
-            //}
-            Json(result.unwrap()).into_response()
+            if v.is_value() {
+                let result = v.as_value();
+                Json(result.unwrap()).into_response()
+            } else if v.is_mat() {
+                let result = v.as_mat();
+                //Json(jvalue!({"message": "ERROR.this is image"})).into_response()
+                let img = image::RgbImage::try_from_cv(result.unwrap()).unwrap();
+
+                use image::ImageFormat;
+
+                use std::io::{BufWriter, Cursor};
+
+                let mut buffer = BufWriter::new(Cursor::new(Vec::new()));
+                img.write_to(&mut buffer, ImageFormat::Png).unwrap();
+
+                //Json(jvalue!({"message": "ERROR.this is image"})).into_response()
+                
+                let bytes: Vec<u8> = buffer.into_inner().unwrap().into_inner(); 
+                
+                let response =  Response::builder()
+                    .extension("png")
+                    .header("Content-Type", "image/png")
+                    .status(StatusCode::OK)
+                    .body(Body::from(bytes)).unwrap();
+                //response.into_response()
+                response.into_response()
+            } else {
+                Json(jvalue!({})).into_response()
+            }
         }
     }
 }

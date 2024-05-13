@@ -1,20 +1,28 @@
-use crate::{jvalue, Value};
+
+use crate::{Value, processes::Output};
 
 
 
 
 pub struct Argument {
-    pub name: String,
     pub value: Value,
 }
 
 
 impl Argument {
+}
 
-    pub fn new(name: &str, value: Value) -> Self {
+impl From<Value> for Argument {
+    fn from(value: Value) -> Self {
         Argument {
-            name: name.to_owned(),
-            value,
+            value
         }
+    }
+}
+
+
+impl From<Output> for Argument {
+    fn from(_value: Output) -> Self {
+        todo!("ここにOutputからArgumentへの変換を記述")
     }
 }

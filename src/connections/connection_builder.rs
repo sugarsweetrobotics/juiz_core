@@ -31,19 +31,19 @@ pub mod connection_builder {
             source_connect_result_manifest = juiz_lock(&source)?.try_connect_to(Arc::clone(&destination), arg_name, manifest)?.clone();
             log::trace!("source_connection, connected!");
         }
-        let result = juiz_lock(&destination)?.notify_connected_from(source, arg_name, source_connect_result_manifest);
+        let result = juiz_lock(&destination)?.notify_connected_from(source, arg_name, source_connect_result_manifest.try_into()?);
         log::trace!("destination_connection, connected!");
-        Ok(result.expect("destination_connection_failed."))
+        result.expect("destination_connection_failed.").try_into()
     }
 
     pub fn list_connection_profiles(core_broker: &CoreBroker) -> JuizResult<Vec<Value>> {
         let mut value_map: HashMap<String, Value> = HashMap::new();
         for p in core_broker.store().processes.objects().into_iter() {
             for sc in juiz_lock(p)?.source_connections()? {
-                value_map.insert(sc.identifier().clone(), sc.profile_full()?);
+                value_map.insert(sc.identifier().clone(), sc.profile_full()?.try_into()?);
             }
             for dc in juiz_lock(p)?.destination_connections()? {
-                value_map.insert(dc.identifier().clone(), dc.profile_full()?);
+                value_map.insert(dc.identifier().clone(), dc.profile_full()?.try_into()?);
             }
         }
         Ok(value_map.values().map(|v|{v.clone()}).collect::<Vec<Value>>())

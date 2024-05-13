@@ -1,6 +1,8 @@
 
 
-use crate::{jvalue, connections::SourceConnection, JuizResult, Value, Identifier};
+use crate::{connections::SourceConnection, jvalue, Identifier, JuizResult, Value};
+
+use super::capsule::Capsule;
 
 
 
@@ -47,10 +49,10 @@ impl Inlet {
     pub fn profile_full(&self) -> JuizResult<Value> {
         Ok(jvalue!({
             "name": self.name,
-            "source_connections": self.source_connections.iter().map(|sc|{
-                sc.profile_full().unwrap()
+            "source_connections": self.source_connections.iter().map(|sc| -> Value {
+                sc.profile_full().unwrap().try_into().unwrap()
             }).collect::<Vec<Value>>()
-        }))
+        }).into())
     }
 
     pub fn is_updated(&self) -> JuizResult<bool> {
@@ -63,17 +65,16 @@ impl Inlet {
     }
    
     // データを収集。pullする。あとからの接続を優先
-    pub fn collect_value(&self) -> JuizResult<Value> {
-        let mut v: Value = self.default_value.clone();
+    pub fn collect_value(&self) -> JuizResult<Capsule> {
         for sc in self.source_connections.iter() {
             match sc.pull() {
                 Err(_) => {},
-                Ok(value) => {
-                    v = value.get_value()?;
+                Ok(output) => {
+                    return Ok(Capsule::from(output));
                 }
             }
         }
-        return Ok(v);
+        return Ok(Capsule::from(self.default_value.clone()));
     }
 
     pub(crate) fn insert(&mut self, con: Box<crate::connections::SourceConnectionImpl>) {

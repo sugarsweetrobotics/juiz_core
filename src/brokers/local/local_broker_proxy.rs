@@ -1,22 +1,22 @@
 use std::{sync::{Arc, Mutex}, time::Duration, ops::Deref};
 
-use crate::{JuizResult, Value, JuizError, brokers::messenger_broker_proxy_factory::create_messenger_broker_proxy_factory};
+use crate::{brokers::messenger_broker_proxy_factory::create_messenger_broker_proxy_factory, processes::capsule::{Capsule, CapsuleMap}, JuizError, JuizResult};
 
-use super::local_broker::SenderReceiverPair;
+use super::local_broker::ProxySideSenderReceiverPair;
 
 use crate::brokers::{BrokerProxyFactory, MessengerBrokerProxy, MessengerBrokerProxyCore, MessengerBrokerProxyCoreFactory};
 
 pub type LocalBrokerProxy = MessengerBrokerProxy;
 pub struct LocalBrokerProxyCore {
-    sender_receiver: Arc<Mutex<SenderReceiverPair>>,
+    sender_receiver: Arc<Mutex<ProxySideSenderReceiverPair>>,
 }
 
 pub struct LocalBrokerProxyCoreFactory {
-    sender_receiver: Arc<Mutex<SenderReceiverPair>>,
+    sender_receiver: Arc<Mutex<ProxySideSenderReceiverPair>>,
 }
 
 impl LocalBrokerProxyCoreFactory {
-    pub fn new(sender_receiver: Arc<Mutex<SenderReceiverPair>>) -> JuizResult<Box<dyn MessengerBrokerProxyCoreFactory>> {
+    pub fn new(sender_receiver: Arc<Mutex<ProxySideSenderReceiverPair>>) -> JuizResult<Box<dyn MessengerBrokerProxyCoreFactory>> {
         Ok(Box::new(LocalBrokerProxyCoreFactory {sender_receiver}))
     }
 }
@@ -28,30 +28,32 @@ impl MessengerBrokerProxyCoreFactory  for LocalBrokerProxyCoreFactory {
 }
 
 impl MessengerBrokerProxyCore for LocalBrokerProxyCore {
-    fn send_and_receive(&self, value: Value, timeout: Duration) -> JuizResult<Value> {
+    fn send_and_receive(&self, value: CapsuleMap, timeout: Duration) -> JuizResult<Capsule> {
         let us = timeout.as_micros();
         log::trace!("LocaBrokerProxyCore::send_and_receive(timeout_us={us}) called");
         let sndr_recvr = self.sender_receiver.lock().map_err(|_e| return anyhow::Error::from(JuizError::BrokerSendCanNotLockSenderError{}))?;
-        let SenderReceiverPair(sndr, recvr) = sndr_recvr.deref();
-        let _ = sndr.send(value).map_err(|e| return anyhow::Error::from(JuizError::LocalBrokerProxySendError{send_error: e}))?;
-        recvr.recv_timeout(timeout).map_err(|e| {
+        let ProxySideSenderReceiverPair(sndr, recvr) = sndr_recvr.deref();
+        let _ = sndr.send(value).map_err(|_e| return anyhow::Error::from(JuizError::LocalBrokerProxySendError{}))?;
+        let result = recvr.recv_timeout(timeout).map_err(|e| {
                 log::error!("LocalBrokerProxyCore::send_and_receive() failed. Error is {e:}");
                 return anyhow::Error::from(JuizError::LocalBrokerProxyReceiveTimeoutError{error: e});
-        })
+        });
+        log::trace!("LocaBrokerProxyCore::send_and_receive() exit");
+        result
     }
 
-    fn send_and_receive_output(&self, v: Value, timeout: Duration) -> JuizResult<crate::processes::Output> {
+    fn send_and_receive_output(&self, _v: CapsuleMap, _timeout: Duration) -> JuizResult<Capsule> {
         todo!("Outputクラスをどう扱うか。")
     }
 }
 
 impl LocalBrokerProxyCore {
-    pub fn new(sender_receiver: Arc<Mutex<SenderReceiverPair>> ) -> LocalBrokerProxyCore {
+    pub fn new(sender_receiver: Arc<Mutex<ProxySideSenderReceiverPair>> ) -> LocalBrokerProxyCore {
         LocalBrokerProxyCore{sender_receiver}
     }
 }
 
-pub fn create_local_broker_proxy_factory(sender_receiver: Arc<Mutex<SenderReceiverPair>>) -> JuizResult<Arc<Mutex<dyn BrokerProxyFactory>>> {
+pub fn create_local_broker_proxy_factory(sender_receiver: Arc<Mutex<ProxySideSenderReceiverPair>>) -> JuizResult<Arc<Mutex<dyn BrokerProxyFactory>>> {
     log::trace!("create_local_broker_factory called");
     create_messenger_broker_proxy_factory("LocalBrokerProxyFactory", "local", LocalBrokerProxyCoreFactory::new(sender_receiver)?)
 }

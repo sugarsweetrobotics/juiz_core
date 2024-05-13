@@ -65,12 +65,12 @@ fn main() -> JuizResult<()>{
     Ok(System::new(manifest)?.run_and_do(|system|{
         println!("JuizSystem started!!");
         let v = system.broker_proxy(&jvalue!({"type_name":"local"}))?.lock().unwrap().system_profile_full()?;
-        println!("System: {:#}", v);
+        println!("System: {:#}", v.as_value().unwrap());
 
         let id = "http://localhost:3000/ContainerProcess/increment_a::example_container_increment";
         let p1 = system.container_process_proxy(&id.to_string())?;
         let prof = p1.lock().unwrap().profile_full()?;
-        println!("Process: {:#}", prof);
+        println!("Process: {:#}", prof.as_value().unwrap());
 
         Ok(())
     }).expect("Error in System::run_and_do()"))

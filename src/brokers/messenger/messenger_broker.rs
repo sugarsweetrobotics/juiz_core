@@ -1,9 +1,8 @@
-use std::{sync::{Arc, Mutex, atomic::AtomicBool, mpsc}, time::Duration, collections::HashMap};
+use std::{sync::{Arc, Mutex, atomic::AtomicBool, mpsc}, time::Duration};
 
-use serde_json::Map;
 use tokio::runtime;
 
-use crate::{jvalue, JuizResult, JuizError, Value, value::{obj_get_str, obj_get, obj_get_obj}, utils::juiz_lock, JuizObject, object::{ObjectCore, JuizObjectClass, JuizObjectCoreHolder}, CoreBroker};
+use crate::{object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, processes::capsule::{Capsule, CapsuleMap}, utils::juiz_lock, CoreBroker, JuizError, JuizObject, JuizResult, Value};
 use crate::brokers::Broker;
 use std::sync::atomic::Ordering::SeqCst;
 
@@ -20,13 +19,13 @@ pub struct MessengerBroker {
     tokio_runtime: Option<runtime::Runtime>,
 }
 
-pub type SenderType = dyn Fn(Value) -> JuizResult<()>;
-pub type ReceiverType = dyn Fn(Duration) -> JuizResult<Value>;
+pub type SenderType = dyn Fn(CapsuleMap) -> JuizResult<()>;
+pub type ReceiverType = dyn Fn(Duration) -> JuizResult<Capsule>;
 
 pub struct SendReceivePair(pub Box<SenderType>, pub Box<ReceiverType>);
 
 pub trait MessengerBrokerCore : Send {
-    fn receive_and_send(&self, timeout: Duration, func: Arc<Mutex<dyn Fn(Value)->JuizResult<Value>>>) -> JuizResult<Value>;
+    fn receive_and_send(&self, timeout: Duration, func: Arc<Mutex<dyn Fn(CapsuleMap)->JuizResult<Capsule>>>) -> JuizResult<Capsule>;
 }
 
 pub trait MessengerBrokerCoreFactory {
@@ -51,6 +50,7 @@ impl MessengerBroker {
     }
 }
 
+/*
 fn to_param(map: &Map<String, Value>) -> JuizResult<HashMap<String, String>> {
     log::trace!("to_param called");
     let mut ret_map: HashMap<String, String> = HashMap::with_capacity(map.len());
@@ -64,26 +64,42 @@ fn to_param(map: &Map<String, Value>) -> JuizResult<HashMap<String, String>> {
     }
     Ok(ret_map)
 }
+*/
 
-fn handle_function(crud_broker: Arc<Mutex<CRUDBroker>>, value: Value) -> JuizResult<Value> {
-    log::info!("MessengerBroker::handle_function({value}) called 2 ");
+fn extract_method_name(args: & CapsuleMap) -> JuizResult<&String> {
+    let err = |name: &str | anyhow::Error::from(JuizError::CapsuleDoesNotIncludeParamError{ name: name.to_owned() });
+    Ok(args.get_param("method_name").ok_or_else( || err("method_name") )?)
+}
+/*
+fn extract_function_name(args: & CapsuleMap) -> JuizResult<String> {
+    let err = |name: &str | anyhow::Error::from(JuizError::CapsuleDoesNotIncludeParamError{ name: name.to_owned() });
+    Ok(args.get_param("function_name").ok_or_else( || err("function_name") )?.clone())
+}
+
+fn extract_create_parameter(args: CapsuleMap) -> Value {
+    return args.into();
+}
+*/
+
+fn handle_function(crud_broker: Arc<Mutex<CRUDBroker>>, args: CapsuleMap) -> JuizResult<Capsule> {
+    log::info!("MessengerBroker::handle_function() called");
+    /*
     let method_name = obj_get_str(&value, "method_name")?;
     let class_name = obj_get_str(&value, "class_name")?;
     let function_name = obj_get_str(&value, "function_name")?;
     let args = obj_get(&value, "arguments")?;
     let params = to_param(obj_get_obj(&value, "params")?)?;
-    let result = match method_name {
-        "CREATE" => juiz_lock(&crud_broker)?.create_class(class_name, function_name, args.clone(), params),
-        "READ" =>  juiz_lock(&crud_broker)?.read_class(class_name, function_name, params),
-        "UPDATE" =>  juiz_lock(&crud_broker)?.update_class(class_name, function_name, args.clone(), params),
+    */
+    //  let (method_name, class_name, function_name, params) = extract_method_parameters(&args)?;
+    //let function_name = extract_function_name(&args)?;
+    match extract_method_name(&args)?.as_str() {
+        "CREATE" => juiz_lock(&crud_broker)?.create_class(args),
+        "READ" =>  juiz_lock(&crud_broker)?.read_class(args),
+        "UPDATE" =>  juiz_lock(&crud_broker)?.update_class(args),
         _ => {
-            Err(anyhow::Error::from(JuizError::CRUDBRokerCanNotFindMethodError{method_name: method_name.to_string()}))
+            Err(anyhow::Error::from(JuizError::CRUDBRokerCanNotFindMethodError{method_name: "".to_owned()}))
         }
-    }?;
-    return Ok(jvalue!({
-        "function_name": jvalue!(function_name),
-        "return": result.get_value()?,
-    }));
+    }
 }
 
 impl JuizObjectCoreHolder for MessengerBroker {
@@ -111,7 +127,7 @@ impl Broker for MessengerBroker {
 
                 loop {
                     let crud = cb.clone();
-                    let func: Arc<Mutex<dyn Fn(Value)->JuizResult<Value>>> = Arc::new(Mutex::new(move |value: Value| -> JuizResult<Value> { handle_function(Arc::clone(&crud), value) }));
+                    let func: Arc<Mutex<dyn Fn(CapsuleMap)->JuizResult<Capsule>>> = Arc::new(Mutex::new(move |value:CapsuleMap| -> JuizResult<Capsule> { handle_function(Arc::clone(&crud), value) }));
                     std::thread::sleep(Duration::new(0, 10*1000*1000));
                     match end_flag.lock() {
                         Err(e) => {
@@ -128,13 +144,13 @@ impl Broker for MessengerBroker {
                     match juiz_lock(&sender_receiver) {
                         Err(_) => {},
                         Ok(sndr_recvr) => {
-                            
-                            match sndr_recvr.receive_and_send(
-                                timeout, func) {
+                            // log::trace!("In MessengerBroker::routine(), calling sndr_recvr.receive_and_send() funciton.");
+                            match sndr_recvr.receive_and_send(timeout, func) {
                                     Err(e) => {
                                         log::error!("Error. Core.receive_and_send failed. in MessengerBroker::routine(). Error is {}", e);
+                                        //log::trace!("In MessengerBroker::routine(), sndr_recvr.receive_and_send() exit.");
                                     }, Ok(_) => {
-
+                                        //log::trace!("In MessengerBroker::routine(), sndr_recvr.receive_and_send() exit.");
                                     }
                             }
                         }

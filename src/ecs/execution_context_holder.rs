@@ -4,7 +4,7 @@ use std::sync::{Mutex, Arc, RwLock, atomic::AtomicBool};
 
 use tokio::runtime;
 
-use crate::{jvalue, JuizResult, utils::{juiz_lock, sync_util::{juiz_borrow, juiz_borrow_mut}}, object::{ObjectCore, JuizObjectClass, JuizObjectCoreHolder}, JuizObject, Process, Value, value::obj_merge_mut, ecs::execution_context_core::ExecutionContextState};
+use crate::{ecs::execution_context_core::ExecutionContextState, jvalue, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, processes::capsule::Capsule, utils::{juiz_lock, sync_util::{juiz_borrow, juiz_borrow_mut}}, value::obj_merge_mut, JuizObject, JuizResult, Process, Value};
 
 use super::{execution_context::ExecutionContext, execution_context_core::ExecutionContextCore};
 
@@ -208,7 +208,7 @@ impl JuizObjectCoreHolder for ExecutionContextHolder {
 
 impl JuizObject for ExecutionContextHolder {
 
-    fn profile_full(&self) -> JuizResult<Value> {
+    fn profile_full(&self) -> JuizResult<Capsule> {
         log::trace!("ExecutionContextHolder()::profile_full() called");
         let mut v = self.object_core.profile_full()?;
         let ecv = juiz_borrow(&self.execution_context)?.profile()?;
@@ -216,6 +216,6 @@ impl JuizObject for ExecutionContextHolder {
 
         let cv = juiz_lock(&self.core)?.profile()?;
         obj_merge_mut(&mut v, &cv)?;
-        Ok(v)
+        Ok(v.into())
     }
 }

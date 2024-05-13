@@ -1,6 +1,7 @@
 
 use anyhow::Context;
 
+use crate::processes::capsule::CapsuleMap;
 use crate::JuizError;
 use crate::JuizResult;
 use crate::value::*;
@@ -46,7 +47,7 @@ fn check_process_manifest_argument(arg_manifest: &mut Value) -> JuizResult<()> {
     match  obj_get_str(arg_manifest, "type") {
         Err(_) => {},
         Ok(type_str) => {
-            if type_str != def_value_type {
+            if type_str != def_value_type && !(type_str == "image" && def_value_type == "object" ){
                 return Err(anyhow::Error::from(JuizError::ManifestDefaultValueIsNotExpectedTypeError{value: arg_manifest.clone(), key: "type".to_string(), set_type: type_str.to_string(), expected_type: def_value_type.to_string()}));
             }
         }
@@ -86,17 +87,20 @@ pub fn check_process_manifest(mut process_manifest: Value) -> JuizResult<Value> 
     Ok(process_manifest)
 }
 
-fn check_arguments(args_manifest: &Value, argument: &Value) -> JuizResult<()> {
-    let arg_map = get_hashmap(argument).context("check_arguments")?;
+fn check_arguments(args_manifest: &Value, argument: &CapsuleMap) -> JuizResult<()> {
+    //let arg_map = get_hashmap(argument).context("check_arguments")?;
     for (arg_name, _v) in get_hashmap(args_manifest).context("check_arguments")? {
-        match arg_map.get(arg_name) {
-            None => return Err(anyhow::Error::from(JuizError::ArgumentMissingWhenCallingError{process_manifest: args_manifest.clone(), given_argument: argument.clone(), missing_arg_name: arg_name.clone()})),
-            Some(_) => {}
-        };
+        match argument.get(arg_name) {
+            None => return Err(
+                anyhow::Error::from(JuizError::ArgumentMissingWhenCallingError{
+                    process_manifest: args_manifest.clone(), 
+                    missing_arg_name: arg_name.clone()})),
+                Some(_) => {}
+            };
     }
     Ok(())
 }
 
-pub fn check_manifest_before_call(manifest: &Value, argument: &Value) -> JuizResult<()> {
+pub fn check_manifest_before_call(manifest: &Value, argument: &CapsuleMap) -> JuizResult<()> {
     check_arguments(obj_get(manifest, "arguments")?, argument)
 }

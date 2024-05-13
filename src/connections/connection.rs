@@ -4,7 +4,7 @@ use crate::jvalue;
 use crate::{JuizObject, JuizError, JuizResult, object::{ObjectCore, JuizObjectClass}, Value, Identifier, utils::check_connection_manifest, value::obj_get_str};
 
 
-
+#[derive(Debug)]
 pub enum ConnectionType {
     Pull,
     Push
@@ -74,7 +74,7 @@ impl ConnectionCore {
         let manif = check_connection_manifest(connection_manifest.clone())?;
         let connection_type = connection_type_from(obj_get_str(&manif, "type"))?;
         let connection_id = manifest_to_connection_id(&manif, &source_process_identifier, &destination_process_identifier)?;
-       
+        log::trace!("ConnectionCore::new(manif={:?}, connection_type={:?}, connection_id={:?}", manif, connection_type, connection_id);
         Ok(ConnectionCore {
             core: ObjectCore::new(connection_id.clone(), JuizObjectClass::Connection(connection_impl_class_name), "Connection", connection_id.as_str(), "core", "core"),
             source_process_identifier,

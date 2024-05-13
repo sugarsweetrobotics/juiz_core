@@ -1,5 +1,5 @@
 extern crate juiz_core;
-use crate::juiz_core::{Value, jvalue};
+use crate::juiz_core::jvalue;
 use crate::juiz_core::processes::process_impl::*;
 
 use crate::juiz_core::*;
@@ -51,12 +51,10 @@ fn core_broker_test() {
 
     //assert!(cb.is_in_charge_for_process(&id));
 
-    let retval = cb.process_call(&id, jvalue!({
-        "arg1": 1,
-    }));
+    let retval = cb.process_call(&id, vec!(("arg1", jvalue!(1))).into());
     match retval {
         Ok(vv) => {
-            assert_eq!(vv.get_value().unwrap().as_i64().unwrap(), 2);
+            assert_eq!(vv.as_value().unwrap().as_i64().unwrap(), 2);
         }, 
         Err(ev) => {
             print!("Return value is {:?}", ev);

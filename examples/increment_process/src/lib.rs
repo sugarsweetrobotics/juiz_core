@@ -1,6 +1,6 @@
 use std::sync::{Mutex, Arc};
 
-use juiz_core::{jvalue, JuizResult, Value, ProcessFactory, create_process_factory, processes::{arg, Argument, Output}};
+use juiz_core::{create_process_factory, jvalue, processes::capsule::{Capsule, CapsuleMap}, JuizResult, ProcessFactory, Value};
 
 
 pub unsafe extern "Rust" fn manifest() -> Value { 
@@ -18,9 +18,18 @@ pub unsafe extern "Rust" fn manifest() -> Value {
 }
 
 
-fn increment_function(args: Vec<Argument>) -> JuizResult<Output> {
-    let i = arg(&args, "arg1")?.as_i64().unwrap();
-    return Ok(Output::new_from_value(jvalue!(i+1)));
+fn increment_function(args: CapsuleMap) -> JuizResult<Capsule> {
+    match args.get("arg1") {
+        None => {
+            todo!()
+        },
+        Some(v) => {
+            let i = v.as_value().unwrap().as_i64().unwrap();
+            return Ok(jvalue!(i+1).into());
+        }
+    }
+    //let i = arg(&args, "arg1")?.as_i64().unwrap();
+    //return Ok(jvalue!(i+1).into());
 }
 
 #[no_mangle]

@@ -3,6 +3,7 @@
 use std::sync::Arc;
 use std::sync::Mutex;
 
+
 use crate::JuizError;
 use crate::object::JuizObjectClass;
 use crate::utils::juiz_lock;
@@ -12,7 +13,9 @@ use crate::object::JuizObjectCoreHolder;
 use crate::object::ObjectCore;
 use crate::identifier::*;
 
-use super::Output;
+use super::capsule::Capsule;
+use super::capsule::CapsuleMap;
+
 
 #[allow(unused)]
 pub struct ProcessProxy {
@@ -48,7 +51,7 @@ impl JuizObjectCoreHolder for ProcessProxy {
 
 impl JuizObject for ProcessProxy {
 
-    fn profile_full(&self) -> JuizResult<Value> {
+    fn profile_full(&self) -> JuizResult<Capsule> {
         juiz_lock(&self.broker_proxy)?.any_process_profile_full(self.identifier())
         /*
         match self.class_name_str.as_str() {
@@ -62,7 +65,7 @@ impl JuizObject for ProcessProxy {
 
 impl Process for ProcessProxy {
     
-    fn call(&self, _args: crate::Value) -> JuizResult<Output> {
+    fn call(&self, _args: CapsuleMap) -> JuizResult<Capsule> {
         //juiz_lock(&self.broker_proxy)?.any_process_call(args)
         todo!()
     }
@@ -79,34 +82,34 @@ impl Process for ProcessProxy {
         todo!()
     }
 
-    fn invoke<'b>(&self) -> JuizResult<Output> {
+    fn invoke<'b>(&self) -> JuizResult<Capsule> {
         todo!()
     }
 
-    fn invoke_exclude<'b>(&self, _arg_name: &String, _value: Output) -> JuizResult<Output> {
+    fn invoke_exclude<'b>(&self, _arg_name: &String, _value: Capsule) -> JuizResult<Capsule> {
         todo!()
     }
 
-    fn execute(&self) -> JuizResult<Output> {
+    fn execute(&self) -> JuizResult<Capsule> {
         todo!()
     }
 
-    fn push_by(&self, _arg_name: &String, _value: &Output) -> JuizResult<Output> {
+    fn push_by(&self, _arg_name: &String, _value: &Capsule) -> JuizResult<Capsule> {
         todo!()
     }
 
-    fn get_output(&self) -> Option<Output> {
+    fn get_output(&self) -> Option<Capsule> {
         todo!()
     }
 
-    fn notify_connected_from<'b>(&'b mut self, source: Arc<Mutex<dyn Process>>, arg_name: &String, manifest: Value) -> JuizResult<Value> {
+    fn notify_connected_from<'b>(&'b mut self, source: Arc<Mutex<dyn Process>>, arg_name: &String, manifest: Value) -> JuizResult<Capsule> {
         log::trace!("ProcessProxy::notify_connected_from() called");
         let source_process_id = juiz_lock(&source)?.identifier().clone();
         let destination_process_id = self.identifier();
         juiz_lock(&self.broker_proxy)?.process_notify_connected_from(&source_process_id, arg_name, destination_process_id, manifest)
     }
 
-    fn try_connect_to(&mut self, destination: Arc<Mutex<dyn Process>>, arg_name: &String,manifest: Value) -> JuizResult<Value> {
+    fn try_connect_to(&mut self, destination: Arc<Mutex<dyn Process>>, arg_name: &String,manifest: Value) -> JuizResult<Capsule> {
         log::trace!("ProcessProxy::try_connect_to() called");
         let source_process_id = self.identifier();
         let destination_process_id = juiz_lock(&destination)?.identifier().clone();
