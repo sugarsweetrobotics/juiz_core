@@ -310,6 +310,7 @@ impl ProcessBrokerProxy for CoreBroker {
     }
 
     fn process_execute(&self, id: &Identifier) -> JuizResult<Capsule> {
+        log::trace!("CoreBroker::process_execute({id:}) called");
         juiz_lock(&self.store().processes.get(id)?).with_context(||format!("locking process(id={id:}) in CoreBroker::execute_process() function"))?.execute()
     }
 
@@ -404,7 +405,7 @@ impl ConnectionBrokerProxy for CoreBroker {
 
     fn connection_profile_full(&self, id: &Identifier) -> JuizResult<Capsule> {
         //juiz_lock(&self.store().connections.get(id)?).with_context(||format!("locking ec(id={id:}) in CoreBroker::connection_profile_full() function"))?.profile_full()
-        let (source_id, destination_id, arg_name) = connection_identifier_split(id.clone())?;
+        let (source_id, _destination_id, _arg_name) = connection_identifier_split(id.clone())?;
         println!("source_id: {:}", source_id);
         let result_src_proc = self.store().processes.get(&source_id);
         if result_src_proc.is_ok() {

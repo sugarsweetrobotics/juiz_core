@@ -220,8 +220,8 @@ impl Process for ProcessImpl {
         
         let result_value = self.call(self.collect_values_exclude(arg_name, Capsule::from(value))?)?;
         //self.output_memo.borrow_mut().get_value()?.clone_from(&result_value.get_value()?);
-        println!("result_value = {:?}", result_value);
-        self.outlet.set_value(result_value.as_value().unwrap().clone())?;
+        //log::trace!("result_value = {:?}", result_value);
+        self.outlet.set_value(result_value.clone())?;
         Ok(result_value)
     }
 

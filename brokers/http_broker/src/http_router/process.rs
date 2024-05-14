@@ -47,12 +47,32 @@ _query: Query<IdentifierQuery>,
 Json(_body): Json<Value>) {
 }
 
+
+#[utoipa::path(
+    patch,
+    path = "/api/process/execute",
+    params(
+        IdentifierQuery
+    ),
+    request_body = Value,
+    responses(
+        (status = 200, description = "System")
+    ),
+    tag = "process",
+)]
+pub fn execute_dummy(
+_query: Query<IdentifierQuery>,
+Json(_body): Json<Value>) {
+}
+
+
 #[derive(OpenApi)]
 #[openapi(
     paths(
         profile_handler_dummy,
         list_dummy,
         call_dummy,
+        execute_dummy,
     ),
     components(schemas(
     ))
