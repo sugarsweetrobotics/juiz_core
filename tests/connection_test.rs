@@ -1,21 +1,21 @@
 extern crate juiz_core;
 use std::sync::Arc;
-use std::sync::Mutex;
+
+use std::sync::RwLock;
 
 use crate::juiz_core::*;
-use juiz_core::processes::Process;
 use crate::juiz_core::connections::connect;
 
 mod common;
 
 
-fn setup() -> (Arc<Mutex<dyn Process>>, Arc<Mutex<dyn Process>>){
+fn setup() -> (ProcessPtr, ProcessPtr){
 
     let p1 = common::new_increment_process("process1");
     let p2 = common::new_increment_process("process2");
 
-    let rp1: Arc<Mutex<dyn Process>> = Arc::new(Mutex::new(p1));
-    let rp2: Arc<Mutex<dyn Process>> = Arc::new(Mutex::new(p2));
+    let rp1: ProcessPtr = Arc::new(RwLock::new(p1));
+    let rp2: ProcessPtr = Arc::new(RwLock::new(p2));
 
     return (rp1, rp2);
 
@@ -30,12 +30,12 @@ fn simple_connection_invoke_test() {
         "id": "con1"
     });
     // rp1 -> rp2
-    let result1 = rp2.lock().unwrap().notify_connected_from(Arc::clone(&rp1), &"arg1".to_string(), manifeset.clone());
+    let result1 = rp2.write().unwrap().notify_connected_from(Arc::clone(&rp1), &"arg1".to_string(), manifeset.clone());
     assert!(result1.is_ok(), "Failed to connected_from function. Error is {:?}", result1.err());
-    let result2 = rp1.lock().unwrap().try_connect_to(Arc::clone(&rp2), &"arg1".to_string(), manifeset.clone());
+    let result2 = rp1.write().unwrap().try_connect_to(Arc::clone(&rp2), &"arg1".to_string(), manifeset.clone());
     assert!(result2.is_ok(), "Failed to connect_to function. Error is {:?}", result2.err());
 
-    let result = rp2.lock().unwrap().invoke();
+    let result = rp2.read().unwrap().invoke();
     assert_eq!(result.unwrap().as_value().unwrap().as_i64().unwrap(), 3);
 }
 
@@ -49,20 +49,20 @@ fn simple_connection_execute_test() {
     });
 
     // rp1 -> rp2
-    let result1 = rp2.lock().unwrap().notify_connected_from(Arc::clone(&rp1), &"arg1".to_string(), manifeset.clone());
+    let result1 = rp2.write().unwrap().notify_connected_from(Arc::clone(&rp1), &"arg1".to_string(), manifeset.clone());
     assert!(result1.is_ok(), "Failed to connected_from function. Error is {:?}", result1.err());
-    let result2 = rp1.lock().unwrap().try_connect_to(Arc::clone(&rp2), &"arg1".to_string(), manifeset.clone());
+    let result2 = rp1.write().unwrap().try_connect_to(Arc::clone(&rp2), &"arg1".to_string(), manifeset.clone());
     assert!(result2.is_ok(), "Failed to connect_to function. Error is {:?}", result2.err());
 
     //let p =  
-    let result_old = rp2.lock().unwrap().get_output();
+    let result_old = rp2.read().unwrap().get_output();
     println!("hogehoge= {:?}", result_old.is_none());
     let f = result_old.is_none();
     assert!(f == false);
 
-    let result1 = rp1.lock().unwrap().execute();
+    let result1 = rp1.read().unwrap().execute();
     assert!(result1.is_ok(), "Error of ConnectionRack.execute(). Error is {:?}", result1.err());
-    let result = rp2.lock().unwrap().get_output();
+    let result = rp2.read().unwrap().get_output();
     assert_eq!(result.is_some(), true);
     let v = result.unwrap();
     println!("value = {:?}", v.as_value());
@@ -85,7 +85,7 @@ fn simple_connection_builder_invoke_test() {
     // rp1 -> rp2
     assert!(result1.is_ok(), "Failed to ConnectionBuilder::connected function. Error is {:?}", result1.err());
     
-    let result = rp2.lock().unwrap().invoke();
+    let result = rp2.read().unwrap().invoke();
     assert!(result.is_ok());
     let output = result.unwrap();
     assert!(output.is_value());

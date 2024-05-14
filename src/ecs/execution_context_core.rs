@@ -4,7 +4,7 @@ use std::sync::{Mutex, Arc, atomic::AtomicI64};
 
 
 
-use crate::{jvalue, JuizResult, Process, utils::juiz_lock, Value, Identifier};
+use crate::{jvalue, processes::proc_lock, Identifier, JuizResult, ProcessPtr, Value};
 
 
 pub enum ExecutionContextState {
@@ -43,7 +43,7 @@ impl ToString for ExecutionContextState {
 }
 
 pub struct ExecutionContextCore {
-    target_processes: Vec<Arc<Mutex<dyn Process>>>,
+    target_processes: Vec<ProcessPtr>,
     pub state: AtomicI64,
 }
 
@@ -56,21 +56,21 @@ impl ExecutionContextCore {
         }))
     }
 
-    pub fn bind(&mut self, target_process: Arc<Mutex<dyn Process>>) -> JuizResult<()> {
+    pub fn bind(&mut self, target_process: ProcessPtr) -> JuizResult<()> {
         self.target_processes.push(target_process);
         Ok(())
     }
 
     pub fn svc(&self) -> JuizResult<Value> {
         for tp in self.target_processes.iter() {
-            let _ = juiz_lock(tp)?.execute()?;
+            let _ = proc_lock(tp)?.execute()?;
         }
         Ok(jvalue!({}))
     }
 
     pub fn profile(&self) -> JuizResult<Value> {
         let id_list = self.target_processes.iter().map(|tp| -> Identifier {
-            match juiz_lock(tp) {
+            match proc_lock(tp) {
                 Ok(p) => p.identifier().clone(),
                 Err(_e) => "Error {e:?}".to_owned()
             }

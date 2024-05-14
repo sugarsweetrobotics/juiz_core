@@ -1,11 +1,7 @@
 
-
-
-use std::sync::{Mutex, Arc};
-
-use crate::{Process, Value, JuizResult, Container, JuizObject};
+use crate::{ContainerPtr, JuizObject, JuizResult, ProcessPtr, Value};
 
 
 pub trait ContainerProcessFactory : JuizObject {
-    fn create_container_process(&self, container: Arc<Mutex<dyn Container>>, manifest: Value) -> JuizResult<Arc<Mutex<dyn Process>>>;
+    fn create_container_process(&self, container: ContainerPtr, manifest: Value) -> JuizResult<ProcessPtr>;
 }

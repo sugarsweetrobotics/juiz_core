@@ -4,8 +4,8 @@
 use anyhow::Context;
 use serde_json::Value;
 
-use crate::{object::JuizObjectCoreHolder, processes::capsule::Capsule, utils::{juiz_lock, manifest_checker::check_connection_manifest}, Identifier, JuizObject, JuizResult, Process};
-use std::sync::{Mutex, Arc};
+use crate::{object::JuizObjectCoreHolder, processes::{capsule::Capsule, proc_lock}, utils::manifest_checker::check_connection_manifest, Identifier, JuizObject, JuizResult,  ProcessPtr};
+
 
 use core::fmt::Debug;
 use std::clone::Clone;
@@ -15,12 +15,12 @@ use super::{DestinationConnection, connection::{Connection, ConnectionCore}};
 
 pub struct DestinationConnectionImpl{
     core: ConnectionCore,
-    destination_process: Arc<Mutex<dyn Process>>
+    destination_process: ProcessPtr
 }
 
 impl DestinationConnectionImpl {
 
-    pub fn new(owner_identifier: &Identifier, destination_process_id: &Identifier, dest_process: Arc<Mutex<dyn Process>>, connection_manifest: Value, arg_name: String) -> JuizResult<Self> {
+    pub fn new(owner_identifier: &Identifier, destination_process_id: &Identifier, dest_process: ProcessPtr, connection_manifest: Value, arg_name: String) -> JuizResult<Self> {
         log::trace!("# DestinationConnectionImpl::new() called");
         let manifest = check_connection_manifest(connection_manifest.clone())?;
         let destination_process_identifier = destination_process_id.clone();// juiz_lock(&dest_process).context("DestinationConnection::new()")?.identifier().clone();
@@ -64,19 +64,19 @@ impl Connection for DestinationConnectionImpl {
 impl DestinationConnection for DestinationConnectionImpl {
 
     fn execute_destination(&self) -> JuizResult<Capsule> {
-        let proc = juiz_lock(&self.destination_process).context("DestinationConnectionImpl.execute_destination()")?;
+        let proc = proc_lock(&self.destination_process).context("DestinationConnectionImpl.execute_destination()")?;
         proc.execute()
     }
 
     fn push(&self, value: &Capsule) -> JuizResult<Capsule> {
-        let proc = juiz_lock(&self.destination_process).context("DestinationConnectionImpl.push()")?;
+        let proc = proc_lock(&self.destination_process).context("DestinationConnectionImpl.push()")?;
         proc.push_by(self.arg_name(), value)
     }
 }
 
 impl<'a> Debug for DestinationConnectionImpl {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("SourceConnection").field("source_process", &self.destination_process.lock().unwrap().identifier()).field("owner_id", &self.owner_identifier()).finish()
+        f.debug_struct("SourceConnection").field("source_process", &self.destination_process.read().unwrap().identifier()).field("owner_id", &self.owner_identifier()).finish()
     }
 }
 

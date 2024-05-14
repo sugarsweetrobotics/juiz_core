@@ -3,8 +3,8 @@
 
 use anyhow::Context;
 
-use crate::{object::{JuizObjectCoreHolder, ObjectCore}, processes::capsule::Capsule, utils::juiz_lock, Identifier, JuizObject, JuizResult, Process, Value};
-use std::sync::{Mutex, Arc};
+use crate::{object::{JuizObjectCoreHolder, ObjectCore}, processes::{capsule::Capsule, proc_lock}, Identifier, JuizObject, JuizResult, ProcessPtr, Value};
+
 use core::fmt::Debug;
 use std::clone::Clone;
 
@@ -12,13 +12,13 @@ use super::{SourceConnection, connection::{Connection, ConnectionCore}};
 
 pub struct SourceConnectionImpl {
     core: ConnectionCore,
-    source_process: Arc<Mutex<dyn Process>>,
+    source_process: ProcessPtr,
 }
 
 impl SourceConnectionImpl {
-    pub fn new(owner_identifier: Identifier, source_process: Arc<Mutex<dyn Process>>, manifest: Value, arg_name: String) -> JuizResult<Self> {
+    pub fn new(owner_identifier: Identifier, source_process: ProcessPtr, manifest: Value, arg_name: String) -> JuizResult<Self> {
         log::trace!("SourceConnectionImpl::new() called");
-        let source_process_identifier = juiz_lock(&source_process)?.identifier().clone();
+        let source_process_identifier = proc_lock(&source_process)?.identifier().clone();
         Ok(SourceConnectionImpl{
             core: ConnectionCore::new("SourceConnection", 
                 source_process_identifier, 
@@ -56,24 +56,25 @@ impl Connection for SourceConnectionImpl {
 impl SourceConnection for SourceConnectionImpl {
 
     fn is_source_updated(&self) -> JuizResult<bool> {
-        let proc = juiz_lock(&self.source_process).context("in SourceConnectionImpl.is_source_updated()")?;
+        let proc = proc_lock(&self.source_process).context("in SourceConnectionImpl.is_source_updated()")?;
         proc.is_updated()
     }
 
     fn invoke_source(&mut self) -> JuizResult<Capsule> {
-        let proc = juiz_lock(&self.source_process).context("in SourceConnectionImpl.invoke_source()")?;
+        let proc = proc_lock(&self.source_process).context("in SourceConnectionImpl.invoke_source()")?;
         proc.invoke()
     }
  
     fn pull(&self) -> JuizResult<Capsule> {
         log::trace!("SourceConnectionImpl({:?}).pull() called", self.identifier());
-        juiz_lock(&self.source_process).context("SourceConnectionImpl.pull()")?.invoke()
+        proc_lock(&self.source_process).context("SourceConnectionImpl.pull()")?.invoke()
     }
 }
 
 impl<'a> Debug for SourceConnectionImpl {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("SourceConnection").field("source_process", &self.source_process.lock().unwrap().identifier()).field("owner_id", &self.owner_identifier()).finish()
+        let p = proc_lock(&self.source_process);
+        f.debug_struct("SourceConnection").field("source_process", p.unwrap().identifier()).field("owner_id", &self.owner_identifier()).finish()
     }
 }
 

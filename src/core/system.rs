@@ -5,11 +5,12 @@ use std::time::Duration;
 
 use anyhow::Context;
 
+use crate::jvalue;
 use crate::brokers::{BrokerProxy, Broker,  broker_factories_wrapper::BrokerFactoriesWrapper};
 use crate::object::{ObjectCore, JuizObjectCoreHolder, JuizObjectClass};
 use crate::processes::capsule::Capsule;
 use crate::value::{obj_get_str, obj_merge};
-use crate::{jvalue, Container, CoreBroker, Identifier, JuizError, JuizObject, JuizResult, Process, Value};
+use crate::{ContainerPtr, CoreBroker, Identifier, JuizError, JuizObject, JuizResult, ProcessPtr, Value};
 use crate::utils::juiz_lock;
 use crate::utils::manifest_util::{id_from_manifest, when_contains_do_mut, construct_id};
 use super::system_builder::system_builder;
@@ -77,30 +78,30 @@ impl System {
 
 
     ///
-    pub fn process_from_id(&self, id: &Identifier) -> JuizResult<Arc<Mutex<dyn Process>>> {
+    pub fn process_from_id(&self, id: &Identifier) -> JuizResult<ProcessPtr> {
         juiz_lock(&self.core_broker)?.store().processes.get(id)
     }
 
-    pub fn process_from_typename_and_name(&self, type_name: &str, name: &str) -> JuizResult<Arc<Mutex<dyn Process>>> {
+    pub fn process_from_typename_and_name(&self, type_name: &str, name: &str) -> JuizResult<ProcessPtr> {
         let id = construct_id("Process", type_name, name, "core", "core");
         juiz_lock(&self.core_broker)?.store().processes.get(&id)
     }
     
     
-    pub fn container_from_id(&self, id: &Identifier) -> JuizResult<Arc<Mutex<dyn Container>>> {
+    pub fn container_from_id(&self, id: &Identifier) -> JuizResult<ContainerPtr> {
         juiz_lock(&self.core_broker)?.store().containers.get(id)
     }
 
-    pub fn container_from_typename_and_name(&self, type_name: &str, name: &str) -> JuizResult<Arc<Mutex<dyn Container>>> {
+    pub fn container_from_typename_and_name(&self, type_name: &str, name: &str) -> JuizResult<ContainerPtr> {
         let id = construct_id("Container", type_name, name, "core", "core");
         juiz_lock(&self.core_broker)?.store().containers.get(&id)
     }
 
-    pub fn container_process_from_id(&self, id: &Identifier) -> JuizResult<Arc<Mutex<dyn Process>>> {
+    pub fn container_process_from_id(&self, id: &Identifier) -> JuizResult<ProcessPtr> {
         juiz_lock(&self.core_broker)?.store().container_processes.get(id)
     }
 
-    pub fn any_process_from_id(&self, id: &Identifier) -> JuizResult<Arc<Mutex<dyn Process>>> {
+    pub fn any_process_from_id(&self, id: &Identifier) -> JuizResult<ProcessPtr> {
         let result = self.process_from_id(id);
         if result.is_ok() {
             return result;
@@ -108,12 +109,12 @@ impl System {
         self.container_process_from_id(id)
     }
 
-    pub fn container_process_from_typename_and_name(&self, type_name: &str, name: &str) -> JuizResult<Arc<Mutex<dyn Process>>> {
+    pub fn container_process_from_typename_and_name(&self, type_name: &str, name: &str) -> JuizResult<ProcessPtr> {
         let id = construct_id("ContainerProcess", type_name, name, "core", "core");
         juiz_lock(&self.core_broker)?.store().container_processes.get(&id)
     }
 
-    pub fn any_process_from_typename_and_name(&self, type_name: &str, name: &str) -> JuizResult<Arc<Mutex<dyn Process>>> {
+    pub fn any_process_from_typename_and_name(&self, type_name: &str, name: &str) -> JuizResult<ProcessPtr> {
         let result = self.process_from_typename_and_name(type_name, name);
         if result.is_ok() {
             return result;
@@ -121,22 +122,22 @@ impl System {
         self.container_process_from_typename_and_name(type_name, name)
     }
 
-    pub fn process_from_manifest(&self, manifest: &Value) -> JuizResult<Arc<Mutex<dyn Process>>> {
+    pub fn process_from_manifest(&self, manifest: &Value) -> JuizResult<ProcessPtr> {
         let id = id_from_manifest(manifest)?.to_string();
         self.process_from_id(&id)
     }
 
-    pub fn container_from_manifest(&self, manifest: &Value) -> JuizResult<Arc<Mutex<dyn Container>>> {
+    pub fn container_from_manifest(&self, manifest: &Value) -> JuizResult<ContainerPtr> {
         let id = id_from_manifest(manifest)?.to_string();
         self.container_from_id(&id)
     }
 
-    pub fn container_process_from_manifest(&self, manifest: &Value) -> JuizResult<Arc<Mutex<dyn Process>>> {
+    pub fn container_process_from_manifest(&self, manifest: &Value) -> JuizResult<ProcessPtr> {
         let id = id_from_manifest(manifest)?.to_string();
         self.container_process_from_id(&id)
     }
 
-    pub fn any_process_from_manifest(&self, manifest: &Value) -> JuizResult<Arc<Mutex<dyn Process>>> {
+    pub fn any_process_from_manifest(&self, manifest: &Value) -> JuizResult<ProcessPtr> {
         
         let id_result = id_from_manifest(manifest);
         if id_result.is_ok() {
@@ -148,11 +149,11 @@ impl System {
         self.any_process_from_typename_and_name(type_name, name)
     }
 
-    pub fn process_proxy(&self, id: &Identifier) -> JuizResult<Arc<Mutex<dyn Process>>> {
+    pub fn process_proxy(&self, id: &Identifier) -> JuizResult<ProcessPtr> {
         juiz_lock(&self.core_broker)?.process_proxy_from_identifier(id)
     }
 
-    pub fn container_process_proxy(&self, id: &Identifier) -> JuizResult<Arc<Mutex<dyn Process>>> {
+    pub fn container_process_proxy(&self, id: &Identifier) -> JuizResult<ProcessPtr> {
         juiz_lock(&self.core_broker)?.container_process_proxy_from_identifier(id)
     }
 

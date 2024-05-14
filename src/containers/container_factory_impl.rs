@@ -3,7 +3,7 @@ use std::sync::{Mutex, Arc};
 use anyhow::Context;
 
 use super::container_impl::ContainerImpl;
-use crate::{JuizError, Value, Container, ContainerFactory, JuizResult, utils::check_process_factory_manifest, value::obj_get_str, JuizObject, object::{ObjectCore, JuizObjectClass, JuizObjectCoreHolder}};
+use crate::{JuizError, Value, ContainerPtr, ContainerFactory, JuizResult, utils::check_process_factory_manifest, value::obj_get_str, JuizObject, object::{ObjectCore, JuizObjectClass, JuizObjectCoreHolder}};
 
 use super::container_factory::ContainerConstructFunction;
 
@@ -53,7 +53,7 @@ impl<T: 'static> JuizObject for ContainerFactoryImpl<T> {}
 
 impl<T: 'static> ContainerFactory for ContainerFactoryImpl<T> {
 
-    fn create_container(&self, manifest: Value) -> JuizResult<Arc<Mutex<dyn Container>>>{
+    fn create_container(&self, manifest: Value) -> JuizResult<ContainerPtr>{
         log::trace!("ContainerFactoryImpl::create_container(manifest={}) called", manifest);
         Ok(ContainerImpl::new(
                 self.apply_default_manifest(manifest.clone())?,

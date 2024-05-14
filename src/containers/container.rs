@@ -1,8 +1,8 @@
-use std::fmt::Display;
+use std::{fmt::Display, sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard}};
 
 use mopa::mopafy;
 
-use crate::{Value, JuizObject};
+use crate::{JuizError, JuizObject, JuizResult, Value};
 
 pub trait Container : Display + mopa::Any + JuizObject{
     
@@ -11,3 +11,33 @@ pub trait Container : Display + mopa::Any + JuizObject{
 
 mopafy!(Container);
 
+pub type ContainerPtr = Arc<RwLock<dyn Container>>;
+
+
+pub fn container_ptr<T>(c: T) -> ContainerPtr where T: Container + 'static {
+    Arc::new(RwLock::new(c))
+}
+
+pub fn container_ptr_clone(ptr: &ContainerPtr) -> ContainerPtr {
+    Arc::clone(ptr)
+}
+
+pub fn container_lock<'a>(obj: &'a ContainerPtr) -> JuizResult<RwLockReadGuard<'a, dyn Container>> {
+    match obj.read() {
+        Err(e) => {
+            log::error!("juiz_lock() failed. Error is {:?}", e);
+            Err(anyhow::Error::from(JuizError::MutexLockFailedError{error: e.to_string()}))
+        },
+        Ok(v) => Ok(v)
+    }
+}
+
+pub fn container_lock_mut<'b, T: Container + ?Sized>(obj: &'b Arc<RwLock<T>>) -> JuizResult<RwLockWriteGuard<'b, T>>{
+    match obj.write() {
+        Err(e) => {
+            log::error!("juiz_lock() failed. Error is {:?}", e);
+            Err(anyhow::Error::from(JuizError::MutexLockFailedError{error: e.to_string()}))
+        },
+        Ok(v) => Ok(v)
+    }
+}

@@ -19,7 +19,7 @@ fn new_process_factory(cb: &mut CoreBroker) -> Arc<Mutex<dyn ProcessFactory>> {
         }, 
     });
     let result_pf = cb.store_mut().processes.register_factory(
-        ProcessFactoryImpl::new(manifest, common::increment_function).unwrap());
+        Arc::new(Mutex::new(ProcessFactoryImpl::new(manifest, common::increment_function).unwrap())));
     assert!(result_pf.is_ok(), "register_process_factory failed. Error is {:?}", result_pf.err());
     Arc::clone(&result_pf.ok().unwrap())
 }
@@ -53,7 +53,7 @@ fn core_broker_process_factory_integration_test() {
     assert!(p_result.is_ok(), "process_create failed. Error is {:?}", p_result.err());
 
     let arc_p = p_result.ok().unwrap();
-    let p = arc_p.lock().unwrap();
+    let p = arc_p.read().unwrap();
     
     let id = p.identifier().clone();
     
@@ -92,7 +92,7 @@ fn core_broker_process_factory_integration_connection_test() {
 
     let arc_p1 = p1_result.ok().unwrap();
     
-    let id1 = arc_p1.lock().unwrap().identifier().clone();
+    let id1 = arc_p1.read().unwrap().identifier().clone();
 
     let p2_result = cb.create_process_ref(jvalue!({
         "name": "test_function2",
@@ -101,7 +101,7 @@ fn core_broker_process_factory_integration_connection_test() {
     assert!(p2_result.is_ok(), "process_create failed. Error is {:?}", p2_result.err());
 
     let arc_p2 = p2_result.ok().unwrap();
-    let id2 = arc_p2.lock().unwrap().identifier().clone();
+    let id2 = arc_p2.read().unwrap().identifier().clone();
     
     //assert!(cb.is_in_charge_for_process(&id1));
     //assert!(cb.is_in_charge_for_process(&id2));
@@ -131,7 +131,7 @@ fn core_broker_process_factory_integration_connection_test() {
     let p2_result2 = cb.store().processes.get(&id2);
     assert!(p2_result2.is_ok(), "Process 2 can not acquire. Error is {:?}", p2_result2.err());
     
-    let output = p2_result2.ok().unwrap().lock().unwrap().get_output();
+    let output = p2_result2.ok().unwrap().read().unwrap().get_output();
     assert!(output.is_some(), "Error. Process2 Output is None.");
 
     //

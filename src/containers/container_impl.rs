@@ -1,9 +1,9 @@
 
 
-use std::{sync::{Arc, Mutex}, fmt::Display};
-use crate::{Value, Identifier, value::obj_get_str, JuizResult, JuizObject, object::{ObjectCore, JuizObjectCoreHolder, JuizObjectClass}};
+use std::fmt::Display;
+use crate::{Value, Identifier, ContainerPtr, value::obj_get_str, JuizResult, JuizObject, object::{ObjectCore, JuizObjectCoreHolder, JuizObjectClass}};
 
-use super::container::Container;
+use super::{container::Container, container_ptr};
 
 pub struct ContainerImpl<S> {
     core: ObjectCore,
@@ -19,13 +19,13 @@ fn _identifier_from_manifest(manifest: &Value) -> Identifier {
 }
 
 impl<S: 'static> ContainerImpl<S> {
-    pub fn new(manifest: Value, t: Box<S>) -> JuizResult<Arc<Mutex<dyn Container>>> {
+    pub fn new(manifest: Value, t: Box<S>) -> JuizResult<ContainerPtr> {
         let type_name = obj_get_str(&manifest, "type_name")?;
         let object_name = obj_get_str(&manifest, "name")?;
-        Ok(Arc::new(Mutex::new(ContainerImpl{
+        Ok(container_ptr(ContainerImpl{
             core: ObjectCore::create(JuizObjectClass::Container("ContainerImpl"), type_name, object_name),
             manifest, t
-        })))
+        }))
     }
 }
 

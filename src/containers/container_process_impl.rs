@@ -1,6 +1,6 @@
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
-use crate::{jvalue, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, processes::{capsule::{Capsule, CapsuleMap}, process_impl::ProcessImpl}, utils::{check_process_manifest, juiz_lock}, value::{obj_get_str, obj_merge}, Container, Identifier, JuizError, JuizObject, JuizResult, Process, Value};
+use crate::{containers::{container_lock, container_lock_mut}, jvalue, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, processes::{capsule::{Capsule, CapsuleMap}, process_impl::ProcessImpl}, utils::check_process_manifest, value::{obj_get_str, obj_merge}, ContainerPtr, Identifier, JuizError, JuizObject, JuizResult, Process, ProcessPtr, Value};
 
 use super::container_impl::ContainerImpl;
 //use crate::containers::container_process_impl::JuizObjectClass::ContainerProcess;
@@ -15,21 +15,21 @@ pub type ContainerFunctionType<T>=fn (&mut Box<T>, CapsuleMap) -> JuizResult<Cap
 pub struct ContainerProcessImpl<T: 'static> {
     core: ObjectCore,
     process: ProcessImpl,
-    pub container: Arc<Mutex<dyn Container>>,
+    pub container: ContainerPtr,
     container_identifier: Identifier,
     function: ContainerFunctionType<T>,
 }
 
 impl<T: 'static> ContainerProcessImpl<T> {
 
-    pub fn new<'a> (manif: Value, container: Arc<Mutex<dyn Container>>, function: ContainerFunctionType<T>) -> JuizResult<Self> {
+    pub fn new<'a> (manif: Value, container: ContainerPtr, function: ContainerFunctionType<T>) -> JuizResult<Self> {
         log::trace!("ContainerProcessImpl::new(manifest={}) called", manif);
         //let identifier = create_identifier_from_manifest("ContainerProcess", &manif)?;
         let manifest = check_process_manifest(manif)?;
         let container_clone = Arc::clone(&container);
-        let container_identifier = juiz_lock(&container)?.identifier().clone();
+        let container_identifier = container_lock(&container)?.identifier().clone();
         let proc = ProcessImpl::clousure_new_with_class_name(JuizObjectClass::ContainerProcess("ProcessImpl"), manifest.clone(), Box::new(move |args| {
-            let mut locked_container = juiz_lock(&container)?;
+            let mut locked_container = container_lock_mut(&container)?;
             match locked_container.downcast_mut::<ContainerImpl<T>>() {
                 None => Err(anyhow::Error::from(JuizError::ContainerDowncastingError{identifier: locked_container.identifier().clone()})),
                 Some(container_impl) => {
@@ -112,11 +112,11 @@ impl<T: 'static> Process for ContainerProcessImpl<T> {
         self.process.get_output()
     }
 
-    fn notify_connected_from<'b>(&'b mut self, source: Arc<Mutex<dyn Process>>, connecting_arg: &String, connection_manifest: crate::Value) -> crate::JuizResult<Capsule> {
+    fn notify_connected_from<'b>(&'b mut self, source: ProcessPtr, connecting_arg: &String, connection_manifest: crate::Value) -> crate::JuizResult<Capsule> {
         self.process.notify_connected_from(source, connecting_arg, connection_manifest)
     }
 
-    fn try_connect_to(&mut self, target: Arc<Mutex<dyn Process>>, connect_arg_to: &String, connection_manifest: crate::Value) -> crate::JuizResult<Capsule> {
+    fn try_connect_to(&mut self, target: ProcessPtr, connect_arg_to: &String, connection_manifest: crate::Value) -> crate::JuizResult<Capsule> {
         self.process.try_connect_to(target, connect_arg_to, connection_manifest)
     }
 
@@ -133,4 +133,7 @@ impl<T: 'static> Process for ContainerProcessImpl<T> {
 
 
 unsafe impl<T: 'static> Send for ContainerProcessImpl<T> {
+}
+
+unsafe impl<T: 'static> Sync for ContainerProcessImpl<T> {
 }

@@ -69,7 +69,7 @@ fn main() -> JuizResult<()>{
 
         let id = "http://localhost:3000/ContainerProcess/increment_a::example_container_increment";
         let p1 = system.container_process_proxy(&id.to_string())?;
-        let prof = p1.lock().unwrap().profile_full()?;
+        let prof = p1.read().unwrap().profile_full()?;
         println!("Process: {:#}", prof.as_value().unwrap());
 
         Ok(())

@@ -4,7 +4,7 @@ use std::sync::{Mutex, Arc, RwLock, atomic::AtomicBool};
 
 use tokio::runtime;
 
-use crate::{ecs::execution_context_core::ExecutionContextState, jvalue, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, processes::capsule::Capsule, utils::{juiz_lock, sync_util::{juiz_borrow, juiz_borrow_mut}}, value::obj_merge_mut, JuizObject, JuizResult, Process, Value};
+use crate::{ecs::execution_context_core::ExecutionContextState, jvalue, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, processes::capsule::Capsule, utils::{juiz_lock, sync_util::{juiz_borrow, juiz_borrow_mut}}, value::obj_merge_mut, JuizObject, JuizResult, ProcessPtr, Value};
 
 use super::{execution_context::ExecutionContext, execution_context_core::ExecutionContextCore};
 
@@ -190,7 +190,7 @@ impl ExecutionContextHolder {
         */
     }
 
-    pub fn bind(&mut self, target_process: Arc<Mutex<dyn Process>>) -> JuizResult<()> {
+    pub fn bind(&mut self, target_process: ProcessPtr) -> JuizResult<()> {
         juiz_lock(&self.core)?.bind(target_process)
     }
 

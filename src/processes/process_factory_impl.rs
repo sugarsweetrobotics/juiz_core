@@ -1,6 +1,6 @@
 
 use std::sync::{Mutex, Arc};
-use crate::{value::obj_get_str, Process, ProcessFactory, processes::process_impl::ProcessImpl, JuizError, Value, JuizResult, utils::check_process_factory_manifest, JuizObject, object::{ObjectCore, JuizObjectCoreHolder, JuizObjectClass}};
+use crate::{object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, processes::{process_impl::ProcessImpl, process_ptr}, utils::check_process_factory_manifest, value::obj_get_str, JuizError, JuizObject, JuizResult, ProcessFactory, ProcessPtr, Value};
 use super::process_impl::FunctionType;
 
 #[repr(C)]
@@ -12,14 +12,14 @@ pub struct ProcessFactoryImpl {
 
 pub fn create_process_factory(manifest: crate::Value, function: FunctionType) -> JuizResult<Arc<Mutex<dyn ProcessFactory>>> {
     log::trace!("create_process_factory called");
-    ProcessFactoryImpl::new(manifest, function)
+    Ok(Arc::new(Mutex::new(ProcessFactoryImpl::new(manifest, function)?)))
 }
 
 impl ProcessFactoryImpl {
 
-    pub fn new(manifest: crate::Value, function: FunctionType) -> JuizResult<Arc<Mutex<dyn ProcessFactory>>> {
+    pub fn new(manifest: crate::Value, function: FunctionType) -> JuizResult<Self> {
         let type_name = obj_get_str(&manifest, "type_name")?;
-        Ok(Arc::new(Mutex::new(
+        Ok(
             ProcessFactoryImpl{
                 core: ObjectCore::create_factory(JuizObjectClass::ProcessFactory("ProcessFactoryImpl"),
                     type_name
@@ -27,7 +27,7 @@ impl ProcessFactoryImpl {
                 manifest: check_process_factory_manifest(manifest)?, 
                 function
             }
-        )))
+        )
     }
 
     fn apply_default_manifest(&self, manifest: Value) -> Result<Value, JuizError> {
@@ -51,12 +51,12 @@ impl JuizObject for ProcessFactoryImpl {
 
 impl ProcessFactory for ProcessFactoryImpl {
 
-    fn create_process(&self, manifest: Value) -> JuizResult<Arc<Mutex<dyn Process>>>{
+    fn create_process(&self, manifest: Value) -> JuizResult<ProcessPtr>{
         log::trace!("ProcessFactoryImpl::create_process(manifest={}) called", manifest);
-        Ok(Arc::new(Mutex::new(
+        Ok(process_ptr(
             ProcessImpl::new(
                 self.apply_default_manifest(manifest)?, 
                 self.function)?
-        )))
+        ))
     }    
 }

@@ -1,6 +1,6 @@
-use std::sync::{Mutex, Arc};
+use std::sync::{Arc, Mutex, RwLock};
 use super::container_process_impl::{ContainerProcessImpl, ContainerFunctionType};
-use crate::{ContainerProcessFactory, Value, JuizResult, Container, value::obj_get_str, Process, JuizObject, object::{JuizObjectCoreHolder, ObjectCore, JuizObjectClass}};
+use crate::{object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, value::obj_get_str, ContainerPtr, ContainerProcessFactory, JuizObject, JuizResult, ProcessPtr, Value};
 
 struct ContainerProcessFactoryImpl<T> {
     core: ObjectCore,
@@ -44,9 +44,9 @@ impl<T: 'static> JuizObjectCoreHolder for ContainerProcessFactoryImpl<T> {
 impl<T: 'static> JuizObject for ContainerProcessFactoryImpl<T> {}
 
 impl<T: 'static> ContainerProcessFactory for ContainerProcessFactoryImpl<T> {
-    fn create_container_process(&self, container: Arc<Mutex<dyn Container>>, manifest: crate::Value) -> JuizResult<Arc<Mutex<dyn Process>>> {
+    fn create_container_process(&self, container: ContainerPtr, manifest: crate::Value) -> JuizResult<ProcessPtr> {
         log::trace!("ContainerProcessFactoryImpl::create_container_process(container, manifest={}) called", manifest);
-        Ok(Arc::new(Mutex::new(
+        Ok(Arc::new(RwLock::new(
             ContainerProcessImpl::new(
                 self.apply_default_manifest(manifest)?, 
                 Arc::clone(&container), 

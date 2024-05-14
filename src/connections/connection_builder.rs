@@ -1,10 +1,10 @@
 
 
 pub mod connection_builder {
-    use std::{sync::{Arc, Mutex}, collections::HashMap};
+    use std::{sync::Arc, collections::HashMap};
     use anyhow::Context;
 
-    use crate::{processes::Process, Value, System, utils::{get_value, get_str, juiz_lock}, JuizResult, CoreBroker};
+    use crate::{processes::{proc_lock, proc_lock_mut}, utils::{get_str, get_value}, CoreBroker, JuizResult, ProcessPtr, System, Value};
 
     ///
     pub fn create_connection(system: &System, manifest: &Value) -> JuizResult<Value> {
@@ -24,14 +24,14 @@ pub mod connection_builder {
         )
     }
     
-    pub fn connect(source: Arc<Mutex<dyn Process>>, destination: Arc<Mutex<dyn Process>>, arg_name: &String, manifest: Value) -> JuizResult<Value> {
+    pub fn connect(source: ProcessPtr, destination: ProcessPtr, arg_name: &String, manifest: Value) -> JuizResult<Value> {
         log::debug!("connection_builder::connect({manifest}) called");
         let source_connect_result_manifest;
         {
-            source_connect_result_manifest = juiz_lock(&source)?.try_connect_to(Arc::clone(&destination), arg_name, manifest)?.clone();
+            source_connect_result_manifest = proc_lock_mut(&source)?.try_connect_to(Arc::clone(&destination), arg_name, manifest)?.clone();
             log::trace!("source_connection, connected!");
         }
-        let result = juiz_lock(&destination)?.notify_connected_from(source, arg_name, source_connect_result_manifest.try_into()?);
+        let result = proc_lock_mut(&destination)?.notify_connected_from(source, arg_name, source_connect_result_manifest.try_into()?);
         log::trace!("destination_connection, connected!");
         result.expect("destination_connection_failed.").try_into()
     }
@@ -39,10 +39,10 @@ pub mod connection_builder {
     pub fn list_connection_profiles(core_broker: &CoreBroker) -> JuizResult<Vec<Value>> {
         let mut value_map: HashMap<String, Value> = HashMap::new();
         for p in core_broker.store().processes.objects().into_iter() {
-            for sc in juiz_lock(p)?.source_connections()? {
+            for sc in proc_lock(p)?.source_connections()? {
                 value_map.insert(sc.identifier().clone(), sc.profile_full()?.try_into()?);
             }
-            for dc in juiz_lock(p)?.destination_connections()? {
+            for dc in proc_lock(p)?.destination_connections()? {
                 value_map.insert(dc.identifier().clone(), dc.profile_full()?.try_into()?);
             }
         }

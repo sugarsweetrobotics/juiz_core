@@ -1,17 +1,18 @@
 
 
 
-use std::sync::{Mutex, Arc};
+
 use anyhow::Context;
 use serde_json::Map;
 
 use crate::identifier::{identifier_from_manifest, create_identifier_from_manifest};
 use crate::object::{JuizObjectCoreHolder, ObjectCore, JuizObjectClass};
 
+use crate::processes::proc_lock;
 use crate::value::{obj_get_str, obj_get_obj, obj_merge_mut};
-use crate::{jvalue, Identifier, JuizError, JuizObject, JuizResult, Process, Value};
+use crate::{jvalue, Identifier, JuizError, JuizObject, JuizResult, Process, ProcessPtr, Value};
 
-use crate::utils::{check_manifest_before_call, check_process_manifest, juiz_lock};
+use crate::utils::{check_manifest_before_call, check_process_manifest};
 use crate::connections::{SourceConnection, SourceConnectionImpl, DestinationConnection, DestinationConnectionImpl};
 
 use super::capsule::{Capsule, CapsuleMap};
@@ -237,7 +238,7 @@ impl Process for ProcessImpl {
         Some(self.outlet.memo().clone())
     }
 
-    fn notify_connected_from(&mut self, source: Arc<Mutex<dyn Process>>, connecting_arg: &String, connection_manifest: Value) -> JuizResult<Capsule> {
+    fn notify_connected_from(&mut self, source: ProcessPtr, connecting_arg: &String, connection_manifest: Value) -> JuizResult<Capsule> {
         log::trace!("ProcessImpl(id={:?}).notify_connected_from(source=Process()) called", self.identifier());
         let id = self.identifier().clone();
         match self.inlet_mut(connecting_arg.as_str()) {
@@ -255,9 +256,9 @@ impl Process for ProcessImpl {
         Ok(connection_manifest.into())
     }
 
-    fn try_connect_to(&mut self, destination: Arc<Mutex<dyn Process>>, arg_name: &String, connection_manifest: Value) -> JuizResult<Capsule> {
+    fn try_connect_to(&mut self, destination: ProcessPtr, arg_name: &String, connection_manifest: Value) -> JuizResult<Capsule> {
         log::info!("ProcessImpl(id={:?}).try_connect_to(destination=Process()) called", self.identifier());
-        let destination_id = juiz_lock(&destination).context("ProcessImpl::try_connect_to()")?.identifier().clone();
+        let destination_id = proc_lock(&destination).context("ProcessImpl::try_connect_to()")?.identifier().clone();
         self.outlet.insert(
             arg_name.clone(), 
             Box::new(DestinationConnectionImpl::new(
@@ -294,5 +295,9 @@ impl Drop for ProcessImpl {
 }
 
 unsafe impl Send for ProcessImpl {
+
+}
+
+unsafe impl Sync for ProcessImpl {
 
 }

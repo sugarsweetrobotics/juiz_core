@@ -1,6 +1,10 @@
 
 extern crate juiz_core;
 
+use crate::juiz_core::ProcessFactory;
+use std::sync::{Arc, Mutex};
+
+use juiz_core::utils::juiz_lock;
 
 use crate::juiz_core::value::*;
 use crate::juiz_core::processes::process_factory_impl::ProcessFactoryImpl;
@@ -18,16 +22,18 @@ fn simple_process_create_test() {
             }, 
         }, 
     });
-    let result_pf = ProcessFactoryImpl::new(manifest, common::increment_function);
+    let result_pf = Arc::new(Mutex::new(ProcessFactoryImpl::new(manifest, common::increment_function).unwrap()));
+    /*
     assert!(result_pf.is_ok());
+    */
     let proc_manifest = jvalue!(
         {
             "name": "hogehoge",
         }
     );
-    let p = result_pf.ok().unwrap().lock().unwrap().create_process(proc_manifest);
+    let p = juiz_lock(&result_pf).unwrap().create_process(proc_manifest);
     assert!(p.is_ok(), "ProcessImpl::new() failed. Error is {:?}", p.err());
-    let result = p.ok().unwrap().lock().unwrap().call(vec!(("arg1", jvalue!(3))).into());
+    let result = p.ok().unwrap().read().unwrap().call(vec!(("arg1", jvalue!(3))).into());
     assert!(result.is_ok());
     let res_value = result.ok().unwrap();
     assert!(res_value.as_value().unwrap().is_i64());
