@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use crate::{containers::{container_lock, container_lock_mut}, jvalue, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, processes::{capsule::{Capsule, CapsuleMap}, process_impl::ProcessImpl}, utils::check_process_manifest, value::{obj_get_str, obj_merge}, ContainerPtr, Identifier, JuizError, JuizObject, JuizResult, Process, ProcessPtr, Value};
 
@@ -65,10 +65,10 @@ impl<T: 'static> JuizObjectCoreHolder for ContainerProcessImpl<T> {
 }
 
 impl<T: 'static> JuizObject for ContainerProcessImpl<T> {
-    fn profile_full(&self) -> JuizResult<Capsule> {
-        Ok(obj_merge(self.process.profile_full()?.try_into()?, &jvalue!({
+    fn profile_full(&self) -> JuizResult<Value> {
+        obj_merge(self.process.profile_full()?.try_into()?, &jvalue!({
             "container_identifier": self.container_identifier
-        }))?.into())
+        }))
     }
 }
 
@@ -79,7 +79,7 @@ impl<T: 'static> Process for ContainerProcessImpl<T> {
         self.process.manifest()
     }
 
-    fn call(&self, args: CapsuleMap) -> crate::JuizResult<Capsule> {
+    fn call(&self, args: CapsuleMap) -> crate::JuizResult<Arc<Mutex<Capsule>>> {
         self.process.call(args)
     }
 
@@ -92,31 +92,31 @@ impl<T: 'static> Process for ContainerProcessImpl<T> {
     }
 
 
-    fn invoke<'b>(&self) -> crate::JuizResult<Capsule> {
+    fn invoke<'b>(&self) -> crate::JuizResult<Arc<Mutex<Capsule>>> {
         self.process.invoke()
     }
 
-    fn invoke_exclude<'b>(&self, arg_name: &String, value: Capsule) -> JuizResult<Capsule> {
+    fn invoke_exclude<'b>(&self, arg_name: &String, value: Arc<Mutex<Capsule>>) -> JuizResult<Arc<Mutex<Capsule>>> {
         self.process.invoke_exclude(arg_name, value)
     }
 
-    fn execute(&self) -> JuizResult<Capsule> {
+    fn execute(&self) -> JuizResult<Arc<Mutex<Capsule>>> {
         self.process.execute()
     }
 
-    fn push_by(&self, arg_name: &String, value: &Capsule) -> crate::JuizResult<Capsule> {
+    fn push_by(&self, arg_name: &String, value: Arc<Mutex<Capsule>>) -> JuizResult<Arc<Mutex<Capsule>>> {
         self.process.push_by(arg_name, value)
     }
 
-    fn get_output(&self) -> Option<Capsule> {
+    fn get_output(&self) -> Arc<Mutex<Capsule>> {
         self.process.get_output()
     }
 
-    fn notify_connected_from<'b>(&'b mut self, source: ProcessPtr, connecting_arg: &String, connection_manifest: crate::Value) -> crate::JuizResult<Capsule> {
+    fn notify_connected_from<'b>(&'b mut self, source: ProcessPtr, connecting_arg: &String, connection_manifest: Value) -> JuizResult<Value> {
         self.process.notify_connected_from(source, connecting_arg, connection_manifest)
     }
 
-    fn try_connect_to(&mut self, target: ProcessPtr, connect_arg_to: &String, connection_manifest: crate::Value) -> crate::JuizResult<Capsule> {
+    fn try_connect_to(&mut self, target: ProcessPtr, connect_arg_to: &String, connection_manifest: Value) -> JuizResult<Value> {
         self.process.try_connect_to(target, connect_arg_to, connection_manifest)
     }
 

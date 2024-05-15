@@ -25,7 +25,7 @@ pub type ReceiverType = dyn Fn(Duration) -> JuizResult<Capsule>;
 pub struct SendReceivePair(pub Box<SenderType>, pub Box<ReceiverType>);
 
 pub trait MessengerBrokerCore : Send {
-    fn receive_and_send(&self, timeout: Duration, func: Arc<Mutex<dyn Fn(CapsuleMap)->JuizResult<Capsule>>>) -> JuizResult<Capsule>;
+    fn receive_and_send(&self, timeout: Duration, func: Arc<Mutex<dyn Fn(CapsuleMap)->JuizResult<Arc<Mutex<Capsule>> >>>) -> JuizResult<Capsule>;
 }
 
 pub trait MessengerBrokerCoreFactory {
@@ -81,7 +81,7 @@ fn extract_create_parameter(args: CapsuleMap) -> Value {
 }
 */
 
-fn handle_function(crud_broker: Arc<Mutex<CRUDBroker>>, args: CapsuleMap) -> JuizResult<Capsule> {
+fn handle_function(crud_broker: Arc<Mutex<CRUDBroker>>, args: CapsuleMap) -> JuizResult<Arc<Mutex<Capsule>>> {
     log::info!("MessengerBroker::handle_function() called");
     /*
     let method_name = obj_get_str(&value, "method_name")?;
@@ -127,7 +127,7 @@ impl Broker for MessengerBroker {
 
                 loop {
                     let crud = cb.clone();
-                    let func: Arc<Mutex<dyn Fn(CapsuleMap)->JuizResult<Capsule>>> = Arc::new(Mutex::new(move |value:CapsuleMap| -> JuizResult<Capsule> { handle_function(Arc::clone(&crud), value) }));
+                    let func: Arc<Mutex<dyn Fn(CapsuleMap)->JuizResult<Arc<Mutex<Capsule>>>>> = Arc::new(Mutex::new(move |value:CapsuleMap| -> JuizResult<Arc<Mutex<Capsule>>> { handle_function(Arc::clone(&crud), value) }));
                     std::thread::sleep(Duration::new(0, 10*1000*1000));
                     match end_flag.lock() {
                         Err(e) => {

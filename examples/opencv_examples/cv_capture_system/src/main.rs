@@ -134,7 +134,7 @@ fn main() -> JuizResult<()> {
     {
         System::new(manifest)?.run_and_do(|system|{
             let v = system.broker_proxy(&jvalue!({"type_name":"local"}))?.lock().unwrap().system_profile_full()?;
-            println!("System: {:#}", v.as_value().unwrap());
+            println!("System: {:#}", v);
             Ok(())
         })
     }

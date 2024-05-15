@@ -91,11 +91,11 @@ fn check_arguments(args_manifest: &Value, argument: &CapsuleMap) -> JuizResult<(
     //let arg_map = get_hashmap(argument).context("check_arguments")?;
     for (arg_name, _v) in get_hashmap(args_manifest).context("check_arguments")? {
         match argument.get(arg_name) {
-            None => return Err(
+            Err(_) => return Err(
                 anyhow::Error::from(JuizError::ArgumentMissingWhenCallingError{
                     process_manifest: args_manifest.clone(), 
                     missing_arg_name: arg_name.clone()})),
-                Some(_) => {}
+            Ok(_) => {}
             };
     }
     Ok(())

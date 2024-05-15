@@ -1,6 +1,6 @@
 use std::{sync::{Arc, Mutex}, time::Duration, ops::Deref};
 
-use crate::{brokers::messenger_broker_proxy_factory::create_messenger_broker_proxy_factory, processes::capsule::{Capsule, CapsuleMap}, JuizError, JuizResult};
+use crate::{brokers::messenger_broker_proxy_factory::create_messenger_broker_proxy_factory, processes::capsule::CapsuleMap, Capsule, JuizError, JuizResult};
 
 use super::local_broker::ProxySideSenderReceiverPair;
 
@@ -28,7 +28,7 @@ impl MessengerBrokerProxyCoreFactory  for LocalBrokerProxyCoreFactory {
 }
 
 impl MessengerBrokerProxyCore for LocalBrokerProxyCore {
-    fn send_and_receive(&self, value: CapsuleMap, timeout: Duration) -> JuizResult<Capsule> {
+    fn send_and_receive(&self, value: CapsuleMap, timeout: Duration) -> JuizResult<Arc<Mutex<Capsule>>> {
         let us = timeout.as_micros();
         log::trace!("LocaBrokerProxyCore::send_and_receive(timeout_us={us}) called");
         let sndr_recvr = self.sender_receiver.lock().map_err(|_e| return anyhow::Error::from(JuizError::BrokerSendCanNotLockSenderError{}))?;
@@ -42,7 +42,7 @@ impl MessengerBrokerProxyCore for LocalBrokerProxyCore {
         result
     }
 
-    fn send_and_receive_output(&self, _v: CapsuleMap, _timeout: Duration) -> JuizResult<Capsule> {
+    fn send_and_receive_output(&self, _v: CapsuleMap, _timeout: Duration) -> JuizResult<Arc<Mutex<Capsule>>> {
         todo!("Outputクラスをどう扱うか。")
     }
 }

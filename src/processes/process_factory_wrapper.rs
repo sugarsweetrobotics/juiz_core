@@ -2,9 +2,9 @@ use std::{cell::RefCell, rc::Rc, sync::{Arc, Mutex}};
 
 use anyhow::Context;
 
-use crate::{core::Plugin, jvalue, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, utils::juiz_lock, value::obj_merge, JuizError, JuizObject, JuizResult, ProcessFactory, ProcessPtr, Value};
+use crate::{core::Plugin, jvalue, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, utils::juiz_lock, value::obj_merge, JuizObject, JuizResult, ProcessFactory, ProcessPtr, Value};
 
-use super::capsule::Capsule;
+
 
 #[allow(dead_code)]
 pub struct ProcessFactoryWrapper {
@@ -36,11 +36,11 @@ impl JuizObjectCoreHolder for ProcessFactoryWrapper {
 
 impl JuizObject for ProcessFactoryWrapper {
 
-    fn profile_full(&self) -> JuizResult<Capsule> {
+    fn profile_full(&self) -> JuizResult<Value> {
         let v = self.core.profile_full()?;
         Ok(obj_merge(v, &jvalue!({
             "plugin": self.plugin.profile_full()?,
-            "process_factory": juiz_lock(&self.process_factory)?.profile_full()?.as_value().ok_or(anyhow::Error::from(JuizError::CapsuleIsNotValueTypeError{}))?
+            "process_factory": juiz_lock(&self.process_factory)?.profile_full()?,
         }))?.into())
     }
 

@@ -16,8 +16,7 @@ pub use process_factory::ProcessFactory;
 pub use process_factory_impl::create_process_factory;
 pub use process_factory_wrapper::ProcessFactoryWrapper;
 
-
-
+pub use self::capsule::{capsule_to_value, value_to_capsule};
 pub use self::argument::Argument;
 pub use self::output::Output;
 

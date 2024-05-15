@@ -1,7 +1,7 @@
 
 
 pub mod connection_builder {
-    use std::{sync::Arc, collections::HashMap};
+    use std::{collections::HashMap, sync::Arc};
     use anyhow::Context;
 
     use crate::{processes::{proc_lock, proc_lock_mut}, utils::{get_str, get_value}, CoreBroker, JuizResult, ProcessPtr, System, Value};
@@ -31,9 +31,9 @@ pub mod connection_builder {
             source_connect_result_manifest = proc_lock_mut(&source)?.try_connect_to(Arc::clone(&destination), arg_name, manifest)?.clone();
             log::trace!("source_connection, connected!");
         }
-        let result = proc_lock_mut(&destination)?.notify_connected_from(source, arg_name, source_connect_result_manifest.try_into()?);
+        let result = proc_lock_mut(&destination)?.notify_connected_from(source, arg_name, source_connect_result_manifest);
         log::trace!("destination_connection, connected!");
-        result.expect("destination_connection_failed.").try_into()
+        result
     }
 
     pub fn list_connection_profiles(core_broker: &CoreBroker) -> JuizResult<Vec<Value>> {

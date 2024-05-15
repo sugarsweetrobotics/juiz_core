@@ -1,6 +1,6 @@
 
 
-use crate::{processes::capsule::Capsule, utils::juiz_lock, JuizError, JuizResult, Value};
+use crate::{utils::juiz_lock, JuizError, JuizResult, Value};
 use std::sync::{Arc, Mutex};
 use crate::{core::Plugin, brokers::{Broker, BrokerProxy, BrokerFactory, BrokerProxyFactory}};
 
@@ -29,7 +29,7 @@ impl BrokerFactoriesWrapper {
         })))
     }
 
-    pub fn profile_full(&self) -> JuizResult<Capsule> {
+    pub fn profile_full(&self) -> JuizResult<Value> {
         log::trace!("profile_full(type_name={:}) called", self.type_name);
         juiz_lock(&self.broker_factory)?.profile_full()
     }

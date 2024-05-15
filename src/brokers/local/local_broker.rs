@@ -6,8 +6,8 @@ use crate::brokers::{BrokerFactory, MessengerBroker, MessengerBrokerCore, Messen
 
 
 pub struct ByteSenderReceiverPair(pub mpsc::Sender<Vec<u8>>, pub mpsc::Receiver<Vec<u8>>);
-pub struct BrokerSideSenderReceiverPair(pub mpsc::Sender<Capsule>, pub mpsc::Receiver<CapsuleMap>);
-pub struct ProxySideSenderReceiverPair(pub mpsc::Sender<CapsuleMap>, pub mpsc::Receiver<Capsule>);
+pub struct BrokerSideSenderReceiverPair(pub mpsc::Sender<Arc<Mutex<Capsule>>>, pub mpsc::Receiver<CapsuleMap>);
+pub struct ProxySideSenderReceiverPair(pub mpsc::Sender<CapsuleMap>, pub mpsc::Receiver<Arc<Mutex<Capsule>>>);
 pub type LocalBroker = MessengerBroker;
 
 #[allow(dead_code)]
@@ -17,7 +17,7 @@ pub struct LocalBrokerCore {
 }
 
 impl MessengerBrokerCore for LocalBrokerCore {
-    fn receive_and_send(&self, timeout: Duration, func: Arc<Mutex<dyn Fn(CapsuleMap)->JuizResult<Capsule>>>) -> JuizResult<Capsule> {
+    fn receive_and_send(&self, timeout: Duration, func: Arc<Mutex<dyn Fn(CapsuleMap)->JuizResult<Arc<Mutex<Capsule>>> >>) -> JuizResult<Capsule> {
         //log::trace!("LocalBrokerCore::receive_and_send() called");
         let sendr_recvr = juiz_lock(&self.sender_receiver)?;
         let BrokerSideSenderReceiverPair(sendr, recvr) = sendr_recvr.deref();

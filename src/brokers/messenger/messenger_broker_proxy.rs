@@ -1,6 +1,6 @@
 use std::{sync::{Arc, Mutex}, time::Duration};
 use anyhow::Context;
-use crate::{brokers::broker_proxy::{BrokerBrokerProxy, ConnectionBrokerProxy, ContainerBrokerProxy, ContainerProcessBrokerProxy, ExecutionContextBrokerProxy}, jvalue, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, processes::capsule::{Capsule, CapsuleMap}, value::{obj_get, obj_get_str}, Identifier, JuizError, JuizObject, JuizResult, Value};
+use crate::{brokers::broker_proxy::{BrokerBrokerProxy, ConnectionBrokerProxy, ContainerBrokerProxy, ContainerProcessBrokerProxy, ExecutionContextBrokerProxy}, jvalue, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, processes::{capsule::{Capsule, CapsuleMap}, capsule_to_value}, utils::juiz_lock, value::obj_get_str, Identifier, JuizError, JuizObject, JuizResult, Value};
 use super::super::broker_proxy::{BrokerProxy, SystemBrokerProxy, ProcessBrokerProxy};
 
 
@@ -12,12 +12,12 @@ pub struct MessengerBrokerProxy {
 }
 
 pub type SenderType = dyn Fn(CapsuleMap) -> JuizResult<()>;
-pub type ReceiverType = dyn Fn(Duration) -> JuizResult<Capsule>;
+pub type ReceiverType = dyn Fn(Duration) -> JuizResult<Arc<Mutex<Capsule>>>;
 
 pub struct SendReceivePair(pub Box<SenderType>, pub Box<ReceiverType>);
 pub trait MessengerBrokerProxyCore : Send {
-    fn send_and_receive(&self, v: CapsuleMap, timeout: Duration) -> JuizResult<Capsule>;
-    fn send_and_receive_output(&self, v: CapsuleMap, timeout: Duration) -> JuizResult<Capsule>;
+    fn send_and_receive(&self, v: CapsuleMap, timeout: Duration) -> JuizResult<Arc<Mutex<Capsule>>>;
+    fn send_and_receive_output(&self, v: CapsuleMap, timeout: Duration) -> JuizResult<Arc<Mutex<Capsule>>>;
 }
 
 pub trait MessengerBrokerProxyCoreFactory { 
@@ -53,12 +53,12 @@ impl MessengerBrokerProxy {
         arguments
     }
 
-    fn extract_function_param(&self, value: &Capsule) -> JuizResult<String> {
+    fn extract_function_param(&self, value: &Arc<Mutex<Capsule>>) -> JuizResult<String> {
         let err = |name: &str | anyhow::Error::from(JuizError::CapsuleDoesNotIncludeParamError{ name: name.to_owned() });
-        Ok(value.get_option("function_name").ok_or_else( || err("function_name") )?.clone())
+        Ok(juiz_lock(value)?.get_option("function_name").ok_or_else( || err("function_name") )?.clone())
     }
 
-    pub fn send_recv_and<F: Fn(Capsule)->JuizResult<T>, T>(&self, method_name: &str, class_name: &str, function_name: &str, arguments: CapsuleMap, params: &[(String, String)], func: F) -> JuizResult<T> {
+    pub fn send_recv_and<F: Fn(Arc<Mutex<Capsule>>)->JuizResult<T>, T>(&self, method_name: &str, class_name: &str, function_name: &str, arguments: CapsuleMap, params: &[(String, String)], func: F) -> JuizResult<T> {
         log::trace!("MessengerBrokerProxy::send_recv_and({class_name}, {function_name}, arguments) called");
         //let SendReceivePair(sndr, recvr) = self.messenger.send_receive()?;
     
@@ -106,14 +106,14 @@ impl MessengerBrokerProxy {
         */
     }
 
-    pub fn send_recv_output_and<F: Fn(Capsule)->JuizResult<T>, T>(&self, method_name: &str, class_name: &str, function_name: &str, arguments: CapsuleMap, params: &[(String, String)], func: F) -> JuizResult<T> {
+    pub fn send_recv_output_and<F: Fn(Arc<Mutex<Capsule>>)->JuizResult<T>, T>(&self, method_name: &str, class_name: &str, function_name: &str, arguments: CapsuleMap, params: &[(String, String)], func: F) -> JuizResult<T> {
         //log::trace!("MessengerBrokerProxy::send_recv_output_and({class_name}, {function_name}, {arguments}) called");
         log::trace!("MessengerBrokerProxy::send_recv_output_and({class_name}, {function_name}, arguments) called");
         //let SendReceivePair(sndr, recvr) = self.messenger.send_receive()?;
         let value = self.messenger.send_and_receive_output(
             Self::_construct_argument(method_name, class_name, function_name, arguments, params)?, Duration::new(3, 0)).context("MessengerBrokerProxyCore.send_and_receive() failed in MessengerBrokerProxy.send_recv_and()")?;
         //let value = (recvr)(timeout)?;
-        let response_function_name = obj_get_str(&value.as_value().unwrap().clone(), "function_name")?.to_owned();
+        let response_function_name = obj_get_str(juiz_lock(&value)?.as_value().unwrap(), "function_name")?.to_owned();
         match response_function_name.as_str() {
             "RequestFunctionNameNotSupported" => {
                 return Err(anyhow::Error::from(JuizError::BrokerProxyRequestFunctionNameNotSupportedError{request_function_name: function_name.to_string()}));
@@ -127,7 +127,7 @@ impl MessengerBrokerProxy {
         }
     }
 
-    pub fn read(&self, class_name: &str, function_name: &str) -> JuizResult<Capsule> {
+    pub fn read(&self, class_name: &str, function_name: &str) -> JuizResult<Arc<Mutex<Capsule>>> {
         self.send_recv_and(
             "READ", 
             class_name, 
@@ -138,7 +138,7 @@ impl MessengerBrokerProxy {
             |value| Ok(value))
     }
 
-    pub fn read_by_id(&self, class_name: &str, function_name: &str, id: &Identifier) -> JuizResult<Capsule> {
+    pub fn read_by_id(&self, class_name: &str, function_name: &str, id: &Identifier) -> JuizResult<Arc<Mutex<Capsule>>> {
         self.send_recv_and(
             "READ", 
             class_name, 
@@ -149,17 +149,17 @@ impl MessengerBrokerProxy {
             |value| Ok(value))
     }
 
-    pub fn update_output_by_id(&self, class_name: &str, function_name: &str, args: CapsuleMap, id: &Identifier) -> JuizResult<Capsule>  {
+    pub fn update_output_by_id(&self, class_name: &str, function_name: &str, args: CapsuleMap, id: &Identifier) -> JuizResult<Arc<Mutex<Capsule>>>  {
         self.send_recv_output_and(
             "UPDATE",
             class_name, 
             function_name, 
             args, 
             &[("id".to_owned(), id.clone())],
-            |value| Ok(Capsule::from(obj_get(&value.as_value().unwrap().clone(), "return")?.clone())))
+            |value| Ok(value))
     }
 
-    pub fn update_by_id(&self, class_name: &str, function_name: &str, args: CapsuleMap, id: &Identifier) -> JuizResult<Capsule>  {
+    pub fn update_by_id(&self, class_name: &str, function_name: &str, args: CapsuleMap, id: &Identifier) -> JuizResult<Arc<Mutex<Capsule>>>  {
         self.send_recv_and(
             "UPDATE",
             class_name,  
@@ -169,7 +169,7 @@ impl MessengerBrokerProxy {
             |value| Ok(value))
     }
 
-    pub fn create(&self, class_name: &str, function_name: &str, args: CapsuleMap) -> JuizResult<Capsule>  {
+    pub fn create(&self, class_name: &str, function_name: &str, args: CapsuleMap) -> JuizResult<Arc<Mutex<Capsule>>>  {
         self.send_recv_and(
             "CREATE",
             class_name,  
@@ -191,31 +191,31 @@ impl JuizObjectCoreHolder for MessengerBrokerProxy {
 impl JuizObject for MessengerBrokerProxy {}
 
 impl SystemBrokerProxy for MessengerBrokerProxy {
-    fn system_profile_full(&self) -> JuizResult<Capsule> {
-        self.read("system", "profile_full")
+    fn system_profile_full(&self) -> JuizResult<Value> {
+        capsule_to_value(self.read("system", "profile_full")?)
     }
 }
 
 impl ProcessBrokerProxy for MessengerBrokerProxy {
 
-    fn process_call(&self, id: &Identifier, args: CapsuleMap) -> crate::JuizResult<Capsule> {
+    fn process_call(&self, id: &Identifier, args: CapsuleMap) -> JuizResult<Arc<Mutex<Capsule>>> {
         self.update_output_by_id("process", "call", args, id)
     }
 
-    fn process_execute(&self, id: &crate::Identifier) -> crate::JuizResult<Capsule> {
+    fn process_execute(&self, id: &crate::Identifier) -> JuizResult<Arc<Mutex<Capsule>>> {
         self.update_output_by_id("process", "execute", CapsuleMap::new(), id)
     }
 
-    fn process_profile_full(&self, id: &Identifier) -> JuizResult<Capsule> {
-        self.read_by_id("process", "profile_full", id)
+    fn process_profile_full(&self, id: &Identifier) -> JuizResult<Value> {
+        capsule_to_value(self.read_by_id("process", "profile_full", id)?)
     }
 
-    fn process_list(&self) -> JuizResult<Capsule> {
-        self.read("process", "list")
+    fn process_list(&self) -> JuizResult<Value> {
+        capsule_to_value(self.read("process", "list")?)
     }
 
-    fn process_try_connect_to(&mut self, source_process_id: &Identifier, arg_name: &String, destination_process_id: &Identifier, manifest: Value) -> JuizResult<Capsule> {
-        self.send_recv_and(
+    fn process_try_connect_to(&mut self, source_process_id: &Identifier, arg_name: &String, destination_process_id: &Identifier, manifest: Value) -> JuizResult<Value> {
+        let capsule = self.send_recv_and(
             "UPDATE", 
             "process", 
             "try_connect_to", 
@@ -226,11 +226,12 @@ impl ProcessBrokerProxy for MessengerBrokerProxy {
                 "manifest": manifest
             }).try_into()?, 
             &[], 
-            |value| Ok(value))
+            |value| Ok(value))?;
+        capsule_to_value(capsule)
     }
 
-    fn process_notify_connected_from(&mut self, source_process_id: &Identifier, arg_name: &String, destination_process_id: &Identifier, manifest: Value) -> JuizResult<Capsule> {
-        self.send_recv_and(
+    fn process_notify_connected_from(&mut self, source_process_id: &Identifier, arg_name: &String, destination_process_id: &Identifier, manifest: Value) -> JuizResult<Value> {
+        let value = self.send_recv_and(
             "UPDATE", 
             "process", 
             "notify_connected_from", 
@@ -241,82 +242,85 @@ impl ProcessBrokerProxy for MessengerBrokerProxy {
                 "manifest": manifest
             }).try_into()?, 
             &[], 
-            |value| Ok(value))
+            |value| Ok(value))?;
+        capsule_to_value(value)
     }
 }
 
+
 impl ContainerBrokerProxy for MessengerBrokerProxy {
-    fn container_profile_full(&self, id: &Identifier) -> JuizResult<Capsule> {
-        self.read_by_id("container", "profile_full", id)
+    fn container_profile_full(&self, id: &Identifier) -> JuizResult<Value> {
+        let capsule = self.read_by_id("container", "profile_full", id)?;
+        capsule_to_value(capsule)
     }
 
-    fn container_list(&self) -> JuizResult<Capsule> {
-        self.read("container", "list")
+    fn container_list(&self) -> JuizResult<Value> {
+        capsule_to_value(self.read("container", "list")?)
     }
 }
 
 impl ContainerProcessBrokerProxy for MessengerBrokerProxy {
-    fn container_process_profile_full(&self, id: &Identifier) -> JuizResult<Capsule> {
-        self.read_by_id("container_process", "profile_full", id)
+    fn container_process_profile_full(&self, id: &Identifier) -> JuizResult<Value> {
+        capsule_to_value(self.read_by_id("container_process", "profile_full", id)?)
     }
 
-    fn container_process_list(&self) -> JuizResult<Capsule> {
-        self.read("container_process", "list")
+    fn container_process_list(&self) -> JuizResult<Value> {
+        capsule_to_value(self.read("container_process", "list")?)
     }
     
-    fn container_process_call(&self, id: &Identifier, args: CapsuleMap) -> JuizResult<Capsule> {       
+    fn container_process_call(&self, id: &Identifier, args: CapsuleMap) -> JuizResult<Arc<Mutex<Capsule>>> {       
         self.update_output_by_id("container_process", "call", args, id)
     }
     
-    fn container_process_execute(&self, id: &Identifier) -> JuizResult<Capsule> {
+    fn container_process_execute(&self, id: &Identifier) -> JuizResult<Arc<Mutex<Capsule>>> {
         self.update_output_by_id("container_process", "execute", CapsuleMap::new(), id)
     }
 }
 
 impl ExecutionContextBrokerProxy for MessengerBrokerProxy {
 
-    fn ec_profile_full(&self, id: &Identifier) -> JuizResult<Capsule> {
-        self.read_by_id("execution_context", "profile_full", id)
+    fn ec_profile_full(&self, id: &Identifier) -> JuizResult<Value> {
+        capsule_to_value(self.read_by_id("execution_context", "profile_full", id)?)
     }
 
-    fn ec_list(&self) -> JuizResult<Capsule> {
-        self.read("execution_context", "list")
+    fn ec_list(&self) -> JuizResult<Value> {
+        capsule_to_value(self.read("execution_context", "list")?)
     }
 
-    fn ec_get_state(&self, id: &Identifier) -> JuizResult<Capsule> {
-        self.read_by_id("execution_context", "get_state", id)
+    fn ec_get_state(&self, id: &Identifier) -> JuizResult<Value> {
+        capsule_to_value(self.read_by_id("execution_context", "get_state", id)?)
     }
 
-    fn ec_start(&mut self, id: &Identifier) -> JuizResult<Capsule> {
-        self.update_by_id("execution_context", "start",  CapsuleMap::new(), id)
+    fn ec_start(&mut self, id: &Identifier) -> JuizResult<Value> {
+        capsule_to_value(self.update_by_id("execution_context", "start",  CapsuleMap::new(), id)?)
     }
 
-    fn ec_stop(&mut self, id: &Identifier) -> JuizResult<Capsule> {
-        self.update_by_id("execution_context", "stop", CapsuleMap::new(), id)
+    fn ec_stop(&mut self, id: &Identifier) -> JuizResult<Value> {
+        capsule_to_value(self.update_by_id("execution_context", "stop", CapsuleMap::new(), id)?)
     }
 }
 
 impl BrokerBrokerProxy for MessengerBrokerProxy {
-    fn broker_list(&self) -> JuizResult<Capsule> {
-        self.read("broker", "list")
+    fn broker_list(&self) -> JuizResult<Value> {
+        capsule_to_value(self.read("broker", "list")?)
     }
 
-    fn broker_profile_full(&self, id: &Identifier) -> JuizResult<Capsule> {
-        self.read_by_id("broker", "profile_full", id)
+    fn broker_profile_full(&self, id: &Identifier) -> JuizResult<Value> {
+        capsule_to_value(self.read_by_id("broker", "profile_full", id)?)
     }
 }
 
 impl ConnectionBrokerProxy for MessengerBrokerProxy {
-    fn connection_list(&self) -> JuizResult<Capsule> {
-        self.read("connection", "list")
+    fn connection_list(&self) -> JuizResult<Value> {
+        capsule_to_value(self.read("connection", "list")?)
     }
 
-    fn connection_profile_full(&self, id: &Identifier) -> JuizResult<Capsule> {
-        self.read_by_id("connection", "profile_full", id)
+    fn connection_profile_full(&self, id: &Identifier) -> JuizResult<Value> {
+        capsule_to_value(self.read_by_id("connection", "profile_full", id)?)
     }
 
-    fn connection_create(&mut self, manifest: Value) -> JuizResult<Capsule> {
-        self.create("connection", "create", manifest.try_into()?)
+    fn connection_create(&mut self, manifest: Value) -> JuizResult<Value> {
+        capsule_to_value(self.create("connection", "create", manifest.try_into()?)?)
     }
 }
 

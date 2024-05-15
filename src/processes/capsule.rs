@@ -1,8 +1,8 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::{Arc, Mutex}};
 
 use opencv::core::Mat;
 
-use crate::{jvalue, utils::get_hashmap, JuizError, Value};
+use crate::{jvalue, utils::get_hashmap, JuizError, JuizResult, Value};
 
 #[derive(Clone, Debug)]
 pub enum CapsuleValue {
@@ -153,14 +153,19 @@ impl Capsule {
         }
     }
 
-    pub fn set_function_name(mut self, name: &str) -> Self {
+    pub fn set_function_name(&mut self, name: &str) -> () {
         self.set_option("function_name", name);
-        self
+        //self
+    }
+
+    pub(crate) fn replace(&mut self, capsule: Capsule) -> () {
+        self.value = capsule.value;
+        self.option = capsule.option;
     }
 }
 
 pub struct CapsuleMap {
-    map: HashMap<String, Capsule>,
+    map: HashMap<String, Arc<Mutex<Capsule>>>,
     param: HashMap<String, String>,
 }
 
@@ -179,15 +184,18 @@ impl CapsuleMap {
         self.param.get(key)
     }
 
-    pub fn get(&self, key: &str) -> Option<&Capsule> {
-        self.map.get(key)
+    pub fn get(&self, key: &str) -> JuizResult<Arc<Mutex<Capsule>>> {
+        match self.map.get(key) {
+            Some(v) => Ok(v.clone()),
+            None => Err(anyhow::Error::from(JuizError::CapsuleMapDoesNotContainValueError{key: key.to_owned()}))
+        }
     }
 
     pub fn get_params<'a>(&'a self) -> &'a HashMap<String, String> {
         &self.param
     }
     
-    pub fn insert(&mut self, key: String, value: Capsule) -> &Self {
+    pub fn insert(&mut self, key: String, value: Arc<Mutex<Capsule>>) -> &Self {
         self.map.insert(key, value);
         self
     }
@@ -199,7 +207,7 @@ impl TryFrom<Value> for CapsuleMap {
     fn try_from(value: Value) -> Result<Self, Self::Error> {
         let mut c = CapsuleMap::new();
         for (k, v) in get_hashmap(&value)?.into_iter() {
-            c.insert(k.to_owned(), (*v).clone().into());
+            c.insert(k.to_owned(), Arc::new(Mutex::new((*v).clone().into())));
         }
         Ok(c)
     }
@@ -210,7 +218,7 @@ impl From<CapsuleMap> for Value {
         let mut v = jvalue!({});
         let map = v.as_object_mut().unwrap();
         for (k, v) in value.map.into_iter() {
-            map.insert(k, v.try_into().unwrap());
+            map.insert(k, Value::try_from(v.lock().unwrap().clone()).unwrap());
         }
         return v;
     }
@@ -220,7 +228,7 @@ impl From<Vec<(&str, Value)>> for CapsuleMap {
     fn from(value: Vec<(&str, Value)>) -> Self {
         let mut c = CapsuleMap::new();
         for (k, v) in value {
-            c.insert(k.to_owned(), v.into());
+            c.insert(k.to_owned(), Arc::new(Mutex::new(v.into())));
         }
         c
     }
@@ -231,8 +239,32 @@ impl From<&[(&str, Value)]> for CapsuleMap {
     fn from(value: &[(&str, Value)]) -> Self {
         let mut c = CapsuleMap::new();
         for (k, v) in value {
-            c.insert((*k).to_owned(), (*v).clone().into());
+            c.insert((*k).to_owned(), Arc::new(Mutex::new((*v).clone().into())));
         }
         c
     }
 }
+
+
+
+pub fn capsule_to_value(capsule: Arc<Mutex<Capsule>>) -> JuizResult<Value> {
+    match capsule.lock() {
+        Ok(v) => {
+            match v.to_value() {
+                Some(vv) => Ok(vv),
+                None => Err(anyhow::Error::from(JuizError::CapsuleIsNotValueTypeError {  }))
+            }
+        }, 
+        Err(_e) => Err(anyhow::Error::from(JuizError::MutexLockFailedError { error: "capsule_to_value()".to_owned() }))
+    }
+}
+
+pub fn value_to_capsule(value: Value) -> Arc<Mutex<Capsule>> {
+    Arc::new(Mutex::new(value.into()))
+}
+
+pub fn unwrap_arc_capsule(arc: Arc<Mutex<Capsule>>) -> JuizResult<Capsule> {
+    let lock = Arc::try_unwrap(arc).or_else(|_| {Err(anyhow::Error::from(JuizError::MutexLockFailedError { error: "Arc unwrapping error".to_owned() }))})?;
+    lock.into_inner().or_else(|_| {Err(anyhow::Error::from(JuizError::MutexLockFailedError { error: "Arc unwrapping error".to_owned() }))})
+}
+        

@@ -58,7 +58,7 @@ fn to_payload<'a>(_payload: &'a CapsuleMap) -> JuizResult<&'a Value> {
 }
 
 impl CRUDBrokerProxy for HTTPBrokerProxy {
-    fn create(&self, class_name: &str, function_name: &str, payload: Value, param: std::collections::HashMap<String, String>) -> JuizResult<Capsule> {
+    fn create(&self, class_name: &str, function_name: &str, payload: Value, param: std::collections::HashMap<String, String>) -> JuizResult<Arc<Mutex<Capsule>>> {
         let client = reqwest::blocking::Client::new();
         match client.post(construct_url(&self.base_url, class_name, function_name, &param))
             .json(&payload)
@@ -69,22 +69,22 @@ impl CRUDBrokerProxy for HTTPBrokerProxy {
                 if response.status() != 200 {
                     return Err(anyhow::Error::from(HTTPBrokerError::GeneralError{}));
                 }
-                Ok(response.json::<Value>().map_err(|e| anyhow::Error::from(e))?.into())
+                Ok(Arc::new(Mutex::new(response.json::<Value>().map_err(|e| anyhow::Error::from(e))?.into())))
             }
         }
     }
 
-    fn delete(&self, class_name: &str, function_name: &str, param: std::collections::HashMap<String, String>) -> JuizResult<Capsule> {
+    fn delete(&self, class_name: &str, function_name: &str, param: std::collections::HashMap<String, String>) -> JuizResult<Arc<Mutex<Capsule>>> {
         let client = reqwest::blocking::Client::new();
         match client.delete(construct_url(&self.base_url, class_name, function_name, &param)).send() {
             Err(e) => Err(anyhow::Error::from(e)),
             Ok(response) => {
-                Ok(response.json::<Value>().map_err(|e| anyhow::Error::from(e))?.into())
+                Ok(Arc::new(Mutex::new(response.json::<Value>().map_err(|e| anyhow::Error::from(e))?.into())))
             }
         }
     }
 
-    fn read(&self, class_name: &str, function_name: &str, param: std::collections::HashMap<String, String>) -> JuizResult<Capsule> {
+    fn read(&self, class_name: &str, function_name: &str, param: std::collections::HashMap<String, String>) -> JuizResult<Arc<Mutex<Capsule>>> {
         log::info!("HTTPBrokerProxy.read() called");
         
         let client = reqwest::blocking::Client::new();
@@ -96,13 +96,13 @@ impl CRUDBrokerProxy for HTTPBrokerProxy {
                 if response.status() != 200 {
                     return Err(anyhow::Error::from(HTTPBrokerError::HTTPStatusError{status_code: response.status(), message: format!("{:?}", response) }));
                 }
-                Ok(response.json::<Value>().map_err(|e| anyhow::Error::from(e))?.into())
+                Ok(Arc::new(Mutex::new(response.json::<Value>().map_err(|e| anyhow::Error::from(e))?.into())))
             }
         }
     }
 
 
-    fn update(&self, class_name: &str, function_name: &str, payload: CapsuleMap, param: std::collections::HashMap<String, String>) -> JuizResult<Capsule> {
+    fn update(&self, class_name: &str, function_name: &str, payload: CapsuleMap, param: std::collections::HashMap<String, String>) -> JuizResult<Arc<Mutex<Capsule>>>{
         let client = reqwest::blocking::Client::new();
         match client.patch(construct_url(&self.base_url, class_name, function_name, &param))
             .json(to_payload(&payload)?)
@@ -111,7 +111,7 @@ impl CRUDBrokerProxy for HTTPBrokerProxy {
             Ok(response) => {
                 match response.json::<Value>() {
                     Err(e) => Err(anyhow::Error::from(e)),
-                    Ok(v) => Ok(v.into())
+                    Ok(v) => Ok(Arc::new(Mutex::new(v.into())))
                 }
             }
         }

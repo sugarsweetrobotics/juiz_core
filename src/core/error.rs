@@ -144,6 +144,8 @@ pub enum JuizError {
     InvalidConnectionIdentifierError { identifier: String },
     #[error("Connection ID ({identifier}) can not be found.")]
     ConnectionCanNotBeFoundError { identifier: String },
+    #[error("CapuleMap does not contain value with key=({key}).")]
+    CapsuleMapDoesNotContainValueError { key: String },
     
 
     /*

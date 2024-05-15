@@ -8,7 +8,7 @@ use crate::{object::JuizObjectCoreHolder, processes::{capsule::Capsule, proc_loc
 
 
 use core::fmt::Debug;
-use std::clone::Clone;
+use std::{clone::Clone, sync::{Arc, Mutex}};
 
 use super::{DestinationConnection, connection::{Connection, ConnectionCore}};
 
@@ -49,8 +49,8 @@ impl JuizObjectCoreHolder for DestinationConnectionImpl {
 
 impl JuizObject for DestinationConnectionImpl {
 
-    fn profile_full(&self) -> JuizResult<Capsule> {
-        Ok(self.core.profile_full()?.into())
+    fn profile_full(&self) -> JuizResult<Value> {
+        self.core.profile_full()
     }
 
 }
@@ -63,12 +63,12 @@ impl Connection for DestinationConnectionImpl {
 
 impl DestinationConnection for DestinationConnectionImpl {
 
-    fn execute_destination(&self) -> JuizResult<Capsule> {
+    fn execute_destination(&self) -> JuizResult<Arc<Mutex<Capsule>>> {
         let proc = proc_lock(&self.destination_process).context("DestinationConnectionImpl.execute_destination()")?;
         proc.execute()
     }
 
-    fn push(&self, value: &Capsule) -> JuizResult<Capsule> {
+    fn push(&self, value: Arc<Mutex<Capsule>>) -> JuizResult<Arc<Mutex<Capsule>>> {
         let proc = proc_lock(&self.destination_process).context("DestinationConnectionImpl.push()")?;
         proc.push_by(self.arg_name(), value)
     }

@@ -1,5 +1,5 @@
 
-use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
+use std::sync::{Arc, Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use crate::{connections::{DestinationConnection, SourceConnection}, Capsule, CapsuleMap, Identifier, JuizError, JuizObject, JuizResult, Value};
 
@@ -10,7 +10,7 @@ pub type ProcessFunction=dyn Fn(Value) -> JuizResult<Output>;
 */
 pub trait Process : Send + Sync + JuizObject {
 
-    fn call(&self, _args: CapsuleMap) -> JuizResult<Capsule>;
+    fn call(&self, _args: CapsuleMap) -> JuizResult<Arc<Mutex<Capsule>>>;
 
     fn is_updated(& self) -> JuizResult<bool>;
 
@@ -25,9 +25,9 @@ pub trait Process : Send + Sync + JuizObject {
      * この方法は配下すべてに問い合わせが波及するので、updateされたかどうかをconnectionにpushする仕組みが必要
      * TODO: 
      */
-    fn invoke<'b>(&self) -> JuizResult<Capsule>;
+    fn invoke<'b>(&self) -> JuizResult<Arc<Mutex<Capsule>>>;
 
-    fn invoke_exclude<'b>(&self, arg_name: &String, value: Capsule) -> JuizResult<Capsule>;
+    fn invoke_exclude<'b>(&self, arg_name: &String, value: Arc<Mutex<Capsule>>) -> JuizResult<Arc<Mutex<Capsule>>>;
 
     /*
      * executeは自信をinvokeしてから、自分の出力側接続先をすべてexecuteする。
@@ -36,15 +36,15 @@ pub trait Process : Send + Sync + JuizObject {
      * 
      * 自分の配下はinvokeによってinvokeされるが、配下の枝分かれ先はexecuteされない
      */
-    fn execute(&self) -> JuizResult<Capsule>;
+    fn execute(&self) -> JuizResult<Arc<Mutex<Capsule>>>;
 
-    fn push_by(&self, arg_name: &String, value: &Capsule) -> JuizResult<Capsule>;
+    fn push_by(&self, arg_name: &String, value: Arc<Mutex<Capsule>>) -> JuizResult<Arc<Mutex<Capsule>>>;
 
-    fn get_output(&self) -> Option<Capsule>;
+    fn get_output(&self) -> Arc<Mutex<Capsule>>;
 
-    fn notify_connected_from<'b>(&'b mut self, source: ProcessPtr, connecting_arg: &String, connection_manifest: Value) -> JuizResult<Capsule>;
+    fn notify_connected_from<'b>(&'b mut self, source: ProcessPtr, connecting_arg: &String, connection_manifest: Value) -> JuizResult<Value>;
 
-    fn try_connect_to(&mut self, target: ProcessPtr, connect_arg_to: &String, connection_manifest: Value) -> JuizResult<Capsule>;
+    fn try_connect_to(&mut self, target: ProcessPtr, connect_arg_to: &String, connection_manifest: Value) -> JuizResult<Value>;
     
     fn source_connections(&self) -> JuizResult<Vec<&Box<dyn SourceConnection>>>;
 

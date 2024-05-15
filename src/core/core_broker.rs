@@ -290,7 +290,7 @@ impl JuizObjectCoreHolder for CoreBroker {
 
 impl JuizObject for CoreBroker {
 
-    fn profile_full(&self) -> JuizResult<Capsule> {
+    fn profile_full(&self) -> JuizResult<Value> {
         Ok(obj_merge(self.core.profile_full()?, &jvalue!({
             "core_store" : self.core_store.profile_full()?,
         }))?.into())
@@ -298,7 +298,7 @@ impl JuizObject for CoreBroker {
 }
 
 impl SystemBrokerProxy for CoreBroker {
-    fn system_profile_full(&self) -> JuizResult<Capsule> {
+    fn system_profile_full(&self) -> JuizResult<Value> {
         log::trace!("CoreBroker::system_profile_full() called");
         let result = self.profile_full();
         log::trace!("CoreBroker::system_profile_full() exit");
@@ -309,30 +309,30 @@ impl SystemBrokerProxy for CoreBroker {
 
 impl ProcessBrokerProxy for CoreBroker { 
 
-    fn process_call(&self, id: &Identifier, args: CapsuleMap) -> JuizResult<Capsule> {
+    fn process_call(&self, id: &Identifier, args: CapsuleMap) -> JuizResult<Arc<Mutex<Capsule>>> {
         proc_lock(&self.store().processes.get(id)?)?.call(args)
     }
 
-    fn process_execute(&self, id: &Identifier) -> JuizResult<Capsule> {
+    fn process_execute(&self, id: &Identifier) -> JuizResult<Arc<Mutex<Capsule>>> {
         log::trace!("CoreBroker::process_execute({id:}) called");
         proc_lock(&self.store().processes.get(id)?).with_context(||format!("locking process(id={id:}) in CoreBroker::execute_process() function"))?.execute()
     }
 
 
-    fn process_profile_full(&self, id: &Identifier) -> JuizResult<Capsule> {
+    fn process_profile_full(&self, id: &Identifier) -> JuizResult<Value> {
         Ok(proc_lock(&self.store().processes.get(id)?).with_context(||format!("locking process(id={id:}) in CoreBroker::process_profile_full() function"))?.profile_full()?.into())
     }
 
-    fn process_list(&self) -> JuizResult<Capsule> {
+    fn process_list(&self) -> JuizResult<Value> {
         Ok(self.store().processes.list_ids()?.into())
     }
 
-    fn process_try_connect_to(&mut self, source_process_id: &Identifier, arg_name: &String, destination_process_id: &Identifier, manifest: Value) -> JuizResult<Capsule> {
+    fn process_try_connect_to(&mut self, source_process_id: &Identifier, arg_name: &String, destination_process_id: &Identifier, manifest: Value) -> JuizResult<Value> {
         let destination_process = self.any_process_proxy_from_identifier(destination_process_id)?;
         proc_lock_mut(&self.any_process_proxy_from_identifier(source_process_id)?)?.try_connect_to(destination_process, arg_name, manifest)
     }
 
-    fn process_notify_connected_from(&mut self, source_process_id: &Identifier, arg_name: &String, destination_process_id: &Identifier, manifest: Value) -> JuizResult<Capsule> {
+    fn process_notify_connected_from(&mut self, source_process_id: &Identifier, arg_name: &String, destination_process_id: &Identifier, manifest: Value) -> JuizResult<Value> {
         let source_process = self.any_process_proxy_from_identifier(source_process_id)?;//self.store().processes.get(source_process_id)?;
         // let destination_process = self.any_process_proxy_from_identifier(destination_process_id)?;
         proc_lock_mut(&self.any_process_proxy_from_identifier(destination_process_id)?)?.notify_connected_from(source_process, arg_name, manifest)
@@ -340,61 +340,61 @@ impl ProcessBrokerProxy for CoreBroker {
 }
 
 impl ContainerBrokerProxy for CoreBroker {
-    fn container_profile_full(&self, id: &Identifier) -> JuizResult<Capsule> {
+    fn container_profile_full(&self, id: &Identifier) -> JuizResult<Value> {
         container_lock(&self.store().containers.get(id)?).with_context(||format!("locking container(id={id:}) in CoreBroker::container_profile_full() function"))?.profile_full()
     }
 
-    fn container_list(&self) -> JuizResult<Capsule> {
+    fn container_list(&self) -> JuizResult<Value> {
         Ok(self.store().containers.list_ids()?.into())
     }
 }
 
 impl ContainerProcessBrokerProxy for CoreBroker {
-    fn container_process_profile_full(&self, id: &Identifier) -> JuizResult<Capsule> {
+    fn container_process_profile_full(&self, id: &Identifier) -> JuizResult<Value> {
         proc_lock(&self.store().container_processes.get(id)?).with_context(||format!("locking container_procss(id={id:}) in CoreBroker::container_process_profile_full() function"))?.profile_full()
     }
 
-    fn container_process_list(&self) -> JuizResult<Capsule> {
+    fn container_process_list(&self) -> JuizResult<Value> {
         Ok(self.store().container_processes.list_ids()?.into())
     }
 
-    fn container_process_call(&self, id: &Identifier, args: CapsuleMap) -> JuizResult<Capsule> {
+    fn container_process_call(&self, id: &Identifier, args: CapsuleMap) -> JuizResult<Arc<Mutex<Capsule>>> {
         proc_lock(&self.store().container_processes.get(id)?).with_context(||format!("locking container_procss(id={id:}) in CoreBroker::container_process_call() function"))?.call(args)
     }
 
-    fn container_process_execute(&self, id: &Identifier) -> JuizResult<Capsule> {
+    fn container_process_execute(&self, id: &Identifier) -> JuizResult<Arc<Mutex<Capsule>>> {
         proc_lock(&self.store().container_processes.get(id)?).with_context(||format!("locking process(id={id:}) in CoreBroker::execute_process() function"))?.execute()
     }
 }
 
 impl BrokerBrokerProxy for CoreBroker {
-    fn broker_list(&self) -> JuizResult<Capsule> {
-        Ok(self.store().brokers_list_ids()?.into())
+    fn broker_list(&self) -> JuizResult<Value> {
+        self.store().brokers_list_ids()
     }
 
-    fn broker_profile_full(&self, id: &Identifier) -> JuizResult<Capsule> {
-        Ok(self.store().broker_profile_full(id)?.into())
+    fn broker_profile_full(&self, id: &Identifier) -> JuizResult<Value> {
+        self.store().broker_profile_full(id)
     }
 }
 
 impl ExecutionContextBrokerProxy for CoreBroker {
-    fn ec_list(&self) -> JuizResult<Capsule> {
+    fn ec_list(&self) -> JuizResult<Value> {
         Ok(self.store().ecs.list_ids()?.into())
     }
 
-    fn ec_profile_full(&self, id: &Identifier) -> JuizResult<Capsule> {
+    fn ec_profile_full(&self, id: &Identifier) -> JuizResult<Value> {
         juiz_lock(&self.store().ecs.get(id)?).with_context(||format!("locking ec(id={id:}) in CoreBroker::ec_profile_full() function"))?.profile_full()
     }
 
-    fn ec_get_state(&self, id: &Identifier) -> JuizResult<Capsule> {
+    fn ec_get_state(&self, id: &Identifier) -> JuizResult<Value> {
         Ok(jvalue!(juiz_lock(&self.store().ecs.get(id)?).with_context(||format!("locking ec(id={id:}) in CoreBroker::ec_get_state() function"))?.get_state()?.to_string()).into())
     }
 
-    fn ec_start(&mut self, id: &Identifier) -> JuizResult<Capsule> {
+    fn ec_start(&mut self, id: &Identifier) -> JuizResult<Value> {
         Ok(juiz_lock(&self.store().ecs.get(id)?).with_context(||format!("locking ec(id={id:}) in CoreBroker::ec_get_state() function"))?.start()?.into())
     }
 
-    fn ec_stop(&mut self, id: &Identifier) -> JuizResult<Capsule> {
+    fn ec_stop(&mut self, id: &Identifier) -> JuizResult<Value> {
         Ok(juiz_lock(&self.store().ecs.get(id)?).with_context(||format!("locking ec(id={id:}) in CoreBroker::ec_get_state() function"))?.stop()?.into())
     }
 
@@ -402,12 +402,12 @@ impl ExecutionContextBrokerProxy for CoreBroker {
 
 impl ConnectionBrokerProxy for CoreBroker {
 
-    fn connection_list(&self) -> JuizResult<Capsule> {
+    fn connection_list(&self) -> JuizResult<Value> {
         let cons = connection_builder::list_connection_profiles(self)?;
         Ok(jvalue!(cons.iter().map(|con_prof| { obj_get(con_prof, "identifier").unwrap() }).collect::<Vec<&Value>>()).into())
     }
 
-    fn connection_profile_full(&self, id: &Identifier) -> JuizResult<Capsule> {
+    fn connection_profile_full(&self, id: &Identifier) -> JuizResult<Value> {
         //juiz_lock(&self.store().connections.get(id)?).with_context(||format!("locking ec(id={id:}) in CoreBroker::connection_profile_full() function"))?.profile_full()
         let (source_id, _destination_id, _arg_name) = connection_identifier_split(id.clone())?;
         println!("source_id: {:}", source_id);
@@ -437,7 +437,7 @@ impl ConnectionBrokerProxy for CoreBroker {
         Err(anyhow::Error::from(JuizError::ConnectionCanNotBeFoundError{identifier: id.clone()}))
     }
 
-    fn connection_create(&mut self, manifest: Value) -> JuizResult<Capsule> {
+    fn connection_create(&mut self, manifest: Value) -> JuizResult<Value> {
         log::trace!("CoreBroker::connection_create({manifest}) called");
         let (source_id, destination_id) = check_connection_source_destination(&manifest)?;
         let source = self.any_process_proxy_from_identifier(&source_id)?;

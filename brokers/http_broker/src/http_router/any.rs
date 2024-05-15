@@ -37,7 +37,7 @@ pub async fn object_post_handler(
 fn body_to_capsule_map(body: Value) -> CapsuleMap {
     let capsule: Capsule = body.into();
     let mut capsule_map = CapsuleMap::new();
-    capsule_map.insert("body".to_owned(), capsule);
+    capsule_map.insert("body".to_owned(), Arc::new(Mutex::new(capsule)));
     capsule_map
 }
 

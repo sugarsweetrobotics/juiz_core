@@ -1,5 +1,7 @@
 
 
+use std::sync::{Arc, Mutex};
+
 use crate::{connections::SourceConnection, jvalue, Identifier, JuizResult, Value};
 
 use super::capsule::Capsule;
@@ -10,7 +12,7 @@ use super::capsule::Capsule;
 pub struct Inlet {
     name: String,
     source_connections: Vec<Box<dyn SourceConnection>>,
-    default_value: Value,
+    default_value: Arc<Mutex<Capsule>>,
 }
 
 
@@ -20,7 +22,7 @@ impl Inlet {
 
         Inlet{ 
             name, 
-            default_value,
+            default_value: Arc::new(Mutex::new(default_value.into())),
             source_connections: Vec::new(),
         }
     }
@@ -50,7 +52,7 @@ impl Inlet {
         Ok(jvalue!({
             "name": self.name,
             "source_connections": self.source_connections.iter().map(|sc| -> Value {
-                sc.profile_full().unwrap().try_into().unwrap()
+                sc.profile_full().unwrap()
             }).collect::<Vec<Value>>()
         }).into())
     }
@@ -65,16 +67,16 @@ impl Inlet {
     }
    
     // データを収集。pullする。あとからの接続を優先
-    pub fn collect_value(&self) -> JuizResult<Capsule> {
+    pub fn collect_value(&self) -> JuizResult<Arc<Mutex<Capsule>>> {
         for sc in self.source_connections.iter() {
             match sc.pull() {
                 Err(_) => {},
                 Ok(output) => {
-                    return Ok(Capsule::from(output));
+                    return Ok(output.clone());
                 }
             }
         }
-        return Ok(Capsule::from(self.default_value.clone()));
+        return Ok(self.default_value.clone());
     }
 
     pub(crate) fn insert(&mut self, con: Box<crate::connections::SourceConnectionImpl>) {

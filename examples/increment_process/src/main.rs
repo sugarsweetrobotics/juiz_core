@@ -126,7 +126,7 @@ fn main() -> JuizResult<()> {
     //        println!("System: {:#}", system.profile_full()?);
             println!("System calling profile full function....");
             let v = system.broker_proxy(&jvalue!({"type_name":"local"}))?.lock().unwrap().system_profile_full()?;
-            println!("System: {:#}", v.as_value().unwrap());
+            println!("System: {:#}", v);
 
             //let v2 = system.broker_proxy(&jvalue!({"type_name":"http", "name": "localhost:3000"}))?.lock().unwrap().system_profile_full()?;
             //println!("System2: {:#}", v2);

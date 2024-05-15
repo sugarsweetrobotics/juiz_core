@@ -137,7 +137,7 @@ pub mod system_builder {
     pub fn setup_local_broker_factory(system: &mut System) -> JuizResult<()> {
         log::trace!("system_builder::setup_local_broker_factory() called");
         let (c_sender, c_receiver) = mpsc::channel::<CapsuleMap>();
-        let (p_sender, p_receiver) = mpsc::channel::<Capsule>();
+        let (p_sender, p_receiver) = mpsc::channel::<Arc<Mutex<Capsule>>>();
         let (_c_b_sender, c_b_receiver) = mpsc::channel::<Vec<u8>>();
         let (p_b_sender, _p_b_receiver) = mpsc::channel::<Vec<u8>>();
         let lbf = create_local_broker_factory(system.core_broker().clone(), Arc::new(Mutex::new(BrokerSideSenderReceiverPair(p_sender, c_receiver))), Arc::new(Mutex::new(ByteSenderReceiverPair(p_b_sender, c_b_receiver))))?;

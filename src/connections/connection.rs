@@ -1,3 +1,5 @@
+
+
 use crate::identifier::connection_identifier_new;
 use crate::jvalue;
 
@@ -102,7 +104,7 @@ impl ConnectionCore {
 
     pub fn connection_type(&self) -> &'static ConnectionType {
         &self.connection_type
-    }
+    }   
 
     pub fn profile_full(&self) -> JuizResult<Value> {
         Ok(jvalue!({
@@ -111,7 +113,7 @@ impl ConnectionCore {
             "arg_name": self.arg_name().to_owned(),
             "destination_identifier": self.destination_identifier().to_owned(),
             "source_process_identifier": self.source_process_identifier.to_owned(),
-        }))
+        }).into())
     }
 }
 

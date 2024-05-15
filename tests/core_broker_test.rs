@@ -30,7 +30,7 @@ fn new_increment_process<'a> () -> ProcessImpl  {
 fn core_broker_test() {
     use std::sync::RwLock;
 
-    use juiz_core::brokers::broker_proxy::ProcessBrokerProxy;
+    use juiz_core::{brokers::broker_proxy::ProcessBrokerProxy, utils::juiz_lock};
 
     
     let result = CoreBroker::new(jvalue!(
@@ -55,7 +55,8 @@ fn core_broker_test() {
 
     let retval = cb.process_call(&id, vec!(("arg1", jvalue!(1))).into());
     match retval {
-        Ok(vv) => {
+        Ok(arc) => {
+            let vv = juiz_lock(&arc).unwrap();
             assert_eq!(vv.as_value().unwrap().as_i64().unwrap(), 2);
         }, 
         Err(ev) => {

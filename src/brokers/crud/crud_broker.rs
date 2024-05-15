@@ -1,5 +1,5 @@
 use std::sync::{Arc, Mutex};
-use crate::{processes::capsule::{Capsule, CapsuleMap}, Identifier, JuizError, JuizResult};
+use crate::{processes::capsule::{Capsule, CapsuleMap}, utils::juiz_lock, Identifier, JuizError, JuizResult};
 use crate::brokers::BrokerProxy;
 use super::crud_callback_container::{create_callback_container, delete_callback_container, read_callback_container, update_callback_container, ClassCallbackContainerType};
 
@@ -102,7 +102,7 @@ impl CRUDBroker {
     }
     */
 
-    fn call_callback(&self, cb_container: &ClassCallbackContainerType, args: CapsuleMap) -> JuizResult<Capsule> {
+    fn call_callback(&self, cb_container: &ClassCallbackContainerType, args: CapsuleMap) -> JuizResult<Arc<Mutex<Capsule>>> {
         match cb_container.get(extract_class_name(&args)?.as_str()) {
             None => {
                 Err(anyhow::Error::from(JuizError::CRUDBrokerCanNotFindFunctionError { class_name: extract_class_name(&args)?, function_name: extract_function_name(&args)?.clone()}))
@@ -114,25 +114,28 @@ impl CRUDBroker {
                         Err(anyhow::Error::from(JuizError::CRUDBrokerCanNotFindFunctionError { class_name: extract_class_name(&args)?, function_name: extract_function_name(&args)?.clone()}))
                     },
                     Some(cb) => {
-                        Ok(cb(Arc::clone(&self.core_broker), args)?.set_function_name(function_name.as_str()))
+                        let capsule = cb(Arc::clone(&self.core_broker), args)?;
+                        juiz_lock(&capsule)?.set_function_name(function_name.as_str());
+                        Ok(capsule)
                     }
                 }
             }
         }
     }
-    pub fn create_class(&self, args: CapsuleMap) -> JuizResult<Capsule> {
+
+    pub fn create_class(&self, args: CapsuleMap) -> JuizResult<Arc<Mutex<Capsule>>> {
         self.call_callback(&self.create_callback_container, args)
     }
 
-    pub fn read_class(&self, args: CapsuleMap) -> JuizResult<Capsule> {
+    pub fn read_class(&self, args: CapsuleMap) -> JuizResult<Arc<Mutex<Capsule>>> {
         self.call_callback(&self.read_callback_container, args)
     }
 
-    pub fn update_class(&self, args: CapsuleMap) -> JuizResult<Capsule> {
+    pub fn update_class(&self, args: CapsuleMap) -> JuizResult<Arc<Mutex<Capsule>>> {
         self.call_callback(&self.update_callback_container, args)
     }
 
-    pub fn delete_class(&self, args: CapsuleMap) -> JuizResult<Capsule> {
+    pub fn delete_class(&self, args: CapsuleMap) -> JuizResult<Arc<Mutex<Capsule>>> {
         self.call_callback(&self.delete_callback_container, args)
     }
     /*

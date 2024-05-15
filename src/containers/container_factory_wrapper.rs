@@ -2,7 +2,7 @@ use std::{cell::RefCell, rc::Rc, sync::{Arc, Mutex}};
 
 use anyhow::Context;
 
-use crate::{core::Plugin, jvalue, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, processes::capsule::Capsule, utils::juiz_lock, value::obj_merge, ContainerPtr, ContainerFactory, JuizError, JuizObject, JuizResult, Value};
+use crate::{core::Plugin, jvalue, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, utils::juiz_lock, value::obj_merge, ContainerPtr, ContainerFactory, JuizObject, JuizResult, Value};
 
 #[allow(dead_code)]
 pub struct ContainerFactoryWrapper {
@@ -34,11 +34,11 @@ impl JuizObjectCoreHolder for ContainerFactoryWrapper {
 
 impl JuizObject for ContainerFactoryWrapper {
 
-    fn profile_full(&self) -> JuizResult<Capsule> {
+    fn profile_full(&self) -> JuizResult<Value> {
         Ok(obj_merge(self.core.profile_full()?, &jvalue!(
             {
                 "plugin": self.plugin.profile_full()?,
-                "container_factory": juiz_lock(&self.container_factory)?.profile_full()?.as_value().ok_or(anyhow::Error::from(JuizError::CapsuleIsNotValueTypeError{}))?,
+                "container_factory": juiz_lock(&self.container_factory)?.profile_full()?,
             }
         ))?.into())
     }

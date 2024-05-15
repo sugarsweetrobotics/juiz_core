@@ -2,7 +2,7 @@ use std::{cell::RefCell, rc::Rc, sync::{Arc, Mutex}};
 
 use anyhow::Context;
 
-use crate::{core::Plugin, jvalue, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, processes::capsule::Capsule, utils::juiz_lock, value::obj_merge, ContainerProcessFactory, ContainerPtr, JuizError, JuizObject, JuizResult, ProcessPtr, Value};
+use crate::{core::Plugin, jvalue, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, utils::juiz_lock, value::obj_merge, ContainerProcessFactory, ContainerPtr, JuizObject, JuizResult, ProcessPtr, Value};
 
 #[allow(dead_code)]
 pub struct ContainerProcessFactoryWrapper {
@@ -35,10 +35,10 @@ impl JuizObjectCoreHolder for ContainerProcessFactoryWrapper {
 
 impl JuizObject for ContainerProcessFactoryWrapper {
     
-    fn profile_full(&self) -> JuizResult<Capsule> {
+    fn profile_full(&self) -> JuizResult<Value> {
         Ok(obj_merge(self.core.profile_full()?.try_into()?, &jvalue!({
             "plugin": self.plugin.profile_full()?,
-            "container_process_factory": juiz_lock(&self.container_process_factory)?.profile_full()?.as_value().ok_or(anyhow::Error::from(JuizError::CapsuleIsNotValueTypeError{}))?,
+            "container_process_factory": juiz_lock(&self.container_process_factory)?.profile_full()?,
             //container_processes: RefCell<Vec<Arc<Mutex<dyn ContainerProcess>>>>
         }))?.into())
     }

@@ -1,4 +1,6 @@
-use crate::{identifier::identifier_new, jvalue, processes::capsule::Capsule, Identifier, JuizResult, Value};
+
+
+use crate::{identifier::identifier_new, jvalue, Identifier, JuizResult, Value};
 
 #[derive(Clone)]
 pub enum JuizObjectClass {
@@ -104,7 +106,7 @@ pub trait JuizObject : JuizObjectCoreHolder {
         self.core().identifier()
     }
 
-    fn profile_full(&self) -> JuizResult<Capsule> {
+    fn profile_full(&self) -> JuizResult<Value>{
         Ok(jvalue!({
             "identifier": self.identifier(),
             "class_name": self.class_name().as_str(),

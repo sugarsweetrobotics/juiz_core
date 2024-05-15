@@ -1,5 +1,5 @@
 
-use juiz_core::{jvalue, processes::process_impl::ProcessImpl, Capsule, CapsuleMap, JuizError, JuizResult};
+use juiz_core::{jvalue, processes::process_impl::ProcessImpl, utils::juiz_lock, Capsule, CapsuleMap, JuizResult};
 
 
 
@@ -7,13 +7,8 @@ use juiz_core::{jvalue, processes::process_impl::ProcessImpl, Capsule, CapsuleMa
 #[allow(dead_code)]
 pub fn increment_function(v: CapsuleMap) -> JuizResult<Capsule> {
     //let i = arg(&v, "arg1")?.as_i64().unwrap();
-    let iv = v.get("arg1").ok_or_else(|| { anyhow::Error::from(JuizError::ArgumentCanNotFoundByNameError{ name: "arg1".to_owned() })})?;
-    let i = iv.as_value().ok_or_else(|| {
-        anyhow::Error::from(JuizError::ArguemntTypeIsInvalidError{})
-    })?.as_i64().ok_or_else(|| {
-        anyhow::Error::from(JuizError::ArguemntTypeIsInvalidError{})
-    })?;
-    return Ok(jvalue!(i+1).into());
+    let iv = juiz_lock(&v.get("arg1").unwrap())?.as_value().unwrap().as_i64().unwrap();
+    return Ok(jvalue!(iv+1).into());
 }
 
 #[allow(dead_code)]

@@ -36,6 +36,6 @@ fn simple_process_create_test() {
     let result = p.ok().unwrap().read().unwrap().call(vec!(("arg1", jvalue!(3))).into());
     assert!(result.is_ok());
     let res_value = result.ok().unwrap();
-    assert!(res_value.as_value().unwrap().is_i64());
-    assert!(res_value.as_value().unwrap().as_i64().unwrap() == 4);
+    assert!(juiz_lock(&res_value).unwrap().as_value().unwrap().is_i64());
+    assert!(juiz_lock(&res_value).unwrap().as_value().unwrap().as_i64().unwrap() == 4);
 }

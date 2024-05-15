@@ -8,7 +8,7 @@ use anyhow::Context;
 use crate::jvalue;
 use crate::brokers::{BrokerProxy, Broker,  broker_factories_wrapper::BrokerFactoriesWrapper};
 use crate::object::{ObjectCore, JuizObjectCoreHolder, JuizObjectClass};
-use crate::processes::capsule::Capsule;
+
 use crate::value::{obj_get_str, obj_merge};
 use crate::{ContainerPtr, CoreBroker, Identifier, JuizError, JuizObject, JuizResult, ProcessPtr, Value};
 use crate::utils::juiz_lock;
@@ -44,7 +44,7 @@ impl JuizObjectCoreHolder for System {
 }
 
 impl JuizObject for System {
-    fn profile_full(&self) -> JuizResult<Capsule> {
+    fn profile_full(&self) -> JuizResult<Value> {
         let bf: Value = juiz_lock(self.core_broker())?.profile_full()?.try_into()?;
         let p = self.core.profile_full()?;
         Ok(obj_merge(p, &jvalue!({

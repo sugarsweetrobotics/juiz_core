@@ -3,30 +3,23 @@
 
 use std::sync::{Arc, Mutex};
 use opencv::{core::Mat, imgproc::{cvt_color, COLOR_BGR2RGB}};
-use juiz_core::{jvalue, create_process_factory, processes::capsule::{Capsule, CapsuleMap}, JuizResult, ProcessFactory};
+use juiz_core::{create_process_factory, jvalue, processes::capsule::{Capsule, CapsuleMap}, utils::juiz_lock, JuizResult, ProcessFactory};
 
 
 
 
 fn cvt_color_function(args: CapsuleMap) -> JuizResult<Capsule> {
     println!("cvt_color_function called");
-    match args.get("code") {
-        Some(mode_str) => {
-            let img: opencv::core::Mat = args.get("src").unwrap().clone().to_mat().unwrap();
-            let mut out_img = Mat::default();
-            match cvt_color(&img, &mut out_img, COLOR_BGR2RGB, 0) {
-                Ok(()) => {
-                    Ok(out_img.into())
-                },
-                Err(e) => {
-                    Err(anyhow::Error::from(e))
-                }
-            }
-        }, None => {
-            todo!()
+    let mode_str = args.get("code")?;
+    let mut out_img = Mat::default();
+    match cvt_color(juiz_lock(&args.get("src")?)?.as_mat().unwrap(), &mut out_img, COLOR_BGR2RGB, 0) {
+        Ok(()) => {
+            Ok(out_img.into())
+        },
+        Err(e) => {
+            Err(anyhow::Error::from(e))
         }
     }
-    
 }
 
 

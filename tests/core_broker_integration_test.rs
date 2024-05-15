@@ -1,7 +1,7 @@
 extern crate juiz_core;
 use std::sync::{Arc, Mutex};
 
-use juiz_core::processes::process_factory_impl::ProcessFactoryImpl;
+use juiz_core::{processes::process_factory_impl::ProcessFactoryImpl, utils::juiz_lock};
 
 use crate::juiz_core::*;
 
@@ -64,7 +64,8 @@ fn core_broker_process_factory_integration_test() {
         1
     ))).into());
     match retval {
-        Ok(vv) => {
+        Ok(arc) => {
+            let vv = juiz_lock(&arc).unwrap();
             assert_eq!(vv.as_value().unwrap().as_i64().unwrap(), 2);
         }, 
         Err(ev) => {
@@ -79,7 +80,7 @@ fn core_broker_process_factory_integration_test() {
 #[cfg(test)]
 #[test]
 fn core_broker_process_factory_integration_connection_test() {
-    use juiz_core::brokers::broker_proxy::{ProcessBrokerProxy, ConnectionBrokerProxy};
+    use juiz_core::{brokers::broker_proxy::{ConnectionBrokerProxy, ProcessBrokerProxy}, utils::juiz_lock};
 
     let mut cb = new_core_broker();
     let _pf = new_process_factory(&mut cb);
@@ -121,7 +122,8 @@ fn core_broker_process_factory_integration_connection_test() {
 
     let retval = cb.process_execute(&id1);
     match retval {
-        Ok(vv) => {
+        Ok(arc) => {
+            let vv = juiz_lock(&arc).unwrap();
             assert_eq!(vv.as_value().unwrap().as_i64().unwrap(), 2);
         }, 
         Err(ev) => {
@@ -131,11 +133,12 @@ fn core_broker_process_factory_integration_connection_test() {
     let p2_result2 = cb.store().processes.get(&id2);
     assert!(p2_result2.is_ok(), "Process 2 can not acquire. Error is {:?}", p2_result2.err());
     
-    let output = p2_result2.ok().unwrap().read().unwrap().get_output();
-    assert!(output.is_some(), "Error. Process2 Output is None.");
+    let arc_out = p2_result2.ok().unwrap().read().unwrap().get_output();
+    let output = juiz_lock(&arc_out).unwrap();
+    assert!(output.is_empty(), "Error. Process2 Output is None.");
 
     //
     // 1 (default) -> proc1 -> 2 -> procec2 -> 3. Answer must be 3.
-    assert_eq!(output.unwrap().as_value().unwrap().clone(), jvalue!(3), "Error. Execution output of Process 2 is wrong.");
+    assert_eq!(output.as_value().unwrap().clone(), jvalue!(3), "Error. Execution output of Process 2 is wrong.");
 
 }
