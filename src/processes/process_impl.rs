@@ -12,7 +12,7 @@ use crate::object::{JuizObjectCoreHolder, ObjectCore, JuizObjectClass};
 
 use crate::processes::proc_lock;
 use crate::value::{obj_get_str, obj_get_obj, obj_merge_mut};
-use crate::{jvalue, Identifier, JuizError, JuizObject, JuizResult, Process, ProcessPtr, Value};
+use crate::{jvalue, CapsulePtr, Identifier, JuizError, JuizObject, JuizResult, Process, ProcessPtr, Value};
 
 use crate::utils::{check_manifest_before_call, check_process_manifest};
 use crate::connections::{SourceConnection, SourceConnectionImpl, DestinationConnection, DestinationConnectionImpl};
@@ -117,7 +117,7 @@ impl ProcessImpl {
         ProcessImpl::clousure_new_with_class_name(JuizObjectClass::Process("ProcessImpl"), manif, func)
     }
     
-    fn collect_values_exclude(&self, arg_name: &String, arg_value: Arc<Mutex<Capsule>>) -> JuizResult<CapsuleMap>{
+    fn collect_values_exclude(&self, arg_name: &String, arg_value: CapsulePtr) -> JuizResult<CapsuleMap>{
         log::trace!("ProcessImpl({:?}).collect_values_exclude({:?}) called.", &self.identifier, arg_name);
         let mut arg_map = CapsuleMap::new();
         arg_map.insert(arg_name.clone(), arg_value);
@@ -183,7 +183,7 @@ impl Process for ProcessImpl {
         &self.manifest
     }
 
-    fn call(&self, args: CapsuleMap) -> JuizResult<Arc<Mutex<Capsule>>> {
+    fn call(&self, args: CapsuleMap) -> JuizResult<CapsulePtr> {
         check_manifest_before_call(&(self.manifest), &args)?;
         Ok(Arc::new(Mutex::new( (self.function)(args)? )) )
     }
@@ -205,13 +205,13 @@ impl Process for ProcessImpl {
         Ok(false)
     }
 
-    fn invoke<'b>(&'b self) -> JuizResult<Arc<Mutex<Capsule>>> {
+    fn invoke<'b>(&'b self) -> JuizResult<CapsulePtr> {
         log::trace!("Processimpl({:?})::invoke() called", self.identifier());
         self.invoke_exclude(&"".to_string(), Arc::new(Mutex::new(Capsule::from(jvalue!({})))))
     }
 
 
-    fn invoke_exclude<'b>(&self, arg_name: &String, value: Arc<Mutex<Capsule>>) -> JuizResult<Arc<Mutex<Capsule>>> {
+    fn invoke_exclude<'b>(&self, arg_name: &String, value: CapsulePtr) -> JuizResult<CapsulePtr> {
         if !self.is_updated_exclude(arg_name)? {
             if self.outlet.memo().lock().unwrap().is_empty(){ // .is_empty() {
                 return Err(anyhow::Error::from(JuizError::ProcessOutputMemoIsNotInitializedError{id: self.identifier().clone()}));
@@ -231,15 +231,15 @@ impl Process for ProcessImpl {
         Ok(self.outlet.memo())
     }
 
-    fn execute(&self) -> JuizResult<Arc<Mutex<Capsule>>> {
+    fn execute(&self) -> JuizResult<CapsulePtr> {
         self.outlet.push(self.invoke()?)
     }
 
-    fn push_by(&self, arg_name: &String, value: Arc<Mutex<Capsule>>) -> JuizResult<Arc<Mutex<Capsule>>> {
+    fn push_by(&self, arg_name: &String, value: CapsulePtr) -> JuizResult<CapsulePtr> {
         self.outlet.push(self.invoke_exclude(arg_name, value.clone())?)
     }
     
-    fn get_output(&self) -> Arc<Mutex<Capsule>> {
+    fn get_output(&self) -> CapsulePtr {
         self.outlet.memo().clone()
     }
 

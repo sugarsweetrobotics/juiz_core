@@ -1,13 +1,13 @@
 use std::{collections::HashMap, sync::{Arc, Mutex}};
 
-use crate::{connections::DestinationConnection, jvalue, utils::juiz_lock, JuizResult, Value};
+use crate::{connections::DestinationConnection, jvalue, utils::juiz_lock, CapsulePtr, JuizResult, Value};
 
 use super::capsule::Capsule;
 
 
 pub struct Outlet {
     destination_connections: HashMap<String, Box<dyn DestinationConnection>>,
-    output_memo: Arc<Mutex<Capsule>>,
+    output_memo: CapsulePtr,
 }
 
 
@@ -21,7 +21,7 @@ impl Outlet {
         }
     }
 
-    pub fn push(&self, output: Arc<Mutex<Capsule>>) -> JuizResult<Arc<Mutex<Capsule>>> {
+    pub fn push(&self, output: CapsulePtr) -> JuizResult<CapsulePtr> {
         for (_name, dc) in self.destination_connections.iter() {
             let _ = dc.push(Arc::clone(&output))?;
         }
@@ -46,12 +46,12 @@ impl Outlet {
         Ok(v)
     }
 
-    pub(crate) fn memo(&self) -> Arc<Mutex<Capsule>> {
+    pub(crate) fn memo(&self) -> CapsulePtr {
         self.output_memo.clone()//.borrow()
     }
 
     #[allow(dead_code)]
-    pub(crate) fn memo_mut(&self) -> Arc<Mutex<Capsule>> {
+    pub(crate) fn memo_mut(&self) -> CapsulePtr {
         self.output_memo.clone()//borrow_mut()
     }
     /*

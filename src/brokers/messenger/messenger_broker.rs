@@ -2,7 +2,7 @@ use std::{sync::{Arc, Mutex, atomic::AtomicBool, mpsc}, time::Duration};
 
 use tokio::runtime;
 
-use crate::{object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, processes::capsule::{Capsule, CapsuleMap}, utils::juiz_lock, CoreBroker, JuizError, JuizObject, JuizResult, Value};
+use crate::{object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, processes::capsule::{Capsule, CapsuleMap}, utils::juiz_lock, CapsulePtr, CoreBroker, JuizError, JuizObject, JuizResult, Value};
 use crate::brokers::Broker;
 use std::sync::atomic::Ordering::SeqCst;
 
@@ -25,7 +25,7 @@ pub type ReceiverType = dyn Fn(Duration) -> JuizResult<Capsule>;
 pub struct SendReceivePair(pub Box<SenderType>, pub Box<ReceiverType>);
 
 pub trait MessengerBrokerCore : Send {
-    fn receive_and_send(&self, timeout: Duration, func: Arc<Mutex<dyn Fn(CapsuleMap)->JuizResult<Arc<Mutex<Capsule>> >>>) -> JuizResult<Capsule>;
+    fn receive_and_send(&self, timeout: Duration, func: Arc<Mutex<dyn Fn(CapsuleMap)->JuizResult<CapsulePtr >>>) -> JuizResult<Capsule>;
 }
 
 pub trait MessengerBrokerCoreFactory {
@@ -81,7 +81,7 @@ fn extract_create_parameter(args: CapsuleMap) -> Value {
 }
 */
 
-fn handle_function(crud_broker: Arc<Mutex<CRUDBroker>>, args: CapsuleMap) -> JuizResult<Arc<Mutex<Capsule>>> {
+fn handle_function(crud_broker: Arc<Mutex<CRUDBroker>>, args: CapsuleMap) -> JuizResult<CapsulePtr> {
     log::info!("MessengerBroker::handle_function() called");
     /*
     let method_name = obj_get_str(&value, "method_name")?;
@@ -127,7 +127,7 @@ impl Broker for MessengerBroker {
 
                 loop {
                     let crud = cb.clone();
-                    let func: Arc<Mutex<dyn Fn(CapsuleMap)->JuizResult<Arc<Mutex<Capsule>>>>> = Arc::new(Mutex::new(move |value:CapsuleMap| -> JuizResult<Arc<Mutex<Capsule>>> { handle_function(Arc::clone(&crud), value) }));
+                    let func: Arc<Mutex<dyn Fn(CapsuleMap)->JuizResult<CapsulePtr>>> = Arc::new(Mutex::new(move |value:CapsuleMap| -> JuizResult<CapsulePtr> { handle_function(Arc::clone(&crud), value) }));
                     std::thread::sleep(Duration::new(0, 10*1000*1000));
                     match end_flag.lock() {
                         Err(e) => {

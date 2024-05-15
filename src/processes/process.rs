@@ -1,7 +1,7 @@
 
-use std::sync::{Arc, Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard};
+use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
-use crate::{connections::{DestinationConnection, SourceConnection}, Capsule, CapsuleMap, Identifier, JuizError, JuizObject, JuizResult, Value};
+use crate::{connections::{DestinationConnection, SourceConnection}, CapsuleMap, CapsulePtr, Identifier, JuizError, JuizObject, JuizResult, Value};
 
 pub type ProcessPtr = Arc<RwLock<dyn Process>>;
 
@@ -10,7 +10,7 @@ pub type ProcessFunction=dyn Fn(Value) -> JuizResult<Output>;
 */
 pub trait Process : Send + Sync + JuizObject {
 
-    fn call(&self, _args: CapsuleMap) -> JuizResult<Arc<Mutex<Capsule>>>;
+    fn call(&self, _args: CapsuleMap) -> JuizResult<CapsulePtr>;
 
     fn is_updated(& self) -> JuizResult<bool>;
 
@@ -25,9 +25,9 @@ pub trait Process : Send + Sync + JuizObject {
      * この方法は配下すべてに問い合わせが波及するので、updateされたかどうかをconnectionにpushする仕組みが必要
      * TODO: 
      */
-    fn invoke<'b>(&self) -> JuizResult<Arc<Mutex<Capsule>>>;
+    fn invoke<'b>(&self) -> JuizResult<CapsulePtr>;
 
-    fn invoke_exclude<'b>(&self, arg_name: &String, value: Arc<Mutex<Capsule>>) -> JuizResult<Arc<Mutex<Capsule>>>;
+    fn invoke_exclude<'b>(&self, arg_name: &String, value: CapsulePtr) -> JuizResult<CapsulePtr>;
 
     /*
      * executeは自信をinvokeしてから、自分の出力側接続先をすべてexecuteする。
@@ -36,11 +36,11 @@ pub trait Process : Send + Sync + JuizObject {
      * 
      * 自分の配下はinvokeによってinvokeされるが、配下の枝分かれ先はexecuteされない
      */
-    fn execute(&self) -> JuizResult<Arc<Mutex<Capsule>>>;
+    fn execute(&self) -> JuizResult<CapsulePtr>;
 
-    fn push_by(&self, arg_name: &String, value: Arc<Mutex<Capsule>>) -> JuizResult<Arc<Mutex<Capsule>>>;
+    fn push_by(&self, arg_name: &String, value: CapsulePtr) -> JuizResult<CapsulePtr>;
 
-    fn get_output(&self) -> Arc<Mutex<Capsule>>;
+    fn get_output(&self) -> CapsulePtr;
 
     fn notify_connected_from<'b>(&'b mut self, source: ProcessPtr, connecting_arg: &String, connection_manifest: Value) -> JuizResult<Value>;
 

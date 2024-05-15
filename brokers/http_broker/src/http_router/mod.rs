@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::sync::{Mutex, Arc};
 use juiz_core::brokers::CRUDBroker;
 
-use juiz_core::processes::capsule::{unwrap_arc_capsule, Capsule};
+use juiz_core::processes::capsule::unwrap_arc_capsule;
 
 use juiz_core::processes::capsule_to_value;
 use utoipa::OpenApi;
@@ -13,7 +13,7 @@ use axum::{response::{Response, IntoResponse}, body::Body, http::StatusCode, Jso
 use serde::Deserialize;
 use utoipa::IntoParams;
 
-use juiz_core::{jvalue, JuizResult, Value};
+use juiz_core::{jvalue, CapsulePtr, JuizResult, Value};
 
 pub mod any;
 pub mod system;
@@ -42,7 +42,7 @@ pub fn query_to_map(query: &Query<IdentifierQuery>) -> HashMap<String, String> {
     map
 }
 
-pub fn json_wrap(result: JuizResult<Arc<Mutex<Capsule>>>) -> impl IntoResponse {
+pub fn json_wrap(result: JuizResult<CapsulePtr>) -> impl IntoResponse {
     match result {
         Err(e) => {
             (StatusCode::INTERNAL_SERVER_ERROR, Json(
@@ -65,7 +65,7 @@ pub fn json_wrap(result: JuizResult<Arc<Mutex<Capsule>>>) -> impl IntoResponse {
     }
 }
 
-pub fn json_output_wrap(result: JuizResult<Arc<Mutex<Capsule>>>) -> impl IntoResponse {
+pub fn json_output_wrap(result: JuizResult<CapsulePtr>) -> impl IntoResponse {
     //log::trace!("json_output_wrap() called");
     if result.is_err() {
         let e = result.err().unwrap();

@@ -1,6 +1,6 @@
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
-use crate::{containers::{container_lock, container_lock_mut}, jvalue, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, processes::{capsule::{Capsule, CapsuleMap}, process_impl::ProcessImpl}, utils::check_process_manifest, value::{obj_get_str, obj_merge}, ContainerPtr, Identifier, JuizError, JuizObject, JuizResult, Process, ProcessPtr, Value};
+use crate::{containers::{container_lock, container_lock_mut}, jvalue, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, processes::{capsule::{Capsule, CapsuleMap}, process_impl::ProcessImpl}, utils::check_process_manifest, value::{obj_get_str, obj_merge}, CapsulePtr, ContainerPtr, Identifier, JuizError, JuizObject, JuizResult, Process, ProcessPtr, Value};
 
 use super::container_impl::ContainerImpl;
 //use crate::containers::container_process_impl::JuizObjectClass::ContainerProcess;
@@ -79,7 +79,7 @@ impl<T: 'static> Process for ContainerProcessImpl<T> {
         self.process.manifest()
     }
 
-    fn call(&self, args: CapsuleMap) -> crate::JuizResult<Arc<Mutex<Capsule>>> {
+    fn call(&self, args: CapsuleMap) -> crate::JuizResult<CapsulePtr> {
         self.process.call(args)
     }
 
@@ -92,23 +92,23 @@ impl<T: 'static> Process for ContainerProcessImpl<T> {
     }
 
 
-    fn invoke<'b>(&self) -> crate::JuizResult<Arc<Mutex<Capsule>>> {
+    fn invoke<'b>(&self) -> crate::JuizResult<CapsulePtr> {
         self.process.invoke()
     }
 
-    fn invoke_exclude<'b>(&self, arg_name: &String, value: Arc<Mutex<Capsule>>) -> JuizResult<Arc<Mutex<Capsule>>> {
+    fn invoke_exclude<'b>(&self, arg_name: &String, value: CapsulePtr) -> JuizResult<CapsulePtr> {
         self.process.invoke_exclude(arg_name, value)
     }
 
-    fn execute(&self) -> JuizResult<Arc<Mutex<Capsule>>> {
+    fn execute(&self) -> JuizResult<CapsulePtr> {
         self.process.execute()
     }
 
-    fn push_by(&self, arg_name: &String, value: Arc<Mutex<Capsule>>) -> JuizResult<Arc<Mutex<Capsule>>> {
+    fn push_by(&self, arg_name: &String, value: CapsulePtr) -> JuizResult<CapsulePtr> {
         self.process.push_by(arg_name, value)
     }
 
-    fn get_output(&self) -> Arc<Mutex<Capsule>> {
+    fn get_output(&self) -> CapsulePtr {
         self.process.get_output()
     }
 

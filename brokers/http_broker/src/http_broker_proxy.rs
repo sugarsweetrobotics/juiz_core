@@ -1,7 +1,7 @@
 use std::{sync::{Arc, Mutex}, collections::HashMap};
 
 
-use juiz_core::{brokers::{create_broker_proxy_factory_impl, BrokerProxy, BrokerProxyFactory}, jvalue, processes::capsule::{Capsule, CapsuleMap}, value::obj_get_str, JuizError, JuizResult, Value};
+use juiz_core::{brokers::{create_broker_proxy_factory_impl, BrokerProxy, BrokerProxyFactory}, jvalue, processes::capsule::CapsuleMap, value::obj_get_str, CapsulePtr, JuizError, JuizResult, Value};
 
 use juiz_core::brokers::{CRUDBrokerProxy, CRUDBrokerProxyHolder};
 
@@ -58,7 +58,7 @@ fn to_payload<'a>(_payload: &'a CapsuleMap) -> JuizResult<&'a Value> {
 }
 
 impl CRUDBrokerProxy for HTTPBrokerProxy {
-    fn create(&self, class_name: &str, function_name: &str, payload: Value, param: std::collections::HashMap<String, String>) -> JuizResult<Arc<Mutex<Capsule>>> {
+    fn create(&self, class_name: &str, function_name: &str, payload: Value, param: std::collections::HashMap<String, String>) -> JuizResult<CapsulePtr> {
         let client = reqwest::blocking::Client::new();
         match client.post(construct_url(&self.base_url, class_name, function_name, &param))
             .json(&payload)
@@ -74,7 +74,7 @@ impl CRUDBrokerProxy for HTTPBrokerProxy {
         }
     }
 
-    fn delete(&self, class_name: &str, function_name: &str, param: std::collections::HashMap<String, String>) -> JuizResult<Arc<Mutex<Capsule>>> {
+    fn delete(&self, class_name: &str, function_name: &str, param: std::collections::HashMap<String, String>) -> JuizResult<CapsulePtr> {
         let client = reqwest::blocking::Client::new();
         match client.delete(construct_url(&self.base_url, class_name, function_name, &param)).send() {
             Err(e) => Err(anyhow::Error::from(e)),
@@ -84,7 +84,7 @@ impl CRUDBrokerProxy for HTTPBrokerProxy {
         }
     }
 
-    fn read(&self, class_name: &str, function_name: &str, param: std::collections::HashMap<String, String>) -> JuizResult<Arc<Mutex<Capsule>>> {
+    fn read(&self, class_name: &str, function_name: &str, param: std::collections::HashMap<String, String>) -> JuizResult<CapsulePtr> {
         log::info!("HTTPBrokerProxy.read() called");
         
         let client = reqwest::blocking::Client::new();
@@ -102,7 +102,7 @@ impl CRUDBrokerProxy for HTTPBrokerProxy {
     }
 
 
-    fn update(&self, class_name: &str, function_name: &str, payload: CapsuleMap, param: std::collections::HashMap<String, String>) -> JuizResult<Arc<Mutex<Capsule>>>{
+    fn update(&self, class_name: &str, function_name: &str, payload: CapsuleMap, param: std::collections::HashMap<String, String>) -> JuizResult<CapsulePtr>{
         let client = reqwest::blocking::Client::new();
         match client.patch(construct_url(&self.base_url, class_name, function_name, &param))
             .json(to_payload(&payload)?)

@@ -1,6 +1,6 @@
 use std::{sync::{Arc, Mutex}, time::Duration};
 use anyhow::Context;
-use crate::{brokers::broker_proxy::{BrokerBrokerProxy, ConnectionBrokerProxy, ContainerBrokerProxy, ContainerProcessBrokerProxy, ExecutionContextBrokerProxy}, jvalue, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, processes::{capsule::{Capsule, CapsuleMap}, capsule_to_value}, utils::juiz_lock, value::obj_get_str, Identifier, JuizError, JuizObject, JuizResult, Value};
+use crate::{brokers::broker_proxy::{BrokerBrokerProxy, ConnectionBrokerProxy, ContainerBrokerProxy, ContainerProcessBrokerProxy, ExecutionContextBrokerProxy}, jvalue, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, processes::{capsule::CapsuleMap, capsule_to_value}, utils::juiz_lock, value::obj_get_str, CapsulePtr, Identifier, JuizError, JuizObject, JuizResult, Value};
 use super::super::broker_proxy::{BrokerProxy, SystemBrokerProxy, ProcessBrokerProxy};
 
 
@@ -12,12 +12,12 @@ pub struct MessengerBrokerProxy {
 }
 
 pub type SenderType = dyn Fn(CapsuleMap) -> JuizResult<()>;
-pub type ReceiverType = dyn Fn(Duration) -> JuizResult<Arc<Mutex<Capsule>>>;
+pub type ReceiverType = dyn Fn(Duration) -> JuizResult<CapsulePtr>;
 
 pub struct SendReceivePair(pub Box<SenderType>, pub Box<ReceiverType>);
 pub trait MessengerBrokerProxyCore : Send {
-    fn send_and_receive(&self, v: CapsuleMap, timeout: Duration) -> JuizResult<Arc<Mutex<Capsule>>>;
-    fn send_and_receive_output(&self, v: CapsuleMap, timeout: Duration) -> JuizResult<Arc<Mutex<Capsule>>>;
+    fn send_and_receive(&self, v: CapsuleMap, timeout: Duration) -> JuizResult<CapsulePtr>;
+    fn send_and_receive_output(&self, v: CapsuleMap, timeout: Duration) -> JuizResult<CapsulePtr>;
 }
 
 pub trait MessengerBrokerProxyCoreFactory { 
@@ -53,12 +53,12 @@ impl MessengerBrokerProxy {
         arguments
     }
 
-    fn extract_function_param(&self, value: &Arc<Mutex<Capsule>>) -> JuizResult<String> {
+    fn extract_function_param(&self, value: &CapsulePtr) -> JuizResult<String> {
         let err = |name: &str | anyhow::Error::from(JuizError::CapsuleDoesNotIncludeParamError{ name: name.to_owned() });
         Ok(juiz_lock(value)?.get_option("function_name").ok_or_else( || err("function_name") )?.clone())
     }
 
-    pub fn send_recv_and<F: Fn(Arc<Mutex<Capsule>>)->JuizResult<T>, T>(&self, method_name: &str, class_name: &str, function_name: &str, arguments: CapsuleMap, params: &[(String, String)], func: F) -> JuizResult<T> {
+    pub fn send_recv_and<F: Fn(CapsulePtr)->JuizResult<T>, T>(&self, method_name: &str, class_name: &str, function_name: &str, arguments: CapsuleMap, params: &[(String, String)], func: F) -> JuizResult<T> {
         log::trace!("MessengerBrokerProxy::send_recv_and({class_name}, {function_name}, arguments) called");
         //let SendReceivePair(sndr, recvr) = self.messenger.send_receive()?;
     
@@ -106,7 +106,7 @@ impl MessengerBrokerProxy {
         */
     }
 
-    pub fn send_recv_output_and<F: Fn(Arc<Mutex<Capsule>>)->JuizResult<T>, T>(&self, method_name: &str, class_name: &str, function_name: &str, arguments: CapsuleMap, params: &[(String, String)], func: F) -> JuizResult<T> {
+    pub fn send_recv_output_and<F: Fn(CapsulePtr)->JuizResult<T>, T>(&self, method_name: &str, class_name: &str, function_name: &str, arguments: CapsuleMap, params: &[(String, String)], func: F) -> JuizResult<T> {
         //log::trace!("MessengerBrokerProxy::send_recv_output_and({class_name}, {function_name}, {arguments}) called");
         log::trace!("MessengerBrokerProxy::send_recv_output_and({class_name}, {function_name}, arguments) called");
         //let SendReceivePair(sndr, recvr) = self.messenger.send_receive()?;
@@ -127,7 +127,7 @@ impl MessengerBrokerProxy {
         }
     }
 
-    pub fn read(&self, class_name: &str, function_name: &str) -> JuizResult<Arc<Mutex<Capsule>>> {
+    pub fn read(&self, class_name: &str, function_name: &str) -> JuizResult<CapsulePtr> {
         self.send_recv_and(
             "READ", 
             class_name, 
@@ -138,7 +138,7 @@ impl MessengerBrokerProxy {
             |value| Ok(value))
     }
 
-    pub fn read_by_id(&self, class_name: &str, function_name: &str, id: &Identifier) -> JuizResult<Arc<Mutex<Capsule>>> {
+    pub fn read_by_id(&self, class_name: &str, function_name: &str, id: &Identifier) -> JuizResult<CapsulePtr> {
         self.send_recv_and(
             "READ", 
             class_name, 
@@ -149,7 +149,7 @@ impl MessengerBrokerProxy {
             |value| Ok(value))
     }
 
-    pub fn update_output_by_id(&self, class_name: &str, function_name: &str, args: CapsuleMap, id: &Identifier) -> JuizResult<Arc<Mutex<Capsule>>>  {
+    pub fn update_output_by_id(&self, class_name: &str, function_name: &str, args: CapsuleMap, id: &Identifier) -> JuizResult<CapsulePtr>  {
         self.send_recv_output_and(
             "UPDATE",
             class_name, 
@@ -159,7 +159,7 @@ impl MessengerBrokerProxy {
             |value| Ok(value))
     }
 
-    pub fn update_by_id(&self, class_name: &str, function_name: &str, args: CapsuleMap, id: &Identifier) -> JuizResult<Arc<Mutex<Capsule>>>  {
+    pub fn update_by_id(&self, class_name: &str, function_name: &str, args: CapsuleMap, id: &Identifier) -> JuizResult<CapsulePtr>  {
         self.send_recv_and(
             "UPDATE",
             class_name,  
@@ -169,7 +169,7 @@ impl MessengerBrokerProxy {
             |value| Ok(value))
     }
 
-    pub fn create(&self, class_name: &str, function_name: &str, args: CapsuleMap) -> JuizResult<Arc<Mutex<Capsule>>>  {
+    pub fn create(&self, class_name: &str, function_name: &str, args: CapsuleMap) -> JuizResult<CapsulePtr>  {
         self.send_recv_and(
             "CREATE",
             class_name,  
@@ -198,11 +198,11 @@ impl SystemBrokerProxy for MessengerBrokerProxy {
 
 impl ProcessBrokerProxy for MessengerBrokerProxy {
 
-    fn process_call(&self, id: &Identifier, args: CapsuleMap) -> JuizResult<Arc<Mutex<Capsule>>> {
+    fn process_call(&self, id: &Identifier, args: CapsuleMap) -> JuizResult<CapsulePtr> {
         self.update_output_by_id("process", "call", args, id)
     }
 
-    fn process_execute(&self, id: &crate::Identifier) -> JuizResult<Arc<Mutex<Capsule>>> {
+    fn process_execute(&self, id: &crate::Identifier) -> JuizResult<CapsulePtr> {
         self.update_output_by_id("process", "execute", CapsuleMap::new(), id)
     }
 
@@ -268,11 +268,11 @@ impl ContainerProcessBrokerProxy for MessengerBrokerProxy {
         capsule_to_value(self.read("container_process", "list")?)
     }
     
-    fn container_process_call(&self, id: &Identifier, args: CapsuleMap) -> JuizResult<Arc<Mutex<Capsule>>> {       
+    fn container_process_call(&self, id: &Identifier, args: CapsuleMap) -> JuizResult<CapsulePtr> {       
         self.update_output_by_id("container_process", "call", args, id)
     }
     
-    fn container_process_execute(&self, id: &Identifier) -> JuizResult<Arc<Mutex<Capsule>>> {
+    fn container_process_execute(&self, id: &Identifier) -> JuizResult<CapsulePtr> {
         self.update_output_by_id("container_process", "execute", CapsuleMap::new(), id)
     }
 }

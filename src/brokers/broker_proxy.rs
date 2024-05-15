@@ -1,7 +1,7 @@
 
-use std::sync::{Arc, Mutex};
 
-use crate::{processes::capsule::{Capsule, CapsuleMap}, Identifier, JuizObject, JuizResult, Value};
+
+use crate::{processes::capsule::{Capsule, CapsuleMap}, CapsulePtr, Identifier, JuizObject, JuizResult, Value};
 
 
 
@@ -16,9 +16,9 @@ pub trait ProcessBrokerProxy {
 
     fn process_profile_full(&self, id: &Identifier) -> JuizResult<Value>;
 
-    fn process_call(&self, id: &Identifier, _args: CapsuleMap) -> JuizResult<Arc<Mutex<Capsule>>>;
+    fn process_call(&self, id: &Identifier, _args: CapsuleMap) -> JuizResult<CapsulePtr>;
 
-    fn process_execute(&self, id: &Identifier) -> JuizResult<Arc<Mutex<Capsule>>>;
+    fn process_execute(&self, id: &Identifier) -> JuizResult<CapsulePtr>;
 
     fn process_try_connect_to(&mut self, source_process_id: &Identifier, arg_name: &String, destination_process_id: &Identifier, manifest: Value) -> JuizResult<Value>;
 
@@ -38,9 +38,9 @@ pub trait ContainerProcessBrokerProxy {
 
     fn container_process_profile_full(&self, id: &Identifier) -> JuizResult<Value>;
 
-    fn container_process_call(&self, id: &Identifier, _args: CapsuleMap) -> JuizResult<Arc<Mutex<Capsule>>>;
+    fn container_process_call(&self, id: &Identifier, _args: CapsuleMap) -> JuizResult<CapsulePtr>;
 
-    fn container_process_execute(&self, id: &Identifier) -> JuizResult<Arc<Mutex<Capsule>>>;
+    fn container_process_execute(&self, id: &Identifier) -> JuizResult<CapsulePtr>;
 }
 
 pub trait ExecutionContextBrokerProxy {

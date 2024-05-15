@@ -15,7 +15,7 @@ pub mod ecs;
 
 pub use object::JuizObject;
 pub use value::{Value, jvalue};
-pub use processes::{Process, process::ProcessPtr, capsule::{Capsule, CapsuleMap}, ProcessFactory, create_process_factory};
+pub use processes::{Process, process::ProcessPtr, capsule::{Capsule, CapsulePtr, CapsuleMap}, ProcessFactory, create_process_factory};
 pub use containers::{Container, ContainerPtr, ContainerFactory, ContainerProcessFactory, create_container_factory};
 pub use identifier::Identifier;
 pub use core::error::JuizError;

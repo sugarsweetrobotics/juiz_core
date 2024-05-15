@@ -165,7 +165,7 @@ impl Capsule {
 }
 
 pub struct CapsuleMap {
-    map: HashMap<String, Arc<Mutex<Capsule>>>,
+    map: HashMap<String, CapsulePtr>,
     param: HashMap<String, String>,
 }
 
@@ -184,7 +184,7 @@ impl CapsuleMap {
         self.param.get(key)
     }
 
-    pub fn get(&self, key: &str) -> JuizResult<Arc<Mutex<Capsule>>> {
+    pub fn get(&self, key: &str) -> JuizResult<CapsulePtr> {
         match self.map.get(key) {
             Some(v) => Ok(v.clone()),
             None => Err(anyhow::Error::from(JuizError::CapsuleMapDoesNotContainValueError{key: key.to_owned()}))
@@ -195,7 +195,7 @@ impl CapsuleMap {
         &self.param
     }
     
-    pub fn insert(&mut self, key: String, value: Arc<Mutex<Capsule>>) -> &Self {
+    pub fn insert(&mut self, key: String, value: CapsulePtr) -> &Self {
         self.map.insert(key, value);
         self
     }
@@ -245,9 +245,9 @@ impl From<&[(&str, Value)]> for CapsuleMap {
     }
 }
 
+pub type CapsulePtr = Arc<Mutex<Capsule>>;
 
-
-pub fn capsule_to_value(capsule: Arc<Mutex<Capsule>>) -> JuizResult<Value> {
+pub fn capsule_to_value(capsule: CapsulePtr) -> JuizResult<Value> {
     match capsule.lock() {
         Ok(v) => {
             match v.to_value() {
@@ -259,11 +259,11 @@ pub fn capsule_to_value(capsule: Arc<Mutex<Capsule>>) -> JuizResult<Value> {
     }
 }
 
-pub fn value_to_capsule(value: Value) -> Arc<Mutex<Capsule>> {
+pub fn value_to_capsule(value: Value) -> CapsulePtr {
     Arc::new(Mutex::new(value.into()))
 }
 
-pub fn unwrap_arc_capsule(arc: Arc<Mutex<Capsule>>) -> JuizResult<Capsule> {
+pub fn unwrap_arc_capsule(arc: CapsulePtr) -> JuizResult<Capsule> {
     let lock = Arc::try_unwrap(arc).or_else(|_| {Err(anyhow::Error::from(JuizError::MutexLockFailedError { error: "Arc unwrapping error".to_owned() }))})?;
     lock.into_inner().or_else(|_| {Err(anyhow::Error::from(JuizError::MutexLockFailedError { error: "Arc unwrapping error".to_owned() }))})
 }

@@ -1,13 +1,13 @@
 use std::{sync::{Arc, Mutex, mpsc}, time::Duration, ops::Deref};
 
 
-use crate::{brokers::create_messenger_broker_factory, jvalue, processes::capsule::{Capsule, CapsuleMap}, utils::juiz_lock, CoreBroker, JuizError, JuizResult};
+use crate::{brokers::create_messenger_broker_factory, jvalue, processes::capsule::{Capsule, CapsuleMap}, utils::juiz_lock, CapsulePtr, CoreBroker, JuizError, JuizResult};
 use crate::brokers::{BrokerFactory, MessengerBroker, MessengerBrokerCore, MessengerBrokerCoreFactory};
 
 
 pub struct ByteSenderReceiverPair(pub mpsc::Sender<Vec<u8>>, pub mpsc::Receiver<Vec<u8>>);
-pub struct BrokerSideSenderReceiverPair(pub mpsc::Sender<Arc<Mutex<Capsule>>>, pub mpsc::Receiver<CapsuleMap>);
-pub struct ProxySideSenderReceiverPair(pub mpsc::Sender<CapsuleMap>, pub mpsc::Receiver<Arc<Mutex<Capsule>>>);
+pub struct BrokerSideSenderReceiverPair(pub mpsc::Sender<CapsulePtr>, pub mpsc::Receiver<CapsuleMap>);
+pub struct ProxySideSenderReceiverPair(pub mpsc::Sender<CapsuleMap>, pub mpsc::Receiver<CapsulePtr>);
 pub type LocalBroker = MessengerBroker;
 
 #[allow(dead_code)]
@@ -17,7 +17,7 @@ pub struct LocalBrokerCore {
 }
 
 impl MessengerBrokerCore for LocalBrokerCore {
-    fn receive_and_send(&self, timeout: Duration, func: Arc<Mutex<dyn Fn(CapsuleMap)->JuizResult<Arc<Mutex<Capsule>>> >>) -> JuizResult<Capsule> {
+    fn receive_and_send(&self, timeout: Duration, func: Arc<Mutex<dyn Fn(CapsuleMap)->JuizResult<CapsulePtr> >>) -> JuizResult<Capsule> {
         //log::trace!("LocalBrokerCore::receive_and_send() called");
         let sendr_recvr = juiz_lock(&self.sender_receiver)?;
         let BrokerSideSenderReceiverPair(sendr, recvr) = sendr_recvr.deref();

@@ -2,9 +2,9 @@
 
 use std::sync::{Arc, Mutex};
 
-use crate::{connections::SourceConnection, jvalue, Identifier, JuizResult, Value};
+use crate::{connections::SourceConnection, jvalue, CapsulePtr, Identifier, JuizResult, Value};
 
-use super::capsule::Capsule;
+
 
 
 
@@ -12,7 +12,7 @@ use super::capsule::Capsule;
 pub struct Inlet {
     name: String,
     source_connections: Vec<Box<dyn SourceConnection>>,
-    default_value: Arc<Mutex<Capsule>>,
+    default_value: CapsulePtr,
 }
 
 
@@ -67,7 +67,7 @@ impl Inlet {
     }
    
     // データを収集。pullする。あとからの接続を優先
-    pub fn collect_value(&self) -> JuizResult<Arc<Mutex<Capsule>>> {
+    pub fn collect_value(&self) -> JuizResult<CapsulePtr> {
         for sc in self.source_connections.iter() {
             match sc.pull() {
                 Err(_) => {},

@@ -6,6 +6,7 @@ use std::sync::RwLock;
 
 
 use crate::processes::proc_lock;
+use crate::CapsulePtr;
 use crate::JuizError;
 use crate::object::JuizObjectClass;
 use crate::utils::juiz_lock;
@@ -15,7 +16,7 @@ use crate::object::JuizObjectCoreHolder;
 use crate::object::ObjectCore;
 use crate::identifier::*;
 
-use super::capsule::Capsule;
+
 use super::capsule::CapsuleMap;
 
 
@@ -67,7 +68,7 @@ impl JuizObject for ProcessProxy {
 
 impl Process for ProcessProxy {
     
-    fn call(&self, _args: CapsuleMap) -> JuizResult<Arc<Mutex<Capsule>>> {
+    fn call(&self, _args: CapsuleMap) -> JuizResult<CapsulePtr> {
         //juiz_lock(&self.broker_proxy)?.any_process_call(args)
         todo!()
     }
@@ -84,23 +85,23 @@ impl Process for ProcessProxy {
         todo!()
     }
 
-    fn invoke<'b>(&self) -> JuizResult<Arc<Mutex<Capsule>>> {
+    fn invoke<'b>(&self) -> JuizResult<CapsulePtr> {
         todo!()
     }
 
-    fn invoke_exclude<'b>(&self, _arg_name: &String, _value: Arc<Mutex<Capsule>>) -> JuizResult<Arc<Mutex<Capsule>>> {
+    fn invoke_exclude<'b>(&self, _arg_name: &String, _value: CapsulePtr) -> JuizResult<CapsulePtr> {
         todo!()
     }
 
-    fn execute(&self) -> JuizResult<Arc<Mutex<Capsule>>> {
+    fn execute(&self) -> JuizResult<CapsulePtr> {
         todo!()
     }
 
-    fn push_by(&self, _arg_name: &String, _value: Arc<Mutex<Capsule>>) -> JuizResult<Arc<Mutex<Capsule>>> {
+    fn push_by(&self, _arg_name: &String, _value: CapsulePtr) -> JuizResult<CapsulePtr> {
         todo!()
     }
 
-    fn get_output(&self) -> Arc<Mutex<Capsule>> {
+    fn get_output(&self) -> CapsulePtr {
         todo!()
     }
 

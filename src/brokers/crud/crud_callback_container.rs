@@ -1,11 +1,11 @@
 use std::{collections::HashMap, sync::{Arc, Mutex}};
 
-use crate::{brokers::BrokerProxy, processes::{capsule::{Capsule, CapsuleMap}, value_to_capsule}, utils::juiz_lock, JuizError, JuizResult, Value};
+use crate::{brokers::BrokerProxy, processes::{capsule::CapsuleMap, value_to_capsule}, utils::juiz_lock, CapsulePtr, JuizError, JuizResult, Value};
 
 
 
 
-pub type CBFnType = fn(Arc<Mutex<dyn BrokerProxy>>, CapsuleMap)->JuizResult<Arc<Mutex<Capsule>>>;
+pub type CBFnType = fn(Arc<Mutex<dyn BrokerProxy>>, CapsuleMap)->JuizResult<CapsulePtr>;
 pub type CallbackContainerType = HashMap<&'static str, CBFnType>;
 pub type ClassCallbackContainerType = HashMap<&'static str, CallbackContainerType>;
 

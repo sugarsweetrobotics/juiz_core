@@ -1,13 +1,13 @@
 use std::{collections::HashMap, sync::{Mutex, Arc}};
 
-use crate::{brokers::{broker_proxy::{BrokerBrokerProxy, ConnectionBrokerProxy, ContainerBrokerProxy, ContainerProcessBrokerProxy, ExecutionContextBrokerProxy, ProcessBrokerProxy, SystemBrokerProxy}, BrokerProxy}, jvalue, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, processes::{capsule::{Capsule, CapsuleMap}, capsule_to_value}, Identifier, JuizObject, JuizResult, Value};
+use crate::{brokers::{broker_proxy::{BrokerBrokerProxy, ConnectionBrokerProxy, ContainerBrokerProxy, ContainerProcessBrokerProxy, ExecutionContextBrokerProxy, ProcessBrokerProxy, SystemBrokerProxy}, BrokerProxy}, jvalue, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, processes::{capsule::CapsuleMap, capsule_to_value}, CapsulePtr, Identifier, JuizObject, JuizResult, Value};
 
 
 pub trait CRUDBrokerProxy : Send + Sync {
-    fn create(&self, class_name: &str, function_name: &str, payload: Value, param: HashMap<String, String>) -> JuizResult<Arc<Mutex<Capsule>>>;
-    fn delete(&self, class_name: &str, function_name: &str, param: HashMap<String, String>) -> JuizResult<Arc<Mutex<Capsule>>>;
-    fn read(&self, class_name: &str, function_name: &str, param: HashMap<String, String>) -> JuizResult<Arc<Mutex<Capsule>>>;
-    fn update(&self, class_name: &str, function_name: &str, payload: CapsuleMap, param: HashMap<String, String>) -> JuizResult<Arc<Mutex<Capsule>>>;
+    fn create(&self, class_name: &str, function_name: &str, payload: Value, param: HashMap<String, String>) -> JuizResult<CapsulePtr>;
+    fn delete(&self, class_name: &str, function_name: &str, param: HashMap<String, String>) -> JuizResult<CapsulePtr>;
+    fn read(&self, class_name: &str, function_name: &str, param: HashMap<String, String>) -> JuizResult<CapsulePtr>;
+    fn update(&self, class_name: &str, function_name: &str, payload: CapsuleMap, param: HashMap<String, String>) -> JuizResult<CapsulePtr>;
 }
 
 
@@ -47,11 +47,11 @@ impl ContainerProcessBrokerProxy for CRUDBrokerProxyHolder {
         capsule_to_value(self.broker.read("container_process", "list", HashMap::new())?)
     }
     
-    fn container_process_call(&self, id: &Identifier, args: CapsuleMap) -> JuizResult<Arc<Mutex<Capsule>>> {
+    fn container_process_call(&self, id: &Identifier, args: CapsuleMap) -> JuizResult<CapsulePtr> {
         self.broker.update("container_process", "call", args, HashMap::from([("identifier".to_string(), id.to_owned())]))
     }
     
-    fn container_process_execute(&self, id: &Identifier) -> JuizResult<Arc<Mutex<Capsule>>> {
+    fn container_process_execute(&self, id: &Identifier) -> JuizResult<CapsulePtr> {
         self.broker.update("container_process", "execute", CapsuleMap::new(), HashMap::from([("identifier".to_string(), id.to_owned())]))
     }
 }
@@ -73,11 +73,11 @@ impl ProcessBrokerProxy for CRUDBrokerProxyHolder {
         capsule_to_value(self.broker.read("process", "profile_full", HashMap::from([("identifier".to_string(), id.to_owned())]))?)
     }
 
-    fn process_call(&self, id: &Identifier, args: CapsuleMap) -> JuizResult<Arc<Mutex<Capsule>>> {
+    fn process_call(&self, id: &Identifier, args: CapsuleMap) -> JuizResult<CapsulePtr> {
         self.broker.update("process", "call", args, HashMap::from([("identifier".to_string(), id.to_owned())]))
     }
 
-    fn process_execute(&self, id: &Identifier) -> JuizResult<Arc<Mutex<Capsule>>> {
+    fn process_execute(&self, id: &Identifier) -> JuizResult<CapsulePtr> {
         self.broker.update("process", "execute", CapsuleMap::new(), HashMap::from([("identifier".to_string(), id.to_owned())]))
     }
 

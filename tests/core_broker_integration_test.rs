@@ -135,7 +135,7 @@ fn core_broker_process_factory_integration_connection_test() {
     
     let arc_out = p2_result2.ok().unwrap().read().unwrap().get_output();
     let output = juiz_lock(&arc_out).unwrap();
-    assert!(output.is_empty(), "Error. Process2 Output is None.");
+    assert!(!output.is_empty(), "Error. Process2 Output is None.");
 
     //
     // 1 (default) -> proc1 -> 2 -> procec2 -> 3. Answer must be 3.

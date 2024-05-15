@@ -4,11 +4,11 @@
 use anyhow::Context;
 use serde_json::Value;
 
-use crate::{object::JuizObjectCoreHolder, processes::{capsule::Capsule, proc_lock}, utils::manifest_checker::check_connection_manifest, Identifier, JuizObject, JuizResult,  ProcessPtr};
+use crate::{object::JuizObjectCoreHolder, processes::proc_lock, utils::manifest_checker::check_connection_manifest, CapsulePtr, Identifier, JuizObject, JuizResult, ProcessPtr};
 
 
 use core::fmt::Debug;
-use std::{clone::Clone, sync::{Arc, Mutex}};
+use std::clone::Clone;
 
 use super::{DestinationConnection, connection::{Connection, ConnectionCore}};
 
@@ -63,12 +63,12 @@ impl Connection for DestinationConnectionImpl {
 
 impl DestinationConnection for DestinationConnectionImpl {
 
-    fn execute_destination(&self) -> JuizResult<Arc<Mutex<Capsule>>> {
+    fn execute_destination(&self) -> JuizResult<CapsulePtr> {
         let proc = proc_lock(&self.destination_process).context("DestinationConnectionImpl.execute_destination()")?;
         proc.execute()
     }
 
-    fn push(&self, value: Arc<Mutex<Capsule>>) -> JuizResult<Arc<Mutex<Capsule>>> {
+    fn push(&self, value: CapsulePtr) -> JuizResult<CapsulePtr> {
         let proc = proc_lock(&self.destination_process).context("DestinationConnectionImpl.push()")?;
         proc.push_by(self.arg_name(), value)
     }

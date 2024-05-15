@@ -8,11 +8,12 @@ use anyhow::Context;
 
 use crate::containers::container_lock;
 use crate::identifier::connection_identifier_split;
-use crate::processes::capsule::Capsule;
+
 use crate::processes::capsule::CapsuleMap;
 
 use crate::processes::proc_lock;
 use crate::processes::proc_lock_mut;
+use crate::CapsulePtr;
 use crate::ContainerPtr;
 use crate::JuizError;
 use crate::JuizObject;
@@ -309,11 +310,11 @@ impl SystemBrokerProxy for CoreBroker {
 
 impl ProcessBrokerProxy for CoreBroker { 
 
-    fn process_call(&self, id: &Identifier, args: CapsuleMap) -> JuizResult<Arc<Mutex<Capsule>>> {
+    fn process_call(&self, id: &Identifier, args: CapsuleMap) -> JuizResult<CapsulePtr> {
         proc_lock(&self.store().processes.get(id)?)?.call(args)
     }
 
-    fn process_execute(&self, id: &Identifier) -> JuizResult<Arc<Mutex<Capsule>>> {
+    fn process_execute(&self, id: &Identifier) -> JuizResult<CapsulePtr> {
         log::trace!("CoreBroker::process_execute({id:}) called");
         proc_lock(&self.store().processes.get(id)?).with_context(||format!("locking process(id={id:}) in CoreBroker::execute_process() function"))?.execute()
     }
@@ -358,11 +359,11 @@ impl ContainerProcessBrokerProxy for CoreBroker {
         Ok(self.store().container_processes.list_ids()?.into())
     }
 
-    fn container_process_call(&self, id: &Identifier, args: CapsuleMap) -> JuizResult<Arc<Mutex<Capsule>>> {
+    fn container_process_call(&self, id: &Identifier, args: CapsuleMap) -> JuizResult<CapsulePtr> {
         proc_lock(&self.store().container_processes.get(id)?).with_context(||format!("locking container_procss(id={id:}) in CoreBroker::container_process_call() function"))?.call(args)
     }
 
-    fn container_process_execute(&self, id: &Identifier) -> JuizResult<Arc<Mutex<Capsule>>> {
+    fn container_process_execute(&self, id: &Identifier) -> JuizResult<CapsulePtr> {
         proc_lock(&self.store().container_processes.get(id)?).with_context(||format!("locking process(id={id:}) in CoreBroker::execute_process() function"))?.execute()
     }
 }
