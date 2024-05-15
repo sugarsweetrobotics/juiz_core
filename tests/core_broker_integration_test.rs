@@ -1,7 +1,7 @@
 extern crate juiz_core;
 use std::sync::{Arc, Mutex};
 
-use juiz_core::{processes::process_factory_impl::ProcessFactoryImpl, utils::juiz_lock};
+use juiz_core::processes::process_factory_impl::ProcessFactoryImpl;
 
 use crate::juiz_core::*;
 
@@ -65,8 +65,9 @@ fn core_broker_process_factory_integration_test() {
     ))).into());
     match retval {
         Ok(arc) => {
-            let vv = juiz_lock(&arc).unwrap();
-            assert_eq!(vv.as_value().unwrap().as_i64().unwrap(), 2);
+
+            let iv = arc.lock_as_value(|value| { value.as_i64().unwrap() }).unwrap();
+            assert_eq!(iv, 2);
         }, 
         Err(ev) => {
             print!("Return value is {:?}", ev);
@@ -80,7 +81,7 @@ fn core_broker_process_factory_integration_test() {
 #[cfg(test)]
 #[test]
 fn core_broker_process_factory_integration_connection_test() {
-    use juiz_core::{brokers::broker_proxy::{ConnectionBrokerProxy, ProcessBrokerProxy}, utils::juiz_lock};
+    use juiz_core::brokers::broker_proxy::{ConnectionBrokerProxy, ProcessBrokerProxy};
 
     let mut cb = new_core_broker();
     let _pf = new_process_factory(&mut cb);
@@ -123,8 +124,10 @@ fn core_broker_process_factory_integration_connection_test() {
     let retval = cb.process_execute(&id1);
     match retval {
         Ok(arc) => {
-            let vv = juiz_lock(&arc).unwrap();
-            assert_eq!(vv.as_value().unwrap().as_i64().unwrap(), 2);
+
+            let iv = arc.lock_as_value(|value| { value.as_i64().unwrap() }).unwrap();
+            //let vv = juiz_lock(&arc).unwrap();
+            assert_eq!(iv, 2);
         }, 
         Err(ev) => {
             print!("Return value is {:?}", ev);
@@ -134,11 +137,13 @@ fn core_broker_process_factory_integration_connection_test() {
     assert!(p2_result2.is_ok(), "Process 2 can not acquire. Error is {:?}", p2_result2.err());
     
     let arc_out = p2_result2.ok().unwrap().read().unwrap().get_output();
-    let output = juiz_lock(&arc_out).unwrap();
-    assert!(!output.is_empty(), "Error. Process2 Output is None.");
+    //let output = juiz_lock(&arc_out).unwrap();
+    assert!(!arc_out.is_empty().unwrap(), "Error. Process2 Output is None.");
 
     //
     // 1 (default) -> proc1 -> 2 -> procec2 -> 3. Answer must be 3.
-    assert_eq!(output.as_value().unwrap().clone(), jvalue!(3), "Error. Execution output of Process 2 is wrong.");
+
+    let iv = arc_out.lock_as_value(|value| { value.as_i64().unwrap() }).unwrap();
+    assert_eq!(iv, 3, "Error. Execution output of Process 2 is wrong.");
 
 }

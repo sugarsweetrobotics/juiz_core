@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use std::sync::RwLock;
 
-use juiz_core::utils::juiz_lock;
+
 
 use crate::juiz_core::*;
 use crate::juiz_core::connections::connect;
@@ -26,7 +26,7 @@ fn setup() -> (ProcessPtr, ProcessPtr){
 #[cfg(test)]
 #[test]
 fn simple_connection_invoke_test() {
-    use juiz_core::utils::juiz_lock;
+    
 
     let (rp1, rp2) = setup();
 
@@ -39,8 +39,10 @@ fn simple_connection_invoke_test() {
     let result2 = rp1.write().unwrap().try_connect_to(Arc::clone(&rp2), &"arg1".to_string(), manifeset.clone());
     assert!(result2.is_ok(), "Failed to connect_to function. Error is {:?}", result2.err());
 
-    let result = rp2.read().unwrap().invoke();
-    assert_eq!(juiz_lock(&result.unwrap()).unwrap().as_value().unwrap().as_i64().unwrap(), 3);
+    let result = rp2.read().unwrap().invoke().unwrap();
+
+    let iv = result.lock_as_value(|value| { value.as_i64().unwrap() }).unwrap();
+    assert_eq!(iv, 3);
 }
 
 #[test]
@@ -61,18 +63,19 @@ fn simple_connection_execute_test() {
     //let p =  
     let result_old = rp2.read().unwrap().get_output();
     //println!("hogehoge= {:?}", result_old.is_none());
-    let f = juiz_lock(&result_old).unwrap().is_empty();
+    let f = result_old.is_empty().unwrap();
     assert!(f == true);
 
     let result1 = rp1.read().unwrap().execute();
     assert!(result1.is_ok(), "Error of ConnectionRack.execute(). Error is {:?}", result1.err());
     //let arc = result1.unwrap();
     let output = rp2.read().unwrap().get_output();
-    let result = juiz_lock(&output).unwrap();
+    //let result = juiz_lock(&output).unwrap();
     //assert_eq!(result.is_some(), true);
     //let v = result.unwrap();
     //println!("value = {:?}", result.as_value());
-    assert_eq!(result.as_value().unwrap().as_i64().unwrap(), 3);
+    let iv = output.lock_as_value(|value| { value.as_i64().unwrap() }).unwrap();
+    assert_eq!(iv, 3);
 }
 
 
@@ -94,12 +97,7 @@ fn simple_connection_builder_invoke_test() {
     let result = rp2.read().unwrap().invoke();
     assert!(result.is_ok());
     let arc = result.unwrap();
-    let output = juiz_lock(&arc).unwrap();
-    assert!(output.is_value());
-    let value = output.as_value();
-    assert!(value.is_some());
-    let i64_val = value.unwrap();
-    println!("i64_val={}",i64_val);
-    assert!(i64_val.is_i64());
-    assert_eq!(i64_val.as_i64().unwrap(), 3);
+
+    let iv = arc.lock_as_value(|value| { value.as_i64().unwrap() }).unwrap();
+    assert_eq!(iv, 3);
 }

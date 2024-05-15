@@ -69,7 +69,7 @@ impl CRUDBrokerProxy for HTTPBrokerProxy {
                 if response.status() != 200 {
                     return Err(anyhow::Error::from(HTTPBrokerError::GeneralError{}));
                 }
-                Ok(Arc::new(Mutex::new(response.json::<Value>().map_err(|e| anyhow::Error::from(e))?.into())))
+                Ok(response.json::<Value>().map_err(|e| anyhow::Error::from(e))?.into())
             }
         }
     }
@@ -79,7 +79,7 @@ impl CRUDBrokerProxy for HTTPBrokerProxy {
         match client.delete(construct_url(&self.base_url, class_name, function_name, &param)).send() {
             Err(e) => Err(anyhow::Error::from(e)),
             Ok(response) => {
-                Ok(Arc::new(Mutex::new(response.json::<Value>().map_err(|e| anyhow::Error::from(e))?.into())))
+                Ok(response.json::<Value>().map_err(|e| anyhow::Error::from(e))?.into())
             }
         }
     }
@@ -96,7 +96,7 @@ impl CRUDBrokerProxy for HTTPBrokerProxy {
                 if response.status() != 200 {
                     return Err(anyhow::Error::from(HTTPBrokerError::HTTPStatusError{status_code: response.status(), message: format!("{:?}", response) }));
                 }
-                Ok(Arc::new(Mutex::new(response.json::<Value>().map_err(|e| anyhow::Error::from(e))?.into())))
+                Ok(response.json::<Value>().map_err(|e| anyhow::Error::from(e))?.into())
             }
         }
     }
@@ -111,7 +111,7 @@ impl CRUDBrokerProxy for HTTPBrokerProxy {
             Ok(response) => {
                 match response.json::<Value>() {
                     Err(e) => Err(anyhow::Error::from(e)),
-                    Ok(v) => Ok(Arc::new(Mutex::new(v.into())))
+                    Ok(v) => Ok(v.into())
                 }
             }
         }

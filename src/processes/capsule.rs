@@ -207,7 +207,7 @@ impl TryFrom<Value> for CapsuleMap {
     fn try_from(value: Value) -> Result<Self, Self::Error> {
         let mut c = CapsuleMap::new();
         for (k, v) in get_hashmap(&value)?.into_iter() {
-            c.insert(k.to_owned(), Arc::new(Mutex::new((*v).clone().into())));
+            c.insert(k.to_owned(), (*v).clone().into());
         }
         Ok(c)
     }
@@ -218,7 +218,8 @@ impl From<CapsuleMap> for Value {
         let mut v = jvalue!({});
         let map = v.as_object_mut().unwrap();
         for (k, v) in value.map.into_iter() {
-            map.insert(k, Value::try_from(v.lock().unwrap().clone()).unwrap());
+            let _ = v.lock_as_value(|vv| -> () { map.insert(k.clone(), vv.clone()); });
+            //map.insert(k, Value::try_from(v.lock().unwrap().clone()).unwrap());
         }
         return v;
     }
@@ -228,7 +229,7 @@ impl From<Vec<(&str, Value)>> for CapsuleMap {
     fn from(value: Vec<(&str, Value)>) -> Self {
         let mut c = CapsuleMap::new();
         for (k, v) in value {
-            c.insert(k.to_owned(), Arc::new(Mutex::new(v.into())));
+            c.insert(k.to_owned(), v.into());
         }
         c
     }
@@ -239,16 +240,123 @@ impl From<&[(&str, Value)]> for CapsuleMap {
     fn from(value: &[(&str, Value)]) -> Self {
         let mut c = CapsuleMap::new();
         for (k, v) in value {
-            c.insert((*k).to_owned(), Arc::new(Mutex::new((*v).clone().into())));
+            c.insert((*k).to_owned(), (*v).clone().into());
         }
         c
     }
 }
 
-pub type CapsulePtr = Arc<Mutex<Capsule>>;
+//pub type CapsulePtr = Arc<Mutex<Capsule>>;
+
+#[derive(Debug)]
+pub struct CapsulePtr {
+    value: Arc<Mutex<Capsule>>,
+}
+
+impl CapsulePtr {
+
+    pub fn new() -> Self {
+        Self{value: Arc::new(Mutex::new(Capsule::empty()))}
+    }
+
+    pub fn replace(&self, capsule: Capsule) -> () {
+        match self.value.lock() {
+            Ok(mut c) => c.replace(capsule),
+            Err(_) => todo!(),
+        }
+    }
+
+    pub fn is_empty(&self) -> JuizResult<bool> {
+        match self.value.lock() {
+            Ok(c) => {
+                Ok(c.is_empty())
+            }
+            Err(_e) => Err(anyhow::Error::from(JuizError::MutexLockFailedError { error: "CapsulePtr.is_empty() lock error.".to_owned() })),
+        }
+    }
+
+    pub fn set_option(&mut self, key: &str, value: &str) -> JuizResult<&mut Self> {
+        match self.value.lock() {
+            Ok(mut c) => {
+                c.set_option(key, value);
+            },
+            Err(_e) => {
+                return Err(anyhow::Error::from(JuizError::MutexLockFailedError { error: "CapsulePtr.set_option() lock error.".to_owned() }));
+            }
+        }
+        Ok(self)
+    }
+
+    pub fn get_option(&self, key: &str) -> JuizResult<String> {
+        match self.value.lock() {
+            Ok(c) => {
+                match c.get_option(key) {
+                    Some(s) => Ok(s.clone()),
+                    None => Err(anyhow::Error::from(JuizError::CapsuleDoesNotIncludeParamError { name: key.to_owned() })),
+                }
+            },
+            Err(_e) => Err(anyhow::Error::from(JuizError::MutexLockFailedError { error: "CapsulePtr.get_potion() lock error.".to_owned() })),
+        }
+    }
+    
+
+    pub fn lock_as_value<T, F>(&self, func: F) -> JuizResult<T> where F: FnOnce(&Value) -> T{
+        match self.value.lock() {
+            Ok(c) => {
+                match c.as_value() {
+                    Some(v) => Ok(func(v)),
+                    None => todo!(),
+                }
+            }
+            Err(_e) => Err(anyhow::Error::from(JuizError::MutexLockFailedError { error: "CapsulePtr.lock_as_value() lock error.".to_owned() })),
+        }
+    }
+
+    pub fn lock_as_mat<T, F>(&self, func: F) -> JuizResult<T> where F: FnOnce(&Mat) -> T{
+        match self.value.lock() {
+            Ok(c) => {
+                match c.as_mat() {
+                    Some(v) => Ok(func(v)),
+                    None => todo!(),
+                }
+            }
+            Err(_e) => Err(anyhow::Error::from(JuizError::MutexLockFailedError { error: "CapsulePtr.lock_as_value() lock error.".to_owned() })),
+        }
+    }
+    
+    pub(crate) fn set_function_name(&mut self, name: &str) -> JuizResult<()> {
+        self.set_option("function_name", name)?;
+        Ok(())
+    }
+
+    pub(crate) fn get_function_name(&self) -> JuizResult<String> {
+        self.get_option("function_name")
+    }
+
+
+}
+
+impl From<Value> for CapsulePtr {
+    fn from(value: Value) -> Self {
+        Self{value: Arc::new(Mutex::new(value.into()))}
+    }
+}
+
+
+impl From<Capsule> for CapsulePtr {
+    fn from(value: Capsule) -> Self {
+        Self{value: Arc::new(Mutex::new(value))}
+    }
+}
+
+impl Clone for CapsulePtr {
+    fn clone(&self) -> Self {
+        Self { value: self.value.clone() }
+    }
+}
 
 pub fn capsule_to_value(capsule: CapsulePtr) -> JuizResult<Value> {
-    match capsule.lock() {
+    match capsule.value.lock() {
         Ok(v) => {
             match v.to_value() {
                 Some(vv) => Ok(vv),
@@ -260,11 +368,11 @@ pub fn capsule_to_value(capsule: CapsulePtr) -> JuizResult<Value> {
 }
 
 pub fn value_to_capsule(value: Value) -> CapsulePtr {
-    Arc::new(Mutex::new(value.into()))
+    value.into()
 }
 
 pub fn unwrap_arc_capsule(arc: CapsulePtr) -> JuizResult<Capsule> {
-    let lock = Arc::try_unwrap(arc).or_else(|_| {Err(anyhow::Error::from(JuizError::MutexLockFailedError { error: "Arc unwrapping error".to_owned() }))})?;
+    let lock = Arc::try_unwrap(arc.value).or_else(|_| {Err(anyhow::Error::from(JuizError::MutexLockFailedError { error: "Arc unwrapping error".to_owned() }))})?;
     lock.into_inner().or_else(|_| {Err(anyhow::Error::from(JuizError::MutexLockFailedError { error: "Arc unwrapping error".to_owned() }))})
 }
         

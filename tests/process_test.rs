@@ -56,11 +56,13 @@ fn no_default_manifest_process_test() {
 #[cfg(test)]
 #[test]
 fn call_process_test() {
-    use juiz_core::utils::juiz_lock;
+    
 
     match common::new_increment_process("incremnet").call(vec!(("arg1", jvalue!(1))).into()) {
         Ok(vv) => {
-            assert_eq!(juiz_lock(&vv).unwrap().as_value().unwrap().as_i64().unwrap(), 2);
+
+            let iv = vv.lock_as_value(|value| { value.as_i64().unwrap() }).unwrap();
+            assert_eq!(iv, 2);
         }, 
         Err(ev) => {
             print!("Return value is {:?}", ev);
@@ -71,11 +73,13 @@ fn call_process_test() {
 #[cfg(test)]
 #[test]
 fn invoke_process_test() {
-    use juiz_core::utils::juiz_lock;
+    
 
     match common::new_increment_process("increment").invoke() {
         Ok(vv) => {
-            assert_eq!(juiz_lock(&vv).unwrap().as_value().unwrap().as_i64(), Some(2), "Error. vv is {:?}", juiz_lock(&vv).unwrap().as_value().unwrap().to_string());
+
+            let iv = vv.lock_as_value(|value| { value.as_i64().unwrap() }).unwrap();
+            assert_eq!(iv, 2);
         }, 
         Err(ev) => {
             print!("Return value is {:?}", ev);
@@ -87,11 +91,13 @@ fn invoke_process_test() {
 #[cfg(test)]
 #[test]
 fn execute_process_test() {
-    use juiz_core::utils::juiz_lock;
+    
 
     match common::new_execution_process("execute").execute() {
         Ok(vv) => {
-            assert_eq!(juiz_lock(&vv).unwrap().as_value().unwrap().as_i64(), Some(1), "Error. vv is {:?}", juiz_lock(&vv).unwrap().as_value().unwrap().to_string());
+
+            let iv = vv.lock_as_value(|value| { value.as_i64().unwrap() }).unwrap();
+            assert_eq!(iv, 1);
         }, 
         Err(ev) => {
             print!("Return value is {:?}", ev);

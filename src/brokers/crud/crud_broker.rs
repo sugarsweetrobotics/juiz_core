@@ -1,5 +1,5 @@
 use std::sync::{Arc, Mutex};
-use crate::{processes::capsule::CapsuleMap, utils::juiz_lock, CapsulePtr, Identifier, JuizError, JuizResult};
+use crate::{processes::capsule::CapsuleMap, CapsulePtr, Identifier, JuizError, JuizResult};
 use crate::brokers::BrokerProxy;
 use super::crud_callback_container::{create_callback_container, delete_callback_container, read_callback_container, update_callback_container, ClassCallbackContainerType};
 
@@ -114,8 +114,8 @@ impl CRUDBroker {
                         Err(anyhow::Error::from(JuizError::CRUDBrokerCanNotFindFunctionError { class_name: extract_class_name(&args)?, function_name: extract_function_name(&args)?.clone()}))
                     },
                     Some(cb) => {
-                        let capsule = cb(Arc::clone(&self.core_broker), args)?;
-                        juiz_lock(&capsule)?.set_function_name(function_name.as_str());
+                        let mut capsule = cb(Arc::clone(&self.core_broker), args)?;
+                        let _  = capsule.set_function_name(function_name.as_str())?;
                         Ok(capsule)
                     }
                 }

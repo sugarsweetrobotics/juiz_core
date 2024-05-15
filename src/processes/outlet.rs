@@ -1,6 +1,6 @@
-use std::{collections::HashMap, sync::{Arc, Mutex}};
+use std::collections::HashMap;
 
-use crate::{connections::DestinationConnection, jvalue, utils::juiz_lock, CapsulePtr, JuizResult, Value};
+use crate::{connections::DestinationConnection, jvalue, CapsulePtr, JuizResult, Value};
 
 use super::capsule::Capsule;
 
@@ -17,13 +17,13 @@ impl Outlet {
 
         Outlet{
             destination_connections: HashMap::new(),
-            output_memo: Arc::new(Mutex::new(Capsule::empty())),
+            output_memo: Capsule::empty().into(),
         }
     }
 
     pub fn push(&self, output: CapsulePtr) -> JuizResult<CapsulePtr> {
         for (_name, dc) in self.destination_connections.iter() {
-            let _ = dc.push(Arc::clone(&output))?;
+            let _ = dc.push(output.clone())?;
         }
         return Ok(output);
     }
@@ -70,7 +70,7 @@ impl Outlet {
 
     pub(crate) fn set_value(&self, capsule: Capsule) -> JuizResult<()> {
         //self.output_memo = capsule;//.replace(capsule);
-        juiz_lock(&self.output_memo)?.replace(capsule);
+        self.output_memo.replace(capsule);
         return Ok(())
     }
 }

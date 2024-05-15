@@ -2,7 +2,7 @@
 
 
 
-use std::sync::{Arc, Mutex};
+
 
 use anyhow::Context;
 use serde_json::Map;
@@ -185,7 +185,7 @@ impl Process for ProcessImpl {
 
     fn call(&self, args: CapsuleMap) -> JuizResult<CapsulePtr> {
         check_manifest_before_call(&(self.manifest), &args)?;
-        Ok(Arc::new(Mutex::new( (self.function)(args)? )) )
+        Ok( (self.function)(args)?.into() )
     }
 
     fn is_updated(&self) -> JuizResult<bool> {
@@ -193,7 +193,7 @@ impl Process for ProcessImpl {
     }
 
     fn is_updated_exclude(&self, arg_name: &String) -> JuizResult<bool> {
-        if self.outlet.memo().lock().unwrap().is_empty() {
+        if self.outlet.memo().is_empty()? {
             return Ok(true)
         }
         for inlet in self.inlets.iter() {
@@ -207,13 +207,13 @@ impl Process for ProcessImpl {
 
     fn invoke<'b>(&'b self) -> JuizResult<CapsulePtr> {
         log::trace!("Processimpl({:?})::invoke() called", self.identifier());
-        self.invoke_exclude(&"".to_string(), Arc::new(Mutex::new(Capsule::from(jvalue!({})))))
+        self.invoke_exclude(&"".to_string(), Capsule::from(jvalue!({})).into())
     }
 
 
     fn invoke_exclude<'b>(&self, arg_name: &String, value: CapsulePtr) -> JuizResult<CapsulePtr> {
         if !self.is_updated_exclude(arg_name)? {
-            if self.outlet.memo().lock().unwrap().is_empty(){ // .is_empty() {
+            if self.outlet.memo().is_empty()? { // .is_empty() {
                 return Err(anyhow::Error::from(JuizError::ProcessOutputMemoIsNotInitializedError{id: self.identifier().clone()}));
             }
             //return Ok(Output::new_from_value(self.output_memo.borrow().get_value()?.clone()));

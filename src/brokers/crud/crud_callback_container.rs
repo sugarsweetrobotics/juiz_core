@@ -18,7 +18,7 @@ fn extract_create_parameter(args: CapsuleMap) -> Value {
 pub(crate) fn create_callback_container() -> ClassCallbackContainerType {
     let mut connection_callbacks = CallbackContainerType::new();
     connection_callbacks.insert("create",  |cb, args| {
-       Ok(Arc::new(Mutex::new(juiz_lock(&cb)?.connection_create(extract_create_parameter(args))?.into()))) });
+       Ok(juiz_lock(&cb)?.connection_create(extract_create_parameter(args))?.into())});
 
     let mut create_cb_container = ClassCallbackContainerType::new();
     create_cb_container.insert("connection", connection_callbacks);

@@ -1,6 +1,6 @@
 
 
-use std::sync::{Arc, Mutex};
+
 
 use crate::{connections::SourceConnection, jvalue, CapsulePtr, Identifier, JuizResult, Value};
 
@@ -22,7 +22,7 @@ impl Inlet {
 
         Inlet{ 
             name, 
-            default_value: Arc::new(Mutex::new(default_value.into())),
+            default_value: default_value.into(),
             source_connections: Vec::new(),
         }
     }

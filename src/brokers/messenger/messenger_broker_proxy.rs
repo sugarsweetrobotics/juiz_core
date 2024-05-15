@@ -1,6 +1,6 @@
 use std::{sync::{Arc, Mutex}, time::Duration};
 use anyhow::Context;
-use crate::{brokers::broker_proxy::{BrokerBrokerProxy, ConnectionBrokerProxy, ContainerBrokerProxy, ContainerProcessBrokerProxy, ExecutionContextBrokerProxy}, jvalue, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, processes::{capsule::CapsuleMap, capsule_to_value}, utils::juiz_lock, value::obj_get_str, CapsulePtr, Identifier, JuizError, JuizObject, JuizResult, Value};
+use crate::{brokers::broker_proxy::{BrokerBrokerProxy, ConnectionBrokerProxy, ContainerBrokerProxy, ContainerProcessBrokerProxy, ExecutionContextBrokerProxy}, jvalue, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, processes::{capsule::CapsuleMap, capsule_to_value}, CapsulePtr, Identifier, JuizError, JuizObject, JuizResult, Value};
 use super::super::broker_proxy::{BrokerProxy, SystemBrokerProxy, ProcessBrokerProxy};
 
 
@@ -54,8 +54,8 @@ impl MessengerBrokerProxy {
     }
 
     fn extract_function_param(&self, value: &CapsulePtr) -> JuizResult<String> {
-        let err = |name: &str | anyhow::Error::from(JuizError::CapsuleDoesNotIncludeParamError{ name: name.to_owned() });
-        Ok(juiz_lock(value)?.get_option("function_name").ok_or_else( || err("function_name") )?.clone())
+        let _err = |name: &str | anyhow::Error::from(JuizError::CapsuleDoesNotIncludeParamError{ name: name.to_owned() });
+        Ok(value.get_option("function_name")?.clone())
     }
 
     pub fn send_recv_and<F: Fn(CapsulePtr)->JuizResult<T>, T>(&self, method_name: &str, class_name: &str, function_name: &str, arguments: CapsuleMap, params: &[(String, String)], func: F) -> JuizResult<T> {
@@ -113,7 +113,9 @@ impl MessengerBrokerProxy {
         let value = self.messenger.send_and_receive_output(
             Self::_construct_argument(method_name, class_name, function_name, arguments, params)?, Duration::new(3, 0)).context("MessengerBrokerProxyCore.send_and_receive() failed in MessengerBrokerProxy.send_recv_and()")?;
         //let value = (recvr)(timeout)?;
-        let response_function_name = obj_get_str(juiz_lock(&value)?.as_value().unwrap(), "function_name")?.to_owned();
+        //let response_function_name = obj_get_str(juiz_lock(&value)?.as_value().unwrap(), "function_name")?.to_owned();
+        let response_function_name = value.get_function_name()?;
+        
         match response_function_name.as_str() {
             "RequestFunctionNameNotSupported" => {
                 return Err(anyhow::Error::from(JuizError::BrokerProxyRequestFunctionNameNotSupportedError{request_function_name: function_name.to_string()}));
