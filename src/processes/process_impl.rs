@@ -17,7 +17,7 @@ use crate::{jvalue, CapsulePtr, Identifier, JuizError, JuizObject, JuizResult, P
 use crate::utils::{check_manifest_before_call, check_process_manifest};
 use crate::connections::{SourceConnection, SourceConnectionImpl, DestinationConnection, DestinationConnectionImpl};
 
-use super::capsule::{unwrap_arc_capsule, Capsule, CapsuleMap};
+use super::capsule::{Capsule, CapsuleMap};
 use super::inlet::Inlet;
 use super::outlet::Outlet;
 
@@ -217,7 +217,7 @@ impl Process for ProcessImpl {
                 return Err(anyhow::Error::from(JuizError::ProcessOutputMemoIsNotInitializedError{id: self.identifier().clone()}));
             }
             //return Ok(Output::new_from_value(self.output_memo.borrow().get_value()?.clone()));
-            println!("memo is requested");
+            //println!("memo is requested");
             return Ok(self.outlet.memo().clone());
         }
         
@@ -227,7 +227,7 @@ impl Process for ProcessImpl {
         //result_value.
         //let lock = Arc::try_unwrap(result_value).or_else(|_| {Err(anyhow::Error::from(JuizError::MutexLockFailedError { error: "Arc unwrapping error".to_owned() }))})?;
         //let capsule = lock.into_inner().or_else(|_| {Err(anyhow::Error::from(JuizError::MutexLockFailedError { error: "Arc unwrapping error".to_owned() }))})?;
-        self.outlet.set_value(unwrap_arc_capsule(result_value)?)?;
+        self.outlet.set_value(result_value)?;
         Ok(self.outlet.memo())
     }
 

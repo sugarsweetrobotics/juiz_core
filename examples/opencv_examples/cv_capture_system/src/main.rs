@@ -37,7 +37,7 @@ fn main() -> JuizResult<()> {
                     }
                 }, */
                 "components": {
-                    "cv_camera_capture": {
+                    "juiz_opencv": {
                         "path": "./target/debug",
                     },
                     /*
@@ -67,11 +67,11 @@ fn main() -> JuizResult<()> {
             ],
             "containers": [
                 {
-                    "type_name": "cv_camera_capture",
+                    "type_name": "cv_video_capture",
                     "name": "cv_camera0",
                     "processes": [
                         {
-                            "type_name": "cv_camera_capture_read",
+                            "type_name": "cv_video_capture_read",
                             "name": "read0",
                         }
                     ]
@@ -121,7 +121,7 @@ fn main() -> JuizResult<()> {
                     //"id": "con01",
                     "arg_name": "src",
                     "source" : {
-                        "id": "core://core/ContainerProcess/read0::cv_camera_capture_read"
+                        "id": "core://core/ContainerProcess/read0::cv_video_capture_read"
                     }, 
                     "destination" : {
                         "id": "core://core/Process/cv_cvt_color0::cv_cvt_color"

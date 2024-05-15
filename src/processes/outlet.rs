@@ -68,7 +68,7 @@ impl Outlet {
     }
     */
 
-    pub(crate) fn set_value(&self, capsule: Capsule) -> JuizResult<()> {
+    pub(crate) fn set_value(&self, capsule: CapsulePtr) -> JuizResult<()> {
         //self.output_memo = capsule;//.replace(capsule);
         self.output_memo.replace(capsule);
         return Ok(())

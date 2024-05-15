@@ -38,7 +38,7 @@ members = [
     "examples/container_examples/example_container",
     "examples/container_examples/example_container_get",
     "examples/container_examples/example_container_increment",
-    "examples/opencv_examples/cv_camera_capture",
+    "examples/opencv_examples/juiz_opencv",
 #   "examples/opencv_examples/cv_filesystem",
 #    "examples/opencv_examples/cv_filesystem_imsave",
     "examples/opencv_examples/cv_capture_system",
@@ -54,8 +54,6 @@ default-members = [
     "examples/container_examples/example_container",
     "examples/container_examples/example_container_get",
     "examples/container_examples/example_container_increment",
-    "examples/opencv_examples/cv_camera_capture",
-#   "examples/opencv_examples/cv_filesystem",
-#   "examples/opencv_examples/cv_filesystem_imsave",
+    "examples/opencv_examples/juiz_opencv",
     "examples/opencv_examples/cv_capture_system",
 ]

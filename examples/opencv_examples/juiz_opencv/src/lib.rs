@@ -1,7 +1,7 @@
 
 
-mod camera_capture;
-mod camera_read;
+mod video_capture;
+mod video_capture_read;
 mod cvt;
 
 pub mod cv_camera_capture {
@@ -11,14 +11,14 @@ pub mod cv_camera_capture {
     pub unsafe extern "Rust" fn component_profile() -> Value {
         env_logger::init();
         return jvalue!({
-            "type_name": "cv_camera",
+            "type_name": "opencv",
             "containers": [
                 {
-                    "type_name": "cv_camera_capture",
-                    "factory": "cv_camera_capture_factory",
+                    "type_name": "cv_video_capture",
+                    "factory": "cv_video_capture_factory",
                     "processes": [ {
-                        "type_name": "cv_camera_capture_read",
-                        "factory": "cv_camera_capture_read_factory"
+                        "type_name": "cv_video_capture_read",
+                        "factory": "cv_video_capture_read_factory"
                     }]
                 }
             ],

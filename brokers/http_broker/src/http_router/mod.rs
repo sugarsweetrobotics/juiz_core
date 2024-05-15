@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::sync::{Mutex, Arc};
 use juiz_core::brokers::CRUDBroker;
 
-use juiz_core::processes::capsule::unwrap_arc_capsule;
+//use juiz_core::processes::capsule::unwrap_arc_capsule;
 
 use juiz_core::processes::capsule_to_value;
 use utoipa::OpenApi;
@@ -74,7 +74,7 @@ pub fn json_output_wrap(result: JuizResult<CapsulePtr>) -> impl IntoResponse {
                 "message": format!("Internal Server Error:  {:#}, {:}", e, e.to_string())
             }))).into_response()
     }
-    match unwrap_arc_capsule(result.unwrap()) {
+    match result {
         Err(e) => {
             (StatusCode::INTERNAL_SERVER_ERROR, Json(
                 jvalue!({
@@ -82,13 +82,14 @@ pub fn json_output_wrap(result: JuizResult<CapsulePtr>) -> impl IntoResponse {
                 }))).into_response()
         },
         Ok(v) => {
-            if v.is_value() {
-                let result = v.as_value();
-                Json(result.unwrap()).into_response()
-            } else if v.is_mat() {
-                let result = v.as_mat();
+            if v.is_value().unwrap() {
+                v.lock_as_value(|value| {
+                    Json(value).into_response()
+                }).unwrap()
+            } else if v.is_mat().unwrap() {
+                v.lock_as_mat(|result| {
                 //Json(jvalue!({"message": "ERROR.this is image"})).into_response()
-                let img = image::RgbImage::try_from_cv(result.unwrap()).unwrap();
+                let img = image::RgbImage::try_from_cv(result).unwrap();
 
                 use image::ImageFormat;
 
@@ -108,6 +109,7 @@ pub fn json_output_wrap(result: JuizResult<CapsulePtr>) -> impl IntoResponse {
                     .body(Body::from(bytes)).unwrap();
                 //response.into_response()
                 response.into_response()
+                }).unwrap()
             } else {
                 Json(jvalue!({})).into_response()
             }

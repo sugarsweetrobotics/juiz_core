@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::{Arc, Mutex}};
+use std::{collections::HashMap, mem::swap, sync::{Arc, Mutex}};
 
 use opencv::core::Mat;
 
@@ -158,9 +158,20 @@ impl Capsule {
         //self
     }
 
-    pub(crate) fn replace(&mut self, capsule: Capsule) -> () {
+    pub(crate) fn _replace(&mut self, capsule: Capsule) -> () {
         self.value = capsule.value;
         self.option = capsule.option;
+    }
+
+    
+    fn replace_value(&mut self, value: CapsuleValue) -> () {
+        self.value = value;
+    }
+
+    fn take_value(&mut self) -> CapsuleValue {
+        let mut emp = CapsuleValue::Empty(());
+        swap(&mut self.value, &mut emp);
+        emp
     }
 }
 
@@ -259,9 +270,11 @@ impl CapsulePtr {
         Self{value: Arc::new(Mutex::new(Capsule::empty()))}
     }
 
-    pub fn replace(&self, capsule: Capsule) -> () {
+    pub fn replace(&self, capsule: CapsulePtr) -> () {
         match self.value.lock() {
-            Ok(mut c) => c.replace(capsule),
+            Ok(mut c) => {
+                c.replace_value(capsule.value.lock().unwrap().take_value());
+            },
             Err(_) => todo!(),
         }
     }
@@ -270,7 +283,25 @@ impl CapsulePtr {
         match self.value.lock() {
             Ok(c) => {
                 Ok(c.is_empty())
-            }
+            },
+            Err(_e) => Err(anyhow::Error::from(JuizError::MutexLockFailedError { error: "CapsulePtr.is_empty() lock error.".to_owned() })),
+        }
+    }
+
+    pub fn is_mat(&self) -> JuizResult<bool> {
+        match self.value.lock() {
+            Ok(c) => {
+                Ok(c.is_mat())
+            },
+            Err(_e) => Err(anyhow::Error::from(JuizError::MutexLockFailedError { error: "CapsulePtr.is_empty() lock error.".to_owned() })),
+        }
+    }
+
+    pub fn is_value(&self) -> JuizResult<bool> {
+        match self.value.lock() {
+            Ok(c) => {
+                Ok(c.is_value())
+            },
             Err(_e) => Err(anyhow::Error::from(JuizError::MutexLockFailedError { error: "CapsulePtr.is_empty() lock error.".to_owned() })),
         }
     }
@@ -371,8 +402,10 @@ pub fn value_to_capsule(value: Value) -> CapsulePtr {
     value.into()
 }
 
+/*
 pub fn unwrap_arc_capsule(arc: CapsulePtr) -> JuizResult<Capsule> {
-    let lock = Arc::try_unwrap(arc.value).or_else(|_| {Err(anyhow::Error::from(JuizError::MutexLockFailedError { error: "Arc unwrapping error".to_owned() }))})?;
-    lock.into_inner().or_else(|_| {Err(anyhow::Error::from(JuizError::MutexLockFailedError { error: "Arc unwrapping error".to_owned() }))})
+    let lock = Arc::try_unwrap(arc.value).or_else(|e| {Err(anyhow::Error::from(JuizError::MutexLockFailedError { error: "Arc unwrapping error when try_unwrap(). Error is ".to_owned() +  }))})?;
+    lock.into_inner().or_else(|e| {Err(anyhow::Error::from(JuizError::MutexLockFailedError { error: "Arc unwrapping error{e.to_string()}".to_owned()}))})
 }
+*/
         
