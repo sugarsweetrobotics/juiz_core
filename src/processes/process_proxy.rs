@@ -31,14 +31,16 @@ pub struct ProcessProxy {
 impl ProcessProxy {
 
     pub fn new(class_name: JuizObjectClass, identifier: &Identifier, broker_proxy: Arc<Mutex<dyn BrokerProxy>>) -> JuizResult<ProcessPtr> {
+        log::trace!("ProcessProxy::new({class_name:?}, {identifier}, broker_proxy) called");
         let id_struct = IdentifierStruct::from(identifier.clone());
         let class_name_str = match class_name {
             JuizObjectClass::Process(_) => Ok("process"),
             JuizObjectClass::ContainerProcess(_) => Ok("container_process"),
             _ => {Err(anyhow::Error::from(JuizError::ProcessProxyCanNotAcceptClassError{class_name: class_name.as_str().to_string()}))}
         }?;
+        log::trace!("id_struct: {id_struct:?}");
         Ok(Arc::new(RwLock::new(ProcessProxy{
-            core: ObjectCore::create(class_name, id_struct.type_name, id_struct.object_name),
+            core: ObjectCore::new(identifier.clone(), class_name, id_struct.type_name.as_str(), id_struct.object_name.as_str(), id_struct.broker_name.as_str(), id_struct.broker_type_name.as_str()),
             broker_proxy,
             identifier: identifier.clone(),
             class_name_str: class_name_str.to_string(),
@@ -55,6 +57,8 @@ impl JuizObjectCoreHolder for ProcessProxy {
 impl JuizObject for ProcessProxy {
 
     fn profile_full(&self) -> JuizResult<Value> {
+        let id = self.identifier();
+        log::trace!("ProcessProxy({id})::profile_full() called");
         juiz_lock(&self.broker_proxy)?.any_process_profile_full(self.identifier())
         /*
         match self.class_name_str.as_str() {

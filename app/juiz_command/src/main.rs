@@ -1,73 +1,117 @@
-use juiz_core::{System, jvalue, JuizResult};
-use std::env;
 
-/*
-fn task2(system: &mut System) -> JuizResult<()> {
+mod process;
+mod setup;
+mod default_juiz_conf;
+mod container;
+mod container_process;
 
-    Ok(())
-}
-*/
+use container::{on_container, ContSubCommands};
+use container_process::{on_container_process, ContProcSubCommands};
+use juiz_core::{ yaml_conf_load, JuizResult, System};
+use crate::process::{on_process, ProcSubCommands};
+use crate::setup::{on_setup, SetupSubCommands};
+
+use clap::{Parser, Subcommand};
 
 
-fn task1(system: &mut System) -> JuizResult<()> {
-    fn show_usage() -> JuizResult<()> {
-        Ok(())
-    }
+/// Simple program to greet a person
+#[derive(Parser, Debug)]
+#[command(author, version, about, long_about = None)]
+#[clap(
+    name = "juiz",
+    author = "Yuki Suga",
+    version = "v1.0.0",
+    about = "JUIZ command-line tool"
+)]
+struct Args {
+    /// Name of the person to greet
+    #[arg(short = 'd', help = "Daemonize JUIZ server")]
+    daemonize: bool,
 
-    fn juiz_command_process(system: &mut System, args: &[String]) -> JuizResult<()> {
-        fn show_process_usage() -> JuizResult<()> {
-            Ok(())
-        }
+    #[arg(short = 'f', default_value = "./juiz.conf", help = "Input system definition file path")]
+    filepath: String,
 
-        fn show_process_list(_system: &mut System, args: &[String]) -> JuizResult<()> {
-            println!("show_process_list({:?})", args);
-            Ok(())
-        }
-
-        match args.get(1) {
-            Some(subcmd) => {
-                match subcmd.as_str() {
-                    "list" => show_process_list(system, args), 
-                    _ => show_process_usage()
-                }
-            }
-            _ => show_process_usage()
-        }
-    }
-
-    let args: Vec<String> = env::args().collect();
-    match args.get(1) {
-        Some(subcmd) => {
-            match subcmd.as_str() {
-                "process" => {
-                    juiz_command_process(system, &args[1..])
-                },
-                _ => show_usage()
-            }
-        },
-        _ => show_usage()
-    }
+    #[clap(subcommand)]
+    subcommand: Option<SubCommands>,
 }
 
-fn main() -> JuizResult<()>{
 
-    let manifest = jvalue!({
+#[derive(Debug, Subcommand)]
+enum SubCommands {
+    // Setup tools
+    #[clap(arg_required_else_help = false)]
+    Setup {
+        #[clap(subcommand)]
+        subcommand: SetupSubCommands
+    },
 
-        "name": "test_system",
-        "plugins": {
-            "broker_factories": {
-                "http_broker": {
-                    "path": "./target/debug"
-                }
-            }
-        },
-        "brokers": [
-            {
-                "type_name": "http",
-                "name": "localhost:3000"
-            }  
-        ]
-    });
-    System::new(manifest)?.run_and_do_once(task1).expect("Error in System::run_and_do()");
+    // Process tools
+    #[clap(arg_required_else_help = false)]
+    Process {
+        #[clap(subcommand)]
+        subcommand: ProcSubCommands
+    },
+
+    // Container tools
+    #[clap(arg_required_else_help = false)]
+    Container {
+        #[clap(subcommand)]
+        subcommand: ContSubCommands
+    },
+
+    // Container tools
+    #[clap(arg_required_else_help = false)]
+    ContainerProcess {
+        #[clap(subcommand)]
+        subcommand: ContProcSubCommands
+    },
+}
+
+
+
+fn do_task_once(_system: &mut System) -> JuizResult<()> {
+    println!("System started once");
     Ok(())
+}
+
+fn do_task(_system: &mut System) -> JuizResult<()> {
+    println!("System started");
+    Ok(())
+}
+
+fn main() -> () {
+    match do_once() {
+        Ok(_) => (),
+        Err(e) => println!("Error:{:?}", e)
+    }
+}
+
+fn do_once() -> JuizResult<()>{
+    let args = Args::parse();
+    let manifest = yaml_conf_load(args.filepath)?;
+
+    if args.subcommand.is_none() {
+        if args.daemonize {
+            return System::new(manifest)?.run_and_do(do_task);
+        } else {
+            return System::new(manifest)?.run_and_do_once(do_task_once);
+        }
+    }
+    match args.subcommand.unwrap() {
+        SubCommands::Setup{ subcommand } => { 
+            on_setup(manifest, subcommand)
+        },
+        SubCommands::Process { subcommand } => {
+            on_process(manifest, subcommand)
+        },
+        SubCommands::Container { subcommand } => {
+            on_container(manifest, subcommand)
+        },
+        SubCommands::ContainerProcess { subcommand } => {
+            on_container_process(manifest, subcommand)
+        },
+        /* _ => {
+            return Ok(())
+        } */
+    }
 }

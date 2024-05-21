@@ -7,6 +7,7 @@ use std::sync::Mutex;
 use anyhow::Context;
 
 use crate::containers::container_lock;
+use crate::containers::container_proxy::ContainerProxy;
 use crate::identifier::connection_identifier_split;
 
 use crate::processes::capsule::CapsuleMap;
@@ -210,6 +211,7 @@ impl CoreBroker {
     }
 
     pub fn broker_proxy(&mut self, broker_type_name: &str, broker_name: &str) ->JuizResult<Arc<Mutex<dyn BrokerProxy>>> {
+        log::trace!("CoreBroker::broker_proxy({broker_type_name}, {broker_name}) called");
         let mut type_name = broker_type_name;
         if type_name == "core" {
             type_name = "local";
@@ -231,7 +233,18 @@ impl CoreBroker {
         Ok(bp)
     }
 
+    pub fn container_proxy_from_identifier(&mut self, identifier: &Identifier) -> JuizResult<ContainerPtr> {
+        log::info!("CoreBroker::container_proxy_from_identifier({identifier}) called");
+        let id_struct = IdentifierStruct::from(identifier.clone());
+        if id_struct.broker_name == "core" && id_struct.broker_type_name == "core" {
+            return self.container_from_id(identifier)
+        }
+        let broker_proxy = self.broker_proxy(&id_struct.broker_type_name, &id_struct.broker_name)?;
+        Ok(ContainerProxy::new(JuizObjectClass::Container("ContainerProxy"),identifier, broker_proxy)?)
+    }
+
     pub fn process_proxy_from_identifier(&mut self, identifier: &Identifier) -> JuizResult<ProcessPtr> {
+        log::info!("CoreBroker::process_proxy_from_identifier({identifier}) called");
         let id_struct = IdentifierStruct::from(identifier.clone());
         if id_struct.broker_name == "core" && id_struct.broker_type_name == "core" {
             return self.process_from_id(identifier)

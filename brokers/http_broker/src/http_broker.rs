@@ -9,7 +9,7 @@ async fn on_start(broker_manifest: Value, crud_broker: Arc<Mutex<CRUDBroker>>) -
     let host: JuizResult<&str> = obj_get_str(&broker_manifest, "host").or(Ok("0.0.0.0") );
     let port: JuizResult<i64> = obj_get_i64(&broker_manifest, "port").or( Ok(8080));
     let address = host.unwrap().to_string() + ":" + i64::to_string(&port.unwrap()).as_str();
-    // println!("http_broker.on_strart(address={address})");
+    println!("http_broker.on_strart(address={address}, {broker_manifest:?})");
     let app = app_new(crud_broker);
     let listener = tokio::net::TcpListener::bind( address ).await.unwrap();
     axum::serve(listener, app).await.unwrap();

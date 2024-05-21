@@ -2,7 +2,7 @@
 
 use crate::{identifier::identifier_new, jvalue, Identifier, JuizResult, Value};
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum JuizObjectClass {
 
     Process(&'static str),

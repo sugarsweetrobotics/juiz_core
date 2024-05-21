@@ -42,6 +42,13 @@ impl CapsuleValue {
         }
     }
 
+    pub fn as_value_mut(&mut self) -> Option<&mut Value> {
+        match self {
+            Self::Value(v) => Some(v),
+            _ => None
+        }
+    }
+
     pub fn to_value(&self) -> Option<Value> {
         match self {
             Self::Value(v) => Some(v.clone()),
@@ -129,6 +136,8 @@ impl Capsule {
 
     pub fn as_value(&self) -> Option<&Value> { self.value.as_value() }
 
+    pub fn as_value_mut(&mut self) -> Option<&mut Value> { self.value.as_value_mut() }
+
     pub fn to_value(&self) -> Option<Value> { self.value.to_value() }
 
     pub fn is_mat(&self) -> bool { self.value.is_mat() }
@@ -146,7 +155,7 @@ impl Capsule {
         self.option.get(&key.to_owned())
     }
     
-    pub(crate) fn empty() -> Capsule {
+    pub fn empty() -> Capsule {
         Self {
             value: CapsuleValue::Empty(()),
             option: HashMap::new(),
@@ -335,6 +344,18 @@ impl CapsulePtr {
         match self.value.lock() {
             Ok(c) => {
                 match c.as_value() {
+                    Some(v) => Ok(func(v)),
+                    None => todo!(),
+                }
+            }
+            Err(_e) => Err(anyhow::Error::from(JuizError::MutexLockFailedError { error: "CapsulePtr.lock_as_value() lock error.".to_owned() })),
+        }
+    }
+
+    pub fn lock_modify_as_value<F>(&self, func: F) -> JuizResult<()> where F: FnOnce(&mut Value) -> () {
+        match self.value.lock() {
+            Ok(mut c) => {
+                match c.as_value_mut() {
                     Some(v) => Ok(func(v)),
                     None => todo!(),
                 }

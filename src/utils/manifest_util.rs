@@ -1,6 +1,6 @@
 use anyhow::Context;
 use serde_json::Map;
-use crate::{Value, JuizError, JuizResult, value::obj_get_str, Identifier, identifier::identifier_new};
+use crate::{jvalue, Value, JuizError, JuizResult, value::obj_get_str, Identifier, identifier::identifier_new};
 
 pub fn construct_id(class_name: &str, type_name: &str, name: &str, broker_type: &str, broker_name: &str) -> Identifier {
     //broker_type.to_string() + "://" + broker_name + "/" + class_name + "/" + name + ":" + type_name
@@ -129,3 +129,43 @@ pub fn get_str<'a>(manifest: &'a Value, key: &str) -> JuizResult<&'a str> {
 pub fn type_name(manifest: &Value) -> JuizResult<&str> {
     get_str(manifest, "type_name")
 }
+
+pub fn manifest_merge(value: Value, data: &Value) -> JuizResult<Value> {
+
+    if value.is_object() {
+        if !data.is_object() {
+            return Err(anyhow::Error::from(JuizError::ManifestMergeFailedError{}));
+        }
+        return manifest_merge_object(value, data);
+    } else if value.is_array() {
+        if !data.is_array() {
+            return Err(anyhow::Error::from(JuizError::ManifestMergeFailedError{}));
+        }
+        return manifest_merge_array(value, data);
+    }
+    return Ok(data.clone());
+}
+
+fn manifest_merge_object(mut value: Value, data: &Value) -> JuizResult<Value> {
+    let mut_map = get_hashmap_mut(&mut value)?;
+    let data_map = get_hashmap(data)?;
+    for (k, v) in data_map.iter() {
+        if mut_map.contains_key(k) {
+            let v_merged = manifest_merge(mut_map.get(k).unwrap().clone(), v)?;
+            mut_map.insert(k.clone(), v_merged.clone());
+        } else {
+            mut_map.insert(k.clone(), v.clone());
+        }
+    }
+    Ok(value)
+}
+
+fn manifest_merge_array(mut value: Value, data: &Value) -> JuizResult<Value> {
+    let mut_arr = get_array_mut(&mut value)?;
+    let data_arr = get_array(data)?;
+    for v in data_arr.iter() {
+        mut_arr.push(v.clone());
+    }
+    Ok(jvalue!(mut_arr))
+}
+

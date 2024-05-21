@@ -6,7 +6,8 @@ pub mod system_builder {
 
     use anyhow::Context;
 
-    use crate::{brokers::{broker_factories_wrapper::BrokerFactoriesWrapper, local::{local_broker::{create_local_broker_factory, BrokerSideSenderReceiverPair, ProxySideSenderReceiverPair}, local_broker_proxy::create_local_broker_proxy_factory}, local_broker::ByteSenderReceiverPair, BrokerFactory, BrokerProxy, BrokerProxyFactory}, connections::connection_builder::connection_builder, containers::{container_factory_wrapper::ContainerFactoryWrapper, container_process_factory_wrapper::ContainerProcessFactoryWrapper}, core::Plugin, ecs::{execution_context_holder::ExecutionContextHolder, execution_context_holder_factory::ExecutionContextHolderFactory, ExecutionContextFactory}, jvalue, processes::{capsule::CapsuleMap, ProcessFactoryWrapper}, utils::{get_array, get_hashmap, juiz_lock, manifest_util::when_contains_do_mut, when_contains_do}, value::{obj_get, obj_get_str}, CapsulePtr, ContainerFactory, ContainerProcessFactory, JuizResult, ProcessFactory, System, Value};
+    use crate::brokers::{broker_factories_wrapper::BrokerFactoriesWrapper, local::{local_broker::{create_local_broker_factory, BrokerSideSenderReceiverPair, ProxySideSenderReceiverPair}, local_broker_proxy::create_local_broker_proxy_factory}, local_broker::ByteSenderReceiverPair, BrokerFactory, BrokerProxy, BrokerProxyFactory};
+    use crate::{connections::connection_builder::connection_builder, containers::{container_factory_wrapper::ContainerFactoryWrapper, container_process_factory_wrapper::ContainerProcessFactoryWrapper}, core::Plugin, ecs::{execution_context_holder::ExecutionContextHolder, execution_context_holder_factory::ExecutionContextHolderFactory, ExecutionContextFactory}, jvalue, processes::{capsule::CapsuleMap, ProcessFactoryWrapper}, utils::{get_array, get_hashmap, juiz_lock, manifest_util::when_contains_do_mut, when_contains_do}, value::{obj_get, obj_get_str}, CapsulePtr, ContainerFactory, ContainerProcessFactory, JuizResult, ProcessFactory, System, Value};
 
     pub fn setup_plugins(system: &mut System, manifest: &Value) -> JuizResult<()> {
         log::trace!("system_builder::setup_plugins({}) called", manifest);
@@ -150,8 +151,9 @@ pub mod system_builder {
     fn setup_broker_factories(system: &mut System, manifest: &Value) -> JuizResult<()> {
         log::trace!("system_builder::setup_broker_factories() called");
         for (name, v) in get_hashmap(manifest)?.iter() {
+            
             log::debug!("Loading Broker (name={name:})....");
-            let plugin_filename = concat_dirname(v, plugin_name_to_file_name(name))?;
+            let plugin_filename = concat_dirname(v, plugin_name_to_file_name(&name.to_string()))?;
             let bf;
             let bpf;
             unsafe {
@@ -214,6 +216,14 @@ pub mod system_builder {
         log::trace!("system_builder::setup_brokers() called");
         for p in get_array(manifest)?.iter() {
             let _ = system.create_broker(&p)?;
+        }
+        Ok(())
+    }
+
+    pub fn setup_broker_proxies(system: &mut System, manifest: &Value) -> JuizResult<()> {
+        log::trace!("system_builder::setup_broker_proxies() called");
+        for p in get_array(manifest)?.iter() {
+            let _ = system.create_broker_proxy(&p)?;
         }
         Ok(())
     }

@@ -14,4 +14,4 @@ anyhow = "1.0.75"
 juiz_core = { path="../../../" }
 env_logger = "0.10.1"
 
-opencv = {version="0.84.0", default-features=false, features=["highgui", "videoio", "imgproc", "clang-runtime"]}
+opencv = {version="0.84.0", default-features=false, features=["highgui", "videoio", "imgproc", "imgcodecs", "clang-runtime"]}

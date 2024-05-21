@@ -9,6 +9,7 @@ pub mod container_process_impl;
 pub mod container_process_factory;
 pub mod container_process_factory_impl;
 pub mod container_process_factory_wrapper;
+pub mod container_proxy;
 
 
 pub use container::{Container, ContainerPtr, container_lock, container_lock_mut, container_ptr, container_ptr_clone};

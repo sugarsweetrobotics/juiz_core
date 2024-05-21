@@ -1,18 +1,22 @@
 use std::collections::HashMap;
+use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
+use home::home_dir;
 
 use anyhow::Context;
 
+use crate::identifier::IdentifierStruct;
+use crate::yaml_conf_load::yaml_conf_load_with;
 use crate::jvalue;
 use crate::brokers::{BrokerProxy, Broker,  broker_factories_wrapper::BrokerFactoriesWrapper};
 use crate::object::{ObjectCore, JuizObjectCoreHolder, JuizObjectClass};
 
 use crate::value::{obj_get_str, obj_merge};
 use crate::{ContainerPtr, CoreBroker, Identifier, JuizError, JuizObject, JuizResult, ProcessPtr, Value};
-use crate::utils::juiz_lock;
-use crate::utils::manifest_util::{id_from_manifest, when_contains_do_mut, construct_id};
+use crate::utils::{get_array, juiz_lock};
+use crate::utils::manifest_util::{construct_id, id_from_manifest, manifest_merge, when_contains_do_mut};
 use super::system_builder::system_builder;
 use crate::utils::when_contains_do;
 
@@ -58,7 +62,8 @@ impl System {
 
     pub fn new(manifest: Value) -> JuizResult<System> {
         env_logger::init();
-        let updated_manifest = check_system_manifest(manifest)?;
+        let checked_manifest = check_system_manifest(manifest)?;
+        let updated_manifest:Value = merge_home_manifest(checked_manifest)?;
         Ok(System{
             core: ObjectCore::create(JuizObjectClass::System("System"), "system", "system"),
             manifest: updated_manifest.clone(),
@@ -79,7 +84,12 @@ impl System {
 
     ///
     pub fn process_from_id(&self, id: &Identifier) -> JuizResult<ProcessPtr> {
-        juiz_lock(&self.core_broker)?.store().processes.get(id)
+        log::trace!("System::process_from_id(id={id:}) called");
+        let s = IdentifierStruct::from(id.clone());
+        if s.broker_type_name == "core" {
+            return juiz_lock(&self.core_broker)?.store().processes.get(id);
+        }
+        self.process_proxy(id)
     }
 
     pub fn process_from_typename_and_name(&self, type_name: &str, name: &str) -> JuizResult<ProcessPtr> {
@@ -89,7 +99,12 @@ impl System {
     
     
     pub fn container_from_id(&self, id: &Identifier) -> JuizResult<ContainerPtr> {
-        juiz_lock(&self.core_broker)?.store().containers.get(id)
+        log::trace!("System::container_from_id({id}) called");
+        let s = IdentifierStruct::from(id.clone());
+        if s.broker_type_name == "core" {
+            return juiz_lock(&self.core_broker)?.store().containers.get(id);
+        }
+        self.container_proxy(id)
     }
 
     pub fn container_from_typename_and_name(&self, type_name: &str, name: &str) -> JuizResult<ContainerPtr> {
@@ -98,14 +113,19 @@ impl System {
     }
 
     pub fn container_process_from_id(&self, id: &Identifier) -> JuizResult<ProcessPtr> {
-        juiz_lock(&self.core_broker)?.store().container_processes.get(id)
+        log::trace!("System::container_process_from_id(id={id:}) called");
+        let cp = juiz_lock(&self.core_broker)?.store().container_processes.get(id)?;
+        log::trace!("cps  OK");
+        return Ok(cp);
     }
 
     pub fn any_process_from_id(&self, id: &Identifier) -> JuizResult<ProcessPtr> {
+        log::trace!("System::any_process_from_id(id={id:}) called");
         let result = self.process_from_id(id);
         if result.is_ok() {
             return result;
         }
+        log::trace!("System::any_process_from_id(id={id:}) failed. No process is found. Now searching container_process...");
         self.container_process_from_id(id)
     }
 
@@ -149,6 +169,11 @@ impl System {
         self.any_process_from_typename_and_name(type_name, name)
     }
 
+    pub fn container_proxy(&self, id: &Identifier) -> JuizResult<ContainerPtr> {
+        juiz_lock(&self.core_broker)?.container_proxy_from_identifier(id)
+    }
+
+
     pub fn process_proxy(&self, id: &Identifier) -> JuizResult<ProcessPtr> {
         juiz_lock(&self.core_broker)?.process_proxy_from_identifier(id)
     }
@@ -184,6 +209,10 @@ impl System {
             log::info!("starting Broker({type_name:})");
             let _ = juiz_lock(&broker)?.start().context("Broker(type_name={type_name:}).start() in System::setup() failed.")?;
         }
+
+        let _ = when_contains_do_mut(&manifest_copied, "broker_proxies", |v| {
+            system_builder::setup_broker_proxies(self, v).context("system_builder::setup_broker_proxies in System::setup() failed.")
+        })?;
 
         let _ = when_contains_do(&self.manifest, "ecs", |v| {
             system_builder::setup_ecs(self, v).context("system_builder::setup_ecs in System::setup() failed")
@@ -259,7 +288,7 @@ impl System {
         Ok(())
     }
 
-    pub fn run_and_do_once(&mut self,  func: fn(&mut System) -> JuizResult<()>) -> JuizResult<()> {
+    pub fn run_and_do_once<F>(&mut self, func: F) -> JuizResult<()> where F: FnOnce(&mut System) -> JuizResult<()>  {
         log::debug!("System::run_and_do_once() called");
         self.setup().context("System::setup() in System::run_and_do_once() failed.")?;
         log::debug!("Juiz System Now Started.");
@@ -320,6 +349,96 @@ impl System {
         Ok(broker)
     }
 
-
+    pub fn create_broker_proxy(&mut self, manifest: &Value) -> JuizResult<Arc<Mutex<dyn BrokerProxy>>> {
+        log::trace!("System::create_broker_proxy({manifest:}) called");
+        let type_name = obj_get_str(manifest, "type_name")?;
+        let bf = self.broker_factories_wrapper(type_name)?;
+        let b = juiz_lock(bf).context("Locking BrokerFactoriesWrapper in System::create_broker_proxy() failed.")?.create_broker_proxy(&manifest).context("BrokerFactoriesWrapper.create_broker_proxy() failed in System::create_broker()")?;
+        self.register_broker_proxy(b)
+    }
     
+    pub(crate) fn register_broker_proxy(&mut self, broker_proxy: Arc<Mutex<dyn BrokerProxy>>) -> JuizResult<Arc<Mutex<dyn BrokerProxy>>> {
+        let type_name;        
+        {
+            type_name = juiz_lock(&broker_proxy).context("Locking broker to get type_name failed.")?.type_name().to_string();
+        }
+        log::trace!("System::register_broker(type_name={type_name:}) called");
+        juiz_lock(&self.core_broker())?.store_mut().broker_proxies.register(broker_proxy.clone())?;
+        //self.broker_proxies.insert(type_name.clone(), Arc::clone(&broker_proxy));
+        //let p: Value  =juiz_lock(&broker_proxy).context("Locking passed broker_proxy failed.")?.profile_full().context("BrokerProxy::profile_full")?.try_into()?;
+        //juiz_lock(&self.core_broker()).context("Blocking CoreBroker failed.")?.store_mut().register_broker_proxy_manifest(type_name.as_str(), p)?;
+        
+        Ok(broker_proxy)
+    }
+
+    pub fn process_list(&self) -> JuizResult<Vec<Value>> {
+        log::trace!("System::process_list() called");
+        let mut local_processes = juiz_lock(&self.core_broker())?.store().processes.list_manifests()?;
+        for proxy in juiz_lock(&self.core_broker())?.store().broker_proxies.objects().into_iter() {
+            for v in get_array(&juiz_lock(proxy)?.process_list()?)?.iter() {
+                local_processes.push(v.clone());
+            }
+        }
+        log::debug!("ids: {local_processes:?}");    
+        return Ok(local_processes);
+    }
+
+    pub fn container_list(&self) -> JuizResult<Vec<Value>> {
+        log::trace!("System::container_list() called");
+        let mut local_containers = juiz_lock(&self.core_broker())?.store().containers.list_manifests()?;
+        for proxy in juiz_lock(&self.core_broker())?.store().broker_proxies.objects().into_iter() {
+            for v in get_array(&juiz_lock(proxy)?.container_list()?)?.iter() {
+                local_containers.push(v.clone());
+            }
+        }
+        log::debug!("ids: {local_containers:?}");    
+        return Ok(local_containers);
+    }
+
+    pub fn container_process_list(&self) -> JuizResult<Vec<Value>> {
+        log::trace!("System::container_process_list() called");
+        let mut local_processes = juiz_lock(&self.core_broker())?.store().container_processes.list_manifests()?;
+        for proxy in juiz_lock(&self.core_broker())?.store().broker_proxies.objects().into_iter() {
+            for v in get_array(&juiz_lock(proxy)?.container_process_list()?)?.iter() {
+                local_processes.push(v.clone());
+            }
+        }
+        log::debug!("ids: {local_processes:?}");    
+        return Ok(local_processes);
+    }
+
+    pub fn any_process_list(&self) -> JuizResult<Vec<Value>> {
+        log::trace!("System::any_process_list() called");
+        let mut ps = self.process_list()?;
+        let mut cps = self.container_process_list()?;
+        cps.append(&mut ps);
+        return Ok(cps)
+    }
+    
+}
+
+
+fn param_map(juiz_homepath: PathBuf) -> HashMap<&'static str, String> {
+    HashMap::from([("${HOME}", juiz_homepath.to_str().unwrap().to_owned())])
+}
+
+fn merge_home_manifest(manifest: Value) -> JuizResult<Value> {
+    log::trace!("merge_home_manifest({manifest}) called");
+    match home_dir() {
+        Some(homepath) => {
+            let juiz_homepath = homepath.join(".juiz");
+            let juiz_conf_homepath = juiz_homepath.join("conf");
+            let juiz_default_conf_filepath = juiz_conf_homepath.join("default.conf");
+            if juiz_default_conf_filepath.exists() {
+                let system_manifest = yaml_conf_load_with(juiz_default_conf_filepath.to_str().unwrap().to_owned(), param_map(juiz_homepath))?;
+                log::trace!(" - system_manifest: {system_manifest:}");
+                let merged_manifest =  manifest_merge(system_manifest, &manifest)?;
+                log::trace!(" - merged manifest: {merged_manifest:}");
+                return Ok(merged_manifest);
+            }
+        }
+        None => {}
+    }
+
+    Ok(manifest)
 }

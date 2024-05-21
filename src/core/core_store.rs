@@ -117,6 +117,21 @@ impl<T, TF> RwStoreWorker<T, TF> where T: JuizObject + ?Sized, TF: JuizObject + 
         Ok(prof)
     }
 
+    pub fn list_manifests(&self) -> JuizResult<Vec<Value>> {
+        let mut o_array: Vec<Value>  = Vec::new();
+        self.objects.iter().for_each(|(_identifier, arc_obj)| {
+            match arc_obj.read() {
+                Err(e) => {
+                    o_array.push(jvalue!(format!("Err({})", e)));
+                },
+                Ok(p) => {
+                    o_array.push(p.profile_full().unwrap().try_into().unwrap());
+                }
+            }
+        });
+        Ok(o_array)
+    }
+
     pub fn cleanup_objects(&mut self) -> JuizResult<()> {
         self.objects.clear();
         Ok(())
@@ -231,6 +246,21 @@ impl<T, TF> StoreWorker<T, TF> where T: JuizObject + ?Sized, TF: JuizObject + ?S
 
         });
         Ok(prof)
+    }
+
+    pub fn list_manifests(&self) -> JuizResult<Vec<Value>> {
+        let mut o_array: Vec<Value>  = Vec::new();
+        self.objects.iter().for_each(|(_identifier, arc_obj)| {
+            match juiz_try_lock(&arc_obj) {
+                Err(e) => {
+                    o_array.push(jvalue!(format!("Err({})", e)));
+                },
+                Ok(p) => {
+                    o_array.push(p.profile_full().unwrap().try_into().unwrap());
+                }
+            }
+        });
+        Ok(o_array)
     }
 
     pub fn cleanup_objects(&mut self) -> JuizResult<()> {

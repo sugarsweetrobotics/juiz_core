@@ -24,5 +24,7 @@ pub use core::core_broker::CoreBroker;
 pub use core::system::System;
 pub use core::result::JuizResult;
 
+pub use utils::yaml_conf_load;
+
 pub use cv_convert as cv_convert;
 pub use cv_convert::opencv as opencv;

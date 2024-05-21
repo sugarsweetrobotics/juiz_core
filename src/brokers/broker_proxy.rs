@@ -1,7 +1,7 @@
 
 
 
-use crate::{processes::capsule::{Capsule, CapsuleMap}, CapsulePtr, Identifier, JuizObject, JuizResult, Value};
+use crate::{identifier::IdentifierStruct, processes::capsule::{Capsule, CapsuleMap}, CapsulePtr, Identifier, JuizObject, JuizResult, Value};
 
 
 
@@ -81,11 +81,12 @@ pub trait BrokerProxy : Send + JuizObject + SystemBrokerProxy + ProcessBrokerPro
     }
 
     fn any_process_profile_full(&self, id: &Identifier) -> JuizResult<Value> {
-        log::info!("BrokerProxy.any_process_profile_full({id}) called");
-        let result = self.process_profile_full(id).or_else(|_e| {
-            println!("Error {_e}");
-            self.container_process_profile_full(id)
-        });
-        result
+        log::info!("BrokerProxy::any_process_profile_full({id}) called");
+        let id_struct = IdentifierStruct::from(id.clone());
+        log::info!("id_struct{:?}", id_struct);        
+        if id_struct.class_name == "Process" {
+            return self.process_profile_full(id)
+        }
+        self.container_process_profile_full(id)
     }
 }

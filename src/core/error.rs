@@ -146,6 +146,12 @@ pub enum JuizError {
     ConnectionCanNotBeFoundError { identifier: String },
     #[error("CapuleMap does not contain value with key=({key}).")]
     CapsuleMapDoesNotContainValueError { key: String },
+    #[error("Cofig file is invalid format.")]
+    ConfigFileIsInvalidFormatError {  },
+    #[error("Merging manifest failed.")]
+    ManifestMergeFailedError {  },
+    #[error("Value is not String Error.")]
+    ValueIsNotStringError {  },
     
 
     /*

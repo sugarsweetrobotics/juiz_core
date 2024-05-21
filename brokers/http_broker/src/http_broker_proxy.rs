@@ -1,7 +1,7 @@
 use std::{sync::{Arc, Mutex}, collections::HashMap};
 
 
-use juiz_core::{brokers::{create_broker_proxy_factory_impl, BrokerProxy, BrokerProxyFactory}, jvalue, processes::capsule::CapsuleMap, value::obj_get_str, CapsulePtr, JuizError, JuizResult, Value};
+use juiz_core::{brokers::{create_broker_proxy_factory_impl, BrokerProxy, BrokerProxyFactory}, identifier::IdentifierStruct, jvalue, processes::capsule::CapsuleMap, value::obj_get_str, CapsulePtr, JuizError, JuizResult, Value};
 
 use juiz_core::brokers::{CRUDBrokerProxy, CRUDBrokerProxyHolder};
 
@@ -22,8 +22,11 @@ fn name_to_host_and_port<'a>(name: &'a String) -> JuizResult<(&'a str, i64)> {
     if host.is_none() {
         return Err(anyhow::Error::from(JuizError::BrokerNameCanNotResolveToURLError{given_name: name.clone()}));
     }
-
-    Ok(("localhost", 3000))
+    let port = tokens.next();
+    if port.is_none() {
+        return Ok((host.unwrap(), 8080))
+    }
+    Ok((host.unwrap(), port.unwrap().parse()?))
 }
 
 
@@ -43,12 +46,24 @@ impl HTTPBrokerProxy {
     }
 }
 
+fn construct_param(key: &String, value: &String) -> String {
+    if key == "identifier" {
+        let mut id_struct = IdentifierStruct::from(value.clone());
+        id_struct.broker_type_name = "core".to_owned();
+        id_struct.broker_name = "core".to_owned();
+        let new_id: String = id_struct.into();
+        key.clone() + "=" + new_id.as_str()
+    } else {
+        (key).clone() + "=" + (value).as_str()
+    }
+}
+
 fn construct_url(base_url: &String, class_name: &str, function_name: &str, param: &HashMap<String, String>) -> String {
     let url = base_url.clone() + "/" + class_name + "/" + function_name;
     if param.len() == 0 {
         return url;
     }
-    let m = param.iter().map(|(k,v)|{(k).clone() + "=" + (v).as_str()});
+    let m = param.iter().map(|(k,v)|{construct_param(k, v)});
     return url + "?" + m.collect::<Vec<String>>().join("&").as_str();
 }
 
@@ -84,19 +99,23 @@ impl CRUDBrokerProxy for HTTPBrokerProxy {
         }
     }
 
+
     fn read(&self, class_name: &str, function_name: &str, param: std::collections::HashMap<String, String>) -> JuizResult<CapsulePtr> {
-        log::info!("HTTPBrokerProxy.read() called");
+        log::trace!("HTTPBrokerProxy({class_name:}, {function_name}, {param:?}).read() called");
         
         let client = reqwest::blocking::Client::new();
         let url  =construct_url(&self.base_url, class_name, function_name, &param);
         log::trace!("HTTPBrokerProxy.read(url={url:})");
-        match client.get(url).send() {
+        match client.get(url.clone()).send() {
             Err(e) => Err(anyhow::Error::from(e)),
             Ok(response) => {
                 if response.status() != 200 {
+                    log::error!("HTTPBrokerProxy.read(url={url:}) failed. Response is {response:?}");
                     return Err(anyhow::Error::from(HTTPBrokerError::HTTPStatusError{status_code: response.status(), message: format!("{:?}", response) }));
                 }
-                Ok(response.json::<Value>().map_err(|e| anyhow::Error::from(e))?.into())
+                let value = response.json::<Value>().map_err(|e| anyhow::Error::from(e))?;
+                log::trace!("HTTPBrokerProxy.read() Response = {value:?}");
+                Ok(value.into())
             }
         }
     }

@@ -90,6 +90,16 @@ impl From<Identifier> for IdentifierStruct {
         digest_identifier(&identifier)
     }
 }
+
+impl Into<Identifier> for IdentifierStruct {
+    fn into(self) -> Identifier {
+        identifier_new(self.broker_type_name.as_str(), 
+            self.broker_name.as_str(), 
+            self.class_name.as_str(), 
+            self.type_name.as_str(), 
+            self.object_name.as_str())
+    }
+}
 impl IdentifierStruct {
     
     pub fn to_identifier(&self) -> Identifier {
