@@ -279,13 +279,7 @@ impl Process for ProcessImpl {
 
     
     fn source_connections(&self) -> JuizResult<Vec<&Box<dyn SourceConnection>>> {
-        let mut v: Vec<&Box<dyn SourceConnection>> = Vec::new();
-        for inlet in self.inlets.iter() {
-            for sc in inlet.source_connections() {
-                v.push(&sc);
-            }
-        }
-        Ok(v)
+        Ok(self.inlets.iter().map(|inlet| { inlet.source_connections() } ).flatten().collect::<Vec<&Box<dyn SourceConnection>>>())
     }
     
 
