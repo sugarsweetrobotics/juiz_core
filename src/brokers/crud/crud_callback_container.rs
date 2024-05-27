@@ -113,10 +113,12 @@ pub(crate) fn update_callback_container() -> ClassCallbackContainerType {
 
     let mut proc_cbs = CallbackContainerType::new();
     proc_cbs.insert("call", |cb, args| {
+        log::trace!("update_callback_container()/anonymous func() for 'process/call' called");
         let id = args.get_param("identifier").ok_or_else(||{anyhow::Error::from(JuizError::CRUDBrokerCanNotParameterFunctionError { key_name: "identifier".to_owned() })})?.as_str();
         juiz_lock(&cb)?.process_call(&id.to_owned(), args)
     });
     proc_cbs.insert("execute", |cb, args| {
+        log::trace!("update_callback_container()/anonymous func() for 'process/execute' called");
         let id = args.get_param("identifier").ok_or_else(||{anyhow::Error::from(JuizError::CRUDBrokerCanNotParameterFunctionError { key_name: "identifier".to_owned() })})?;
         juiz_lock(&cb)?.process_execute(id)
     });
@@ -125,10 +127,12 @@ pub(crate) fn update_callback_container() -> ClassCallbackContainerType {
 
     let mut cont_proc_cbs = CallbackContainerType::new();
     cont_proc_cbs.insert("call", |cb, args| {
+        log::trace!("update_callback_container()/anonymous func() for 'container_process/call' called");
         let id = args.get_param("identifier").ok_or_else(||{anyhow::Error::from(JuizError::CRUDBrokerCanNotParameterFunctionError { key_name: "identifier".to_owned() })})?.as_str();
         juiz_lock(&cb)?.container_process_call(&id.to_owned(), args)
     });
     cont_proc_cbs.insert("execute", |cb, args| {
+        log::trace!("update_callback_container()/anonymous func() for 'container_process/execute' called");
         let id = args.get_param("identifier").ok_or_else(||{anyhow::Error::from(JuizError::CRUDBrokerCanNotParameterFunctionError { key_name: "identifier".to_owned() })})?;
         juiz_lock(&cb)?.container_process_execute(id)
     });

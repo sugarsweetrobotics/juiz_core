@@ -184,6 +184,7 @@ impl Process for ProcessImpl {
     }
 
     fn call(&self, args: CapsuleMap) -> JuizResult<CapsulePtr> {
+        log::trace!("ProcessImpl::call() called");
         check_manifest_before_call(&(self.manifest), &args)?;
         Ok( (self.function)(args)?.into() )
     }

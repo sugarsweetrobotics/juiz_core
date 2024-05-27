@@ -1,4 +1,4 @@
-use std::{sync::{Arc, Mutex}, collections::HashMap};
+use std::{collections::HashMap, io::Read, sync::{Arc, Mutex}};
 
 
 use juiz_core::{brokers::{create_broker_proxy_factory_impl, BrokerProxy, BrokerProxyFactory}, identifier::IdentifierStruct, jvalue, processes::capsule::CapsuleMap, value::obj_get_str, CapsulePtr, JuizError, JuizResult, Value};
@@ -6,6 +6,7 @@ use juiz_core::{brokers::{create_broker_proxy_factory_impl, BrokerProxy, BrokerP
 use juiz_core::brokers::{CRUDBrokerProxy, CRUDBrokerProxyHolder};
 
 use thiserror::Error;
+use opencv::imgcodecs::*;
 
 #[derive(Error, Debug, PartialEq)]
 enum HTTPBrokerError {
@@ -67,11 +68,6 @@ fn construct_url(base_url: &String, class_name: &str, function_name: &str, param
     return url + "?" + m.collect::<Vec<String>>().join("&").as_str();
 }
 
-
-fn to_payload<'a>(_payload: &'a CapsuleMap) -> JuizResult<&'a Value> {
-    todo!();
-}
-
 impl CRUDBrokerProxy for HTTPBrokerProxy {
     fn create(&self, class_name: &str, function_name: &str, payload: Value, param: std::collections::HashMap<String, String>) -> JuizResult<CapsulePtr> {
         let client = reqwest::blocking::Client::new();
@@ -123,14 +119,22 @@ impl CRUDBrokerProxy for HTTPBrokerProxy {
 
     fn update(&self, class_name: &str, function_name: &str, payload: CapsuleMap, param: std::collections::HashMap<String, String>) -> JuizResult<CapsulePtr>{
         let client = reqwest::blocking::Client::new();
+        let v: Value = payload.into();
         match client.patch(construct_url(&self.base_url, class_name, function_name, &param))
-            .json(to_payload(&payload)?)
+            .json(&v)
             .send() {
             Err(e) => Err(anyhow::Error::from(e)),
-            Ok(response) => {
-                match response.json::<Value>() {
-                    Err(e) => Err(anyhow::Error::from(e)),
-                    Ok(v) => Ok(v.into())
+            Ok(mut response) => {
+                let hdr = response.headers();
+                if hdr["content-type"] == "image/png" {
+                    let mut buf: Vec<u8> = Vec::new();
+                    let _result = response.read_to_end(&mut buf)?;
+                    Ok(imdecode(&opencv::types::VectorOfu8::from_iter(buf), IMREAD_COLOR)?.into())
+                } else {
+                    match response.json::<Value>() {
+                        Err(e) => Err(anyhow::Error::from(e)),
+                        Ok(v) => Ok(v.into())
+                    }
                 }
             }
         }

@@ -72,9 +72,12 @@ impl JuizObject for ProcessProxy {
 
 impl Process for ProcessProxy {
     
-    fn call(&self, _args: CapsuleMap) -> JuizResult<CapsulePtr> {
-        //juiz_lock(&self.broker_proxy)?.any_process_call(args)
-        todo!()
+    fn call(&self, args: CapsuleMap) -> JuizResult<CapsulePtr> {
+        let id = self.identifier();
+        log::trace!("ProcessProxy({id})::call() called");
+        let result = juiz_lock(&self.broker_proxy)?.any_process_call(self.identifier(), args);
+        log::trace!(" - return: {result:?}");
+        return result;
     }
 
     fn is_updated(& self) -> JuizResult<bool> {

@@ -69,13 +69,13 @@ impl CapsuleValue {
             _ => None
         }
     }
-
+    /*
     pub fn to_mat(&self) -> Option<Mat> {
         match self {
             Self::Mat(v) => Some(v.clone()),
             _ => None
         }
-    }
+    }*/
 }
 
 
@@ -116,17 +116,18 @@ impl From<Mat> for Capsule {
     }
 }
 
-impl TryFrom<Capsule> for Mat {
-    fn try_from(value: Capsule) -> Result<Self, Self::Error> {
-        match value.to_mat() {
-            Some(v) => Ok(v),
-            None => Err(anyhow::Error::from(JuizError::CapsuleIsNotValueTypeError{}))
-        }
-    }
-    
+/*
+impl TryInto<Mat> for Capsule {
     type Error = anyhow::Error;
-}
-
+    
+    fn try_into(self) -> Result<Mat, Self::Error> {
+        //match self.to_mat() {
+        //    Some(v) => Ok(v),
+        //    None => Err(anyhow::Error::from(JuizError::CapsuleIsNotValueTypeError{}))
+        //}
+        todo!()
+    }
+}*/
 
 impl Capsule {
 
@@ -144,7 +145,7 @@ impl Capsule {
 
     pub fn as_mat(&self) -> Option<&opencv::core::Mat> { self.value.as_mat() }
 
-    pub fn to_mat(&self) -> Option<opencv::core::Mat> { self.value.to_mat() }
+    //pub fn to_mat(&self) -> Option<opencv::core::Mat> { self.value.to_mat() }
 
     pub fn set_option(&mut self, key: &str, value: &str) -> &mut Self {
         self.option.insert(key.to_owned(), value.to_owned());
@@ -265,6 +266,7 @@ impl From<&[(&str, Value)]> for CapsuleMap {
         c
     }
 }
+
 
 //pub type CapsulePtr = Arc<Mutex<Capsule>>;
 
@@ -394,6 +396,11 @@ impl From<Value> for CapsulePtr {
     }
 }
 
+impl From<Mat> for CapsulePtr {
+    fn from(value: Mat) -> Self {
+        Self{value: Arc::new(Mutex::new(value.into()))}
+    }
+}
 
 impl From<Capsule> for CapsulePtr {
     fn from(value: Capsule) -> Self {

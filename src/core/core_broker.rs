@@ -373,6 +373,7 @@ impl ContainerProcessBrokerProxy for CoreBroker {
     }
 
     fn container_process_call(&self, id: &Identifier, args: CapsuleMap) -> JuizResult<CapsulePtr> {
+        log::trace!("CoreBroker::container_process_call(id={id:}, args) called");
         proc_lock(&self.store().container_processes.get(id)?).with_context(||format!("locking container_procss(id={id:}) in CoreBroker::container_process_call() function"))?.call(args)
     }
 

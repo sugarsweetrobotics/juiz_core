@@ -13,6 +13,10 @@ pub struct JValue(pub serde_json::Value, );
 
 pub type Value=serde_json::Value;
 
+pub fn load_str(json_str: &str) -> JuizResult<Value> {
+    serde_json::from_str(json_str).or_else(|e| { Err(anyhow::Error::from(e)) })
+}
+
 pub fn as_obj<'a>(value: &'a Value) -> JuizResult<&'a serde_json::Map<String, Value>> {
     match value.as_object() {
         None => return Err(anyhow::Error::from(JuizError::ValueIsNotObjectError{value: value.clone()})),

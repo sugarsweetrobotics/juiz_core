@@ -152,6 +152,8 @@ pub enum JuizError {
     ManifestMergeFailedError {  },
     #[error("Value is not String Error.")]
     ValueIsNotStringError {  },
+    #[error("Arc Unwrapping error.")]
+    ArcUnwrapError {  },
     
 
     /*

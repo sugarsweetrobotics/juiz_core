@@ -11,5 +11,11 @@ juiz_core = { path="../../" }
 env_logger = "0.10.1"
 structopt = "0.3.26"
 home = "0.5.9"
+
+anyhow = "1.0.75"
+
 clap = { version="4.4.10", features = ["derive"] }
-# opencv = {version="0.88.6", features=["clang-runtime"]}
+# opencv = {version="0.84.0", default-features=false, features=["clang-runtime"]}
+
+# opencv = {version="0.84.0", default-features=false, features=["clang-runtime"]}
+opencv = {version="0.84.0", default-features=false, features=["highgui", "videoio", "imgproc", "imgcodecs", "clang-runtime"]}

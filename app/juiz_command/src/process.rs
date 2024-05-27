@@ -1,9 +1,8 @@
 
 use juiz_core::{processes::proc_lock, JuizResult, System, Value};
-
-
+use opencv::imgcodecs::imwrite;
+use opencv::core::Vector;
 use clap::Subcommand;
-
 
 #[derive(Debug, Subcommand)]
 pub(crate) enum ProcSubCommands {
@@ -24,6 +23,20 @@ pub(crate) enum ProcSubCommands {
     Info {
         #[arg(help = "ID of process")]
         identifier: String
+    },
+
+    /// get logs
+    #[clap(arg_required_else_help = false)]
+    Call {
+        #[arg(help = "ID of process")]
+        identifier: String,
+
+
+        #[arg(help = "Argument")]
+        argument: String,
+
+        #[arg(short = 'o', help = "Output Filename")]
+        fileout: Option<String>,
     },
 
 }
@@ -50,6 +63,11 @@ pub(crate) fn on_process_inner(manifest: Value, subcommand: ProcSubCommands) -> 
         ProcSubCommands::Info { identifier } => {
             System::new(manifest)?.run_and_do_once( |system| { 
                 on_process_info(system, identifier)
+            }) 
+        },
+        ProcSubCommands::Call { identifier, argument , fileout} => {
+            System::new(manifest)?.run_and_do_once( |system| { 
+                on_process_call(system, identifier, argument, fileout)
             }) 
         } 
     }
@@ -80,6 +98,43 @@ fn on_process_info(system: &mut System, id: String) -> JuizResult<()> {
     let p = system.any_process_from_id(&id);
     match p {
         Ok(ps) => println!("{:}", proc_lock(&ps)?.profile_full()?),
+        Err(e) => println!("Error: {e:?}"),
+    }
+    Ok(())
+}
+
+fn on_process_call(system: &mut System, id: String, arg: String, fileout: Option<String>) -> JuizResult<()> {
+    //println!("processes:");
+    let p = system.any_process_from_id(&id);
+    match p {
+        Ok(ps) => {
+            let argv = juiz_core::load_str(arg.as_str())?;
+            // println!("Value is {argv:?}");
+            let value = proc_lock(&ps)?.call(argv.try_into()?)?;
+            if value.is_value()? {
+                println!("{:?}", value);
+            } else if value.is_mat()? {
+                let _ = value.lock_as_mat(|mat| {
+
+                    let params: Vector<i32> = Vector::new();
+                    match fileout {
+                        Some(filepath) => {
+                            match imwrite(filepath.as_str(), mat, &params) {
+                                Ok(_) => {
+                                    //println!("ok");
+                                },
+                                Err(e) => {
+                                    println!("error: {e:?}");
+                                }
+                            }
+                        },
+                        None => {
+                            println!("{:?}", mat);
+                        }
+                    }
+                } );
+            }
+        },
         Err(e) => println!("Error: {e:?}"),
     }
     Ok(())

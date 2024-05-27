@@ -14,7 +14,7 @@ pub mod brokers;
 pub mod ecs;
 
 pub use object::JuizObject;
-pub use value::{Value, jvalue};
+pub use value::{Value, jvalue, load_str};
 pub use processes::{Process, process::ProcessPtr, capsule::{Capsule, CapsulePtr, CapsuleMap}, ProcessFactory, create_process_factory};
 pub use containers::{Container, ContainerPtr, ContainerFactory, ContainerProcessFactory, create_container_factory};
 pub use identifier::Identifier;
