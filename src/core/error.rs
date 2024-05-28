@@ -8,6 +8,7 @@ use crate::Value;
 #[derive(Error, Debug, PartialEq)]
 #[repr(C)]
 pub enum JuizError {
+
     #[error("JuizError(General)")]
     GeneralError,
     #[error("Value({value:}) is not object type.")]
@@ -155,6 +156,13 @@ pub enum JuizError {
     #[error("Arc Unwrapping error.")]
     ArcUnwrapError {  },
     
+
+    /// --------------------------------
+    /// 
+    /// 
+    
+    #[error("Can not find {target}")]
+    CanNotFindError { target: String },
 
     /*
     ProcessManifestError,

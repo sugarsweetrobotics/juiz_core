@@ -1,13 +1,18 @@
 
+/// process.rs
+/// 
+/// 
+/// 
 use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use crate::{connections::{DestinationConnection, SourceConnection}, CapsuleMap, CapsulePtr, Identifier, JuizError, JuizObject, JuizResult, Value};
 
+
 pub type ProcessPtr = Arc<RwLock<dyn Process>>;
 
-/*
-pub type ProcessFunction=dyn Fn(Value) -> JuizResult<Output>;
-*/
+
+///
+/// 
 pub trait Process : Send + Sync + JuizObject {
 
     fn call(&self, _args: CapsuleMap) -> JuizResult<CapsulePtr>;
@@ -50,6 +55,8 @@ pub trait Process : Send + Sync + JuizObject {
 
     fn destination_connections(&self) -> JuizResult<Vec<&Box<dyn DestinationConnection>>>;
 }
+
+
 
 pub fn process_ptr<T>(proc: T) -> ProcessPtr where T: Process + 'static {
     Arc::new(RwLock::new(proc))

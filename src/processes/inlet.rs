@@ -1,13 +1,8 @@
-
-
-
-
+/// inlet.rs
+/// 
+/// 
+/// 
 use crate::{connections::SourceConnection, jvalue, CapsulePtr, Identifier, JuizResult, Value};
-
-
-
-
-
 
 pub struct Inlet {
     name: String,

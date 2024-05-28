@@ -55,38 +55,23 @@ impl ProcessImpl {
             manifest: manifest.clone(), 
             function: Box::new(func), 
             identifier: create_identifier_from_manifest("Process", &manifest)?,
-            // source_connections: HashMap::new(),
-            //destination_connections: HashMap::new(),
-            //output_memo: RefCell::new(Output::new_from_value(jvalue!(null))),
             outlet: Outlet::new(),
             inlets: Self::create_inlets(&manifest)?,
         })
     }
 
     fn create_inlets(manifest: &Value) -> JuizResult<Vec<Inlet>> {
-        let mut vec_inlet: Vec<Inlet> = Vec::new();
-        for (k, v) in argument_manifest(&manifest)?.into_iter() {
-            vec_inlet.push(Inlet::new(k.to_owned(), v.get("default").unwrap().clone()))
-        }
-        Ok(vec_inlet)
+        Ok(argument_manifest(&manifest)?.iter().map( |(k, v)| {
+            Inlet::new(k.to_owned(), v.get("default").unwrap().clone())
+        }).collect::<Vec<Inlet>>())
     }
 
-    pub fn inlet(&self, name: &str) -> Option<&Inlet> {
-        for inlet in self.inlets.iter() {
-            if inlet.name() == name {
-                return Some(inlet)
-            }
-        }
-        None
+    pub fn inlet(&self, name: &str) -> JuizResult<&Inlet> {
+        self.inlets.iter().find(|inlet| { (*inlet).name() == name }).ok_or_else(|| { anyhow::Error::from(JuizError::CanNotFindError { target: format!("Process::Inlet({name})") }) } )
     }
     
-    pub fn inlet_mut(&mut self, name: &str) -> Option<&mut Inlet> {
-        for inlet in self.inlets.iter_mut() {
-            if inlet.name() == name {
-                return Some(inlet)
-            }
-        }
-        None
+    pub fn inlet_mut(&mut self, name: &str) -> JuizResult<&mut Inlet> {
+        self.inlets.iter_mut().find(|inlet| { (*inlet).name() == name }).ok_or_else(|| { anyhow::Error::from(JuizError::CanNotFindError { target: format!("Process::Inlet({name})") }) } )
     }
 
     pub fn new(manif: Value, func: FunctionType) -> JuizResult<Self> {
@@ -95,21 +80,14 @@ impl ProcessImpl {
 
     pub(crate) fn clousure_new_with_class_name(class_name: JuizObjectClass, manif: Value, func: Box<FunctionTrait>) -> JuizResult<Self> {
         log::trace!("ProcessImpl::new(manifest={}) called", manif);
-        
         let manifest = check_process_manifest(manif)?;
-        let type_name = obj_get_str(&manifest, "type_name")?;
-        let object_name = obj_get_str(&manifest, "name")?;
         Ok(Self{
-            core: ObjectCore::create(class_name,
-            type_name, object_name),
-            manifest: manifest.clone(), 
+            core: ObjectCore::create(class_name, obj_get_str(&manifest, "type_name")?, obj_get_str(&manifest, "name")?),
             function: func, 
             identifier: identifier_from_manifest("core", "core", "Process", &manifest)?,
-            // source_connections: HashMap::new(),
-            // destination_connections: HashMap::new(),
-            // output_memo: RefCell::new(Output::new_from_value(jvalue!(null))),
             outlet: Outlet::new(),
             inlets: Self::create_inlets(&manifest)?,
+            manifest: manifest, 
         })
     }
 
@@ -129,22 +107,6 @@ impl ProcessImpl {
         Ok(arg_map)
     }
 
-    /*
-    fn to_arguments(&self, value: Value) -> JuizResult<Vec<Argument>> {
-        let mut args: Vec<Argument> = Vec::new();
-        let arg_map = get_hashmap(&value).context("ProcessImpl.to_arguments()")?;
-        for (arg_name, _v) in argument_manifest(&self.manifest).context("check_arguments")? {
-            match arg_map.get(arg_name) {
-                None => return Err(anyhow::Error::from(JuizError::ArgumentMissingWhenCallingError{process_manifest: self.manifest.clone(), given_argument: value.clone(), missing_arg_name: arg_name.clone()})),
-                Some(a) => {
-                    args.push(Argument::new(arg_name, a.to_owned()));
-                }
-            };
-        }
-        Ok(args)
-    }
-    */
-
 }
 
 impl JuizObjectCoreHolder for ProcessImpl {
@@ -157,19 +119,10 @@ impl JuizObject for ProcessImpl {
 
 
     fn profile_full(&self) -> JuizResult<Value> {
-        /*
-        let mut dc_profs = jvalue!({});
-        let dc_map = get_hashmap_mut(&mut dc_profs)?;
-        for (key, value) in self.destination_connections.iter() {
-            dc_map.insert(key.to_owned(), value.profile_full()?);
-        }
-        **/
-
         let mut v = self.core.profile_full()?;
         obj_merge_mut(&mut v, &jvalue!({
             "inlets": self.inlets.iter().map(|inlet| { inlet.profile_full().unwrap() }).collect::<Vec<Value>>(),
             "outlet": self.outlet.profile_full()?,
-//            "destination_connections": dc_profs,
             "arguments": self.manifest.get("arguments").unwrap(),
         }))?;
         Ok(v.into())
@@ -217,19 +170,9 @@ impl Process for ProcessImpl {
             if self.outlet.memo().is_empty()? { // .is_empty() {
                 return Err(anyhow::Error::from(JuizError::ProcessOutputMemoIsNotInitializedError{id: self.identifier().clone()}));
             }
-            //return Ok(Output::new_from_value(self.output_memo.borrow().get_value()?.clone()));
-            //println!("memo is requested");
             return Ok(self.outlet.memo().clone());
         }
-        
-        let result_value = self.call(self.collect_values_exclude(arg_name, value)?)?;
-        //self.output_memo.borrow_mut().get_value()?.clone_from(&result_value.get_value()?);
-        //log::trace!("result_value = {:?}", result_value);
-        //result_value.
-        //let lock = Arc::try_unwrap(result_value).or_else(|_| {Err(anyhow::Error::from(JuizError::MutexLockFailedError { error: "Arc unwrapping error".to_owned() }))})?;
-        //let capsule = lock.into_inner().or_else(|_| {Err(anyhow::Error::from(JuizError::MutexLockFailedError { error: "Arc unwrapping error".to_owned() }))})?;
-        self.outlet.set_value(result_value)?;
-        Ok(self.outlet.memo())
+        Ok(self.outlet.set_value(self.call(self.collect_values_exclude(arg_name, value)?)?))
     }
 
     fn execute(&self) -> JuizResult<CapsulePtr> {
@@ -247,17 +190,8 @@ impl Process for ProcessImpl {
     fn notify_connected_from(&mut self, source: ProcessPtr, connecting_arg: &String, connection_manifest: Value) -> JuizResult<Value> {
         log::trace!("ProcessImpl(id={:?}).notify_connected_from(source=Process()) called", self.identifier());
         let id = self.identifier().clone();
-        match self.inlet_mut(connecting_arg.as_str()) {
-            None => { 
-                log::error!("inlet_mut() in ProcessImpl::notify_connected_from() failed.");
-                return Err(anyhow::Error::from(JuizError::ArgumentCanNotFoundByNameError{name: connecting_arg.clone()}));
-            },
-            Some(inlet) => {
-                inlet.insert(
-                    Box::new(SourceConnectionImpl::new(id, source, connection_manifest.clone(), connecting_arg.clone())?)
-                )
-            }
-        }
+        self.inlet_mut(connecting_arg.as_str())?.insert(
+                    Box::new(SourceConnectionImpl::new(id, source, connection_manifest.clone(), connecting_arg.clone())?));
         log::trace!("ProcessImpl(id={:?}).notify_connected_from(source=Process()) exit", self.identifier());
         Ok(connection_manifest.into())
     }
