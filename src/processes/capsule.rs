@@ -234,6 +234,16 @@ impl TryFrom<Value> for CapsuleMap {
     }
 }
 
+impl From<Vec<(std::string::String, CapsulePtr)>> for CapsuleMap {
+    fn from(value: Vec<(std::string::String, CapsulePtr)>) -> Self {
+        let mut map = CapsuleMap::new();
+        for v in value {
+            map.insert(v.0, v.1);
+        }
+        return map
+    }
+}
+
 impl From<CapsuleMap> for Value {
     fn from(value: CapsuleMap) -> Self {
         let mut v = jvalue!({});

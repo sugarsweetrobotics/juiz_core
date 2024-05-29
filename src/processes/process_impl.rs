@@ -62,7 +62,7 @@ impl ProcessImpl {
 
     fn create_inlets(manifest: &Value) -> JuizResult<Vec<Inlet>> {
         Ok(argument_manifest(&manifest)?.iter().map( |(k, v)| {
-            Inlet::new(k.to_owned(), v.get("default").unwrap().clone())
+            Inlet::new(k.as_str(), v.get("default").unwrap().clone())
         }).collect::<Vec<Inlet>>())
     }
 
@@ -95,16 +95,18 @@ impl ProcessImpl {
         ProcessImpl::clousure_new_with_class_name(JuizObjectClass::Process("ProcessImpl"), manif, func)
     }
     
-    fn collect_values_exclude(&self, arg_name: &String, arg_value: CapsulePtr) -> JuizResult<CapsuleMap>{
+    fn collect_values_exclude(&self, arg_name: &String, arg_value: CapsulePtr) -> CapsuleMap {
         log::trace!("ProcessImpl({:?}).collect_values_exclude({:?}) called.", &self.identifier, arg_name);
+        self.inlets.iter().map(|inlet| { (inlet.name().clone(), inlet.collect_value() )} ).collect::<Vec<(String, CapsulePtr)>>().into()
+        /*
         let mut arg_map = CapsuleMap::new();
         arg_map.insert(arg_name.clone(), arg_value);
-        
         for inlet in self.inlets.iter() {
             if inlet.name() == arg_name { continue; }
-            arg_map.insert(inlet.name().clone(), inlet.collect_value()?);
+            arg_map.insert(inlet.name().clone(), inlet.collect_value());
         }
         Ok(arg_map)
+        */
     }
 
 }
@@ -166,13 +168,12 @@ impl Process for ProcessImpl {
 
 
     fn invoke_exclude<'b>(&self, arg_name: &String, value: CapsulePtr) -> JuizResult<CapsulePtr> {
-        if !self.is_updated_exclude(arg_name)? {
-            if self.outlet.memo().is_empty()? { // .is_empty() {
-                return Err(anyhow::Error::from(JuizError::ProcessOutputMemoIsNotInitializedError{id: self.identifier().clone()}));
+        if !self.outlet.memo().is_empty()? {
+            if !self.is_updated_exclude(arg_name)? {
+                return Ok(self.outlet.memo().clone());
             }
-            return Ok(self.outlet.memo().clone());
         }
-        Ok(self.outlet.set_value(self.call(self.collect_values_exclude(arg_name, value)?)?))
+        Ok(self.outlet.set_value(self.call(self.collect_values_exclude(arg_name, value))?))
     }
 
     fn execute(&self) -> JuizResult<CapsulePtr> {

@@ -13,10 +13,10 @@ pub struct Inlet {
 
 impl Inlet {
 
-    pub fn new(name: String, default_value: Value) -> Inlet {
+    pub fn new(name: &str, default_value: Value) -> Inlet {
 
         Inlet{ 
-            name, 
+            name: name.to_owned(), 
             default_value: default_value.into(),
             source_connections: Vec::new(),
         }
@@ -47,12 +47,13 @@ impl Inlet {
         Ok(jvalue!({
             "name": self.name,
             "source_connections": self.source_connections.iter().map(|sc| -> Value {
-                sc.profile_full().unwrap()
+                sc.profile_full().unwrap_or_else(|e| { jvalue!(format!("Error. SourceConnection::profile_full() failed. Error {e:}")) })
             }).collect::<Vec<Value>>()
         }).into())
     }
 
     pub fn is_updated(&self) -> JuizResult<bool> {
+        //self.source_connections.iter().find_map(|sc| { if sc.is_source_updated() })
         for sc in self.source_connections.iter() {
             if sc.is_source_updated()? {
                 return Ok(true);
@@ -62,16 +63,16 @@ impl Inlet {
     }
    
     // データを収集。pullする。あとからの接続を優先
-    pub fn collect_value(&self) -> JuizResult<CapsulePtr> {
+    pub fn collect_value(&self) -> CapsulePtr {
         for sc in self.source_connections.iter() {
             match sc.pull() {
                 Err(_) => {},
                 Ok(output) => {
-                    return Ok(output.clone());
+                    return output.clone();
                 }
             }
         }
-        return Ok(self.default_value.clone());
+        return self.default_value.clone();
     }
 
     pub(crate) fn insert(&mut self, con: Box<crate::connections::SourceConnectionImpl>) {
