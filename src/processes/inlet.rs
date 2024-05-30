@@ -14,7 +14,6 @@ pub struct Inlet {
 impl Inlet {
 
     pub fn new(name: &str, default_value: Value) -> Inlet {
-
         Inlet{ 
             name: name.to_owned(), 
             default_value: default_value.into(),

@@ -94,19 +94,19 @@ impl ProcessImpl {
     pub(crate) fn _clousure_new(manif: Value, func: Box<FunctionTrait>) -> JuizResult<Self> {
         ProcessImpl::clousure_new_with_class_name(JuizObjectClass::Process("ProcessImpl"), manif, func)
     }
-    
-    fn collect_values_exclude(&self, arg_name: &String, arg_value: CapsulePtr) -> CapsuleMap {
-        log::trace!("ProcessImpl({:?}).collect_values_exclude({:?}) called.", &self.identifier, arg_name);
+
+        
+    fn collect_values(&self) -> CapsuleMap {
+        log::trace!("ProcessImpl({:?}).collect_values() called.", &self.identifier);
         self.inlets.iter().map(|inlet| { (inlet.name().clone(), inlet.collect_value() )} ).collect::<Vec<(String, CapsulePtr)>>().into()
-        /*
-        let mut arg_map = CapsuleMap::new();
-        arg_map.insert(arg_name.clone(), arg_value);
-        for inlet in self.inlets.iter() {
-            if inlet.name() == arg_name { continue; }
-            arg_map.insert(inlet.name().clone(), inlet.collect_value());
-        }
-        Ok(arg_map)
-        */
+    }
+
+    fn collect_values_exclude(&self, arg_name: &str, arg_value: CapsulePtr) -> CapsuleMap {
+        log::trace!("ProcessImpl({:?}).collect_values_exclude({:?}) called.", &self.identifier, arg_name);
+        self.inlets.iter().map(|inlet| {
+            if inlet.name() == arg_name { return (arg_name.to_owned(), arg_value.clone()); }
+            return (inlet.name().clone(), inlet.collect_value());
+        }).collect::<Vec<(String, CapsulePtr)>>().into()
     }
 
 }
@@ -148,7 +148,7 @@ impl Process for ProcessImpl {
         self.is_updated_exclude(&"".to_string())
     }
 
-    fn is_updated_exclude(&self, arg_name: &String) -> JuizResult<bool> {
+    fn is_updated_exclude(&self, arg_name: &str) -> JuizResult<bool> {
         if self.outlet.memo().is_empty()? {
             return Ok(true)
         }
@@ -163,24 +163,23 @@ impl Process for ProcessImpl {
 
     fn invoke<'b>(&'b self) -> JuizResult<CapsulePtr> {
         log::trace!("Processimpl({:?})::invoke() called", self.identifier());
-        self.invoke_exclude(&"".to_string(), Capsule::from(jvalue!({})).into())
-    }
-
-
-    fn invoke_exclude<'b>(&self, arg_name: &String, value: CapsulePtr) -> JuizResult<CapsulePtr> {
-        if !self.outlet.memo().is_empty()? {
-            if !self.is_updated_exclude(arg_name)? {
-                return Ok(self.outlet.memo().clone());
-            }
+        if self.outlet.memo().is_empty()? || self.is_updated()? {
+            return Ok(self.outlet.set_value(self.call(self.collect_values())?));
         }
-        Ok(self.outlet.set_value(self.call(self.collect_values_exclude(arg_name, value))?))
+        return Ok(self.outlet.memo().clone());
     }
 
+    fn invoke_exclude<'b>(&self, arg_name: &str, value: CapsulePtr) -> JuizResult<CapsulePtr> {
+        if self.outlet.memo().is_empty()? || self.is_updated_exclude(arg_name)? {
+            return Ok(self.outlet.set_value(self.call(self.collect_values_exclude(arg_name, value))?));
+        }
+        return Ok(self.outlet.memo().clone());
+    }
     fn execute(&self) -> JuizResult<CapsulePtr> {
         self.outlet.push(self.invoke()?)
     }
 
-    fn push_by(&self, arg_name: &String, value: CapsulePtr) -> JuizResult<CapsulePtr> {
+    fn push_by(&self, arg_name: &str, value: CapsulePtr) -> JuizResult<CapsulePtr> {
         self.outlet.push(self.invoke_exclude(arg_name, value.clone())?)
     }
     
@@ -188,26 +187,26 @@ impl Process for ProcessImpl {
         self.outlet.memo().clone()
     }
 
-    fn notify_connected_from(&mut self, source: ProcessPtr, connecting_arg: &String, connection_manifest: Value) -> JuizResult<Value> {
+    fn notify_connected_from(&mut self, source: ProcessPtr, connecting_arg: &str, connection_manifest: Value) -> JuizResult<Value> {
         log::trace!("ProcessImpl(id={:?}).notify_connected_from(source=Process()) called", self.identifier());
         let id = self.identifier().clone();
-        self.inlet_mut(connecting_arg.as_str())?.insert(
-                    Box::new(SourceConnectionImpl::new(id, source, connection_manifest.clone(), connecting_arg.clone())?));
+        self.inlet_mut(connecting_arg)?.insert(
+                    Box::new(SourceConnectionImpl::new(id, source, connection_manifest.clone(), connecting_arg.to_owned())?));
         log::trace!("ProcessImpl(id={:?}).notify_connected_from(source=Process()) exit", self.identifier());
         Ok(connection_manifest.into())
     }
 
-    fn try_connect_to(&mut self, destination: ProcessPtr, arg_name: &String, connection_manifest: Value) -> JuizResult<Value> {
+    fn try_connect_to(&mut self, destination: ProcessPtr, arg_name: &str, connection_manifest: Value) -> JuizResult<Value> {
         log::info!("ProcessImpl(id={:?}).try_connect_to(destination=Process()) called", self.identifier());
         let destination_id = proc_lock(&destination).context("ProcessImpl::try_connect_to()")?.identifier().clone();
         self.outlet.insert(
-            arg_name.clone(), 
+            arg_name.to_owned(), 
             Box::new(DestinationConnectionImpl::new(
                 &self.identifier(), 
                 &destination_id,
                 destination, 
                 connection_manifest.clone(), 
-                arg_name.clone())?));
+                arg_name.to_owned())?));
         log::info!("ProcessImpl(id={:?}).try_connect_to(destination=Process()) exit", self.identifier());
         Ok(connection_manifest.into())
     }

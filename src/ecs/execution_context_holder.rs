@@ -4,7 +4,7 @@ use std::sync::{Mutex, Arc, RwLock, atomic::AtomicBool};
 
 use tokio::runtime;
 
-use crate::{ecs::execution_context_core::ExecutionContextState, jvalue, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, utils::{juiz_lock, sync_util::{juiz_borrow, juiz_borrow_mut}}, value::obj_merge_mut, JuizObject, JuizResult, ProcessPtr, Value};
+use crate::{ecs::execution_context_core::ExecutionContextState, jvalue, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, utils::{juiz_lock, sync_util::{juiz_borrow, juiz_borrow_mut}}, value::obj_merge_mut, JuizError, JuizObject, JuizResult, ProcessPtr, System, Value};
 
 use super::{execution_context::ExecutionContext, execution_context_core::ExecutionContextCore};
 
@@ -37,10 +37,34 @@ impl ExecutionContextHolder {
         )))
     }
 
-    pub fn start(&mut self) -> JuizResult<Value> {
+    pub fn start(&mut self) -> JuizResult<Value> { 
+        let flag = match self.execution_context.read() {
+            Ok(ec) => Ok(ec.is_periodic()),
+            Err(_e) => Err(anyhow::Error::from(JuizError::ObjectLockError{target: "ExecutionContext".to_owned()}))
+        }?;
+        if flag {
+            return self.start_periodic();
+        } else {
+            return self.start_oneshot();
+        }
+    }
 
+    fn start_oneshot(&mut self) -> JuizResult<Value> {
         let type_name = self.type_name().to_string();
         log::trace!("ExecutionContextHolder::start(type_name={type_name}) called");
+
+        let _  = juiz_borrow_mut(&mut self.execution_context)?.on_starting(&self.core)?;
+        let _  = self.core.lock().and_then(|s| {
+            s.state.store(ExecutionContextState::STARTED.to_i64(), std::sync::atomic::Ordering::SeqCst);
+            Ok(())
+        }).or_else(|_e| {
+            Err(anyhow::Error::from(JuizError::ObjectLockError { target: "ExecutionContextCore".to_owned() }))
+        })?;
+        Ok(jvalue!({}))
+    }
+
+    fn start_periodic(&mut self) -> JuizResult<Value> {
+        log::trace!("ExecutionContextHolder::start(type_name={:}) called", self.type_name());
         {
             juiz_lock(&self.end_flag)?.swap(false, std::sync::atomic::Ordering::SeqCst);
         }        
@@ -120,7 +144,7 @@ impl ExecutionContextHolder {
                             }
                         };
                     }
-                }
+                } // loop
                 {
                     match juiz_borrow_mut(&mut ec) {
                         Err(e) => {
@@ -149,7 +173,7 @@ impl ExecutionContextHolder {
                 }
             }
         ));
-        log::trace!("ExecutionContextHolder::start(type_name={type_name}) exit");
+        log::trace!("ExecutionContextHolder::start(type_name={:}) exit", self.type_name());
         Ok(jvalue!({}))
     }
         
@@ -166,7 +190,20 @@ impl ExecutionContextHolder {
         return Ok(jvalue!(ExecutionContextState::STARTED.to_string()));*/
     }
 
-    pub fn stop(&mut self) -> JuizResult<Value> {
+
+    pub fn stop(&mut self) -> JuizResult<Value> { 
+        let flag = match self.execution_context.read() {
+            Ok(ec) => Ok(ec.is_periodic()),
+            Err(_e) => Err(anyhow::Error::from(JuizError::ObjectLockError{target: "ExecutionContext".to_owned()}))
+        }?;
+        if flag {
+            return self.stop_periodic();
+        } else {
+            return self.stop_oneshot();
+        }
+    }
+
+    fn stop_periodic(&mut self) -> JuizResult<Value> {
         log::info!("ExecutionContextHolder::stop() called");
         if self.thread_handle.is_some() {
             juiz_lock(&self.end_flag)?.swap(true, std::sync::atomic::Ordering::SeqCst);
@@ -174,6 +211,17 @@ impl ExecutionContextHolder {
             self.thread_handle = None;
         }
         Ok(jvalue!({}))
+    }
+
+    fn stop_oneshot(&mut self) -> JuizResult<Value> {
+        let _ = juiz_borrow_mut(&mut self.execution_context)?.on_stopping(&self.core)?; 
+        self.core.lock().and_then(|c| {
+            c.state.store(ExecutionContextState::STOPPED.to_i64(), std::sync::atomic::Ordering::SeqCst);
+            Ok(jvalue!({}))
+        }).or_else(|e| {
+            log::error!("ExecutionContextHolder.routine() error: {e:?}");
+            Err(anyhow::Error::from(JuizError::ObjectLockError { target: "ExecutionContext".to_owned() }))
+        })
     }
 
     pub fn stop_(&mut self) -> JuizResult<Value> {
@@ -197,6 +245,18 @@ impl ExecutionContextHolder {
     pub fn get_state(&self) -> JuizResult<ExecutionContextState> {
         let s = juiz_lock(&self.core)?.state.load(std::sync::atomic::Ordering::SeqCst);
         Ok(ExecutionContextState::from(s))
+    }
+
+
+    pub fn on_load(&mut self, system: &mut System) -> () {
+        match self.execution_context.write() {
+            Ok(mut v) => {
+                v.on_load(system, self.core.clone());
+            },
+            Err(e) => {
+                log::error!("ExecutionContextHolder::on_load() failed. RwLock.write() failed. {:?}", e);
+            }
+        }
     }
 }
 

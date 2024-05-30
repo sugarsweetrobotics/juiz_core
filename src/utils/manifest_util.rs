@@ -54,7 +54,7 @@ pub fn id_from_manifest_and_class_name(manifest: &serde_json::Value, class_name:
     }
 }
 
-pub fn when_contains_do<T, F:Fn(&Value)->JuizResult<T>>(manifest: &Value, key: &str, func: F) -> JuizResult<Option<T>> {
+pub fn when_contains_do<T, F:FnOnce(&Value)->JuizResult<T>>(manifest: &Value, key: &str, func: F) -> JuizResult<Option<T>> {
     match manifest.as_object() {
         None => Err(anyhow::Error::from(JuizError::ValueIsNotObjectError { value: manifest.clone() })),
         Some(obj_v) => {

@@ -233,10 +233,11 @@ pub mod system_builder {
         system.cleanup_brokers()
     }
 
-    pub fn setup_ecs(system: &System, manifest: &Value) -> JuizResult<()> {
+    pub fn setup_ecs(system: &mut System, manifest: &Value) -> JuizResult<()> {
         log::trace!("system_builder::setup_ecs({manifest}) called");
         for p in get_array(manifest)?.iter() {
             let ec = juiz_lock(system.core_broker())?.create_ec_ref(p.clone())?;
+            juiz_lock(&ec)?.on_load(system);
             match obj_get(p, "bind") {
                 Err(_) => {},
                 Ok(binds_obj) => {

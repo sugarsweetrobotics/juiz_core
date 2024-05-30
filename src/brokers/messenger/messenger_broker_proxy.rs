@@ -216,7 +216,7 @@ impl ProcessBrokerProxy for MessengerBrokerProxy {
         capsule_to_value(self.read("process", "list")?)
     }
 
-    fn process_try_connect_to(&mut self, source_process_id: &Identifier, arg_name: &String, destination_process_id: &Identifier, manifest: Value) -> JuizResult<Value> {
+    fn process_try_connect_to(&mut self, source_process_id: &Identifier, arg_name: &str, destination_process_id: &Identifier, manifest: Value) -> JuizResult<Value> {
         let capsule = self.send_recv_and(
             "UPDATE", 
             "process", 
@@ -232,7 +232,7 @@ impl ProcessBrokerProxy for MessengerBrokerProxy {
         capsule_to_value(capsule)
     }
 
-    fn process_notify_connected_from(&mut self, source_process_id: &Identifier, arg_name: &String, destination_process_id: &Identifier, manifest: Value) -> JuizResult<Value> {
+    fn process_notify_connected_from(&mut self, source_process_id: &Identifier, arg_name: &str, destination_process_id: &Identifier, manifest: Value) -> JuizResult<Value> {
         let value = self.send_recv_and(
             "UPDATE", 
             "process", 

@@ -84,7 +84,7 @@ impl Process for ProcessProxy {
         todo!()
     }
 
-    fn is_updated_exclude(& self, _caller_id: &Identifier) -> JuizResult<bool> {
+    fn is_updated_exclude(& self, _caller_id: &str) -> JuizResult<bool> {
         todo!()
     }
 
@@ -96,7 +96,7 @@ impl Process for ProcessProxy {
         todo!()
     }
 
-    fn invoke_exclude<'b>(&self, _arg_name: &String, _value: CapsulePtr) -> JuizResult<CapsulePtr> {
+    fn invoke_exclude<'b>(&self, _arg_name: &str, _value: CapsulePtr) -> JuizResult<CapsulePtr> {
         todo!()
     }
 
@@ -104,7 +104,7 @@ impl Process for ProcessProxy {
         todo!()
     }
 
-    fn push_by(&self, _arg_name: &String, _value: CapsulePtr) -> JuizResult<CapsulePtr> {
+    fn push_by(&self, _arg_name: &str, _value: CapsulePtr) -> JuizResult<CapsulePtr> {
         todo!()
     }
 
@@ -112,14 +112,14 @@ impl Process for ProcessProxy {
         todo!()
     }
 
-    fn notify_connected_from<'b>(&'b mut self, source: ProcessPtr, arg_name: &String, manifest: Value) -> JuizResult<Value> {
+    fn notify_connected_from<'b>(&'b mut self, source: ProcessPtr, arg_name: &str, manifest: Value) -> JuizResult<Value> {
         log::trace!("ProcessProxy::notify_connected_from() called");
         let source_process_id = proc_lock(&source)?.identifier().clone();
         let destination_process_id = self.identifier();
         juiz_lock(&self.broker_proxy)?.process_notify_connected_from(&source_process_id, arg_name, destination_process_id, manifest)
     }
 
-    fn try_connect_to(&mut self, destination: ProcessPtr, arg_name: &String,manifest: Value) -> JuizResult<Value> {
+    fn try_connect_to(&mut self, destination: ProcessPtr, arg_name: &str,manifest: Value) -> JuizResult<Value> {
         log::trace!("ProcessProxy::try_connect_to() called");
         let source_process_id = self.identifier();
         let destination_process_id = proc_lock(&destination)?.identifier().clone();

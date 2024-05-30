@@ -10,5 +10,6 @@ pub trait ExecutionContextFactory {
     fn type_name(&self) -> &str;
 
     fn create(&self, manifest: Value) -> JuizResult<Arc<RwLock<dyn ExecutionContext>>>;
+
 }
 

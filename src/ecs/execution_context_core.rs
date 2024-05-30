@@ -61,6 +61,12 @@ impl ExecutionContextCore {
         Ok(())
     }
 
+    pub fn get_state(&self) -> ExecutionContextState {
+        ExecutionContextState::from(self.state.load(std::sync::atomic::Ordering::SeqCst))
+    }
+
+    ///
+    /// 実行コンテキストの周期処理のコア部分。この中でターゲットプロセスすべてのexecuteを呼ぶ。
     pub fn svc(&self) -> JuizResult<Value> {
         for tp in self.target_processes.iter() {
             let _ = proc_lock(tp)?.execute()?;

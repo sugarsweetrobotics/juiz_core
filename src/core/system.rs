@@ -22,6 +22,8 @@ use crate::utils::when_contains_do;
 
 use std::time;
 
+type SpinCallbackFunctionType = dyn Fn() -> JuizResult<()>;
+
 #[allow(dead_code)]
 pub struct System {
     core: ObjectCore,
@@ -32,6 +34,7 @@ pub struct System {
     brokers: HashMap<String, Arc<Mutex<dyn Broker>>>,
     broker_proxies: HashMap<String, Arc<Mutex<dyn BrokerProxy>>>,
     pub tokio_runtime: tokio::runtime::Runtime,
+    spin_callback: Option<Box<SpinCallbackFunctionType>>,
 }
 
 fn check_system_manifest(manifest: Value) -> JuizResult<Value> {
@@ -73,8 +76,16 @@ impl System {
             brokers: HashMap::new(),
             broker_proxies: HashMap::new(),
             tokio_runtime: tokio::runtime::Builder::new_multi_thread().thread_name("juiz_core::System").worker_threads(4).enable_all().build().unwrap(),
-
+            spin_callback: None,
         })
+    }
+
+    pub fn set_spin_callback(&mut self, cb: Box<SpinCallbackFunctionType>) -> () {
+        self.spin_callback = Some(cb);
+    }
+
+    pub fn set_spin_sleeptime(&mut self, duration: Duration) -> () {
+        self.sleep_time = duration;
     }
 
     pub(crate) fn core_broker(&self) -> &Arc<Mutex<CoreBroker>> {
@@ -214,7 +225,7 @@ impl System {
             system_builder::setup_broker_proxies(self, v).context("system_builder::setup_broker_proxies in System::setup() failed.")
         })?;
 
-        let _ = when_contains_do(&self.manifest, "ecs", |v| {
+        let _ = when_contains_do(&manifest_copied, "ecs", |v| {
             system_builder::setup_ecs(self, v).context("system_builder::setup_ecs in System::setup() failed")
         })?;
 
@@ -240,6 +251,9 @@ impl System {
         Ok(())
     }
 
+    ///
+    /// SIGINTおよびSIGTERMを待つ。待つ間はsleep_time秒だけsleepするたびにself.spin()を呼ぶ。
+    /// 
     pub fn wait_for_singal(&mut self) -> JuizResult<()> {
         let term = Arc::new(AtomicBool::new(false));
         let _ = signal_hook::flag::register(signal_hook::consts::SIGINT, Arc::clone(&term));
@@ -261,8 +275,14 @@ impl System {
         Ok(())
     }
 
+    ///
+    /// run中およびrun_and_do中に呼ばれる周期実行関数。
+    /// 
     fn spin(&mut self) -> () {
         // log::debug!("System::spin() called");
+        if self.spin_callback.is_some() {
+            let _ = self.spin_callback.as_ref().unwrap()();
+        }
     }
 
     pub fn run(&mut self) -> JuizResult<()> {

@@ -2,7 +2,7 @@ use std::sync::{Mutex, Arc};
 
 
 
-use crate::{JuizResult, Value};
+use crate::{JuizResult, System, Value};
 
 use super::execution_context_core::ExecutionContextCore;
 
@@ -28,4 +28,14 @@ pub trait ExecutionContext : Send + Sync {
 
     /// 周期的に呼ばれる関数。自身をSTOPしたいならfalseを返すこと。
     fn execute(&self, core: &Arc<Mutex<ExecutionContextCore>>) -> JuizResult<bool>;
+
+    ///
+    /// Systemにロードされた時に呼ばれるコールバック。
+    /// 
+    fn on_load(&mut self, _system: &mut System, _core: Arc<Mutex<ExecutionContextCore>>) -> () {
+    }
+
+    fn is_periodic(&self) -> bool {
+        return true;
+    }
 }

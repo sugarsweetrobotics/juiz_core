@@ -87,7 +87,7 @@ impl<T: 'static> Process for ContainerProcessImpl<T> {
         self.process.is_updated()
     }
 
-    fn is_updated_exclude(& self, caller_id: &crate::Identifier) -> crate::JuizResult<bool> {
+    fn is_updated_exclude(& self, caller_id: &str) -> crate::JuizResult<bool> {
         self.process.is_updated_exclude(caller_id)
     }
 
@@ -96,7 +96,7 @@ impl<T: 'static> Process for ContainerProcessImpl<T> {
         self.process.invoke()
     }
 
-    fn invoke_exclude<'b>(&self, arg_name: &String, value: CapsulePtr) -> JuizResult<CapsulePtr> {
+    fn invoke_exclude<'b>(&self, arg_name: &str, value: CapsulePtr) -> JuizResult<CapsulePtr> {
         self.process.invoke_exclude(arg_name, value)
     }
 
@@ -104,7 +104,7 @@ impl<T: 'static> Process for ContainerProcessImpl<T> {
         self.process.execute()
     }
 
-    fn push_by(&self, arg_name: &String, value: CapsulePtr) -> JuizResult<CapsulePtr> {
+    fn push_by(&self, arg_name: &str, value: CapsulePtr) -> JuizResult<CapsulePtr> {
         self.process.push_by(arg_name, value)
     }
 
@@ -112,11 +112,11 @@ impl<T: 'static> Process for ContainerProcessImpl<T> {
         self.process.get_output()
     }
 
-    fn notify_connected_from<'b>(&'b mut self, source: ProcessPtr, connecting_arg: &String, connection_manifest: Value) -> JuizResult<Value> {
+    fn notify_connected_from<'b>(&'b mut self, source: ProcessPtr, connecting_arg: &str, connection_manifest: Value) -> JuizResult<Value> {
         self.process.notify_connected_from(source, connecting_arg, connection_manifest)
     }
 
-    fn try_connect_to(&mut self, target: ProcessPtr, connect_arg_to: &String, connection_manifest: Value) -> JuizResult<Value> {
+    fn try_connect_to(&mut self, target: ProcessPtr, connect_arg_to: &str, connection_manifest: Value) -> JuizResult<Value> {
         self.process.try_connect_to(target, connect_arg_to, connection_manifest)
     }
 

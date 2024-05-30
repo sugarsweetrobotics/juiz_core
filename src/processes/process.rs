@@ -5,7 +5,7 @@
 /// 
 use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
-use crate::{connections::{DestinationConnection, SourceConnection}, CapsuleMap, CapsulePtr, Identifier, JuizError, JuizObject, JuizResult, Value};
+use crate::{connections::{DestinationConnection, SourceConnection}, CapsuleMap, CapsulePtr, JuizError, JuizObject, JuizResult, Value};
 
 
 pub type ProcessPtr = Arc<RwLock<dyn Process>>;
@@ -19,7 +19,7 @@ pub trait Process : Send + Sync + JuizObject {
 
     fn is_updated(& self) -> JuizResult<bool>;
 
-    fn is_updated_exclude(& self, caller_id: &Identifier) -> JuizResult<bool>;
+    fn is_updated_exclude(& self, inlet_name: &str) -> JuizResult<bool>;
 
     fn manifest(&self) -> &Value;
     
@@ -32,7 +32,7 @@ pub trait Process : Send + Sync + JuizObject {
      */
     fn invoke<'b>(&self) -> JuizResult<CapsulePtr>;
 
-    fn invoke_exclude<'b>(&self, arg_name: &String, value: CapsulePtr) -> JuizResult<CapsulePtr>;
+    fn invoke_exclude<'b>(&self, arg_name: &str, value: CapsulePtr) -> JuizResult<CapsulePtr>;
 
     /*
      * executeは自信をinvokeしてから、自分の出力側接続先をすべてexecuteする。
@@ -43,13 +43,13 @@ pub trait Process : Send + Sync + JuizObject {
      */
     fn execute(&self) -> JuizResult<CapsulePtr>;
 
-    fn push_by(&self, arg_name: &String, value: CapsulePtr) -> JuizResult<CapsulePtr>;
+    fn push_by(&self, arg_name: &str, value: CapsulePtr) -> JuizResult<CapsulePtr>;
 
     fn get_output(&self) -> CapsulePtr;
 
-    fn notify_connected_from<'b>(&'b mut self, source: ProcessPtr, connecting_arg: &String, connection_manifest: Value) -> JuizResult<Value>;
+    fn notify_connected_from<'b>(&'b mut self, source: ProcessPtr, connecting_arg: &str, connection_manifest: Value) -> JuizResult<Value>;
 
-    fn try_connect_to(&mut self, target: ProcessPtr, connect_arg_to: &String, connection_manifest: Value) -> JuizResult<Value>;
+    fn try_connect_to(&mut self, target: ProcessPtr, connect_arg_to: &str, connection_manifest: Value) -> JuizResult<Value>;
     
     fn source_connections(&self) -> JuizResult<Vec<&Box<dyn SourceConnection>>>;
 

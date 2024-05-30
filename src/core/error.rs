@@ -163,6 +163,8 @@ pub enum JuizError {
     
     #[error("Can not find {target}")]
     CanNotFindError { target: String },
+    #[error("Can not lock {target}")]
+    ObjectLockError { target: String },
 
     /*
     ProcessManifestError,

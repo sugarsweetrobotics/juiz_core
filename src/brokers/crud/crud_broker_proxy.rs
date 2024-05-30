@@ -138,7 +138,7 @@ impl ProcessBrokerProxy for CRUDBrokerProxyHolder {
         self.convert_identifier_name(&v)
     }
 
-    fn process_try_connect_to(&mut self, source_process_id: &Identifier, arg_name: &String, destination_process_id: &Identifier, manifest: Value) -> JuizResult<Value> {
+    fn process_try_connect_to(&mut self, source_process_id: &Identifier, arg_name: &str, destination_process_id: &Identifier, manifest: Value) -> JuizResult<Value> {
         capsule_to_value(self.broker.update(
             "process", 
             "try_connect_to", 
@@ -151,7 +151,7 @@ impl ProcessBrokerProxy for CRUDBrokerProxyHolder {
             HashMap::from([]))?)
     }
 
-    fn process_notify_connected_from(&mut self, source_process_id: &Identifier, arg_name: &String, destination_process_id: &Identifier, manifest: Value) -> JuizResult<Value> {
+    fn process_notify_connected_from(&mut self, source_process_id: &Identifier, arg_name: &str, destination_process_id: &Identifier, manifest: Value) -> JuizResult<Value> {
         capsule_to_value(self.broker.update(
             "process", 
             "notify_connected_from", 
