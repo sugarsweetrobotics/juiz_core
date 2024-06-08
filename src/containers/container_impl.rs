@@ -1,6 +1,6 @@
 
 
-use std::fmt::Display;
+use std::{fmt::Display, ops::{Deref, DerefMut}};
 use crate::{Value, Identifier, ContainerPtr, value::obj_get_str, JuizResult, JuizObject, object::{ObjectCore, JuizObjectCoreHolder, JuizObjectClass}};
 
 use super::{container::Container, container_ptr};
@@ -28,6 +28,22 @@ impl<S: 'static> ContainerImpl<S> {
         }))
     }
 }
+
+impl<S: 'static> Deref for ContainerImpl<S> {
+    type Target = Box<S>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.t
+    }
+}
+
+
+impl<S: 'static> DerefMut for ContainerImpl<S> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.t
+    }
+}
+
 
 impl<S: 'static> JuizObjectCoreHolder for ContainerImpl<S> {
     fn core(&self) -> &ObjectCore {

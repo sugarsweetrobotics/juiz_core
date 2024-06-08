@@ -5,11 +5,11 @@ use std::sync::{Arc, Mutex};
 use opencv::core::Vector;
 
 use opencv::imgcodecs::*;
-use juiz_core::{containers::create_container_process_factory, jvalue, processes::capsule::{Capsule, CapsuleMap}, ContainerProcessFactory, JuizResult};
+use juiz_core::{containers::{container_impl::ContainerImpl, create_container_process_factory}, jvalue, processes::capsule::{Capsule, CapsuleMap}, ContainerProcessFactory, JuizResult};
 
 use crate::filesystem::CvFilesystem;
 
-fn imwrite_function(_container: &mut Box<CvFilesystem>, args: CapsuleMap) -> JuizResult<Capsule> {
+fn imwrite_function(_container: &mut ContainerImpl<CvFilesystem>, args: CapsuleMap) -> JuizResult<Capsule> {
     let mut file_name: String = "".to_owned();
     //println!("imshow_function(name={window_name:})");
 

@@ -8,6 +8,7 @@ pub struct Inlet {
     name: String,
     source_connections: Vec<Box<dyn SourceConnection>>,
     default_value: CapsulePtr,
+    buffer: CapsulePtr,
 }
 
 
@@ -18,6 +19,7 @@ impl Inlet {
             name: name.to_owned(), 
             default_value: default_value.into(),
             source_connections: Vec::new(),
+            buffer: CapsulePtr::new(),
         }
     }
 
@@ -71,10 +73,26 @@ impl Inlet {
                 }
             }
         }
-        return self.default_value.clone();
+        match self.buffer.is_empty() {
+            Err(e) => {
+                return self.default_value.clone();
+            },
+            Ok(v) => {
+                if v {
+                    return self.default_value.clone();
+                }
+            }
+        } 
+        return self.buffer.clone();
     }
 
     pub(crate) fn insert(&mut self, con: Box<crate::connections::SourceConnectionImpl>) {
         self.source_connections.push(con);
+    }
+
+    pub fn bind(&mut self, value: CapsulePtr) -> JuizResult<CapsulePtr> {
+        //self.buffer = value;
+        self.buffer.replace(value);
+        Ok(self.buffer.clone())
     }
 }

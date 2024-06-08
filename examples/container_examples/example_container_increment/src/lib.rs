@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use example_container::example_container::ExampleContainer;
 //use example_container::ExampleContainer;
-use juiz_core::{containers::create_container_process_factory, jvalue, processes::capsule::{Capsule, CapsuleMap}, ContainerProcessFactory, JuizResult, Value};
+use juiz_core::{containers::{container_impl::ContainerImpl, create_container_process_factory}, jvalue, processes::capsule::{Capsule, CapsuleMap}, ContainerProcessFactory, JuizResult, Value};
 
 
 #[no_mangle]
@@ -22,7 +22,7 @@ pub unsafe extern "Rust" fn manifest() -> Value {
 }
 
 
-fn increment_function(container: &mut Box<ExampleContainer>, v: CapsuleMap) -> JuizResult<Capsule> {
+fn increment_function(container: &mut ContainerImpl<ExampleContainer>, v: CapsuleMap) -> JuizResult<Capsule> {
     //let i = juiz_lock(&v.get("arg1")?)?.as_value().unwrap().as_i64().unwrap();
     let i = v.get("arg1")?.lock_as_value(|value| { value.as_i64() } )?.unwrap();
     container.value = container.value + i;

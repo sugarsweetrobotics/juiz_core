@@ -88,6 +88,7 @@ fn invoke_process_test() {
 }
 
 
+
 #[cfg(test)]
 #[test]
 fn execute_process_test() {
@@ -117,4 +118,32 @@ fn call_invalid_argument_process_test() {
             // assert_eq!(ev, JuizError::ArgumentMissingWhenCallingError{});
         }
     }
+}
+
+#[cfg(test)]
+#[test]
+fn invoke_add_process_test() {
+    
+
+    match common::new_add_process("add_01").invoke() {
+        Ok(vv) => {
+
+            let iv = vv.lock_as_value(|value| { value.as_i64().unwrap() }).unwrap();
+            assert_eq!(iv, 2);
+        }, 
+        Err(ev) => {
+            print!("Return value is {:?}", ev);
+        }
+    }
+}
+
+#[cfg(test)]
+#[test]
+fn bind_and_invoke_add_process_test() {
+    
+    let mut p = common::new_add_process("add_01");
+    p.bind("arg1", jvalue!(2).into()).expect("Bind Error.");
+    let vv = p.invoke().expect("Bind Error");
+    let iv = vv.lock_as_value(|value| { value.as_i64().unwrap() }).unwrap();
+    assert_eq!(iv, 3);
 }

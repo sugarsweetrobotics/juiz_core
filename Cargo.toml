@@ -6,26 +6,37 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+serde = "1.0.193"
 serde_json="1.0.108"
+yaml-rust2 = "0.8.0"
+
 anyhow = "1.0.75"
+thiserror = "1.0.50"
 log = "0.4.20"
 env_logger = "0.10.1"
-signal-hook = "0.3.17"
-libloading = "0.8.1"
-thiserror = "1.0.50"
-mopa = "0.2.2"
-tokio = { version = "1.35.0", features = ["full"] }
+
 regex = "1.7.0"
-serde = "1.0.193"
+hashlink = "0.8"
+home = "0.5.9"
+
+signal-hook = "0.3.17"
+
+libloading = "0.8.1"
+mopa = "0.2.2"
+
+tokio = { version = "1.35.0", features = ["full"] }
 axum = "0.7.2"
 uuid = "1.6.1"
 futures = "0.3.29"
+
 opencv = {version="0.84.0", default-features=false, features=["clang-runtime"]}
 image = "0.24.0"
 cv-convert = {version="0.25.0", default-features=false, features=["opencv_0-84", "image_0-24"]}
-yaml-rust2 = "0.8.0"
-hashlink = "0.8"
-home = "0.5.9"
+
+num-traits = "0.2.19"
+nalgebra = "0.32.5"
+quaternion-core = "0.5.0"
+approx = "*"
 # example_container = { path="container_examples/example_container" }
 
 [workspace]

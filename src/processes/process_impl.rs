@@ -220,6 +220,10 @@ impl Process for ProcessImpl {
     fn destination_connections(&self) -> JuizResult<Vec<&Box<dyn DestinationConnection>>> {
         self.outlet.destination_connections()
     }
+    
+    fn bind(&mut self, arg_name: &str, value: CapsulePtr) -> JuizResult<CapsulePtr> {
+        self.inlet_mut(arg_name)?.bind(value)
+    }
 }
 
 impl Drop for ProcessImpl {

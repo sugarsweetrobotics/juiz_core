@@ -163,6 +163,13 @@ impl ProcessBrokerProxy for CRUDBrokerProxyHolder {
             }))?, 
             HashMap::from([]))?)
     }
+    
+    fn process_bind(&mut self, id: &Identifier, arg_name: &str, value: CapsulePtr) -> JuizResult<CapsulePtr> {
+        let mut map = CapsuleMap::new();
+        map.insert("arg_name".to_owned(), jvalue!(arg_name).into());
+        map.insert("value".to_owned(), value);
+        self.broker.update("process", "bind", map, param(&[("identifier", id)]))
+    }
 }
 
 impl SystemBrokerProxy for CRUDBrokerProxyHolder {

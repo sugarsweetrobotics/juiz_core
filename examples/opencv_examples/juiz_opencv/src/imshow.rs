@@ -5,11 +5,11 @@ use std::sync::{Arc, Mutex};
 
 use opencv::highgui::*;
 
-use juiz_core::{containers::create_container_process_factory, jvalue, processes::capsule::{Capsule, CapsuleMap}, ContainerProcessFactory, JuizResult};
+use juiz_core::{containers::{container_impl::ContainerImpl, create_container_process_factory}, jvalue, processes::capsule::{Capsule, CapsuleMap}, ContainerProcessFactory, JuizResult};
 
 use crate::window::CvWindow;
 
-fn imshow_function(container: &mut Box<CvWindow>, args: CapsuleMap) -> JuizResult<Capsule> {
+fn imshow_function(container: &mut ContainerImpl<CvWindow>, args: CapsuleMap) -> JuizResult<Capsule> {
     let window_name = container.name.as_str();
     println!("imshow_function(name={window_name:})");
     args.get("src")?.lock_as_mat(|img| {

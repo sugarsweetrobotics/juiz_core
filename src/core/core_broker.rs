@@ -351,6 +351,11 @@ impl ProcessBrokerProxy for CoreBroker {
         // let destination_process = self.any_process_proxy_from_identifier(destination_process_id)?;
         proc_lock_mut(&self.any_process_proxy_from_identifier(destination_process_id)?)?.notify_connected_from(source_process, arg_name, manifest)
      }
+     
+    fn process_bind(&mut self, id: &Identifier, arg_name: &str, value: CapsulePtr) -> JuizResult<CapsulePtr> {
+        Ok(proc_lock_mut(&self.store().processes.get(id)?).with_context(||format!("locking process(id={id:}) in CoreBroker::bind() function"))?.bind(arg_name, value)?.into())
+    }
+   
 }
 
 impl ContainerBrokerProxy for CoreBroker {

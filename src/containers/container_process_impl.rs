@@ -8,8 +8,8 @@ use super::container_impl::ContainerImpl;
 
 
 //pub type ContainerProcessFunction<T>=dyn Fn (&mut Box<T>, Value) -> JuizResult<Value> + 'static;
-pub type ContainerFunctionTrait<T>=dyn Fn(&mut Box<T>, CapsuleMap) -> JuizResult<Capsule> + 'static;
-pub type ContainerFunctionType<T>=fn (&mut Box<T>, CapsuleMap) -> JuizResult<Capsule>;
+pub type ContainerFunctionTrait<T>=dyn Fn(&mut ContainerImpl<T>, CapsuleMap) -> JuizResult<Capsule> + 'static;
+pub type ContainerFunctionType<T>=fn (&mut ContainerImpl<T>, CapsuleMap) -> JuizResult<Capsule>;
 
 #[allow(dead_code)]
 pub struct ContainerProcessImpl<T: 'static> {
@@ -33,7 +33,7 @@ impl<T: 'static> ContainerProcessImpl<T> {
             match locked_container.downcast_mut::<ContainerImpl<T>>() {
                 None => Err(anyhow::Error::from(JuizError::ContainerDowncastingError{identifier: locked_container.identifier().clone()})),
                 Some(container_impl) => {
-                    Ok((function)(&mut container_impl.t, args)?)
+                    Ok((function)(container_impl, args)?)
                 }
             }
             
@@ -126,6 +126,10 @@ impl<T: 'static> Process for ContainerProcessImpl<T> {
 
     fn destination_connections(&self) -> JuizResult<Vec<&Box<dyn crate::connections::DestinationConnection>>> {
         self.process.destination_connections()
+    }
+    
+    fn bind(&mut self, arg_name: &str, value: CapsulePtr) -> JuizResult<CapsulePtr> {
+        self.process.bind(arg_name, value)
     }
 }
 

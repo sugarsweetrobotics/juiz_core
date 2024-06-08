@@ -2,6 +2,7 @@
 
 pub mod utils;
 pub mod value;
+pub mod geometry;
 pub mod object;
 pub mod identifier;
 

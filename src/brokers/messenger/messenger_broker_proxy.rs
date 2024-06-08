@@ -1,6 +1,6 @@
 use std::{sync::{Arc, Mutex}, time::Duration};
 use anyhow::Context;
-use crate::{brokers::broker_proxy::{BrokerBrokerProxy, ConnectionBrokerProxy, ContainerBrokerProxy, ContainerProcessBrokerProxy, ExecutionContextBrokerProxy}, jvalue, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, processes::{capsule::CapsuleMap, capsule_to_value}, CapsulePtr, Identifier, JuizError, JuizObject, JuizResult, Value};
+use crate::{brokers::broker_proxy::{BrokerBrokerProxy, ConnectionBrokerProxy, ContainerBrokerProxy, ContainerProcessBrokerProxy, ExecutionContextBrokerProxy}, jvalue, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, processes::{capsule::{self, CapsuleMap}, capsule_to_value}, CapsulePtr, Identifier, JuizError, JuizObject, JuizResult, Value};
 use super::super::broker_proxy::{BrokerProxy, SystemBrokerProxy, ProcessBrokerProxy};
 
 
@@ -246,6 +246,11 @@ impl ProcessBrokerProxy for MessengerBrokerProxy {
             &[], 
             |value| Ok(value))?;
         capsule_to_value(value)
+    }
+    
+    fn process_bind(&mut self, id: &Identifier, arg_name: &str, value: CapsulePtr) -> JuizResult<CapsulePtr> {
+        let arg = vec!(("arg_name", jvalue!(arg_name)), ("value", capsule_to_value(value)?));
+        self.update_by_id("process", "bind", arg.into(), id)
     }
 }
 
