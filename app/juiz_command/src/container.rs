@@ -1,4 +1,6 @@
 
+use std::path::Path;
+
 use juiz_core::{containers::container_lock, JuizResult, System, Value};
 
 
@@ -22,21 +24,25 @@ pub(crate) enum ContSubCommands {
     },
 }
 
-pub(crate) fn on_container(manifest: Value, subcommand: ContSubCommands) -> JuizResult<()> {
-    match on_container_inner(manifest, subcommand) {
+pub(crate) fn on_container(manifest: Value, working_dir: &Path, subcommand: ContSubCommands) -> JuizResult<()> {
+    match on_container_inner(manifest, working_dir, subcommand) {
         Ok(_) => return Ok(()),
         Err(e) => println!("Error: {e:?}")
     };
     Ok(())
 }
 
-pub(crate) fn on_container_inner(manifest: Value, subcommand: ContSubCommands) -> JuizResult<()> {
+pub(crate) fn on_container_inner(manifest: Value, working_dir: &Path, subcommand: ContSubCommands) -> JuizResult<()> {
     match subcommand {
         ContSubCommands::List { server } => {
-            System::new(manifest)?.run_and_do_once( |system| { on_container_list(system, server) }) 
+            System::new(manifest)?
+            .set_working_dir(working_dir)
+            .run_and_do_once( |system| { on_container_list(system, server) }) 
         },
         ContSubCommands::Info { identifier } => {
-            System::new(manifest)?.run_and_do_once( |system| { 
+            System::new(manifest)?
+            .set_working_dir(working_dir)
+            .run_and_do_once( |system| { 
                 on_container_info(system, identifier)
             }) 
         } 

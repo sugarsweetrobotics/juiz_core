@@ -1,4 +1,6 @@
 
+use std::path::Path;
+
 use juiz_core::{processes::proc_lock, JuizResult, System, Value};
 use opencv::imgcodecs::imwrite;
 use opencv::core::Vector;
@@ -42,17 +44,19 @@ pub(crate) enum ProcSubCommands {
 }
 
 
-pub(crate) fn on_process(manifest: Value, subcommand: ProcSubCommands) -> JuizResult<()> {
-    match on_process_inner(manifest, subcommand) {
+pub(crate) fn on_process(manifest: Value, working_dir: &Path, subcommand: ProcSubCommands) -> JuizResult<()> {
+    match on_process_inner(manifest, working_dir, subcommand) {
         Ok(_) => return Ok(()),
         Err(e) => println!("Error: {e:?}")
     };
     Ok(())
 }
-pub(crate) fn on_process_inner(manifest: Value, subcommand: ProcSubCommands) -> JuizResult<()> {
+pub(crate) fn on_process_inner(manifest: Value, working_dir: &Path, subcommand: ProcSubCommands) -> JuizResult<()> {
     match subcommand {
         ProcSubCommands::List { server, any_process } => {
-            System::new(manifest)?.run_and_do_once( |system| { 
+            System::new(manifest)?
+                .set_working_dir(working_dir)
+                .run_and_do_once( |system| { 
                 if any_process {
                     on_any_process_list(system, server)
                 } else {
@@ -61,12 +65,16 @@ pub(crate) fn on_process_inner(manifest: Value, subcommand: ProcSubCommands) -> 
             }) 
         },
         ProcSubCommands::Info { identifier } => {
-            System::new(manifest)?.run_and_do_once( |system| { 
+            System::new(manifest)?
+                .set_working_dir(working_dir)
+                .run_and_do_once( |system| { 
                 on_process_info(system, identifier)
             }) 
         },
         ProcSubCommands::Call { identifier, argument , fileout} => {
-            System::new(manifest)?.run_and_do_once( |system| { 
+            System::new(manifest)?
+                .set_working_dir(working_dir)
+                .run_and_do_once( |system| { 
                 on_process_call(system, identifier, argument, fileout)
             }) 
         } 

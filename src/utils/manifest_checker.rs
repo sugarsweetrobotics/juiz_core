@@ -91,10 +91,14 @@ fn check_arguments(args_manifest: &Value, argument: &CapsuleMap) -> JuizResult<(
     //let arg_map = get_hashmap(argument).context("check_arguments")?;
     for (arg_name, _v) in get_hashmap(args_manifest).context("check_arguments")? {
         match argument.get(arg_name) {
-            Err(_) => return Err(
+            Err(_) => {
+                log::error!("In Process Manifest there is argument named '{arg_name}', but can not be found in argument:CapsuleMap ({argument:?}).");
+                
+                return Err(
                 anyhow::Error::from(JuizError::ArgumentMissingWhenCallingError{
                     process_manifest: args_manifest.clone(), 
-                    missing_arg_name: arg_name.clone()})),
+                    missing_arg_name: arg_name.clone()}));
+                },
             Ok(_) => {}
             };
     }

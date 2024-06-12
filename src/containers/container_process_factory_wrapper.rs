@@ -2,19 +2,19 @@ use std::{cell::RefCell, rc::Rc, sync::{Arc, Mutex}};
 
 use anyhow::Context;
 
-use crate::{core::Plugin, jvalue, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, utils::juiz_lock, value::obj_merge, ContainerProcessFactory, ContainerPtr, JuizObject, JuizResult, ProcessPtr, Value};
+use crate::{core::RustPlugin, jvalue, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, utils::juiz_lock, value::obj_merge, ContainerProcessFactory, ContainerPtr, JuizObject, JuizResult, ProcessPtr, Value};
 
 #[allow(dead_code)]
 pub struct ContainerProcessFactoryWrapper {
     core: ObjectCore,
-    plugin: Rc<Plugin>,
+    plugin: Rc<RustPlugin>,
     container_process_factory: Arc<Mutex<dyn ContainerProcessFactory>>,
     container_processes: RefCell<Vec<ProcessPtr>>
 }
 
 impl ContainerProcessFactoryWrapper {
     
-    pub fn new(plugin: Rc<Plugin>, container_process_factory: Arc<Mutex<dyn ContainerProcessFactory>>) -> JuizResult<Arc<Mutex<dyn ContainerProcessFactory>>> {
+    pub fn new(plugin: Rc<RustPlugin>, container_process_factory: Arc<Mutex<dyn ContainerProcessFactory>>) -> JuizResult<Arc<Mutex<dyn ContainerProcessFactory>>> {
         let cpf = juiz_lock(&container_process_factory)?;
         let type_name = cpf.type_name();
         Ok(Arc::new(Mutex::new(ContainerProcessFactoryWrapper{

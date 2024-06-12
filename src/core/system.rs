@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -35,6 +35,7 @@ pub struct System {
     broker_proxies: HashMap<String, Arc<Mutex<dyn BrokerProxy>>>,
     pub tokio_runtime: tokio::runtime::Runtime,
     spin_callback: Option<Box<SpinCallbackFunctionType>>,
+    working_dir: Option<PathBuf>,
 }
 
 fn check_system_manifest(manifest: Value) -> JuizResult<Value> {
@@ -77,6 +78,7 @@ impl System {
             broker_proxies: HashMap::new(),
             tokio_runtime: tokio::runtime::Builder::new_multi_thread().thread_name("juiz_core::System").worker_threads(4).enable_all().build().unwrap(),
             spin_callback: None,
+            working_dir: None,
         })
     }
 
@@ -92,6 +94,14 @@ impl System {
         &self.core_broker
     }
 
+    pub fn set_working_dir(mut self, path: &Path) -> Self {
+        self.working_dir = Some(path.into());
+        self
+    }
+
+    pub fn get_working_dir(&self) -> Option<PathBuf> {
+        self.working_dir.clone()
+    }
 
     ///
     pub fn process_from_id(&self, id: &Identifier) -> JuizResult<ProcessPtr> {

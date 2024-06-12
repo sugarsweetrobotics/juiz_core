@@ -23,7 +23,7 @@ pub mod example_container {
     }
 
     pub fn create_example_container(_manifest: Value) -> JuizResult<Box<ExampleContainer>> {
-        println!("create_example_container({})", _manifest);
+        // println!("create_example_container({})", _manifest);
         Ok(Box::new(ExampleContainer{value: 0}))
     }
 

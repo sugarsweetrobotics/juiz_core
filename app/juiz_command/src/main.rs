@@ -5,6 +5,8 @@ mod default_juiz_conf;
 mod container;
 mod container_process;
 
+use std::path::PathBuf;
+
 use container::{on_container, ContSubCommands};
 use container_process::{on_container_process, ContProcSubCommands};
 use juiz_core::{ yaml_conf_load, JuizResult, System};
@@ -88,13 +90,18 @@ fn main() -> () {
 
 fn do_once() -> JuizResult<()>{
     let args = Args::parse();
-    let manifest = yaml_conf_load(args.filepath)?;
-
+    let manifest = yaml_conf_load(args.filepath.clone())?;
+    let manifest_filepath = PathBuf::from(args.filepath.as_str().to_string());
+    let working_dir = manifest_filepath.parent().unwrap();
     if args.subcommand.is_none() {
         if args.daemonize {
-            return System::new(manifest)?.run_and_do(do_task);
+            return System::new(manifest)?
+                .set_working_dir(working_dir)
+                .run_and_do(do_task);
         } else {
-            return System::new(manifest)?.run_and_do_once(do_task_once);
+            return System::new(manifest)?
+                .set_working_dir(working_dir)
+                .run_and_do_once(do_task_once);
         }
     }
     match args.subcommand.unwrap() {
@@ -102,13 +109,13 @@ fn do_once() -> JuizResult<()>{
             on_setup(manifest, subcommand)
         },
         SubCommands::Process { subcommand } => {
-            on_process(manifest, subcommand)
+            on_process(manifest, working_dir, subcommand)
         },
         SubCommands::Container { subcommand } => {
-            on_container(manifest, subcommand)
+            on_container(manifest, working_dir, subcommand)
         },
         SubCommands::ContainerProcess { subcommand } => {
-            on_container_process(manifest, subcommand)
+            on_container_process(manifest, working_dir, subcommand)
         },
         /* _ => {
             return Ok(())

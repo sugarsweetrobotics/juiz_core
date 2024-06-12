@@ -1,4 +1,4 @@
-use std::{collections::HashMap, mem::swap, sync::{Arc, Mutex}};
+use std::{collections::HashMap, mem::swap, option::Iter, sync::{Arc, Mutex}};
 
 use opencv::core::Mat;
 
@@ -185,6 +185,7 @@ impl Capsule {
     }
 }
 
+#[derive(Debug)]
 pub struct CapsuleMap {
     map: HashMap<String, CapsulePtr>,
     param: HashMap<String, String>,
@@ -219,6 +220,10 @@ impl CapsuleMap {
     pub fn insert(&mut self, key: String, value: CapsulePtr) -> &Self {
         self.map.insert(key, value);
         self
+    }
+
+    pub fn iter(&self) -> std::collections::hash_map::Iter<String, CapsulePtr> {
+        self.map.iter()
     }
 }
 

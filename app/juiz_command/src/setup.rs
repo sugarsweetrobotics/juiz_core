@@ -42,12 +42,15 @@ fn on_setup_home() -> JuizResult<()> {
 }
 
 fn on_setup_cleanhome(force: bool) -> JuizResult<()> {
+
+    println!("cleanhome");
     match home::home_dir() {
         Some(homepath) => {
             return remove_juiz_home_dir(&homepath, force)
         }
         None => println!("Impossible to get your home dir!"),
     }
+    println!("cleanhome");
     return Ok(())
 }
 

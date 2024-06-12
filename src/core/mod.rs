@@ -1,8 +1,9 @@
-pub mod plugin;
+pub mod rust_plugin;
+pub mod python_plugin;
 pub mod system;
 pub mod system_builder;
 pub mod core_broker;
 pub mod core_store;
 pub mod error;
 pub mod result;
-pub use plugin::Plugin;
+pub use rust_plugin::RustPlugin;

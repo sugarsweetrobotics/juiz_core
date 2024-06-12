@@ -11,7 +11,7 @@ use crate::juiz_core::connections::connect;
 mod common;
 
 
-fn setup() -> (ProcessPtr, ProcessPtr){
+fn setup() -> (ProcessPtr, ProcessPtr) {
 
     let p1 = common::new_increment_process("process1");
     let p2 = common::new_increment_process("process2");

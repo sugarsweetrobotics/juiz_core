@@ -19,9 +19,9 @@ async fn main() -> JuizResult<()>{
     );
 
     Ok(System::new(manifest)?.run_and_do(|system|{
-        println!("JuizSystem started!!");
-        let v = system.broker_proxy(&jvalue!({"type_name":"http", "name": "localhost:3000"}))?.lock().unwrap().system_profile_full()?;
-        println!("System: {:#}", v);
+        // println!("JuizSystem started!!");
+        let _v = system.broker_proxy(&jvalue!({"type_name":"http", "name": "localhost:3000"}))?.lock().unwrap().system_profile_full()?;
+        // println!("System: {:#}", v);
         Ok(())
     }).expect("Error in System::run_and_do()"))
 }

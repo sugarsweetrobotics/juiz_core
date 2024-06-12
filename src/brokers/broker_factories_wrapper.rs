@@ -2,19 +2,19 @@
 
 use crate::{utils::juiz_lock, JuizError, JuizResult, Value};
 use std::sync::{Arc, Mutex};
-use crate::{core::Plugin, brokers::{Broker, BrokerProxy, BrokerFactory, BrokerProxyFactory}};
+use crate::{core::RustPlugin, brokers::{Broker, BrokerProxy, BrokerFactory, BrokerProxyFactory}};
 
 #[allow(dead_code)]
 pub struct BrokerFactoriesWrapper {
     type_name: String,
-    plugin: Option<Plugin>, 
+    plugin: Option<RustPlugin>, 
     pub broker_factory: Arc<Mutex<dyn BrokerFactory>>,
     pub broker_proxy_factory: Arc<Mutex<dyn BrokerProxyFactory>>,
 }
 
 impl BrokerFactoriesWrapper {
 
-    pub fn new(plugin: Option<Plugin>, broker_factory: Arc<Mutex<dyn BrokerFactory>>, broker_proxy_factory: Arc<Mutex<dyn BrokerProxyFactory>>) -> JuizResult<Arc<Mutex<BrokerFactoriesWrapper>>> {
+    pub fn new(plugin: Option<RustPlugin>, broker_factory: Arc<Mutex<dyn BrokerFactory>>, broker_proxy_factory: Arc<Mutex<dyn BrokerProxyFactory>>) -> JuizResult<Arc<Mutex<BrokerFactoriesWrapper>>> {
         let type_name_bf = juiz_lock(&broker_factory)?.type_name().to_string();
         let type_name_bpf = juiz_lock(&broker_proxy_factory)?.type_name().to_string();
         if type_name_bf != type_name_bpf {

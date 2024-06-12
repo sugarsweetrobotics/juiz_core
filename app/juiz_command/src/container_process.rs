@@ -1,4 +1,6 @@
 
+use std::path::Path;
+
 use juiz_core::{JuizResult, System, Value};
 
 
@@ -16,10 +18,12 @@ pub(crate) enum ContProcSubCommands {
     }
 }
 
-pub(crate) fn on_container_process(manifest: Value, subcommand: ContProcSubCommands) -> JuizResult<()> {
+pub(crate) fn on_container_process(manifest: Value, working_dir: &Path, subcommand: ContProcSubCommands) -> JuizResult<()> {
     match subcommand {
         ContProcSubCommands::List { server } => {
-            System::new(manifest)?.run_and_do_once( |system| { on_container_process_list(system, server) }) 
+            System::new(manifest)?
+            .set_working_dir(working_dir)
+            .run_and_do_once( |system| { on_container_process_list(system, server) }) 
         }
     }
 }

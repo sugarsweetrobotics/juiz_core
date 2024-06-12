@@ -6,8 +6,8 @@ pub mod system_builder {
 
     use anyhow::Context;
 
-    use crate::brokers::{broker_factories_wrapper::BrokerFactoriesWrapper, local::{local_broker::{create_local_broker_factory, BrokerSideSenderReceiverPair, ProxySideSenderReceiverPair}, local_broker_proxy::create_local_broker_proxy_factory}, local_broker::ByteSenderReceiverPair, BrokerFactory, BrokerProxy, BrokerProxyFactory};
-    use crate::{connections::connection_builder::connection_builder, containers::{container_factory_wrapper::ContainerFactoryWrapper, container_process_factory_wrapper::ContainerProcessFactoryWrapper}, core::Plugin, ecs::{execution_context_holder::ExecutionContextHolder, execution_context_holder_factory::ExecutionContextHolderFactory, ExecutionContextFactory}, jvalue, processes::{capsule::CapsuleMap, ProcessFactoryWrapper}, utils::{get_array, get_hashmap, juiz_lock, manifest_util::when_contains_do_mut, when_contains_do}, value::{obj_get, obj_get_str}, CapsulePtr, ContainerFactory, ContainerProcessFactory, JuizResult, ProcessFactory, System, Value};
+    use crate::{brokers::{broker_factories_wrapper::BrokerFactoriesWrapper, local::{local_broker::{create_local_broker_factory, BrokerSideSenderReceiverPair, ProxySideSenderReceiverPair}, local_broker_proxy::create_local_broker_proxy_factory}, local_broker::ByteSenderReceiverPair, BrokerFactory, BrokerProxy, BrokerProxyFactory}, core::python_plugin::PythonPlugin};
+    use crate::{connections::connection_builder::connection_builder, containers::{container_factory_wrapper::ContainerFactoryWrapper, container_process_factory_wrapper::ContainerProcessFactoryWrapper}, core::RustPlugin, ecs::{execution_context_holder::ExecutionContextHolder, execution_context_holder_factory::ExecutionContextHolderFactory, ExecutionContextFactory}, jvalue, processes::{capsule::CapsuleMap, ProcessFactoryWrapper}, utils::{get_array, get_hashmap, juiz_lock, manifest_util::when_contains_do_mut, when_contains_do}, value::{obj_get, obj_get_str}, CapsulePtr, ContainerFactory, ContainerProcessFactory, JuizResult, ProcessFactory, System, Value};
 
     pub fn setup_plugins(system: &mut System, manifest: &Value) -> JuizResult<()> {
         log::trace!("system_builder::setup_plugins({}) called", manifest);
@@ -34,30 +34,63 @@ pub mod system_builder {
 
     #[cfg(target_os = "macos")]
     fn plugin_name_to_file_name(name: &String) -> String {
-        "lib".to_string() + name + ".dylib"
+        "lib".to_owned() + name + ".dylib"
     }
 
+    fn plugin_name_to_python_file_name(name: &String) -> String {
+        name.to_owned() + ".py"
+    }
+
+    /// 引数vからpathメンバの値を引き出し、nameと連結したPathを作成する
     fn concat_dirname(v: &serde_json::Value, name: String) -> JuizResult<PathBuf> {
         Ok(PathBuf::from(obj_get_str(v, "path")?.to_string()).join(name))
     }
 
+    /// まずnameからpluginのファイル名に変換する。macだと.dylibをつける作業。そしてvの中のpathと連結させてpathを作る
     fn plugin_path(name: &String, v: &Value) -> JuizResult<std::path::PathBuf> {
         concat_dirname(v, plugin_name_to_file_name(name))
     }
 
-    unsafe fn load_factory<'a, T: 'static + ?Sized>(rc_plugin: Rc<Plugin>, symbol_name: &str) -> JuizResult<Arc<Mutex<T>>> {
+    /// まずnameからpluginのファイル名に変換する。macだと.dylibをつける作業。そしてvの中のpathと連結させてpathを作る
+    fn python_plugin_path(name: &String, v: &Value) -> JuizResult<std::path::PathBuf> {
+        concat_dirname(v, plugin_name_to_python_file_name(name))
+    }
+
+    unsafe fn load_factory<'a, T: 'static + ?Sized>(rc_plugin: Rc<RustPlugin>, symbol_name: &str) -> JuizResult<Arc<Mutex<T>>> {
         log::trace!("load_factory(symbol_name={symbol_name}) called");
         type SymbolType<'a, T> = libloading::Symbol<'a, unsafe extern "Rust" fn() -> JuizResult<Arc<Mutex<T>>>>;
         let symbol = rc_plugin.load_symbol::<SymbolType<'a, T>>(symbol_name.as_bytes())?;
         (symbol)().with_context(||format!("calling symbol '{symbol_name}'"))
     }
-
+ 
     fn setup_process_factories(system: &System, manifest: &serde_json::Value) -> JuizResult<()> {
         log::trace!("system_builder::setup_process_factories() called");
         for (name, v) in get_hashmap(manifest)?.iter() {
-            unsafe {
-                register_process_factory(system, Rc::new(Plugin::load(plugin_path(name, v)?)?), "process_factory")?;
+            match v.as_object() {
+                None => {
+                    log::error!("loading process_factories failed. Value is not object type. Invalid config.")
+                },
+                Some(obj) => {
+                    let language = obj.get("language").and_then(|v| { v.as_str() }).or(Some("Rust")).unwrap();
+                    match language {
+                        "rust" => {
+                            unsafe {
+                                register_process_factory(system, Rc::new(RustPlugin::load(plugin_path(name, v)?)?), "process_factory")?;
+                            }
+                        },
+                        "python" => {
+                            register_python_process_factory(system, Rc::new(PythonPlugin::load(python_plugin_path(name, v)?)?))?;
+                        },
+                        _ => {
+                            unsafe {
+                                register_process_factory(system, Rc::new(RustPlugin::load(plugin_path(name, v)?)?), "process_factory")?;
+                            }
+                        }
+                    }
+                }
             }
+            
+            
         }
         Ok(())
     }
@@ -66,11 +99,11 @@ pub mod system_builder {
         log::trace!("system_builder::setup_container_factories() called");
         for (name, v) in get_hashmap(manifest)?.iter() {
             unsafe {
-                let rc_plugin = Rc::new(Plugin::load(plugin_path(name, v)?)?);
+                let rc_plugin = Rc::new(RustPlugin::load(plugin_path(name, v)?)?);
                 register_container_factory(system, rc_plugin, "container_factory")?;
                 when_contains_do(v, "processes", |vv| {
                     for (name, value) in get_hashmap(vv)?.iter() {
-                        register_container_process_factory(system, Rc::new(Plugin::load(plugin_path(name, value)?)?), "container_process_factory")?;
+                        register_container_process_factory(system, Rc::new(RustPlugin::load(plugin_path(name, value)?)?), "container_process_factory")?;
                     }
                     Ok(())
                 })?;
@@ -86,7 +119,7 @@ pub mod system_builder {
             log::debug!("Loading Component (name={name:})....");
             unsafe {
                 type ComponentProfileFunctionSymbolType<'a> = libloading::Symbol<'a, unsafe extern "Rust" fn() -> Value>;
-                let rc_plugin = Rc::new(Plugin::load(plugin_path(name, v)?)?);
+                let rc_plugin = Rc::new(RustPlugin::load(plugin_path(name, v)?)?);
                 //log::trace!("!!!!!!!ComponentName: {}", (name.to_owned() + "::container_factory"));
                 let symbol = rc_plugin.load_symbol::<ComponentProfileFunctionSymbolType>(b"component_profile")?;
                 let cp = (symbol)();//.with_context(||format!("calling symbol 'container_factory'. arg is {manifest:}"))?;
@@ -122,7 +155,7 @@ pub mod system_builder {
             let cpf;
             unsafe {
                 type ECFactorySymbolType<'a> = libloading::Symbol<'a, unsafe extern "Rust" fn() -> JuizResult<Arc<Mutex<dyn ExecutionContextFactory>>>>;
-                let plugin: Plugin = Plugin::load(plugin_filename)?;
+                let plugin: RustPlugin = RustPlugin::load(plugin_filename)?;
                 {
                     let symbol = plugin.load_symbol::<ECFactorySymbolType>(b"execution_context_factory")?;
                     cpf = (symbol)().with_context(||format!("calling symbol 'execution_context_factory'. arg is {manifest:}"))?;
@@ -159,7 +192,7 @@ pub mod system_builder {
             unsafe {
                 type BrokerFactorySymbolType<'a> = libloading::Symbol<'a, unsafe extern "Rust" fn(Arc<Mutex<dyn BrokerProxy>>) -> JuizResult<Arc<Mutex<dyn BrokerFactory>>>>;
                 type BrokerProxyFactorySymbolType<'a> = libloading::Symbol<'a, unsafe extern "Rust" fn() -> JuizResult<Arc<Mutex<dyn BrokerProxyFactory>>>>;
-                let plugin: Plugin = Plugin::load(plugin_filename)?;
+                let plugin: RustPlugin = RustPlugin::load(plugin_filename)?;
                 {
                     // println!("!!!!!!!ContainerName: {}", (name.to_owned() + "::container_factory"));
                     //let symbol = plugin.load_symbol::<ContainerFactorySymbolType>((name.to_owned() + "::container_factory").as_bytes())?;
@@ -269,23 +302,29 @@ pub mod system_builder {
         Ok(())
     }
 
-        
+    fn register_python_process_factory(system: &System, py_plugin: Rc<PythonPlugin>) -> JuizResult<Arc<Mutex<dyn ProcessFactory>>> {
+        log::trace!("register_python_process_factory() called");
+        let pf = py_plugin.load_process_factory(system.get_working_dir(), "process_factory")?;
+        //let pf = load_python_process_factory(py_plugin.clone(), "process_factory")?;
+        system.core_broker().lock().unwrap().store_mut().processes.register_factory(ProcessFactoryWrapper::new_python(py_plugin.clone(), pf)?)
+    }
+
     ///
-    unsafe fn register_process_factory(system: &System, rc_plugin: Rc<Plugin>, symbol_name: &str) -> JuizResult<Arc<Mutex<dyn ProcessFactory>>> {
+    unsafe fn register_process_factory(system: &System, rc_plugin: Rc<RustPlugin>, symbol_name: &str) -> JuizResult<Arc<Mutex<dyn ProcessFactory>>> {
         log::trace!("register_process_factory(symbol_name={symbol_name}) called");
         let pf = load_factory::<dyn ProcessFactory>(rc_plugin.clone(), symbol_name)?;
         system.core_broker().lock().unwrap().store_mut().processes.register_factory(ProcessFactoryWrapper::new(rc_plugin.clone(), pf)?)
     }
 
     ///
-    unsafe fn register_container_factory(system: &System, rc_plugin: Rc<Plugin>, symbol_name: &str) -> JuizResult<Arc<Mutex<dyn ContainerFactory>>> {
+    unsafe fn register_container_factory(system: &System, rc_plugin: Rc<RustPlugin>, symbol_name: &str) -> JuizResult<Arc<Mutex<dyn ContainerFactory>>> {
         log::trace!("register_container_factory(symbol_name={symbol_name}) called");
         let cf = load_factory::<dyn ContainerFactory>(rc_plugin.clone(), symbol_name)?;
         system.core_broker().lock().unwrap().store_mut().containers.register_factory(ContainerFactoryWrapper::new(rc_plugin.clone(), cf)?)
     }
 
     ///
-    unsafe fn register_container_process_factory(system: &System, rc_plugin: Rc<Plugin>, symbol_name: &str) -> JuizResult<Arc<Mutex<dyn ContainerProcessFactory>>> {
+    unsafe fn register_container_process_factory(system: &System, rc_plugin: Rc<RustPlugin>, symbol_name: &str) -> JuizResult<Arc<Mutex<dyn ContainerProcessFactory>>> {
         log::trace!("register_container_process_factory(symbol_name={symbol_name}) called");
         let cpf = load_factory::<dyn ContainerProcessFactory>(rc_plugin.clone(), symbol_name)?;
         system.core_broker().lock().unwrap().store_mut().container_processes.register_factory(ContainerProcessFactoryWrapper::new(rc_plugin.clone(), cpf)?)

@@ -30,15 +30,16 @@ pub async fn object_post_handler(
     log::trace!("HTTPBroker/object_post_handler({class_name}, {function_name}, {body}, {map:?}) called");
     //json_output_wrap(create_class(&crud_broker, class_name.as_str(), function_name.as_str(), body, map))
     json_output_wrap(juiz_lock(&crud_broker).and_then(|cb| {
-        cb.create_class(construct_capsule_map(body_to_capsule_map(body), "CREATE", class_name.as_str(), function_name.as_str(), query))
+        cb.create_class(construct_capsule_map(body_to_capsule_map(body)?, "CREATE", class_name.as_str(), function_name.as_str(), query))
     }))
 }
 
-fn body_to_capsule_map(body: Value) -> CapsuleMap {
-    let capsule: Capsule = body.into();
+fn body_to_capsule_map(body: Value) -> Result<CapsuleMap, anyhow::Error> {
+    // let capsule: Capsule = body.into();
     let mut capsule_map = CapsuleMap::new();
-    capsule_map.insert("body".to_owned(), capsule.into());
-    capsule_map
+    //capsule_map.insert("body".to_owned(), capsule.into());
+    capsule_map = body.try_into()?;
+    Ok(capsule_map)
 }
 
 
@@ -79,7 +80,7 @@ pub async fn object_patch_handler(
     //let result = update_class(&crud_broker, class_name.as_str(), function_name.as_str(), body.try_into().unwrap(), map);
     //let method_name = "UPDATE";
     json_output_wrap(juiz_lock(&crud_broker).and_then(|cb| {
-        cb.update_class(construct_capsule_map(body_to_capsule_map(body), "UPDATE", class_name.as_str(), function_name.as_str(), query))
+        cb.update_class(construct_capsule_map(body_to_capsule_map(body)?, "UPDATE", class_name.as_str(), function_name.as_str(), query))
     }))
     /*
     let result = update_class(&crud_broker, construct_capsule_map(body_to_capsule_map(body), method_name, class_name.as_str(), function_name.as_str(), query));

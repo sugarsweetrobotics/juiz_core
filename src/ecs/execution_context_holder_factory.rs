@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use crate::{JuizObject, object::{JuizObjectCoreHolder, ObjectCore, JuizObjectClass}, JuizResult, utils::juiz_lock, Value, core::Plugin};
+use crate::{JuizObject, object::{JuizObjectCoreHolder, ObjectCore, JuizObjectClass}, JuizResult, utils::juiz_lock, Value, core::RustPlugin};
 
 use super::{execution_context_holder::ExecutionContextHolder, execution_context_factory::ExecutionContextFactory};
 
@@ -8,12 +8,12 @@ use super::{execution_context_holder::ExecutionContextHolder, execution_context_
 pub struct ExecutionContextHolderFactory {
     core: ObjectCore,
     ec_factory: Arc<Mutex<dyn ExecutionContextFactory>>,
-    plugin: Plugin,
+    plugin: RustPlugin,
     //tokio_runtime: &'static tokio::runtime::Runtime,
 }
 
 impl ExecutionContextHolderFactory {
-    pub fn new(plugin: Plugin, ec_factory: Arc<Mutex<dyn ExecutionContextFactory>>) -> JuizResult<Arc<Mutex<ExecutionContextHolderFactory>>> {
+    pub fn new(plugin: RustPlugin, ec_factory: Arc<Mutex<dyn ExecutionContextFactory>>) -> JuizResult<Arc<Mutex<ExecutionContextHolderFactory>>> {
         let type_name = juiz_lock(&ec_factory)?.type_name().to_string();
         Ok(Arc::new(Mutex::new(
             ExecutionContextHolderFactory{

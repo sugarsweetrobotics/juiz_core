@@ -430,7 +430,7 @@ impl ConnectionBrokerProxy for CoreBroker {
     fn connection_profile_full(&self, id: &Identifier) -> JuizResult<Value> {
         //juiz_lock(&self.store().connections.get(id)?).with_context(||format!("locking ec(id={id:}) in CoreBroker::connection_profile_full() function"))?.profile_full()
         let (source_id, _destination_id, _arg_name) = connection_identifier_split(id.clone())?;
-        println!("source_id: {:}", source_id);
+        // println!("source_id: {:}", source_id);
         let result_src_proc = self.store().processes.get(&source_id);
         if result_src_proc.is_ok() {
             for src_con in proc_lock(&(result_src_proc.unwrap()))?.source_connections()?.into_iter() {
@@ -445,7 +445,7 @@ impl ConnectionBrokerProxy for CoreBroker {
         if result_src_con_proc.is_ok() {
             //let destination_proc = juiz_lock(&self.store().processes.get(&destination_id)?).with_context(||format!("locking process(id={id:}) in CoreBroker::process_profile_full() function"))?;
             for dst_con in proc_lock(&(result_src_con_proc.unwrap()))?.destination_connections()?.into_iter() {
-                println!("con: {:}", dst_con.identifier());
+                // println!("con: {:}", dst_con.identifier());
                 if dst_con.identifier().eq(id) {
                     return dst_con.profile_full()
                 }
