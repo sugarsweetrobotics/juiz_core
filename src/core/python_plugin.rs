@@ -1,8 +1,8 @@
 
 use std::{collections::HashMap, fs, path::PathBuf, sync::{Arc, Mutex}};
-use pyo3::{prelude::*, types::{PyDict, PyFloat, PyInt, PyList, PyNone, PyString, PyTuple}};
+use pyo3::{prelude::*, types::{PyDict, PyFloat, PyInt, PyList, PyNone, PyString}};
 
-use crate::{containers::{python_container_process_factory_impl::PythonContainerProcessFactoryImpl, PythonContainerFactoryImpl}, jvalue, processes::python_process_factory_impl::{value_to_pytuple, PythonProcessFactoryImpl}, Capsule, CapsuleMap, ContainerFactory, ContainerProcessFactory, JuizResult, ProcessFactory, Value};
+use crate::{containers::{python_container_process_factory_impl::PythonContainerProcessFactoryImpl, PythonContainerFactoryImpl}, jvalue, processes::python_process_factory_impl::PythonProcessFactoryImpl, ContainerFactory, ContainerProcessFactory, JuizResult, ProcessFactory, Value};
 
 pub struct PythonPlugin {
     path: PathBuf,
