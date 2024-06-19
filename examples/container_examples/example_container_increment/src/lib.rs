@@ -44,5 +44,5 @@ pub unsafe extern "Rust" fn container_process_factory() -> JuizResult<Arc<Mutex<
             }, 
         }, 
     });
-    create_container_process_factory::<ExampleContainer>(manifest, increment_function)
+    create_container_process_factory::<ExampleContainer>(manifest, &increment_function)
 }

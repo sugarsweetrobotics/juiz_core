@@ -3,7 +3,7 @@
 use std::sync::{Mutex, Arc};
 use axum::{response::IntoResponse, extract::{Path, Query, State}, routing, Json, Router};
 
-use juiz_core::{brokers::crud_broker::CRUDBroker, processes::capsule::{Capsule, CapsuleMap}, utils::juiz_lock, Value};
+use juiz_core::{brokers::crud_broker::CRUDBroker, processes::capsule::CapsuleMap, utils::juiz_lock, Value};
 
 use super::{IdentifierQuery, json_output_wrap, query_to_map};
 use utoipa::OpenApi;
@@ -18,7 +18,7 @@ use utoipa::OpenApi;
     responses(
         (status = 200, description = "Post object parameter", body = [String])
     ),
-    tag = "any",
+    tag = "universal.any",
 )]
 pub async fn object_post_handler(
     Path((class_name, function_name)): Path<(String, String)>,
@@ -35,11 +35,7 @@ pub async fn object_post_handler(
 }
 
 fn body_to_capsule_map(body: Value) -> Result<CapsuleMap, anyhow::Error> {
-    // let capsule: Capsule = body.into();
-    let mut capsule_map = CapsuleMap::new();
-    //capsule_map.insert("body".to_owned(), capsule.into());
-    capsule_map = body.try_into()?;
-    Ok(capsule_map)
+    body.try_into()
 }
 
 
@@ -66,7 +62,7 @@ fn construct_capsule_map(mut capsule_map: CapsuleMap, method_name: &str, class_n
     responses(
         (status = 200, description = "Get object parameter", body = [String])
     ),
-    tag = "any",
+    tag = "universal.any",
 )]
 pub async fn object_patch_handler(
     Path((class_name, function_name)): Path<(String, String)>,
@@ -98,7 +94,7 @@ pub async fn object_patch_handler(
     responses(
         (status = 200, description = "Get object parameter", body = [String])
     ),
-    tag = "any",
+    tag = "universal.any",
 )]
 pub async fn object_get_handler(
     Path((class_name, function_name)): Path<(String, String)>,
@@ -125,7 +121,7 @@ pub async fn object_get_handler(
     responses(
         (status = 200, description = "Delete object parameter", body = [String])
     ),
-    tag = "any"
+    tag = "universal.any"
 )]
 pub async fn object_delete_handler(
     Path((class_name, function_name)): Path<(String, String)>,

@@ -165,6 +165,8 @@ pub enum JuizError {
     CanNotFindError { target: String },
     #[error("Can not lock {target}")]
     ObjectLockError { target: String },
+    #[error("Invalid Setting Error {message}")]
+    InvalidSettingError { message: String },
 
     /*
     ProcessManifestError,

@@ -4,7 +4,6 @@ def pyadd(arg0, arg1):
     return arg0 + arg1
 
 def manifest():
-    print('manifest called')
     return {
         "type_name": "pyadd",
         "arguments" : {

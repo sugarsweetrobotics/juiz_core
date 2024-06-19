@@ -4,7 +4,7 @@ use anyhow::Context;
 
 use crate::{core::{python_plugin::PythonPlugin, RustPlugin}, jvalue, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, utils::juiz_lock, value::obj_merge, JuizObject, JuizResult, ProcessFactory, ProcessPtr, Value};
 
-
+#[allow(unused)]
 enum Plugins {
     Rust(RustPlugin),
     Python(PythonPlugin)

@@ -14,7 +14,7 @@ use axum::extract::Query;
     responses(
         (status = 200, description = "System")
     ),
-    tag = "broker",
+    tag = "universal.broker",
 )]
 pub fn profile_handler_dummy(
     _query: Query<IdentifierQuery>,) {
@@ -26,7 +26,7 @@ pub fn profile_handler_dummy(
     responses(
         (status = 200, description = "System")
     ),
-    tag = "broker",
+    tag = "universal.broker",
 )]
 pub fn list_dummy() {
 }

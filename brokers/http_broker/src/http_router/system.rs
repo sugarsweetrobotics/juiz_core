@@ -6,7 +6,7 @@ use utoipa::OpenApi;
     responses(
         (status = 200, description = "System")
     ),
-    tag = "system",
+    tag = "universal.system",
 )]
 pub async fn profile_handler_dummy(){
 }

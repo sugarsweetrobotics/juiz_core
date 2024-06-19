@@ -1,4 +1,4 @@
-use std::{collections::HashMap, mem::swap, option::Iter, sync::{Arc, Mutex}};
+use std::{collections::HashMap, mem::swap, sync::{Arc, Mutex}};
 
 use opencv::core::Mat;
 

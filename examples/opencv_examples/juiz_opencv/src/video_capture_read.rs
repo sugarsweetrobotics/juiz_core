@@ -23,7 +23,7 @@ pub unsafe extern "Rust" fn cv_video_capture_read_factory() -> JuizResult<Arc<Mu
             "arguments" : {
             }, 
         }),
-        cv_video_capture_read_function)
+        &cv_video_capture_read_function)
 }
 
 

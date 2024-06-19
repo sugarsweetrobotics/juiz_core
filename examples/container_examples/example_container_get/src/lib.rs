@@ -26,7 +26,7 @@ pub mod example_container_get {
     #[no_mangle]
     pub unsafe extern "Rust" fn container_process_factory() -> JuizResult<Arc<Mutex<dyn ContainerProcessFactory>>> {
         env_logger::init();
-        create_container_process_factory::<ExampleContainer>(_manifest(), get_function)
+        create_container_process_factory::<ExampleContainer>(_manifest(), &get_function )
     }
 
 }

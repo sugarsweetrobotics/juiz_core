@@ -1,7 +1,7 @@
 
 use std::sync::{Mutex, Arc};
 use crate::{object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, processes::{process_impl::ProcessImpl, process_ptr}, utils::check_process_factory_manifest, value::obj_get_str, JuizError, JuizObject, JuizResult, ProcessFactory, ProcessPtr, Value};
-use super::process_impl::FunctionType;
+use super::{process_impl::FunctionType, ProcessFactoryPtr};
 
 #[repr(C)]
 pub struct ProcessFactoryImpl {
@@ -10,7 +10,7 @@ pub struct ProcessFactoryImpl {
     function: FunctionType,
 }
 
-pub fn create_process_factory(manifest: crate::Value, function: FunctionType) -> JuizResult<Arc<Mutex<dyn ProcessFactory>>> {
+pub fn create_process_factory(manifest: crate::Value, function: FunctionType) -> JuizResult<ProcessFactoryPtr> {
     log::trace!("create_process_factory called");
     Ok(Arc::new(Mutex::new(ProcessFactoryImpl::new(manifest, function)?)))
 }

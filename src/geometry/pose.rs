@@ -1,11 +1,11 @@
 // use quaternion_core::Quaternion;
-use num_traits::{Float, FloatConst, Num, Zero};
+use num_traits::{Float, FloatConst};
 use quaternion_core::{RotationSequence, RotationType};
 
 use std::ops::{Add, Mul};
 
 use serde::{Deserialize, Serialize};
-use nalgebra::{base::{Vector3, Vector4}, RealField, SimdValue, UnitQuaternion};
+use nalgebra::{base::{Vector3, Vector4}, RealField, UnitQuaternion};
 
 #[derive(Serialize, Deserialize)]
 pub struct Vec3<T: Float> {

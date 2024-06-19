@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex, RwLock};
-use super::container_process_impl::{ContainerProcessImpl, ContainerFunctionType};
-use crate::{object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, value::obj_get_str, ContainerPtr, ContainerProcessFactory, JuizObject, JuizResult, ProcessPtr, Value};
+use super::{container_impl::ContainerImpl, container_process_impl::{ContainerFunctionType, ContainerProcessImpl}};
+use crate::{object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, value::obj_get_str, Capsule, CapsuleMap, ContainerProcessFactory, ContainerPtr, JuizObject, JuizResult, ProcessPtr, Value};
 
 struct ContainerProcessFactoryImpl<T> {
     core: ObjectCore,
@@ -30,9 +30,17 @@ impl<T: 'static> ContainerProcessFactoryImpl<T> {
     }
 }
 
-pub fn create_container_process_factory<T: 'static>(manifest: crate::Value, function: ContainerFunctionType<T>) -> JuizResult<Arc<Mutex<dyn ContainerProcessFactory>>> {
+pub fn create_container_process_factory<T: 'static>(
+        manifest: crate::Value, 
+        //function: ContainerFunctionType<T>
+        f: &'static impl Fn(&mut ContainerImpl<T>, CapsuleMap) -> JuizResult<Capsule>    
+    ) -> JuizResult<Arc<Mutex<dyn ContainerProcessFactory>>> 
+//where F: 
+{
     log::trace!("create_container_process_factory({}) called", manifest);
-    ContainerProcessFactoryImpl::<T>::new(manifest, function)
+    //et function = f.clone();
+    let ff = Arc::new(|c: &mut ContainerImpl<T>, v| { f(c, v) } );
+    ContainerProcessFactoryImpl::<T>::new(manifest, ff)
 }
 
 impl<T: 'static> JuizObjectCoreHolder for ContainerProcessFactoryImpl<T> {
@@ -50,7 +58,9 @@ impl<T: 'static> ContainerProcessFactory for ContainerProcessFactoryImpl<T> {
             ContainerProcessImpl::new(
                 self.apply_default_manifest(manifest)?, 
                 Arc::clone(&container), 
-                self.function.clone())?
+                self.function.clone()
+                //Box::new(|c, v|{ self.function(c, v) }),
+            )?
         )))
     }
 }

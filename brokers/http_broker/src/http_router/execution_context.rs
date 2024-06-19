@@ -18,7 +18,7 @@ use juiz_core::Value;
     responses(
         (status = 200, description = "System")
     ),
-    tag = "execution_context",
+    tag = "universal.execution_context",
 )]
 pub fn start_dummy(
     _query: Query<IdentifierQuery>,
@@ -34,7 +34,7 @@ pub fn start_dummy(
     responses(
         (status = 200, description = "System")
     ),
-    tag = "execution_context",
+    tag = "universal.execution_context",
 )]
 pub fn stop_dummy(
     _query: Query<IdentifierQuery>,
@@ -51,7 +51,7 @@ pub fn stop_dummy(
     responses(
         (status = 200, description = "System")
     ),
-    tag = "execution_context",
+    tag = "universal.execution_context",
 )]
 pub fn profile_handler_dummy(
     _query: Query<IdentifierQuery>,) {
@@ -67,7 +67,7 @@ pub fn profile_handler_dummy(
     responses(
         (status = 200, description = "System")
     ),
-    tag = "execution_context",
+    tag = "universal.execution_context",
 )]
 pub fn get_state_dummy(
     _query: Query<IdentifierQuery>,) {
@@ -79,7 +79,7 @@ pub fn get_state_dummy(
     responses(
         (status = 200, description = "System")
     ),
-    tag = "execution_context",
+    tag = "universal.execution_context",
 )]
 pub fn list_dummy() {
 }

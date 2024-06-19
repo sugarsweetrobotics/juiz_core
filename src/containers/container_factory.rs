@@ -1,4 +1,6 @@
 
+use std::sync::{Arc, Mutex};
+
 use crate::{ContainerPtr, Value, JuizResult, JuizObject};
 
 
@@ -9,3 +11,5 @@ pub trait ContainerFactory : JuizObject {
     fn create_container(&self, manifest: Value) -> JuizResult<ContainerPtr>;
     
 }
+
+pub type ContainerFactoryPtr = Arc<Mutex<dyn ContainerFactory>>;

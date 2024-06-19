@@ -13,7 +13,7 @@ use axum::extract::Query;
     responses(
         (status = 200, description = "Container")
     ),
-    tag = "container",
+    tag = "universal.container",
 )]
 pub fn profile_handler_dummy(
     _query: Query<IdentifierQuery>,) {
@@ -26,7 +26,7 @@ pub fn profile_handler_dummy(
     responses(
         (status = 200, description = "System")
     ),
-    tag = "container",
+    tag = "universal.container",
 )]
 pub fn list_dummy() {
 }

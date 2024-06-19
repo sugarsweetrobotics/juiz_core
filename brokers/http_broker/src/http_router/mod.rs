@@ -1,3 +1,4 @@
+
 use std::collections::HashMap;
 
 use std::sync::{Mutex, Arc};
@@ -6,6 +7,9 @@ use juiz_core::brokers::CRUDBroker;
 //use juiz_core::processes::capsule::unwrap_arc_capsule;
 
 use juiz_core::processes::capsule_to_value;
+use utoipa::openapi::path::OperationBuilder;
+use utoipa::openapi::request_body::RequestBodyBuilder;
+use utoipa::openapi::{ContentBuilder, PathItem, PathItemType};
 use utoipa::OpenApi;
 use axum::Router;
 use utoipa_swagger_ui::SwaggerUi;
@@ -134,7 +138,6 @@ struct ApiDoc;
 
 pub fn app_new(crud_broker: Arc<Mutex<CRUDBroker>>) -> Router {
     let mut api = ApiDoc::openapi();
-    api.merge(ApiDoc::openapi());
     api.merge(system::ApiDoc::openapi());
     api.merge(process::ApiDoc::openapi());
     api.merge(container::ApiDoc::openapi());
@@ -142,10 +145,17 @@ pub fn app_new(crud_broker: Arc<Mutex<CRUDBroker>>) -> Router {
     api.merge(broker::ApiDoc::openapi());
     api.merge(execution_context::ApiDoc::openapi());
     api.merge(connection::ApiDoc::openapi());
-    
     Router::new()
-            .merge(SwaggerUi::new("/docs")
-            .url("/api-docs/openapi.json", api))
+            .merge(SwaggerUi::new("/docs").url("/api-docs/openapi.json", api))
             .nest("/api/", any::object_router(crud_broker.clone()))
+}
 
+#[allow(unused)]
+pub fn append_route(api: &mut utoipa::openapi::OpenApi, body_context: Value, description: &str, operation_key: &str) -> ()  {
+    let ctt = ContentBuilder::new().example(Some(body_context)).build();
+    let rb = RequestBodyBuilder::new().description(Some(description.to_owned()))
+        .content("application/json", ctt)
+        .build();
+    let operation = OperationBuilder::new().request_body(Some(rb)).build();
+    api.paths.paths.insert(operation_key.to_owned(), PathItem::new(PathItemType::Patch, operation));
 }

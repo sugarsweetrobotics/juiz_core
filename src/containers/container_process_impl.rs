@@ -9,7 +9,8 @@ use super::container_impl::ContainerImpl;
 
 //pub type ContainerProcessFunction<T>=dyn Fn (&mut Box<T>, Value) -> JuizResult<Value> + 'static;
 pub type ContainerFunctionTrait<T>=dyn Fn(&mut ContainerImpl<T>, CapsuleMap) -> JuizResult<Capsule> + 'static;
-pub type ContainerFunctionType<T>=fn (&mut ContainerImpl<T>, CapsuleMap) -> JuizResult<Capsule>;
+//pub type ContainerFunctionType<T>=fn (&mut ContainerImpl<T>, CapsuleMap) -> JuizResult<Capsule>;
+pub type ContainerFunctionType<T>= Arc<ContainerFunctionTrait<T>>;
 
 #[allow(dead_code)]
 pub struct ContainerProcessImpl<T: 'static> {
@@ -28,12 +29,13 @@ impl<T: 'static> ContainerProcessImpl<T> {
         let manifest = check_process_manifest(manif)?;
         let container_clone = Arc::clone(&container);
         let container_identifier = container_lock(&container)?.identifier().clone();
+        let f  = function.clone();
         let proc = ProcessImpl::clousure_new_with_class_name(JuizObjectClass::ContainerProcess("ProcessImpl"), manifest.clone(), Box::new(move |args| {
             let mut locked_container = container_lock_mut(&container)?;
             match locked_container.downcast_mut::<ContainerImpl<T>>() {
                 None => Err(anyhow::Error::from(JuizError::ContainerDowncastingError{identifier: locked_container.identifier().clone()})),
                 Some(container_impl) => {
-                    Ok((function)(container_impl, args)?)
+                    Ok((f)(container_impl, args)?)
                 }
             }
             
@@ -41,6 +43,7 @@ impl<T: 'static> ContainerProcessImpl<T> {
         
         let type_name = obj_get_str(&manifest, "type_name")?;
         let object_name = obj_get_str(&manifest, "name")?;
+        // let f2 = function.clone();
         Ok(  
             (
                 move || ContainerProcessImpl::<T>{

@@ -32,7 +32,7 @@ pub struct CreateConnectionRequest {
         (status = 200, description = "System")
     ),
     request_body = CreateConnectionRequest,
-    tag = "connection",
+    tag = "universal.connection",
 )]
 pub fn create_dummy() {
 }
@@ -46,7 +46,7 @@ pub fn create_dummy() {
     responses(
         (status = 200, description = "System")
     ),
-    tag = "connection",
+    tag = "universal.connection",
 )]
 pub fn profile_handler_dummy(
     _query: Query<IdentifierQuery>,) {
@@ -58,7 +58,7 @@ pub fn profile_handler_dummy(
     responses(
         (status = 200, description = "System")
     ),
-    tag = "connection",
+    tag = "universal.connection",
 )]
 pub fn list_dummy() {
 }

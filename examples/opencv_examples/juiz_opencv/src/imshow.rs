@@ -44,7 +44,7 @@ pub unsafe extern "Rust" fn imshow_factory() -> JuizResult<Arc<Mutex<dyn Contain
                 },
             }, 
         }),
-        imshow_function)
+        &imshow_function)
 }
 
 

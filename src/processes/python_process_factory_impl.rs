@@ -1,9 +1,9 @@
 
-use std::{any::Any, borrow::Borrow, collections::HashMap, fs, path::{Path, PathBuf}, rc::Rc, sync::{Arc, Mutex}};
-use pyo3::{ffi::PyLongObject, prelude::*, types::{PyDict, PyInt, PyTuple}};
+use std::{collections::HashMap, fs, path::PathBuf, sync::{Arc, Mutex}};
+use pyo3::{prelude::*, types::PyTuple};
 use serde_json::Map;
 
-use crate::{core::python_plugin::{pyany_to_value, pydict_to_value}, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, processes::{process_impl::ProcessImpl, process_ptr}, utils::check_process_factory_manifest, value::obj_get_str, Capsule, CapsuleMap, CapsulePtr, JuizError, JuizObject, JuizResult, ProcessFactory, ProcessPtr, Value};
+use crate::{core::python_plugin::pyany_to_value, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, processes::{process_impl::ProcessImpl, process_ptr}, utils::check_process_factory_manifest, value::obj_get_str, Capsule, CapsuleMap, CapsulePtr, JuizError, JuizObject, JuizResult, ProcessFactory, ProcessPtr, Value};
 // use super::process_impl::FunctionType;
 
 
@@ -15,17 +15,17 @@ pub struct PythonProcessFactoryImpl {
     core: ObjectCore,
     manifest: Value,
     fullpath: PathBuf,
-    function: Box<PythonFunctionType>,
+    //function: Box<PythonFunctionType>,
 }
 
-pub fn create_process_factory(manifest: crate::Value, fullpath: PathBuf, function: Box<PythonFunctionType>) -> JuizResult<Arc<Mutex<dyn ProcessFactory>>> {
+pub fn create_process_factory(manifest: crate::Value, fullpath: PathBuf/*, function: Box<PythonFunctionType>*/) -> JuizResult<Arc<Mutex<dyn ProcessFactory>>> {
     log::trace!("create_process_factory called");
-    Ok(Arc::new(Mutex::new(PythonProcessFactoryImpl::new(manifest, fullpath, function)?)))
+    Ok(Arc::new(Mutex::new(PythonProcessFactoryImpl::new(manifest, fullpath/*, function*/)?)))
 }
 
 impl PythonProcessFactoryImpl {
 
-    pub fn new(manifest: crate::Value, fullpath: PathBuf, function: Box<PythonFunctionType>) -> JuizResult<Self> {
+    pub fn new(manifest: crate::Value, fullpath: PathBuf /* function: Box<PythonFunctionType>*/) -> JuizResult<Self> {
         let type_name = obj_get_str(&manifest, "type_name")?;
 
         Ok(
@@ -35,7 +35,7 @@ impl PythonProcessFactoryImpl {
                 ),
                 fullpath,
                 manifest: check_process_factory_manifest(manifest)?, 
-                function
+                //function
             }
         )
     }
@@ -97,10 +97,14 @@ fn capsuleptr_to_pyany(py: Python, value: &CapsulePtr) -> Py<PyAny> {
     todo!()
 }
 
-fn capsulemap_to_pytuple<'a>(py: Python, value: &'a CapsuleMap) -> Vec<Py<PyAny>> {
+pub fn capsulemap_to_pytuple<'a>(py: Python, value: &'a CapsuleMap) -> Vec<Py<PyAny>> {
     value.iter().map(|(_k, v)| { 
         capsuleptr_to_pyany(py, v)
     } ).collect::<Vec<Py<PyAny>>>()
+}
+
+pub fn value_to_pytuple<'a>(py: Python, value: &'a Value) -> Vec<Py<PyAny>> {
+    vec!(value_to_pyany(py, value))
 }
 
 impl ProcessFactory for PythonProcessFactoryImpl {

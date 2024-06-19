@@ -1,20 +1,17 @@
 use std::sync::{Arc, Mutex};
-
+use tokio::net::TcpListener;
 use juiz_core::{jvalue, JuizResult, brokers::{CRUDBrokerHolder, broker_factory::create_broker_factory_impl, BrokerFactory}, Value, value::{obj_get_str, obj_get_i64}};
 use juiz_core::brokers::{Broker, BrokerProxy, CRUDBroker};
 
 use crate::http_router::app_new;
 
 async fn on_start(broker_manifest: Value, crud_broker: Arc<Mutex<CRUDBroker>>) -> () {
-    log::error!("http_broker::on_start() called");
-    let host: JuizResult<&str> = obj_get_str(&broker_manifest, "host").or(Ok("0.0.0.0") );
-    let port: JuizResult<i64> = obj_get_i64(&broker_manifest, "port").or( Ok(8080));
-    let address = host.unwrap().to_string() + ":" + i64::to_string(&port.unwrap()).as_str();
-    // println!("http_broker.on_strart(address={address}, {broker_manifest:?})");
+    log::trace!("http_broker::on_start() called");
+    let host = obj_get_str(&broker_manifest, "host").or::<&str>(Ok("0.0.0.0") ).unwrap();
+    let port  = obj_get_i64(&broker_manifest, "port").or::<i64>( Ok(8080)).unwrap();
+    let address = format!("{:}:{:}", host, port);
     log::info!("http_broker::on_start(address={address}, {broker_manifest:?})) called");
-    let app = app_new(crud_broker);
-    let listener = tokio::net::TcpListener::bind( address ).await.unwrap();
-    axum::serve(listener, app).await.unwrap();
+    axum::serve(TcpListener::bind( address ).await.unwrap(), app_new(crud_broker)).await.unwrap();
 }
 
 

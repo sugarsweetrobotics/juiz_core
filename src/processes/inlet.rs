@@ -74,7 +74,7 @@ impl Inlet {
             }
         }
         match self.buffer.is_empty() {
-            Err(e) => {
+            Err(_e) => {
                 return self.default_value.clone();
             },
             Ok(v) => {

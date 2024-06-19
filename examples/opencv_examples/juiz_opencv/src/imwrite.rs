@@ -54,7 +54,7 @@ pub unsafe extern "Rust" fn imwrite_factory() -> JuizResult<Arc<Mutex<dyn Contai
                 },
             }, 
         }),
-        imwrite_function)
+        &imwrite_function)
 }
 
 
