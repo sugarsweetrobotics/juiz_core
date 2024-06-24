@@ -59,7 +59,11 @@ impl PythonPlugin {
         Ok(PythonPlugin{path})
     }
 
-    fn get_manifest(&self, working_dir: Option<PathBuf>, _symbol_name: &str) -> JuizResult<Value> {
+    fn get_manifest(&self, working_dir: Option<PathBuf>) -> JuizResult<Value> {
+        self.get_manifest_with_name(working_dir, "manifest")
+    }
+
+    fn get_manifest_with_name(&self, working_dir: Option<PathBuf>, symbol_name: &str) -> JuizResult<Value> {
         let mut manifest = jvalue!({});
         let fullpath = working_dir.clone().unwrap_or(env!("CARGO_MANIFEST_DIR").into()).join(self.path.clone());
         let _from_python = Python::with_gil(|py| -> PyResult<Py<PyAny>> {
@@ -74,41 +78,54 @@ if not "{parent:}" in sys.path:
             let result_module = PyModule::from_code_bound(py, &py_app, "", "");
             // println!("result_module: {:?}", result_module);
             let module = result_module?;
-            let manifest_func: Py<PyAny> = module.getattr("manifest")?.into();
+            let manifest_func: Py<PyAny> = module.getattr(symbol_name)?.into();
             let result = manifest_func.call0(py)?;
             let pymanifest = result.clone().extract::<&PyDict>(py)?;
             manifest = pydict_to_value(pymanifest)?;
-
-            
-
-            let _func: Py<PyAny> = module.getattr("manifest")?.into();
+            //let _func: Py<PyAny> = module.getattr("manifest")?.into();
             Ok(result)
         });
         return Ok(manifest);
     }
 
-    pub fn load_container_process_factory(&self, working_dir: Option<PathBuf>, _symbol_name: &str) -> JuizResult<Arc<Mutex<dyn ContainerProcessFactory>>> {
-        log::trace!("PythonPlugin({:?})::load_container_factory() called", self.path);
-        Ok(Arc::new(Mutex::new(PythonContainerProcessFactoryImpl::new(
-            self.get_manifest(working_dir.clone(), _symbol_name)?,
-            working_dir.unwrap_or(env!("CARGO_MANIFEST_DIR").into()).join(self.path.clone())
-        )?)))
-    }
 
     pub fn load_container_factory(&self, working_dir: Option<PathBuf>, _symbol_name: &str) -> JuizResult<Arc<Mutex<dyn ContainerFactory>>> {
         log::trace!("PythonPlugin({:?})::load_container_factory() called", self.path);
+        self.load_container_factory_with_manifest(working_dir.clone(), self.get_manifest(working_dir)?)
+    }
+    
+    pub fn load_container_factory_with_manifest(&self, working_dir: Option<PathBuf>, manifest: Value) -> JuizResult<Arc<Mutex<dyn ContainerFactory>>> {
         Ok(Arc::new(Mutex::new(PythonContainerFactoryImpl::new(
-            self.get_manifest(working_dir.clone(), _symbol_name)?,
+            manifest,
             working_dir.unwrap_or(env!("CARGO_MANIFEST_DIR").into()).join(self.path.clone())
         )?)))
     }
-    
 
-    pub fn load_process_factory(&self, working_dir: Option<PathBuf>, _symbol_name: &str) -> JuizResult<Arc<Mutex<dyn ProcessFactory>>> {
-        log::trace!("PythonPlugin({:?})::load_process_factory() called", self.path);
-        Ok(Arc::new(Mutex::new(PythonProcessFactoryImpl::new(
-            self.get_manifest(working_dir.clone(), _symbol_name)?,
+    pub fn load_container_process_factory(&self, working_dir: Option<PathBuf>, symbol_name: &str) -> JuizResult<Arc<Mutex<dyn ContainerProcessFactory>>> {
+        log::trace!("PythonPlugin({:?})::load_container_factory() called", self.path);
+        self.load_container_process_factory_with_manifest(working_dir.clone(), self.get_manifest(working_dir.clone())?)
+    }
+
+    pub fn load_container_process_factory_with_manifest(&self, working_dir: Option<PathBuf>, manifest: Value) -> JuizResult<Arc<Mutex<dyn ContainerProcessFactory>>> {
+        Ok(Arc::new(Mutex::new(PythonContainerProcessFactoryImpl::new(
+            manifest,
             working_dir.unwrap_or(env!("CARGO_MANIFEST_DIR").into()).join(self.path.clone()),
         )?)))
+    }
+
+    pub fn load_process_factory(&self, working_dir: Option<PathBuf>, symbol_name: &str) -> JuizResult<Arc<Mutex<dyn ProcessFactory>>> {
+        log::trace!("PythonPlugin({:?})::load_process_factory() called", self.path);
+        self.load_process_factory_with_manifest(working_dir.clone(), self.get_manifest(working_dir)?)
+    }
+
+    pub fn load_process_factory_with_manifest(&self, working_dir: Option<PathBuf>, manifest: Value) -> JuizResult<Arc<Mutex<dyn ProcessFactory>>> {
+        Ok(Arc::new(Mutex::new(PythonProcessFactoryImpl::new(
+            manifest,
+            working_dir.unwrap_or(env!("CARGO_MANIFEST_DIR").into()).join(self.path.clone()),
+        )?)))
+    }
+
+    pub fn load_component_profile(&self, working_dir: Option<PathBuf>) -> JuizResult<Value> {
+        self.get_manifest_with_name(working_dir, "component_profile")
     }
 }

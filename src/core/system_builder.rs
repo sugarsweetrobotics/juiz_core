@@ -127,7 +127,7 @@ pub mod system_builder {
                     },
                     _ => {
                         log::error!("In setup_container_factories() function, unknown language option ({:}) detected", language);
-                        Err(anyhow::Error::from(JuizError::InvalidSettingError{message: format!("In setup_process_factories() function, unknown language option ({:}) detected", language)}))
+                        Err(anyhow::Error::from(JuizError::InvalidSettingError{message: format!("In setup_container_factories() function, unknown language option ({:}) detected", language)}))
                     }
                 }
             }
@@ -141,35 +141,89 @@ pub mod system_builder {
         }).collect::<HashMap<String, JuizResult<ContainerFactoryPtr>>>())
     }
 
+    fn setup_component_factory(system: &System, name: &String, v: &Value) -> JuizResult<()> {
+
+        let language = obj_get_str(v, "language").or::<JuizResult<&str>>(Ok("rust")).unwrap();
+        match language {     
+            "rust" => {   
+                let rc_plugin = Rc::new(RustPlugin::load(plugin_path(name, v)?)?);
+                let cp = rc_plugin.load_component_profile()?;
+                when_contains_do(&cp, "containers", |container_profiles| -> JuizResult<()> {
+                    for container_profile in get_array(container_profiles)?.iter() {
+                        let container_type_name = obj_get_str(container_profile, "type_name")?;
+                        log::debug!(" - Loading Container ({container_type_name:}) Loading....");
+                        register_container_factory(system, rc_plugin.clone(), obj_get_str(container_profile, "factory")?).context("ContainerFactoryWrapper::new()")?;
+                        when_contains_do(container_profile, "processes", |vv| {
+                            for v in get_array(vv)?.iter() {
+                                let container_process_type_name = obj_get_str(v, "type_name")?;
+                                log::debug!(" - Loading ContainerProcess ({container_process_type_name:}:{container_type_name}) Loading....");
+                                register_container_process_factory(system, rc_plugin.clone(), obj_get_str(v, "factory")?)?;
+                            }
+                            return Ok(());
+                        })?;
+                    }
+                    Ok(())
+                })?;
+                when_contains_do(&cp, "processes", |process_profiles| -> JuizResult<()> {
+                    for process_profile in get_array(process_profiles)?.iter() {
+                        let process_type_name = obj_get_str(process_profile, "type_name")?;
+                        log::debug!(" - Loading Process ({process_type_name:}) Loading....");
+                        register_process_factory(system, rc_plugin.clone(), obj_get_str(process_profile, "factory")?).context("ProcessFactoryWrapper::new()")?;
+                    }
+                    Ok(())
+                })?;
+                return Ok(());
+            },
+            "python" => {
+                let rc_plugin = Rc::new(PythonPlugin::load(python_plugin_path(name, v)?)?);
+                let cp = rc_plugin.load_component_profile(system.get_working_dir())?;
+                when_contains_do(&cp, "containers", |container_profiles| -> JuizResult<()> {
+                    for container_profile in get_array(container_profiles)?.iter() {
+                        let container_type_name = obj_get_str(container_profile, "type_name")?;
+                        log::debug!(" - Loading Container ({container_type_name:}) Loading....");
+                        //let container_factory_name = obj_get_str(container_profile, "factory")?;
+                        let pf = rc_plugin.load_container_factory_with_manifest(system.get_working_dir(), container_profile.clone())?;
+                        system.core_broker().lock().unwrap().store_mut().containers.register_factory(ContainerFactoryWrapper::new_python(rc_plugin.clone(), pf)?)?;
+                        when_contains_do(container_profile, "processes", |process_profiles| {
+                            for process_profile in get_array(process_profiles)?.iter() {
+                                let container_process_type_name = obj_get_str(process_profile, "type_name")?;
+                                log::debug!(" - Loading ContainerProcess ({container_process_type_name:}) Loading....");
+                                //let container_process_function_name = obj_get_str(process_profile, "function")?;
+                                let cpf = rc_plugin.load_container_process_factory_with_manifest(system.get_working_dir(), process_profile.clone())?;
+                                system.core_broker().lock().unwrap().store_mut().container_processes.register_factory(ContainerProcessFactoryWrapper::new_python(rc_plugin.clone(), cpf)?)?;
+                            }
+                            Ok(())
+                        })?;
+                    }
+                    Ok(())
+                })?;
+                when_contains_do(&cp, "processes", |process_profiles| {
+                    for process_profile in get_array(process_profiles)?.iter() {
+                        let process_type_name = obj_get_str(process_profile, "type_name")?;
+                        log::debug!(" - Loading Process ({process_type_name:}) Loading....");
+                        //let process_function_name = obj_get_str(process_profile, "function")?;
+                        let cpf = rc_plugin.load_process_factory_with_manifest(system.get_working_dir(), process_profile.clone())?;
+                        system.core_broker().lock().unwrap().store_mut().processes.register_factory(ProcessFactoryWrapper::new_python(rc_plugin.clone(), cpf)?)?;
+                    }
+                    Ok(())
+                })?;
+                return Ok(());
+            },
+            _ => {
+                log::error!("In setup_component_factories() function, unknown language option ({:}) detected", language);
+                Err(anyhow::Error::from(JuizError::InvalidSettingError{message: format!("In setup_component_factories() function, unknown language option ({:}) detected", language)}))
+            }
+        }
+    }
+
+
     fn setup_component_factories(system: &System, manifest: &Value) -> JuizResult<()> {
         log::trace!("system_builder::setup_component_factories({manifest:?}) called");
         for (name, v) in get_hashmap(manifest)?.iter() {
 
             log::debug!("Loading Component (name={name:})....");
             unsafe {
-                type ComponentProfileFunctionSymbolType<'a> = libloading::Symbol<'a, unsafe extern "Rust" fn() -> Value>;
-                let rc_plugin = Rc::new(RustPlugin::load(plugin_path(name, v)?)?);
-                //log::trace!("!!!!!!!ComponentName: {}", (name.to_owned() + "::container_factory"));
-                let symbol = rc_plugin.load_symbol::<ComponentProfileFunctionSymbolType>(b"component_profile")?;
-                let cp = (symbol)();//.with_context(||format!("calling symbol 'container_factory'. arg is {manifest:}"))?;
-                for container_profile in get_array(&cp["containers"])?.iter() {
-                    let container_type_name = obj_get_str(container_profile, "type_name")?;
-                    log::debug!(" - Loading Container ({container_type_name:}) Loading....");
-                    register_container_factory(system, rc_plugin.clone(), obj_get_str(container_profile, "factory")?).context("ContainerFactoryWrapper::new()")?;
-                    when_contains_do(container_profile, "processes", |vv| {
-                        for v in get_array(vv)?.iter() {
-                            let container_process_type_name = obj_get_str(v, "type_name")?;
-                            log::debug!(" - Loading ContainerProcess ({container_process_type_name:}:{container_type_name}) Loading....");
-                            register_container_process_factory(system, rc_plugin.clone(), obj_get_str(v, "factory")?)?;
-                        }
-                        return Ok(());
-                    })?;
-                }
-                for process_profile in get_array(&cp["processes"])?.iter() {
-                    let process_type_name = obj_get_str(process_profile, "type_name")?;
-                    log::debug!(" - Loading Process ({process_type_name:}) Loading....");
-                    register_process_factory(system, rc_plugin.clone(), obj_get_str(process_profile, "factory")?).context("ProcessFactoryWrapper::new()")?;
-                }
+                setup_component_factory(system, name, v)?;
             }
         }
         
