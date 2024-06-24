@@ -23,8 +23,7 @@ pub unsafe extern "Rust" fn manifest() -> Value {
 
 
 fn increment_function(container: &mut ContainerImpl<ExampleContainer>, v: CapsuleMap) -> JuizResult<Capsule> {
-    //let i = juiz_lock(&v.get("arg1")?)?.as_value().unwrap().as_i64().unwrap();
-    let i = v.get("arg1")?.lock_as_value(|value| { value.as_i64() } )?.unwrap();
+    let i = v.get_int("arg1")?;
     container.value = container.value + i;
     return Ok(jvalue!(container.value).into());
 }

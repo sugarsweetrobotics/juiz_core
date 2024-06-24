@@ -9,6 +9,8 @@ pub mod process_factory_wrapper;
 pub mod argument;
 pub mod output;
 pub mod capsule;
+pub mod capsule_map;
+pub mod capsule_ptr;
 pub mod inlet;
 pub mod outlet;
 
@@ -17,7 +19,7 @@ pub use process_factory::{ProcessFactory, ProcessFactoryPtr};
 pub use process_factory_impl::create_process_factory;
 pub use process_factory_wrapper::ProcessFactoryWrapper;
 
-pub use self::capsule::{capsule_to_value, value_to_capsule, CapsulePtr};
+pub use self::capsule_ptr::{capsule_to_value, value_to_capsule, CapsulePtr};
 pub use self::argument::Argument;
 pub use self::output::Output;
 
