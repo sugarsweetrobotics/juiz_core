@@ -109,6 +109,8 @@ impl CRUDBroker {
             },
             Some(cbs) => {
                 let function_name = extract_function_name(&args)?.clone();
+                let class_name = extract_class_name(&args)?.clone();
+                
                 match cbs.get(function_name.as_str()) {
                     None => {
                         Err(anyhow::Error::from(JuizError::CRUDBrokerCanNotFindFunctionError { class_name: extract_class_name(&args)?, function_name: extract_function_name(&args)?.clone()}))
@@ -116,6 +118,7 @@ impl CRUDBroker {
                     Some(cb) => {
                         let mut capsule = cb(Arc::clone(&self.core_broker), args)?;
                         let _  = capsule.set_function_name(function_name.as_str())?;
+                        let _ = capsule.set_class_name(class_name.as_str())?;
                         Ok(capsule)
                     }
                 }

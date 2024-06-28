@@ -6,7 +6,7 @@ pub mod system_builder {
 
     use anyhow::Context;
 
-    use crate::{brokers::{broker_factories_wrapper::BrokerFactoriesWrapper, local::{local_broker::{create_local_broker_factory, BrokerSideSenderReceiverPair, ProxySideSenderReceiverPair}, local_broker_proxy::create_local_broker_proxy_factory}, local_broker::ByteSenderReceiverPair, BrokerFactory, BrokerProxy, BrokerProxyFactory}, containers::{ContainerFactoryPtr, ContainerProcessFactoryPtr}, core::python_plugin::PythonPlugin, processes::ProcessFactoryPtr, JuizError};
+    use crate::{brokers::{broker_factories_wrapper::BrokerFactoriesWrapper, ipc::{ipc_broker::create_ipc_broker_factory, ipc_broker_proxy::create_ipc_broker_proxy_factory}, local::{local_broker::{create_local_broker_factory, BrokerSideSenderReceiverPair, ProxySideSenderReceiverPair}, local_broker_proxy::create_local_broker_proxy_factory}, local_broker::ByteSenderReceiverPair, BrokerFactory, BrokerProxy, BrokerProxyFactory}, containers::{ContainerFactoryPtr, ContainerProcessFactoryPtr}, core::python_plugin::PythonPlugin, processes::ProcessFactoryPtr, JuizError};
     use crate::{connections::connection_builder::connection_builder, containers::{container_factory_wrapper::ContainerFactoryWrapper, container_process_factory_wrapper::ContainerProcessFactoryWrapper}, core::RustPlugin, ecs::{execution_context_holder::ExecutionContextHolder, execution_context_holder_factory::ExecutionContextHolderFactory, ExecutionContextFactory}, jvalue, processes::{capsule::CapsuleMap, ProcessFactoryWrapper}, utils::{get_array, get_hashmap, juiz_lock, manifest_util::when_contains_do_mut, when_contains_do}, value::{obj_get, obj_get_str}, CapsulePtr, ContainerFactory, ContainerProcessFactory, JuizResult, ProcessFactory, System, Value};
 
     pub fn setup_plugins(system: &mut System, manifest: &Value) -> JuizResult<()> {
@@ -264,6 +264,15 @@ pub mod system_builder {
         Ok(())
     }
 
+    pub fn setup_ipc_broker_factory(system: &mut System) -> JuizResult<()> {
+        log::trace!("system_builder::setup_local_broker_factory() called");
+        let lbf = create_ipc_broker_factory(system.core_broker().clone())?;
+        let lbpf = create_ipc_broker_proxy_factory()?;
+        //juiz_lock(system.core_broker())?.store_mut().broker_proxies.register_factory(lbpf.clone())?;
+        let _wrapper = system.register_broker_factories_wrapper(BrokerFactoriesWrapper::new(None, lbf, lbpf)?)?;
+        Ok(())
+    }
+
     fn setup_broker_factories(system: &mut System, manifest: &Value) -> JuizResult<()> {
         log::trace!("system_builder::setup_broker_factories() called");
         for (name, v) in get_hashmap(manifest)?.iter() {
@@ -321,6 +330,20 @@ pub mod system_builder {
             "name": "local"
         })).context("system.create_broker() failed in system_builder::setup_local_broker()")?;
         system.register_broker(local_broker)?;
+
+        //let http_broker = HTTPBroker::new(
+        //    system.core_broker().clone(), "http_broker_0")?;
+        //system.register_broker(http_broker)?;
+        Ok(())
+    }
+
+    pub fn setup_ipc_broker(system: &mut System) -> JuizResult<()> {
+        log::trace!("system_builder::setup_ipc_broker() called");
+        let ipc_broker = system.create_broker(&jvalue!({
+            "type_name": "ipc",
+            "name": "ipc"
+        })).context("system.create_broker() failed in system_builder::setup_ipc_broker()")?;
+        system.register_broker(ipc_broker)?;
 
         //let http_broker = HTTPBroker::new(
         //    system.core_broker().clone(), "http_broker_0")?;

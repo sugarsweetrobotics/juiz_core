@@ -222,6 +222,9 @@ impl System {
         system_builder::setup_local_broker_factory(self).context("system_builder::setup_local_broker_factory in System::setup() failed.")?;
         system_builder::setup_local_broker(self).context("system_builder::setup_local_broker in System::setup() failed.")?;
 
+        system_builder::setup_ipc_broker_factory(self).context("system_builder::setup_ipc_broker_factory in System::setup() failed.")?;
+        //system_builder::setup_ipc_broker(self).context("system_builder::setup_ipc_broker in System::setup() failed.")?;
+        
         let _ = when_contains_do_mut(&manifest_copied, "brokers", |v| {
             system_builder::setup_brokers(self, v).context("system_builder::setup_brokers in System::setup() failed.")
         })?;
@@ -405,6 +408,7 @@ impl System {
         log::trace!("System::process_list() called");
         let mut local_processes = juiz_lock(&self.core_broker())?.store().processes.list_manifests()?;
         for proxy in juiz_lock(&self.core_broker())?.store().broker_proxies.objects().into_iter() {
+            log::trace!("process_list for proxy ()");
             for v in get_array(&juiz_lock(proxy)?.process_list()?)?.iter() {
                 local_processes.push(v.clone());
             }

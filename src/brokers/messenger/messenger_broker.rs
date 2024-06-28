@@ -1,8 +1,8 @@
-use std::{sync::{Arc, Mutex, atomic::AtomicBool, mpsc}, time::Duration};
+use std::{borrow::BorrowMut, sync::{atomic::AtomicBool, mpsc, Arc, Mutex}, time::Duration};
 
 use tokio::runtime;
 
-use crate::{object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, processes::capsule::{Capsule, CapsuleMap}, utils::juiz_lock, CapsulePtr, CoreBroker, JuizError, JuizObject, JuizResult, Value};
+use crate::{object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, processes::capsule::{Capsule, CapsuleMap}, utils::{juiz_lock, sync_util::juiz_borrow_mut}, CapsulePtr, CoreBroker, JuizError, JuizObject, JuizResult, Value};
 use crate::brokers::Broker;
 use std::sync::atomic::Ordering::SeqCst;
 
@@ -29,7 +29,7 @@ pub trait MessengerBrokerCore : Send {
 }
 
 pub trait MessengerBrokerCoreFactory {
-    fn create(&self) -> JuizResult<Arc<Mutex<dyn MessengerBrokerCore>>>;
+    fn create(&self, manifest: &Value) -> JuizResult<Arc<Mutex<dyn MessengerBrokerCore>>>;
 }
 
 pub struct SenderReceiverPair(pub mpsc::Sender<Value>, pub mpsc::Receiver<Value>);
@@ -127,7 +127,11 @@ impl Broker for MessengerBroker {
 
                 loop {
                     let crud = cb.clone();
-                    let func: Arc<Mutex<dyn Fn(CapsuleMap)->JuizResult<CapsulePtr>>> = Arc::new(Mutex::new(move |value:CapsuleMap| -> JuizResult<CapsulePtr> { handle_function(Arc::clone(&crud), value) }));
+                    let func: Arc<Mutex<dyn Fn(CapsuleMap)->JuizResult<CapsulePtr>>> = 
+                        Arc::new(Mutex::new(move |value:CapsuleMap| -> JuizResult<CapsulePtr> {
+                            handle_function(Arc::clone(&crud), value) 
+                        }));
+                        
                     std::thread::sleep(Duration::new(0, 10*1000*1000));
                     match end_flag.lock() {
                         Err(e) => {
@@ -141,7 +145,9 @@ impl Broker for MessengerBroker {
                             }
                         }
                     };
-                    match juiz_lock(&sender_receiver) {
+                    //sender_receiver.get_mut()
+                    //match juiz_lock(&sender_receiver) {
+                    match sender_receiver.lock() {
                         Err(_) => {},
                         Ok(sndr_recvr) => {
                             // log::trace!("In MessengerBroker::routine(), calling sndr_recvr.receive_and_send() funciton.");

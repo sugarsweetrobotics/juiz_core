@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 
+use serde::de::value;
 use serde_json::Map;
 
 use crate::{jvalue, utils::get_hashmap, CapsulePtr, JuizError, JuizResult, Value};
@@ -70,12 +71,48 @@ impl TryFrom<Value> for CapsuleMap {
 
     fn try_from(value: Value) -> Result<Self, Self::Error> {
         let mut c = CapsuleMap::new();
-        for (k, v) in get_hashmap(&value)?.into_iter() {
-            c.insert(k.to_owned(), (*v).clone().into());
+        for (k, v) in get_hashmap(&value)?.iter() {
+            if k == "map" {
+                for (key, value) in get_hashmap(v)?.iter() {
+                    c.insert(key.to_owned(), (*value).clone().into());
+                }
+            } else if k == "param" {
+                for (key, value) in get_hashmap(v)?.iter() {
+                    c.set_param(key.as_str(), (*value).as_str().unwrap());
+                }
+            } else {
+                log::error!("Trying to convert from Value to CapuleMap but it contains unknown key ({k}). The corresponding value is {v:?}");
+                return Err(anyhow::Error::from(JuizError::DataConversionError{message:format!("Trying to convert from Value to CapuleMap but it contains unknown key ({k}). The corresponding value is {v:?}")}))
+            }
         }
         Ok(c)
     }
 }
+
+impl From<CapsuleMap> for Value {
+    fn from(capsule_map: CapsuleMap) -> Self {
+        log::trace!("Value From CapusleMap ({capsule_map:?}) called");
+        let mut v1 = jvalue!({});
+        let map = v1.as_object_mut().unwrap();
+        for (key, value) in capsule_map.map.iter() {
+            let _ = value.lock_as_value(|vv| -> () { 
+                map.insert(key.clone(), vv.clone()); 
+            });
+            //map.insert(k, Value::try_from(v.lock().unwrap().clone()).unwrap());
+        }
+        let mut v2 = jvalue!({});
+        let param = v2.as_object_mut().unwrap();
+        for (key, value) in capsule_map.param.iter() {
+            param.insert(key.clone(), jvalue!(value));
+        }
+
+        return jvalue!({
+            "map": v1,
+            "param": v2,
+        })
+    }
+}
+
 
 impl From<Vec<(std::string::String, CapsulePtr)>> for CapsuleMap {
     fn from(value: Vec<(std::string::String, CapsulePtr)>) -> Self {
@@ -87,17 +124,6 @@ impl From<Vec<(std::string::String, CapsulePtr)>> for CapsuleMap {
     }
 }
 
-impl From<CapsuleMap> for Value {
-    fn from(value: CapsuleMap) -> Self {
-        let mut v = jvalue!({});
-        let map = v.as_object_mut().unwrap();
-        for (k, v) in value.map.into_iter() {
-            let _ = v.lock_as_value(|vv| -> () { map.insert(k.clone(), vv.clone()); });
-            //map.insert(k, Value::try_from(v.lock().unwrap().clone()).unwrap());
-        }
-        return v;
-    }
-}
 
 impl From<Vec<(&str, Value)>> for CapsuleMap {
     fn from(value: Vec<(&str, Value)>) -> Self {

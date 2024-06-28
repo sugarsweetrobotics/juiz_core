@@ -169,6 +169,8 @@ pub enum JuizError {
     InvalidSettingError { message: String },
     #[error("ValueType Error {message}")]
     ValueTypeError { message: String },
+    #[error("Data Conversion Error {message}")]
+    DataConversionError { message: String },
 
     /*
     ProcessManifestError,

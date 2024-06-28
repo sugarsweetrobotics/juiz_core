@@ -48,7 +48,7 @@ impl BrokerFactory for MessengerBrokerFactory {
                     self.type_name(),
                     object_name,
                     self.core_broker.clone(),
-                    self.core_factory.create().context("MessengerCoreFactory::create() failed in MessngerBrokerFactory::create_broker()")?)?,
+                    self.core_factory.create(&manifest).context("MessengerCoreFactory::create() failed in MessngerBrokerFactory::create_broker()")?)?,
         )
     }
     

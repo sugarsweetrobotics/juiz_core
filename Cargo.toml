@@ -24,10 +24,12 @@ signal-hook = "0.3.17"
 libloading = "0.8.1"
 mopa = "0.2.2"
 
-tokio = { version = "1.35.0", features = ["full"] }
+tokio = { version = "1.38.0", features = ["full"] }
 axum = "0.7.2"
 uuid = "1.6.1"
 futures = "0.3.29"
+
+interprocess = {version="2.2.0", features=["tokio"]}
 
 # opencv = {version="0.84.0", default-features=false, features=["clang-runtime"]}
 opencv = {version="0.84.0", default-features=false, features=["imgproc", "imgcodecs", "clang-runtime"]}

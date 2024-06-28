@@ -9,6 +9,7 @@ pub mod broker_factories_wrapper;
 pub mod local;
 pub mod messenger;
 pub mod crud;
+pub mod ipc;
 // pub mod _http_;
 
 

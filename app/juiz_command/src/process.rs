@@ -18,6 +18,8 @@ pub(crate) enum ProcSubCommands {
         #[arg(short = 'a', help = "Any process includes")]
         any_process: bool,
         
+        //#[arg(short = 'f', default_value = "./juiz.conf", help = "Input system definition file path")]
+        //filepath: String,
     },
 
     /// get logs
@@ -53,7 +55,7 @@ pub(crate) fn on_process(manifest: Value, working_dir: &Path, subcommand: ProcSu
 }
 pub(crate) fn on_process_inner(manifest: Value, working_dir: &Path, subcommand: ProcSubCommands) -> JuizResult<()> {
     match subcommand {
-        ProcSubCommands::List { server, any_process } => {
+        ProcSubCommands::List { server, any_process} => {
             System::new(manifest)?
                 .set_working_dir(working_dir)
                 .run_and_do_once( |system| { 
@@ -82,6 +84,8 @@ pub(crate) fn on_process_inner(manifest: Value, working_dir: &Path, subcommand: 
 }
 
 fn on_process_list(system: &mut System, _server: String) -> JuizResult<()> {
+    log::info!("on_process_list() called");
+    println!("ON_PROCDSS_LIST");
     let proc_manifests: Vec<Value> = system.process_list()?;
     let mut ids: Vec<String> = Vec::new();
     for v in proc_manifests.iter() {

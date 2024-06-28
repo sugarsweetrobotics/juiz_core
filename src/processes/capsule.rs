@@ -2,7 +2,7 @@ use std::{collections::HashMap, mem::swap, sync::{Arc, Mutex}};
 
 use opencv::core::Mat;
 
-use crate::{JuizError, JuizResult, Value};
+use crate::{jvalue, JuizError, JuizResult, Value};
 pub use crate::processes::capsule_map::CapsuleMap;
 pub use crate::processes::capsule_ptr::CapsulePtr;
 
@@ -51,12 +51,14 @@ impl CapsuleValue {
         }
     }
 
-    pub fn to_value(&self) -> Option<Value> {
+    
+    pub fn to_value(self) -> Option<Value> {
         match self {
-            Self::Value(v) => Some(v.clone()),
+            Self::Value(v) => Some(v),
             _ => None
         }
     }
+    
 
     pub fn is_mat(&self) -> bool {
         match self {
@@ -89,30 +91,68 @@ pub struct Capsule {
 
 
 impl From<Value> for Capsule {
-    fn from(value: Value) -> Self {
-        Self{
-            value: CapsuleValue::from(value),
-            option: HashMap::new(),
+    fn from(mut value: Value) -> Self {
+        let mut option_map: HashMap<String, String> = HashMap::new();
+        match value.as_object() {
+            None => {
+                return Self{
+                    value: CapsuleValue::from(value),
+                    option: option_map,
+                };
+            },
+            Some(obj) => {
+                if ! (obj.contains_key("__value__") && obj.contains_key("__option__")) {
+                    return Self{
+                        value: CapsuleValue::from(value),
+                        option: option_map,
+                    };
+                }
+                    
+            }
+        }
+        for (k, v) in value.as_object().unwrap().get("__option__").unwrap().as_object().unwrap().iter() {
+            option_map.insert(k.clone(), v.as_str().unwrap().to_owned());
+        }
+        return Self {
+            value: CapsuleValue::from(value.as_object_mut().unwrap().remove("__value__").unwrap()),
+            option: option_map
         }
     }
 }
-
 
 impl TryFrom<Capsule> for Value {
     type Error = anyhow::Error;
     
     fn try_from(value: Capsule) -> Result<Self, Self::Error> {
-        match value.to_value() {
-            Some(v) => Ok(v),
-            None => Err(anyhow::Error::from(JuizError::CapsuleIsNotValueTypeError{}))
+        //match value.as_value() {
+        //    Some(v) => {}, //Ok(v),
+        //    None => return Err(anyhow::Error::from(JuizError::CapsuleIsNotValueTypeError{}))
+        //};
+        match value.value {
+            CapsuleValue::Value(mut v) => {
+                /*
+                match v.as_object_mut() {
+                    None => {},
+                    Some(obj) => {
+                        obj.insert("__option__".to_owned(), jvalue!(value.option));
+                    }
+                }                
+                Ok(v)
+                */
+                Ok(jvalue!({
+                    "__value__": v,
+                    "__option__": jvalue!(value.option)
+                }))
+            }
+            _ => Err(anyhow::Error::from(JuizError::CapsuleIsNotValueTypeError{}))
         }
     }
 }
 
 impl From<Mat> for Capsule {
-    fn from(value: Mat) -> Self {
+    fn from(mat_value: Mat) -> Self {
         Self{
-            value: CapsuleValue::from(value),
+            value: CapsuleValue::from(mat_value),
             option: HashMap::new(),
         }
     }
@@ -141,7 +181,7 @@ impl Capsule {
 
     pub fn as_value_mut(&mut self) -> Option<&mut Value> { self.value.as_value_mut() }
 
-    pub fn to_value(&self) -> Option<Value> { self.value.to_value() }
+    pub fn to_value(self) -> Option<Value> { self.value.to_value() }
 
     pub fn is_mat(&self) -> bool { self.value.is_mat() }
 
@@ -156,6 +196,10 @@ impl Capsule {
 
     pub fn get_option(&self, key: &str) -> Option<&String> {
         self.option.get(&key.to_owned())
+    }
+
+    pub fn get_options(&self) -> &HashMap<String, String> {
+        &self.option
     }
     
     pub fn empty() -> Capsule {

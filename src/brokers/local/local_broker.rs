@@ -1,7 +1,7 @@
 use std::{sync::{Arc, Mutex, mpsc}, time::Duration, ops::Deref};
 
 
-use crate::{brokers::create_messenger_broker_factory, jvalue, processes::capsule::{Capsule, CapsuleMap}, utils::juiz_lock, CapsulePtr, CoreBroker, JuizError, JuizResult};
+use crate::{brokers::create_messenger_broker_factory, jvalue, processes::capsule::{Capsule, CapsuleMap}, utils::juiz_lock, CapsulePtr, CoreBroker, JuizError, JuizResult, Value};
 use crate::brokers::{BrokerFactory, MessengerBroker, MessengerBrokerCore, MessengerBrokerCoreFactory};
 
 
@@ -80,7 +80,7 @@ impl LocalBrokerCoreFactory {
 
 impl MessengerBrokerCoreFactory for LocalBrokerCoreFactory {
 
-    fn create(&self) -> JuizResult<Arc<Mutex<dyn MessengerBrokerCore>>> {
+    fn create(&self, _manifest: &Value) -> JuizResult<Arc<Mutex<dyn MessengerBrokerCore>>> {
         LocalBrokerCore::new(self.sender_receiver.clone(), self.byte_sender_receiver.clone())
     }
 }

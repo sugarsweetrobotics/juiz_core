@@ -1,12 +1,12 @@
 
 //pub type CapsulePtr = Arc<Mutex<Capsule>>;
 
-use std::sync::{Arc, Mutex};
+use std::{collections::HashMap, sync::{Arc, Mutex}};
 
 use opencv::core::Mat;
 use serde_json::Map;
 
-use crate::{Capsule, JuizError, JuizResult, Value};
+use crate::{jvalue, Capsule, JuizError, JuizResult, Value};
 
 #[derive(Debug)]
 pub struct CapsulePtr {
@@ -79,6 +79,35 @@ impl CapsulePtr {
         }
     }
     
+    pub fn lock_as_value_and_opt<T, F>(&self, func: F) -> JuizResult<T> where F: FnOnce(&Value, &HashMap<String, String>) -> T{
+        match self.value.lock() {
+            Ok(c) => {
+                match c.as_value() {
+                    Some(v) => Ok(func(v, c.get_options())),
+                    None => todo!(),
+                }
+            }
+            Err(_e) => Err(anyhow::Error::from(JuizError::MutexLockFailedError { error: "CapsulePtr.lock_as_value() lock error.".to_owned() })),
+        }
+    }
+
+    pub fn extract_value(self) -> JuizResult<Value> {
+        match Arc::try_unwrap(self.value) {
+            Ok(v) => {
+                match v.into_inner() {
+                    Ok(vv) => {
+                        return Ok(vv.to_value().unwrap())
+                    },
+                    Err(v) => {
+                        return Ok(v.get_ref().as_value().unwrap().clone())
+                    }
+                }
+            },
+            Err(e) => {
+                e.lock().and_then(|v| { Ok(v.as_value().unwrap().clone()) }).or_else(|_e| { Err(anyhow::Error::from(JuizError::MutexLockFailedError { error: "".to_owned() })) })
+            }
+        }
+    }
 
     pub fn lock_as_value<T, F>(&self, func: F) -> JuizResult<T> where F: FnOnce(&Value) -> T{
         match self.value.lock() {
@@ -159,6 +188,14 @@ impl CapsulePtr {
         self.get_option("function_name")
     }
 
+    pub(crate) fn set_class_name(&mut self, name: &str) -> JuizResult<()> {
+        self.set_option("class_name", name)?;
+        Ok(())
+    }
+
+    pub(crate) fn get_class_name(&self) -> JuizResult<String> {
+        self.get_option("class_name")
+    }
 
 }
 
@@ -180,22 +217,33 @@ impl From<Capsule> for CapsulePtr {
     }
 }
 
+impl TryInto<Value> for CapsulePtr {
+    fn try_into(self) -> Result<Value, Self::Error> {
+        self.lock_as_value_and_opt(|v, opt| {
+            jvalue!({
+                "__value__": v,
+                "__option__": jvalue!(opt)
+            })
+        } )
+    }
+    type Error = anyhow::Error;
+}
+
 impl Clone for CapsulePtr {
     fn clone(&self) -> Self {
         Self { value: self.value.clone() }
     }
 }
 
+
 pub fn capsule_to_value(capsule: CapsulePtr) -> JuizResult<Value> {
-    match capsule.value.lock() {
-        Ok(v) => {
-            match v.to_value() {
-                Some(vv) => Ok(vv),
-                None => Err(anyhow::Error::from(JuizError::CapsuleIsNotValueTypeError {  }))
-            }
-        }, 
-        Err(_e) => Err(anyhow::Error::from(JuizError::MutexLockFailedError { error: "capsule_to_value()".to_owned() }))
-    }
+    log::trace!("capsule_to_value(capsule: {capsule:?}) called");
+    capsule.lock_as_value_and_opt(|v, opt| {
+        jvalue!({
+            "__value__": v,
+            "__option__": jvalue!(opt)
+        })
+    } )
 }
 
 pub fn value_to_capsule(value: Value) -> CapsulePtr {

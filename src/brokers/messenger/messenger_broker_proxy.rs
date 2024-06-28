@@ -213,7 +213,9 @@ impl ProcessBrokerProxy for MessengerBrokerProxy {
     }
 
     fn process_list(&self) -> JuizResult<Value> {
-        capsule_to_value(self.read("process", "list")?)
+        self.read("process", "list")?.extract_value()
+        //todo!("ここで__value__, __option___を使ってた弊害出てるぞ");
+        //capsule_to_value(self.read("process", "list")?)
     }
 
     fn process_try_connect_to(&mut self, source_process_id: &Identifier, arg_name: &str, destination_process_id: &Identifier, manifest: Value) -> JuizResult<Value> {
