@@ -1,6 +1,6 @@
 
 use libloading::Library;
-use std::{path::PathBuf, rc::Rc};
+use std::path::PathBuf;
 
 use crate::{jvalue, JuizError, JuizResult, Value};
 

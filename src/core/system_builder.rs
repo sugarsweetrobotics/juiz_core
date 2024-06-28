@@ -220,11 +220,8 @@ pub mod system_builder {
     fn setup_component_factories(system: &System, manifest: &Value) -> JuizResult<()> {
         log::trace!("system_builder::setup_component_factories({manifest:?}) called");
         for (name, v) in get_hashmap(manifest)?.iter() {
-
             log::debug!("Loading Component (name={name:})....");
-            unsafe {
-                setup_component_factory(system, name, v)?;
-            }
+            setup_component_factory(system, name, v)?;
         }
         
         Ok(())
@@ -337,6 +334,7 @@ pub mod system_builder {
         Ok(())
     }
 
+    #[allow(unused)]
     pub fn setup_ipc_broker(system: &mut System) -> JuizResult<()> {
         log::trace!("system_builder::setup_ipc_broker() called");
         let ipc_broker = system.create_broker(&jvalue!({

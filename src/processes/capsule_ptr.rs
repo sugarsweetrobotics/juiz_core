@@ -193,6 +193,7 @@ impl CapsulePtr {
         Ok(())
     }
 
+    #[allow(unused)]
     pub(crate) fn get_class_name(&self) -> JuizResult<String> {
         self.get_option("class_name")
     }

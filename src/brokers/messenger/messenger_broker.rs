@@ -1,8 +1,8 @@
-use std::{borrow::BorrowMut, sync::{atomic::AtomicBool, mpsc, Arc, Mutex}, time::Duration};
+use std::{sync::{atomic::AtomicBool, mpsc, Arc, Mutex}, time::Duration};
 
 use tokio::runtime;
 
-use crate::{object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, processes::capsule::{Capsule, CapsuleMap}, utils::{juiz_lock, sync_util::juiz_borrow_mut}, CapsulePtr, CoreBroker, JuizError, JuizObject, JuizResult, Value};
+use crate::{object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, processes::capsule::{Capsule, CapsuleMap}, utils::juiz_lock, CapsulePtr, CoreBroker, JuizError, JuizObject, JuizResult, Value};
 use crate::brokers::Broker;
 use std::sync::atomic::Ordering::SeqCst;
 

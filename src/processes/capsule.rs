@@ -1,8 +1,8 @@
-use std::{collections::HashMap, mem::swap, sync::{Arc, Mutex}};
+use std::{collections::HashMap, mem::swap};
 
 use opencv::core::Mat;
 
-use crate::{jvalue, JuizError, JuizResult, Value};
+use crate::{jvalue, JuizError, Value};
 pub use crate::processes::capsule_map::CapsuleMap;
 pub use crate::processes::capsule_ptr::CapsulePtr;
 
@@ -129,18 +129,9 @@ impl TryFrom<Capsule> for Value {
         //    None => return Err(anyhow::Error::from(JuizError::CapsuleIsNotValueTypeError{}))
         //};
         match value.value {
-            CapsuleValue::Value(mut v) => {
-                /*
-                match v.as_object_mut() {
-                    None => {},
-                    Some(obj) => {
-                        obj.insert("__option__".to_owned(), jvalue!(value.option));
-                    }
-                }                
-                Ok(v)
-                */
+            CapsuleValue::Value(mut _v) => {
                 Ok(jvalue!({
-                    "__value__": v,
+                    "__value__": _v,
                     "__option__": jvalue!(value.option)
                 }))
             }

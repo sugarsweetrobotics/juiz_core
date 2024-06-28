@@ -101,7 +101,7 @@ if not "{parent:}" in sys.path:
         )?)))
     }
 
-    pub fn load_container_process_factory(&self, working_dir: Option<PathBuf>, symbol_name: &str) -> JuizResult<Arc<Mutex<dyn ContainerProcessFactory>>> {
+    pub fn load_container_process_factory(&self, working_dir: Option<PathBuf>, _symbol_name: &str) -> JuizResult<Arc<Mutex<dyn ContainerProcessFactory>>> {
         log::trace!("PythonPlugin({:?})::load_container_factory() called", self.path);
         self.load_container_process_factory_with_manifest(working_dir.clone(), self.get_manifest(working_dir.clone())?)
     }
@@ -113,7 +113,7 @@ if not "{parent:}" in sys.path:
         )?)))
     }
 
-    pub fn load_process_factory(&self, working_dir: Option<PathBuf>, symbol_name: &str) -> JuizResult<Arc<Mutex<dyn ProcessFactory>>> {
+    pub fn load_process_factory(&self, working_dir: Option<PathBuf>, _symbol_name: &str) -> JuizResult<Arc<Mutex<dyn ProcessFactory>>> {
         log::trace!("PythonPlugin({:?})::load_process_factory() called", self.path);
         self.load_process_factory_with_manifest(working_dir.clone(), self.get_manifest(working_dir)?)
     }
