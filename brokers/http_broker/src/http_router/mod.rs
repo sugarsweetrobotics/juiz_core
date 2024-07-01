@@ -33,6 +33,7 @@ use cv_convert::TryFromCv;
 #[derive(Deserialize, IntoParams, Debug)]
 pub struct IdentifierQuery {
     identifier: Option<String>,
+    path: Option<String>,
 }
 
 pub fn query_to_map(query: &Query<IdentifierQuery>) -> HashMap<String, String> {
@@ -40,7 +41,13 @@ pub fn query_to_map(query: &Query<IdentifierQuery>) -> HashMap<String, String> {
     match query.identifier.clone() {
         None => {},
         Some(v) => {
-            map.insert("identifier".to_string(), v);
+            map.insert("identifier".to_owned(), v);
+        }
+    }
+    match query.path.clone() {
+        None => {},
+        Some(v) => {
+            map.insert("path".to_owned(), v);
         }
     }
     map
@@ -158,4 +165,11 @@ pub fn append_route(api: &mut utoipa::openapi::OpenApi, body_context: Value, des
         .build();
     let operation = OperationBuilder::new().request_body(Some(rb)).build();
     api.paths.paths.insert(operation_key.to_owned(), PathItem::new(PathItemType::Patch, operation));
+}
+
+
+
+#[derive(Deserialize, IntoParams, Debug)]
+pub struct PathQuery {
+    path: Option<String>,
 }

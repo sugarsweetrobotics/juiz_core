@@ -1,13 +1,17 @@
 
 
 
-use crate::{identifier::IdentifierStruct, processes::capsule::{Capsule, CapsuleMap}, CapsulePtr, Identifier, JuizObject, JuizResult, Value};
+use std::path::PathBuf;
+
+use crate::{identifier::IdentifierStruct, processes::capsule::{Capsule, CapsuleMap}, value::{obj_merge, value_merge}, CapsulePtr, Identifier, JuizObject, JuizResult, Value};
 
 
 
 
 pub trait SystemBrokerProxy {
     fn system_profile_full(&self) -> JuizResult<Value>;
+
+    fn system_filesystem_list(&self, path_buf: PathBuf) -> JuizResult<Value>;
 }
 
 pub trait ProcessBrokerProxy {
@@ -79,7 +83,9 @@ pub trait BrokerProxy : Send + JuizObject + SystemBrokerProxy + ProcessBrokerPro
     fn is_in_charge_for_process(&self, _id: &Identifier) -> JuizResult<bool>;
 
     fn any_process_list(&self) -> JuizResult<Capsule> {
-        todo!()
+        let processes = self.process_list()?;
+        let container_processes = self.container_process_list()?;
+        Ok(value_merge(processes, &container_processes)?.into())
     }
 
     fn any_process_profile_full(&self, id: &Identifier) -> JuizResult<Value> {
@@ -95,7 +101,6 @@ pub trait BrokerProxy : Send + JuizObject + SystemBrokerProxy + ProcessBrokerPro
     fn any_process_call(&self, id: &Identifier, args: CapsuleMap) -> JuizResult<CapsulePtr> {
         log::info!("BrokerProxy::any_process_profile_call({id}) called");
         let id_struct = IdentifierStruct::from(id.clone());
-        // log::info!("id_struct{:?}", id_struct);        
         if id_struct.class_name == "Process" {
             return self.process_call(id, args)
         }

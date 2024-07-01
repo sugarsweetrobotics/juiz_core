@@ -5,14 +5,14 @@ use axum::{response::IntoResponse, extract::{Path, Query, State}, routing, Json,
 
 use juiz_core::{brokers::crud_broker::CRUDBroker, processes::capsule::CapsuleMap, utils::juiz_lock, Value};
 
-use super::{IdentifierQuery, json_output_wrap, query_to_map};
+use super::{IdentifierQuery, PathQuery, json_output_wrap, query_to_map};
 use utoipa::OpenApi;
 
 #[utoipa::path(
     post,
     path = "/api/{class_name}/{function_name}",
     params(
-        IdentifierQuery
+        IdentifierQuery,
     ),
     request_body = Value,
     responses(
@@ -22,7 +22,7 @@ use utoipa::OpenApi;
 )]
 pub async fn object_post_handler(
     Path((class_name, function_name)): Path<(String, String)>,
-    query: Query<IdentifierQuery>,
+    query: Query<IdentifierQuery>, //, path_query: Query<PathQuery>,
     State(crud_broker): State<Arc<Mutex<CRUDBroker>>>, 
     Json(body): Json<Value>,
 ) -> impl IntoResponse {
@@ -47,6 +47,12 @@ fn construct_capsule_map(mut capsule_map: CapsuleMap, method_name: &str, class_n
         None => {},
         Some(v) => {
             capsule_map.set_param("identifier", v.as_str());
+        }
+    }
+    match query.path.clone() {
+        None => {},
+        Some(v) => {
+            capsule_map.set_param("path", v.as_str());
         }
     }
     capsule_map
@@ -116,7 +122,7 @@ pub async fn object_get_handler(
     delete,
     path = "/api/{class_name}/{function_name}",
     params(
-        IdentifierQuery
+        PathQuery
     ),
     responses(
         (status = 200, description = "Delete object parameter", body = [String])

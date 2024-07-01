@@ -1,5 +1,6 @@
 
 
+use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::Mutex;
 
@@ -317,6 +318,18 @@ impl SystemBrokerProxy for CoreBroker {
         let result = self.profile_full();
         log::trace!("CoreBroker::system_profile_full() exit");
         result
+    }
+    
+    fn system_filesystem_list(&self, path_buf: PathBuf) -> JuizResult<Value> {
+        let entries = std::fs::read_dir(path_buf)?
+            .map(|res| res.map(|e| {
+                jvalue!({
+                    "path": e.path().to_str().unwrap(),
+                    "is_dir": e.path().is_dir()
+                })
+            }).or::<JuizError>(Ok(jvalue!("Error"))).unwrap())
+            .collect::<Vec<Value>>();
+        Ok(jvalue!(entries))
     }
 }
 

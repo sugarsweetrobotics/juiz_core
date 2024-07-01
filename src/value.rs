@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use serde_json::Map;
 pub use serde_json::json as jvalue;
 
-use crate::{JuizError, JuizResult, utils::{get_hashmap, manifest_util::get_hashmap_mut}};
+use crate::{utils::{get_array, get_hashmap, manifest_util::{get_array_mut, get_hashmap_mut}}, JuizError, JuizResult};
 
 #[repr(transparent)]
 //#[repr(C)]
@@ -50,15 +50,39 @@ pub fn obj_merge_mut(value: &mut Value, data: &Value) -> JuizResult<()> {
     Ok(())
 }
 
+pub fn value_merge(value: Value, data: &Value) -> JuizResult<Value> {
+    if value.is_object() && data.is_object() {
+        obj_merge(value, data)
+    } else if value.is_array() && data.is_array() {
+        array_merge(value, data)
+    } else {
+        Err(anyhow::Error::from(JuizError::ValueMergeError{message:"Two values have different data type.".to_owned()}))
+    }
+}
 
 pub fn obj_merge(mut value: Value, data: &Value) -> JuizResult<Value> {
     let mut_map = get_hashmap_mut(&mut value)?;
     let data_map = get_hashmap(data)?;
     for (k, v) in data_map.iter() {
-        mut_map.insert(k.clone(), v.clone());
+        if mut_map.contains_key(k) {
+            let vv = mut_map.remove(k).unwrap();
+            mut_map.insert(k.clone(), value_merge(vv, v)?);
+        } else {
+            mut_map.insert(k.clone(), v.clone());
+        }
     }
     Ok(value)
 }
+
+pub fn array_merge(mut value: Value, data: &Value) -> JuizResult<Value> {
+    let mut_vec = get_array_mut(&mut value)?;
+    let data_vec = get_array(data)?;
+    for v in data_vec.iter() {
+        mut_vec.push(v.clone());
+    }
+    Ok(value)
+}
+
 
 pub fn obj_get_mut<'a>(value: &'a mut Value, key: &str) -> JuizResult<&'a mut Value> {
     {

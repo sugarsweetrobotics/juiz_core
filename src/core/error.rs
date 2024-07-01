@@ -171,6 +171,8 @@ pub enum JuizError {
     ValueTypeError { message: String },
     #[error("Data Conversion Error {message}")]
     DataConversionError { message: String },
+    #[error("Value merge Error {message}")]
+    ValueMergeError { message: String },
 
     /*
     ProcessManifestError,

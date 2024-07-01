@@ -175,7 +175,10 @@ impl ProcessBrokerProxy for CRUDBrokerProxyHolder {
 impl SystemBrokerProxy for CRUDBrokerProxyHolder {
     fn system_profile_full(&self) -> JuizResult<Value> {
         capsule_to_value(self.modify_profile(self.broker.read("system", "profile_full", HashMap::new())?))
+    }
 
+    fn system_filesystem_list(&self, path_buf: std::path::PathBuf) -> JuizResult<Value> {
+        capsule_to_value(self.broker.read("system", "profile_full", HashMap::from([("path".to_owned(), path_buf.to_str().unwrap().to_owned())]) )?)
     }
 }
 

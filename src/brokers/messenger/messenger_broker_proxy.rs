@@ -151,6 +151,17 @@ impl MessengerBrokerProxy {
             |value| Ok(value))
     }
 
+    pub fn read_with_param(&self, class_name: &str, function_name: &str, param: &[(String, String)]) -> JuizResult<CapsulePtr> {
+        self.send_recv_and(
+            "READ", 
+            class_name, 
+            function_name,
+            CapsuleMap::new(), 
+            param,
+            //|value| Ok(obj_get(&value, "return")?.clone()))
+            |value| Ok(value))
+    }
+
     pub fn update_output_by_id(&self, class_name: &str, function_name: &str, args: CapsuleMap, id: &Identifier) -> JuizResult<CapsulePtr>  {
         self.send_recv_output_and(
             "UPDATE",
@@ -195,6 +206,10 @@ impl JuizObject for MessengerBrokerProxy {}
 impl SystemBrokerProxy for MessengerBrokerProxy {
     fn system_profile_full(&self) -> JuizResult<Value> {
         capsule_to_value(self.read("system", "profile_full")?)
+    }
+    
+    fn system_filesystem_list(&self, path_buf: std::path::PathBuf) -> JuizResult<Value> {
+        capsule_to_value(self.read_with_param("system", "filesystem_list", &[("path".to_owned(), path_buf.to_str().unwrap().to_owned())])?)
     }
 }
 

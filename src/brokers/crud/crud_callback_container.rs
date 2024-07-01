@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::{Arc, Mutex}};
+use std::{collections::HashMap, path::PathBuf, sync::{Arc, Mutex}};
 
 use crate::{brokers::BrokerProxy, processes::{capsule::CapsuleMap, value_to_capsule}, utils::juiz_lock, CapsulePtr, JuizError, JuizResult, Value};
 
@@ -31,7 +31,17 @@ pub(crate) fn read_callback_container() -> ClassCallbackContainerType {
     let mut read_cb_container = ClassCallbackContainerType::new();
     let mut system_callbacks = CallbackContainerType::new();
     system_callbacks.insert("profile_full", |cb, _args| {
+        log::trace!("system_callbacks['profile_full'] called with args {_args:?}");
         Ok(value_to_capsule(juiz_lock(&cb)?.system_profile_full()?))
+    });
+    system_callbacks.insert("filesystem_list", |cb, _args| {
+        log::trace!("system_callbacks['filesystem_list'] called with args {_args:?}");
+        let param = _args.get_params();
+        let mut path = ".".to_owned();
+        if param.contains_key("path") {
+            path = param.get("path").unwrap().clone();
+        }
+        Ok(value_to_capsule(juiz_lock(&cb)?.system_filesystem_list(PathBuf::from(path))?))
     });
     read_cb_container.insert("system", system_callbacks);
 
