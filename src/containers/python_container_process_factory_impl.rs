@@ -63,24 +63,26 @@ impl ContainerProcessFactory for PythonContainerProcessFactoryImpl {
             // let type_name = self.type_name();
             let tn = type_name.clone();
             let fp = fullpath.clone();
+            // ここ、実行するたびにファイルを開くのでよくないかもしれない。
             let pyobj = Python::with_gil(|py| -> PyResult<Py<PyAny>> {
                 let py_app = fs::read_to_string(fp).unwrap();
                 let module = PyModule::from_code_bound(py, &py_app.to_string(), "", "")?;
                 let app_func: Py<PyAny> = module.getattr(tn.as_str())?.into();
-                let mut vec_arg: Vec<Py<PyAny>> = Vec::new();
-                vec_arg.push(c.t.pyobj.clone_ref(py));
-                vec_arg.extend(capsulemap_to_pytuple(py, &argument).iter().cloned());
+                let mut vec_arg: Vec<&Py<PyAny>> = Vec::new();
+                vec_arg.push(&c.t.pyobj);
+                let v  = capsulemap_to_pytuple(py, &argument);
+                vec_arg.extend(v.iter());
                 // = capsulemap_to_pytuple(py, &argument);
                 //vec_arg.
                 let result = app_func.call1(py, PyTuple::new_bound(py, vec_arg))?;
                 let result_value = pyany_to_value(result.extract::<&PyAny>(py)?)?;
                 func_result = result_value.into();
-                println!("func_result: {:?}", func_result);
+                //println!("func_result: {:?}", func_result);
                 Ok(result)
             });
-            println!("result: {:?}", pyobj);
+            // println!("result: {:?}", pyobj);
 
-            println!("wow: func_result: {:?}", func_result);
+            /// println!("wow: func_result: {:?}", func_result);
             return Ok(func_result);
         });
 

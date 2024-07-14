@@ -6,7 +6,7 @@ pub mod system_builder {
 
     use anyhow::Context;
 
-    use crate::{brokers::{broker_factories_wrapper::BrokerFactoriesWrapper, ipc::{ipc_broker::create_ipc_broker_factory, ipc_broker_proxy::create_ipc_broker_proxy_factory}, local::{local_broker::{create_local_broker_factory, BrokerSideSenderReceiverPair, ProxySideSenderReceiverPair}, local_broker_proxy::create_local_broker_proxy_factory}, local_broker::ByteSenderReceiverPair, BrokerFactory, BrokerProxy, BrokerProxyFactory}, containers::{ContainerFactoryPtr, ContainerProcessFactoryPtr}, core::{cpp_plugin::CppPlugin, python_plugin::PythonPlugin}, processes::{cpp_process_factory_impl::CppProcessFactoryImpl, ProcessFactoryPtr}, Capsule, JuizError};
+    use crate::{brokers::{broker_factories_wrapper::BrokerFactoriesWrapper, ipc::{ipc_broker::create_ipc_broker_factory, ipc_broker_proxy::create_ipc_broker_proxy_factory}, local::{local_broker::{create_local_broker_factory, BrokerSideSenderReceiverPair, ProxySideSenderReceiverPair}, local_broker_proxy::create_local_broker_proxy_factory}, local_broker::ByteSenderReceiverPair, BrokerFactory, BrokerProxy, BrokerProxyFactory}, containers::{cpp_container_factory_impl::CppContainerFactoryImpl, ContainerFactoryPtr, ContainerProcessFactoryPtr}, core::{cpp_plugin::CppPlugin, python_plugin::PythonPlugin}, processes::{cpp_process_factory_impl::CppProcessFactoryImpl, ProcessFactoryPtr}, Capsule, JuizError};
     use crate::{connections::connection_builder::connection_builder, containers::{container_factory_wrapper::ContainerFactoryWrapper, container_process_factory_wrapper::ContainerProcessFactoryWrapper}, core::RustPlugin, ecs::{execution_context_holder::ExecutionContextHolder, execution_context_holder_factory::ExecutionContextHolderFactory, ExecutionContextFactory}, jvalue, processes::{capsule::CapsuleMap, ProcessFactoryWrapper}, utils::{get_array, get_hashmap, juiz_lock, manifest_util::when_contains_do_mut, when_contains_do}, value::{obj_get, obj_get_str}, CapsulePtr, ContainerFactory, ContainerProcessFactory, JuizResult, ProcessFactory, System, Value};
 
     pub fn setup_plugins(system: &mut System, manifest: &Value) -> JuizResult<()> {
@@ -140,6 +140,16 @@ pub mod system_builder {
                         })?;
                         Ok(ctr)
                     },
+                    "c++" => {
+                        let ctr = register_cpp_container_factory(system, Rc::new(CppPlugin::new(cpp_plugin_path(name, v)?)?))?;
+                        when_contains_do(v, "processes", |vv| {
+                            for (name, _value) in get_hashmap(vv)?.iter() {
+                                //register_python_container_process_factory(system, Rc::new(PythonPlugin::load(python_plugin_path(name, v)?)?))?;
+                            }
+                            Ok(())
+                        })?;
+                        Ok(ctr)
+                    }
                     _ => {
                         log::error!("In setup_container_factories() function, unknown language option ({:}) detected", language);
                         Err(anyhow::Error::from(JuizError::InvalidSettingError{message: format!("In setup_container_factories() function, unknown language option ({:}) detected", language)}))
@@ -448,6 +458,16 @@ pub mod system_builder {
         let pf = py_plugin.load_container_factory(system.get_working_dir(), "container_factory")?;
         //let pf = load_python_process_factory(py_plugin.clone(), "process_factory")?;
         system.core_broker().lock().unwrap().store_mut().containers.register_factory(ContainerFactoryWrapper::new_python(py_plugin.clone(), pf)?)
+    }
+
+    fn register_cpp_container_factory(system: &System, cpp_plugin: Rc<CppPlugin>) -> JuizResult<ContainerFactoryPtr> {
+        log::trace!("register_cpp_container_factory() called");
+        
+        //let pf = cpp_plugin.load_container_factory(system.get_working_dir(), "container_factory")?;
+        let pf = Arc::new(Mutex::new(CppContainerFactoryImpl::new(cpp_plugin.clone())?));
+
+        todo!()
+        //system.core_broker().lock().unwrap().store_mut().containers.register_factory(ContainerFactoryWrapper::new_cpp(cpp_plugin.clone(), pf)?)
     }
 
     ///

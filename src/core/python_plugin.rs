@@ -67,7 +67,7 @@ impl PythonPlugin {
         let mut manifest = jvalue!({});
         let fullpath = working_dir.clone().unwrap_or(env!("CARGO_MANIFEST_DIR").into()).join(self.path.clone());
         let _from_python = Python::with_gil(|py| -> PyResult<Py<PyAny>> {
-            log::trace!("Python:with_gil called (fullpath={:?}", fullpath.clone());
+            log::trace!("in get_manifest_with_name(), Python:with_gil called (fullpath={:?}", fullpath.clone());
             let py_app = fs::read_to_string(fullpath.clone())?;
             let parent = fullpath.parent().unwrap().to_str().unwrap();
             let _ = PyModule::from_code_bound(py, &format!(r#"
@@ -80,11 +80,11 @@ if not "{parent:}" in sys.path:
             let module = result_module?;
             let manifest_func: Py<PyAny> = module.getattr(symbol_name)?.into();
             let result = manifest_func.call0(py)?;
-            let pymanifest = result.clone().extract::<&PyDict>(py)?;
+            let pymanifest = result.extract::<&PyDict>(py)?;
             manifest = pydict_to_value(pymanifest)?;
             //let _func: Py<PyAny> = module.getattr("manifest")?.into();
             Ok(result)
-        });
+        })?;
         return Ok(manifest);
     }
 

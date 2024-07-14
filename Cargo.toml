@@ -45,7 +45,7 @@ quaternion-core = "0.5.0"
 approx = "*"
 # example_container = { path="container_examples/example_container" }
 
-pyo3 = {version = "*", features=["auto-initialize"]}
+pyo3 = {version = "0.22.1", features=["auto-initialize", "gil-refs"]}
 
 [workspace]
 members = [
@@ -62,8 +62,7 @@ members = [
     "examples/container_examples/example_container_increment",
     "examples/opencv_examples/juiz_opencv",
     "examples/opencv_examples/cv_capture_system",
-
-    "examples/python_container", "examples/cpp_process/dylibtest",
+    "examples/python_container", 
 ]
 default-members = [
     ".",

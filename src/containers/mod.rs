@@ -10,6 +10,7 @@ pub mod container_process_factory;
 pub mod container_process_factory_impl;
 pub mod container_process_factory_wrapper;
 pub mod container_proxy;
+pub mod cpp_container_factory_impl;
 pub mod python_container_factory_impl;
 pub mod python_container_process_factory_impl;
 
