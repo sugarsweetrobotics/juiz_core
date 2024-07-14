@@ -1,8 +1,8 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, ffi::CStr};
 use serde_json::Map;
 use crate::{jvalue, utils::get_hashmap, CapsulePtr, JuizError, JuizResult, Value};
 
-
+#[repr(C)]
 #[derive(Debug)]
 pub struct CapsuleMap {
     map: HashMap<String, CapsulePtr>,
@@ -30,6 +30,23 @@ impl CapsuleMap {
             None => Err(anyhow::Error::from(JuizError::CapsuleMapDoesNotContainValueError{key: key.to_owned()}))
         }
     }
+
+    /*
+    pub(crate) fn get_ptrref(&self, key: &str) -> JuizResult<&CapsulePtr> {
+        match self.map.get(key) {
+            Some(v) => Ok(v),
+            None => Err(anyhow::Error::from(JuizError::CapsuleMapDoesNotContainValueError{key: key.to_owned()}))
+        }
+    }
+    */
+
+    pub(crate) fn get_mutref(&mut self, key: &str) -> JuizResult<&mut CapsulePtr> {
+        match self.map.get_mut(key) {
+            Some(v) => Ok(v),
+            None => Err(anyhow::Error::from(JuizError::CapsuleMapDoesNotContainValueError{key: key.to_owned()}))
+        }
+    }
+
 
     pub fn get_params<'a>(&'a self) -> &'a HashMap<String, String> {
         &self.param
@@ -77,8 +94,8 @@ impl TryFrom<Value> for CapsuleMap {
                     c.set_param(key.as_str(), (*value).as_str().unwrap());
                 }
             } else {
-                log::error!("Trying to convert from Value to CapuleMap but it contains unknown key ({k}). The corresponding value is {v:?}");
-                return Err(anyhow::Error::from(JuizError::DataConversionError{message:format!("Trying to convert from Value to CapuleMap but it contains unknown key ({k}). The corresponding value is {v:?}")}))
+                log::warn!("Trying to convert from Value to CapuleMap but it does not contain key 'map' and 'param'.");
+                c.insert(k.to_owned(), v.clone().into());                
             }
         }
         Ok(c)
@@ -139,5 +156,19 @@ impl From<&[(&str, Value)]> for CapsuleMap {
             c.insert((*k).to_owned(), (*v).clone().into());
         }
         c
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn capsule_map_get_capsule(cmap: *mut CapsuleMap, name: *const i8, ptr: &mut *mut CapsulePtr) -> i64 {
+    match cmap.as_mut().unwrap().get_mutref(CStr::from_ptr(name).to_str().unwrap()) {
+        Err(_) => {
+            *ptr = std::ptr::null_mut();
+            return -1;
+        },
+        Ok(cp) => { 
+            *ptr = cp;
+            return 0;
+        }
     }
 }

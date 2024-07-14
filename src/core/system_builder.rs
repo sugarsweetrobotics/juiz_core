@@ -6,7 +6,7 @@ pub mod system_builder {
 
     use anyhow::Context;
 
-    use crate::{brokers::{broker_factories_wrapper::BrokerFactoriesWrapper, ipc::{ipc_broker::create_ipc_broker_factory, ipc_broker_proxy::create_ipc_broker_proxy_factory}, local::{local_broker::{create_local_broker_factory, BrokerSideSenderReceiverPair, ProxySideSenderReceiverPair}, local_broker_proxy::create_local_broker_proxy_factory}, local_broker::ByteSenderReceiverPair, BrokerFactory, BrokerProxy, BrokerProxyFactory}, containers::{ContainerFactoryPtr, ContainerProcessFactoryPtr}, core::python_plugin::PythonPlugin, processes::ProcessFactoryPtr, JuizError};
+    use crate::{brokers::{broker_factories_wrapper::BrokerFactoriesWrapper, ipc::{ipc_broker::create_ipc_broker_factory, ipc_broker_proxy::create_ipc_broker_proxy_factory}, local::{local_broker::{create_local_broker_factory, BrokerSideSenderReceiverPair, ProxySideSenderReceiverPair}, local_broker_proxy::create_local_broker_proxy_factory}, local_broker::ByteSenderReceiverPair, BrokerFactory, BrokerProxy, BrokerProxyFactory}, containers::{ContainerFactoryPtr, ContainerProcessFactoryPtr}, core::{cpp_plugin::CppPlugin, python_plugin::PythonPlugin}, processes::{cpp_process_factory_impl::CppProcessFactoryImpl, ProcessFactoryPtr}, Capsule, JuizError};
     use crate::{connections::connection_builder::connection_builder, containers::{container_factory_wrapper::ContainerFactoryWrapper, container_process_factory_wrapper::ContainerProcessFactoryWrapper}, core::RustPlugin, ecs::{execution_context_holder::ExecutionContextHolder, execution_context_holder_factory::ExecutionContextHolderFactory, ExecutionContextFactory}, jvalue, processes::{capsule::CapsuleMap, ProcessFactoryWrapper}, utils::{get_array, get_hashmap, juiz_lock, manifest_util::when_contains_do_mut, when_contains_do}, value::{obj_get, obj_get_str}, CapsulePtr, ContainerFactory, ContainerProcessFactory, JuizResult, ProcessFactory, System, Value};
 
     pub fn setup_plugins(system: &mut System, manifest: &Value) -> JuizResult<()> {
@@ -56,12 +56,26 @@ pub mod system_builder {
         concat_dirname(v, plugin_name_to_python_file_name(name))
     }
 
+    /// まずnameからpluginのファイル名に変換する。macだと.dylibをつける作業。そしてvの中のpathと連結させてpathを作る
+    fn cpp_plugin_path(name: &String, v: &Value) -> JuizResult<std::path::PathBuf> {
+        concat_dirname(v, plugin_name_to_file_name(name))
+    }
+
     fn load_factory<'a, T: 'static + ?Sized>(rc_plugin: Rc<RustPlugin>, symbol_name: &str) -> JuizResult<Arc<Mutex<T>>> {
         log::trace!("load_factory(symbol_name={symbol_name}) called");
         type SymbolType<'a, T> = libloading::Symbol<'a, unsafe extern "Rust" fn() -> JuizResult<Arc<Mutex<T>>>>;
         unsafe {
             let symbol = rc_plugin.load_symbol::<SymbolType<'a, T>>(symbol_name.as_bytes())?;
             (symbol)().with_context(||format!("calling symbol '{symbol_name}'"))
+        }
+    }
+
+    fn load_cpp_factory<'a>(rc_plugin: Rc<CppPlugin>, symbol_name: &str) -> JuizResult<fn(*mut CapsuleMap, *mut Capsule)->i64> {
+        log::trace!("load_cpp_factory(symbol_name={symbol_name}) called");
+        type SymbolType<'a> = libloading::Symbol<'a, unsafe fn() -> fn(*mut CapsuleMap, *mut Capsule)->i64>;
+        unsafe {
+            let symbol = rc_plugin.load_symbol::<SymbolType<'a>>(symbol_name.as_bytes())?;
+            Ok((symbol)())
         }
     }
  
@@ -80,6 +94,7 @@ pub mod system_builder {
                 match language {
                     "rust" => register_process_factory(system, Rc::new(RustPlugin::load(plugin_path(name, v)?)?), "process_factory"),
                     "python" => register_python_process_factory(system, Rc::new(PythonPlugin::load(python_plugin_path(name, v)?)?)),
+                    "c++" => register_cpp_process_factory(system, Rc::new(CppPlugin::new(cpp_plugin_path(name, v)?)?)),
                     _ => {
                         log::error!("In setup_process_factories() function, unknown language option ({:}) detected", language);
                         Err(anyhow::Error::from(JuizError::InvalidSettingError{message: format!("In setup_process_factories() function, unknown language option ({:}) detected", language)}))
@@ -409,9 +424,16 @@ pub mod system_builder {
     fn register_python_process_factory(system: &System, py_plugin: Rc<PythonPlugin>) -> JuizResult<ProcessFactoryPtr> {
         log::trace!("register_python_process_factory() called");
         let pf = py_plugin.load_process_factory(system.get_working_dir(), "process_factory")?;
-        //let pf = load_python_process_factory(py_plugin.clone(), "process_factory")?;
         system.core_broker().lock().unwrap().store_mut().processes.register_factory(ProcessFactoryWrapper::new_python(py_plugin.clone(), pf)?)
     }
+
+    fn register_cpp_process_factory(system: &System, mut cpp_plugin: Rc<CppPlugin>) -> JuizResult<ProcessFactoryPtr> {
+        log::trace!("register_cpp_process_factory() called");
+        // let pf = cpp_plugin.load_process_factory(system.get_working_dir(), "process_factory")?;
+        let pf = Arc::new(Mutex::new(CppProcessFactoryImpl::new(cpp_plugin.clone())?));
+        system.core_broker().lock().unwrap().store_mut().processes.register_factory(ProcessFactoryWrapper::new_cpp(cpp_plugin.clone(), pf)?)
+    }
+
 
     ///
     fn register_process_factory(system: &System, rc_plugin: Rc<RustPlugin>, symbol_name: &str) -> JuizResult<ProcessFactoryPtr> {

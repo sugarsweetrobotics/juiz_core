@@ -173,6 +173,10 @@ pub enum JuizError {
     DataConversionError { message: String },
     #[error("Value merge Error {message}")]
     ValueMergeError { message: String },
+    #[error("CppPlugin FunctionCall Error")]
+    CppProcessFunctionCallError {  },
+    #[error("CppPlugin FunctionCall Failed (function_name={function_name}, return_value={return_value}")]
+    CppPluginFunctionCallError { function_name: String, return_value: i64 },
 
     /*
     ProcessManifestError,

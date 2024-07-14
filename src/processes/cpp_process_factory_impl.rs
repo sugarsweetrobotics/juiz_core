@@ -1,37 +1,40 @@
 
-use std::{collections::HashMap, fs, path::PathBuf, sync::{Arc, Mutex}};
-use pyo3::{prelude::*, types::PyTuple};
+use std::{collections::HashMap, rc::Rc};
+use libloading::Symbol;
+use pyo3::prelude::*;
 use serde_json::Map;
+use crate::{core::cpp_plugin::CppPlugin, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, processes::{process_impl::ProcessImpl, process_ptr}, utils::check_process_factory_manifest, value::obj_get_str, Capsule, CapsuleMap, CapsulePtr, JuizError, JuizObject, JuizResult, ProcessFactory, ProcessPtr, Value};
 
-use crate::{core::python_plugin::pyany_to_value, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, processes::{process_impl::ProcessImpl, process_ptr}, utils::check_process_factory_manifest, value::obj_get_str, Capsule, CapsuleMap, CapsulePtr, JuizError, JuizObject, JuizResult, ProcessFactory, ProcessPtr, Value};
+pub type CppFunctionType = Symbol<'static, extern "C" fn(*mut CapsuleMap, *mut Capsule) -> i64>;
 
 pub type PythonFunctionType = dyn Fn(CapsuleMap)->JuizResult<Capsule>;
 #[repr(C)]
-pub struct PythonProcessFactoryImpl {
+pub struct CppProcessFactoryImpl {
     core: ObjectCore,
     manifest: Value,
-    fullpath: PathBuf,
-    //function: Box<PythonFunctionType>,
+    plugin: Rc<CppPlugin>,
+    entry_point: unsafe fn(*mut CapsuleMap, *mut Capsule) -> i64,
 }
 
-pub fn create_process_factory(manifest: crate::Value, fullpath: PathBuf/*, function: Box<PythonFunctionType>*/) -> JuizResult<Arc<Mutex<dyn ProcessFactory>>> {
-    log::trace!("create_process_factory called");
-    Ok(Arc::new(Mutex::new(PythonProcessFactoryImpl::new(manifest, fullpath/*, function*/)?)))
-}
+impl CppProcessFactoryImpl {
 
-impl PythonProcessFactoryImpl {
-
-    pub fn new(manifest: crate::Value, fullpath: PathBuf /* function: Box<PythonFunctionType>*/) -> JuizResult<Self> {
-        let type_name = obj_get_str(&manifest, "type_name")?;
+    pub fn new(plugin: Rc<CppPlugin>) -> JuizResult<Self> {
+        let type_name = obj_get_str(plugin.get_manifest(), "type_name")?;
+        let symbol_name = "process_factory";
+        type SymbolType = libloading::Symbol<'static, unsafe fn() -> unsafe fn(*mut CapsuleMap, *mut Capsule)->i64>;
+        let f = unsafe {
+            let symbol = plugin.load_symbol::<SymbolType>(symbol_name.as_bytes())?;
+            (symbol)()
+        };
 
         Ok(
-            PythonProcessFactoryImpl{
+            CppProcessFactoryImpl{
                 core: ObjectCore::create_factory(JuizObjectClass::ProcessFactory("ProcessFactoryImpl"),
                     type_name
                 ),
-                fullpath,
-                manifest: check_process_factory_manifest(manifest)?, 
-                //function
+                manifest: check_process_factory_manifest(plugin.get_manifest().clone())?, 
+                plugin,
+                entry_point: f
             }
         )
     }
@@ -45,14 +48,14 @@ impl PythonProcessFactoryImpl {
     }
 }
 
-impl JuizObjectCoreHolder for PythonProcessFactoryImpl {
+impl JuizObjectCoreHolder for CppProcessFactoryImpl {
     fn core(&self) -> &ObjectCore {
         &self.core
     }
 }
 
 
-impl JuizObject for PythonProcessFactoryImpl {
+impl JuizObject for CppProcessFactoryImpl {
 }
 
 fn valuearray_to_pyany(py: Python, arr: &Vec<Value>) -> Py<PyAny> {
@@ -103,38 +106,28 @@ pub fn value_to_pytuple<'a>(py: Python, value: &'a Value) -> Vec<Py<PyAny>> {
     vec!(value_to_pyany(py, value))
 }
 
-impl ProcessFactory for PythonProcessFactoryImpl {
+impl ProcessFactory for CppProcessFactoryImpl {
 
     fn create_process(&self, manifest: Value) -> JuizResult<ProcessPtr>{
-        log::trace!("PythonProcessFactoryImpl::create_process(manifest={}) called", manifest);
-        
-        let type_name = self.type_name().to_owned();
-        let fullpath = self.fullpath.clone();
-        let pyfunc: Box<dyn Fn(CapsuleMap)->JuizResult<Capsule>> = Box::new(move |argument: CapsuleMap| -> JuizResult<Capsule> {
+        log::trace!("CppaProcessFactoryImpl::create_process(manifest={}) called", manifest);
+        let entry_point_name = "process_entry_point".to_owned();
+        let entry_point = self.entry_point;
+        let cppfunc: Box<dyn Fn(CapsuleMap)->JuizResult<Capsule>> = Box::new(move |mut argument: CapsuleMap| -> JuizResult<Capsule> {
+            log::trace!("cppfunc (argument={argument:?}) called");
             let mut func_result : Capsule = Capsule::empty();
-            // let type_name = self.type_name();
-            let tn = type_name.clone();
-            let fp = fullpath.clone();
-            let pyobj = Python::with_gil(|py| -> PyResult<Py<PyAny>> {
-                let py_app = fs::read_to_string(fp).unwrap();
-                let module = PyModule::from_code_bound(py, &py_app.to_string(), "", "")?;
-                let app_func: Py<PyAny> = module.getattr(tn.as_str())?.into();
-                let result = app_func.call1(py, PyTuple::new_bound(py, capsulemap_to_pytuple(py, &argument)))?;
-                let result_value = pyany_to_value(result.extract::<&PyAny>(py)?)?;
-                func_result = result_value.into();
-                Ok(result)
-            });
-            //println!("result: {:?}", pyobj);
-
-            //println!("wow: func_result: {:?}", func_result);
+            unsafe {
+                let v = entry_point(&mut argument, &mut func_result);
+                if v < 0 {
+                    return Err(anyhow::Error::from(JuizError::CppPluginFunctionCallError{function_name:entry_point_name.clone(), return_value:v}));
+                } 
+            }
             return Ok(func_result);
         });
-
 
         let proc = ProcessImpl::clousure_new_with_class_name(
             JuizObjectClass::Process("ProcessImpl"), 
             self.apply_default_manifest(manifest.clone())?, 
-            pyfunc,
+            cppfunc,
         )?;
         Ok(process_ptr(proc))
     }    
