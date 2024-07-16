@@ -2,12 +2,13 @@ use std::{cell::RefCell, rc::Rc, sync::{Arc, Mutex}};
 
 use anyhow::Context;
 
-use crate::{core::{python_plugin::PythonPlugin, RustPlugin}, jvalue, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, utils::juiz_lock, value::obj_merge, ContainerFactory, ContainerPtr, JuizObject, JuizResult, Value};
+use crate::{core::{cpp_plugin::CppPlugin, python_plugin::PythonPlugin, RustPlugin}, jvalue, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, utils::juiz_lock, value::obj_merge, ContainerFactory, ContainerPtr, JuizObject, JuizResult, Value};
 
 #[allow(dead_code)]
 pub struct ContainerFactoryWrapper {
     core: ObjectCore,
     rust_plugin: Option<Rc<RustPlugin>>,
+    cpp_plugin: Option<Rc<CppPlugin>>,
     python_plugin: Option<Rc<PythonPlugin>>,
     container_factory: Arc<Mutex<dyn ContainerFactory>>,
     containers: RefCell<Vec<ContainerPtr>>
@@ -21,6 +22,7 @@ impl ContainerFactoryWrapper {
         Ok(Arc::new(Mutex::new(ContainerFactoryWrapper{
             core: ObjectCore::create_factory(JuizObjectClass::ContainerFactory("ContainerFactoryWrapper"), type_name),
             rust_plugin: Some(plugin), 
+            cpp_plugin: None,
             python_plugin: None,
             container_factory: Arc::clone(&container_factory),
             containers: RefCell::new(vec![])
@@ -33,7 +35,21 @@ impl ContainerFactoryWrapper {
         Ok(Arc::new(Mutex::new(ContainerFactoryWrapper{
             core: ObjectCore::create_factory(JuizObjectClass::ContainerFactory("ContainerFactoryWrapper"), type_name),
             rust_plugin: None,
+            cpp_plugin: None,
             python_plugin: Some(plugin), 
+            container_factory: Arc::clone(&container_factory),
+            containers: RefCell::new(vec![])
+        })))
+    }
+
+    pub fn new_cpp(plugin: Rc<CppPlugin>, container_factory: Arc<Mutex<dyn ContainerFactory>>) -> JuizResult<Arc<Mutex<dyn ContainerFactory>>> {
+        let cf = juiz_lock(&container_factory)?;
+        let type_name = cf.type_name();
+        Ok(Arc::new(Mutex::new(ContainerFactoryWrapper{
+            core: ObjectCore::create_factory(JuizObjectClass::ContainerFactory("ContainerFactoryWrapper"), type_name),
+            rust_plugin: None,
+            cpp_plugin: Some(plugin),
+            python_plugin: None, 
             container_factory: Arc::clone(&container_factory),
             containers: RefCell::new(vec![])
         })))
@@ -49,7 +65,7 @@ impl JuizObjectCoreHolder for ContainerFactoryWrapper {
 impl JuizObject for ContainerFactoryWrapper {
 
     fn profile_full(&self) -> JuizResult<Value> {
-        let prof = self.rust_plugin.as_ref().and_then(|p|{ Some(p.profile_full().unwrap()) }).or( Some(self.python_plugin.as_ref().unwrap().profile_full().unwrap()) );
+        let prof = self.rust_plugin.as_ref().and_then(|p|{ Some(p.profile_full().unwrap()) }).or_else(|| { self.python_plugin.as_ref().and_then( |p| {Some(p.profile_full().unwrap())}).or( Some(self.cpp_plugin.as_ref().unwrap().profile_full().unwrap())) });
         Ok(obj_merge(self.core.profile_full()?, &jvalue!(
             {
                 "plugin": prof.unwrap(),

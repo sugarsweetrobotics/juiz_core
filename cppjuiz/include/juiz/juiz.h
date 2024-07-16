@@ -301,4 +301,27 @@ int64_t manifest_entry_point(capsule_ptr* ptr) { \
 }
 
 
+
+#define DEFINE_CONTAINER_PROCESS_ENTRY_POINT(container_type, func, deser, ser)\
+\
+int64_t container_process_entry_point(container_type* container, capsule_map* cm, capsule* cp) {\
+    try {\
+        auto args = deser(juiz::CapsuleMap(cm));\
+        if (!args) {\
+            return -1;\
+        }\
+        auto return_value = std::apply(func, args.value());\
+        if (!return_value) {\
+            return -2;\
+        }\
+        return ser(cp, return_value.value());\
+    } catch (juiz::ValueNotFoundError &e) {\
+        return -11;\
+    }\
+}\
+\
+int64_t (*container_process_factory())(container_type*,capsule_map*,capsule*) {\
+    return container_process_entry_point;\
+}
+
 #endif

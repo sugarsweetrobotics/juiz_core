@@ -373,5 +373,4 @@ pub unsafe extern "C" fn capsule_set_int(capsule: *mut Capsule, v: i64) -> bool 
     let cap = capsule.as_mut().unwrap();
     cap.replace_value(jvalue!(v).into());
     return true;
-
 }

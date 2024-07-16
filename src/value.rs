@@ -246,7 +246,7 @@ pub unsafe extern "C" fn value_is_object(value: *mut Value) -> bool {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn value_is_object_get(value: *mut Value, key: *const i8) -> *mut Value {
+pub unsafe extern "C" fn value_object_get_value(value: *mut Value, key: *const i8) -> *mut Value {
     let obj = value.as_mut().unwrap().as_object_mut().unwrap();
     match obj.get_mut(CStr::from_ptr(key).to_str().unwrap()) {
         Some(v) => { 

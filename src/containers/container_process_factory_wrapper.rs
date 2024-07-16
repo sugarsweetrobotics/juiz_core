@@ -2,13 +2,14 @@ use std::{cell::RefCell, rc::Rc, sync::{Arc, Mutex}};
 
 use anyhow::Context;
 
-use crate::{core::{python_plugin::PythonPlugin, RustPlugin}, jvalue, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, utils::juiz_lock, value::obj_merge, ContainerProcessFactory, ContainerPtr, JuizObject, JuizResult, ProcessPtr, Value};
+use crate::{core::{cpp_plugin::CppPlugin, python_plugin::PythonPlugin, RustPlugin}, jvalue, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, utils::juiz_lock, value::obj_merge, ContainerProcessFactory, ContainerPtr, JuizObject, JuizResult, ProcessPtr, Value};
 
 #[allow(dead_code)]
 pub struct ContainerProcessFactoryWrapper {
     core: ObjectCore,
     rust_plugin: Option<Rc<RustPlugin>>,
     python_plugin: Option<Rc<PythonPlugin>>,
+    cpp_plugin: Option<Rc<CppPlugin>>,
     container_process_factory: Arc<Mutex<dyn ContainerProcessFactory>>,
     container_processes: RefCell<Vec<ProcessPtr>>
 }
@@ -22,6 +23,7 @@ impl ContainerProcessFactoryWrapper {
             core: ObjectCore::create_factory(JuizObjectClass::ContainerProcessFactory("ContainerProcessFactoryWrapper"), type_name),
             rust_plugin: Some(plugin),
             python_plugin: None, 
+            cpp_plugin: None,
             container_process_factory: Arc::clone(&container_process_factory),
             container_processes: RefCell::new(vec![])
         })))
@@ -33,7 +35,21 @@ impl ContainerProcessFactoryWrapper {
         Ok(Arc::new(Mutex::new(ContainerProcessFactoryWrapper{
             core: ObjectCore::create_factory(JuizObjectClass::ContainerProcessFactory("ContainerProcessFactoryWrapper"), type_name),
             rust_plugin: None,
+            cpp_plugin: None,
             python_plugin: Some(plugin), 
+            container_process_factory: Arc::clone(&container_process_factory),
+            container_processes: RefCell::new(vec![])
+        })))
+    }
+
+    pub fn new_cpp(plugin: Rc<CppPlugin>, container_process_factory: Arc<Mutex<dyn ContainerProcessFactory>>) -> JuizResult<Arc<Mutex<dyn ContainerProcessFactory>>> {
+        let pf = juiz_lock(&container_process_factory)?;
+        let type_name = pf.type_name();
+        Ok(Arc::new(Mutex::new(ContainerProcessFactoryWrapper{
+            core: ObjectCore::create_factory(JuizObjectClass::ContainerProcessFactory("ContainerProcessFactoryWrapper"), type_name),
+            rust_plugin: None,
+            cpp_plugin: Some(plugin),
+            python_plugin: None, 
             container_process_factory: Arc::clone(&container_process_factory),
             container_processes: RefCell::new(vec![])
         })))
