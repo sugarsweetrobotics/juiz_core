@@ -1,10 +1,9 @@
 
-use std::{fs, path::PathBuf, rc::Rc, sync::{Arc, RwLock}};
-use anyhow::Context;
-use pyo3::{prelude::*, types::PyTuple};
+use std::{rc::Rc, sync::{Arc, RwLock}};
+
 
 use super::container_impl::ContainerImpl;
-use crate::{containers::{container_process_impl::ContainerProcessImpl, cpp_container_factory_impl::CppContainerStruct, PythonContainerStruct}, core::{cpp_plugin::CppPlugin, python_plugin::pyany_to_value}, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, processes::python_process_factory_impl::capsulemap_to_pytuple, utils::check_process_factory_manifest, value::obj_get_str, Capsule, CapsuleMap, ContainerProcessFactory, ContainerPtr, JuizError, JuizObject, JuizResult, ProcessPtr, Value};
+use crate::{containers::{container_process_impl::ContainerProcessImpl, cpp_container_factory_impl::CppContainerStruct}, core::cpp_plugin::CppPlugin, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, utils::check_process_factory_manifest, value::obj_get_str, Capsule, CapsuleMap, ContainerProcessFactory, ContainerPtr, JuizError, JuizObject, JuizResult, ProcessPtr, Value};
 
 #[repr(C)]
 pub struct CppContainerProcessFactoryImpl {
@@ -14,10 +13,10 @@ pub struct CppContainerProcessFactoryImpl {
     entry_point: unsafe fn(*mut std::ffi::c_void, *mut CapsuleMap, *mut Capsule) -> i64,
 }
 
-pub fn create_python_container_process_factory(manifest: crate::Value, fullpath: PathBuf, /*constructor: PythonContainerConstructFunction */ ) -> JuizResult<CppContainerProcessFactoryImpl> {
-    log::trace!("create_container_factory called");
-    todo!();//CppContainerProcessFactoryImpl::new(manifest, fullpath).context("create_container_factory()")
-}
+// pub fn create_python_container_process_factory(manifest: crate::Value, fullpath: PathBuf, /*constructor: PythonContainerConstructFunction */ ) -> JuizResult<CppContainerProcessFactoryImpl> {
+//     log::trace!("create_container_factory called");
+//     todo!();//CppContainerProcessFactoryImpl::new(manifest, fullpath).context("create_container_factory()")
+// }
 
 impl CppContainerProcessFactoryImpl {
 

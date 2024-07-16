@@ -64,7 +64,7 @@ impl ContainerProcessFactory for PythonContainerProcessFactoryImpl {
             let tn = type_name.clone();
             let fp = fullpath.clone();
             // ここ、実行するたびにファイルを開くのでよくないかもしれない。
-            let pyobj = Python::with_gil(|py| -> PyResult<Py<PyAny>> {
+            let _pyobj = Python::with_gil(|py| -> PyResult<Py<PyAny>> {
                 let py_app = fs::read_to_string(fp).unwrap();
                 let module = PyModule::from_code_bound(py, &py_app.to_string(), "", "")?;
                 let app_func: Py<PyAny> = module.getattr(tn.as_str())?.into();
@@ -82,7 +82,7 @@ impl ContainerProcessFactory for PythonContainerProcessFactoryImpl {
             });
             // println!("result: {:?}", pyobj);
 
-            /// println!("wow: func_result: {:?}", func_result);
+            // println!("wow: func_result: {:?}", func_result);
             return Ok(func_result);
         });
 

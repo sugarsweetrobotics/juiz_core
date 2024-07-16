@@ -1,10 +1,9 @@
 
-use std::{ffi::c_void, fs, path::PathBuf, rc::Rc};
-use anyhow::Context;
-use pyo3::{prelude::*, types::PyTuple};
+use std::{ffi::c_void, rc::Rc};
+
 
 use super::container_impl::ContainerImpl;
-use crate::{core::cpp_plugin::CppPlugin, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, processes::python_process_factory_impl::value_to_pytuple, utils::check_process_factory_manifest, value::obj_get_str, ContainerFactory, ContainerPtr, JuizError, JuizObject, JuizResult, Value};
+use crate::{core::cpp_plugin::CppPlugin, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, utils::check_process_factory_manifest, value::obj_get_str, ContainerFactory, ContainerPtr, JuizError, JuizObject, JuizResult, Value};
 
 pub struct CppContainerStruct {
     pub cobj: *mut std::ffi::c_void
@@ -22,11 +21,11 @@ pub struct CppContainerFactoryImpl {
     //constructor: PythonContainerConstructFunction
 }
 
-pub fn create_cpp_container_factory(manifest: crate::Value, fullpath: PathBuf, /*constructor: PythonContainerConstructFunction */ ) -> JuizResult<CppContainerFactoryImpl> {
-    log::trace!("create_container_factory called");
-    todo!()
-    //CppContainerFactoryImpl::new(manifest, fullpath).context("create_container_factory()")
-}
+// pub fn create_cpp_container_factory(manifest: crate::Value, fullpath: PathBuf, /*constructor: PythonContainerConstructFunction */ ) -> JuizResult<CppContainerFactoryImpl> {
+//     log::trace!("create_container_factory called");
+//     todo!()
+//     //CppContainerFactoryImpl::new(manifest, fullpath).context("create_container_factory()")
+// }
 
 impl CppContainerFactoryImpl {
 
@@ -74,7 +73,7 @@ impl ContainerFactory for CppContainerFactoryImpl {
 
     fn create_container(&self, mut manifest: Value) -> JuizResult<ContainerPtr>{
         log::trace!("ContainerFactoryImpl::create_container(manifest={}) called", manifest);
-        let type_name = self.type_name().to_owned();
+        //let type_name = self.type_name().to_owned();
     
         // CppContainer* create_contianer(value* manifest) {
         let symbol_name = "create_container";

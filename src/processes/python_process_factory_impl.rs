@@ -115,7 +115,7 @@ impl ProcessFactory for PythonProcessFactoryImpl {
             // let type_name = self.type_name();
             let tn = type_name.clone();
             let fp = fullpath.clone();
-            let pyobj = Python::with_gil(|py| -> PyResult<Py<PyAny>> {
+            let _pyobj = Python::with_gil(|py| -> PyResult<Py<PyAny>> {
                 let py_app = fs::read_to_string(fp).unwrap();
                 let module = PyModule::from_code_bound(py, &py_app.to_string(), "", "")?;
                 let app_func: Py<PyAny> = module.getattr(tn.as_str())?.into();

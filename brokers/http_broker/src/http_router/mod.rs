@@ -168,7 +168,7 @@ pub fn append_route(api: &mut utoipa::openapi::OpenApi, body_context: Value, des
 }
 
 
-
+#[allow(unused)]
 #[derive(Deserialize, IntoParams, Debug)]
 pub struct PathQuery {
     path: Option<String>,

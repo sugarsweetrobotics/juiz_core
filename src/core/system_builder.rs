@@ -6,7 +6,7 @@ pub mod system_builder {
 
     use anyhow::Context;
 
-    use crate::{brokers::{broker_factories_wrapper::BrokerFactoriesWrapper, ipc::{ipc_broker::create_ipc_broker_factory, ipc_broker_proxy::create_ipc_broker_proxy_factory}, local::{local_broker::{create_local_broker_factory, BrokerSideSenderReceiverPair, ProxySideSenderReceiverPair}, local_broker_proxy::create_local_broker_proxy_factory}, local_broker::ByteSenderReceiverPair, BrokerFactory, BrokerProxy, BrokerProxyFactory}, containers::{cpp_container_factory_impl::CppContainerFactoryImpl, cpp_container_process_factory_impl::CppContainerProcessFactoryImpl, ContainerFactoryPtr, ContainerProcessFactoryPtr}, core::{cpp_plugin::CppPlugin, python_plugin::PythonPlugin}, processes::{cpp_process_factory_impl::CppProcessFactoryImpl, ProcessFactoryPtr}, Capsule, JuizError};
+    use crate::{brokers::{broker_factories_wrapper::BrokerFactoriesWrapper, ipc::{ipc_broker::create_ipc_broker_factory, ipc_broker_proxy::create_ipc_broker_proxy_factory}, local::{local_broker::{create_local_broker_factory, BrokerSideSenderReceiverPair, ProxySideSenderReceiverPair}, local_broker_proxy::create_local_broker_proxy_factory}, local_broker::ByteSenderReceiverPair, BrokerFactory, BrokerProxy, BrokerProxyFactory}, containers::{cpp_container_factory_impl::CppContainerFactoryImpl, cpp_container_process_factory_impl::CppContainerProcessFactoryImpl, ContainerFactoryPtr, ContainerProcessFactoryPtr}, core::{cpp_plugin::CppPlugin, python_plugin::PythonPlugin}, processes::{cpp_process_factory_impl::CppProcessFactoryImpl, ProcessFactoryPtr}, JuizError};
     use crate::{connections::connection_builder::connection_builder, containers::{container_factory_wrapper::ContainerFactoryWrapper, container_process_factory_wrapper::ContainerProcessFactoryWrapper}, core::RustPlugin, ecs::{execution_context_holder::ExecutionContextHolder, execution_context_holder_factory::ExecutionContextHolderFactory, ExecutionContextFactory}, jvalue, processes::{capsule::CapsuleMap, ProcessFactoryWrapper}, utils::{get_array, get_hashmap, juiz_lock, manifest_util::when_contains_do_mut, when_contains_do}, value::{obj_get, obj_get_str}, CapsulePtr, ContainerFactory, ContainerProcessFactory, JuizResult, ProcessFactory, System, Value};
 
     pub fn setup_plugins(system: &mut System, manifest: &Value) -> JuizResult<()> {
@@ -70,14 +70,14 @@ pub mod system_builder {
         }
     }
 
-    fn load_cpp_factory<'a>(rc_plugin: Rc<CppPlugin>, symbol_name: &str) -> JuizResult<fn(*mut CapsuleMap, *mut Capsule)->i64> {
-        log::trace!("load_cpp_factory(symbol_name={symbol_name}) called");
-        type SymbolType<'a> = libloading::Symbol<'a, unsafe fn() -> fn(*mut CapsuleMap, *mut Capsule)->i64>;
-        unsafe {
-            let symbol = rc_plugin.load_symbol::<SymbolType<'a>>(symbol_name.as_bytes())?;
-            Ok((symbol)())
-        }
-    }
+    // fn load_cpp_factory<'a>(rc_plugin: Rc<CppPlugin>, symbol_name: &str) -> JuizResult<fn(*mut CapsuleMap, *mut Capsule)->i64> {
+    //     log::trace!("load_cpp_factory(symbol_name={symbol_name}) called");
+    //     type SymbolType<'a> = libloading::Symbol<'a, unsafe fn() -> fn(*mut CapsuleMap, *mut Capsule)->i64>;
+    //     unsafe {
+    //         let symbol = rc_plugin.load_symbol::<SymbolType<'a>>(symbol_name.as_bytes())?;
+    //         Ok((symbol)())
+    //     }
+    // }
  
     /// ProcessFactoryをセットアップする。
     /// name: ProcessFactoryの型名
@@ -437,7 +437,7 @@ pub mod system_builder {
         system.core_broker().lock().unwrap().store_mut().processes.register_factory(ProcessFactoryWrapper::new_python(py_plugin.clone(), pf)?)
     }
 
-    fn register_cpp_process_factory(system: &System, mut cpp_plugin: Rc<CppPlugin>) -> JuizResult<ProcessFactoryPtr> {
+    fn register_cpp_process_factory(system: &System, cpp_plugin: Rc<CppPlugin>) -> JuizResult<ProcessFactoryPtr> {
         log::trace!("register_cpp_process_factory() called");
         // let pf = cpp_plugin.load_process_factory(system.get_working_dir(), "process_factory")?;
         let pf = Arc::new(Mutex::new(CppProcessFactoryImpl::new(cpp_plugin.clone())?));

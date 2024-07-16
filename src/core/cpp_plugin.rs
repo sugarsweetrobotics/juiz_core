@@ -2,8 +2,8 @@
 use std::{path::PathBuf, sync::{Arc, Mutex}};
 use libloading::{Library, Symbol};
 
-use crate::{containers::{python_container_process_factory_impl::PythonContainerProcessFactoryImpl, PythonContainerFactoryImpl}, jvalue, processes::{cpp_process_factory_impl::CppProcessFactoryImpl, python_process_factory_impl::PythonProcessFactoryImpl}, value::obj_get_str, Capsule, CapsuleMap, CapsulePtr, ContainerFactory, ContainerProcessFactory, JuizError, JuizResult, ProcessFactory, Value};
-type CppProcessEntryPointType = Symbol<'static, extern "C" fn(*mut CapsuleMap, *mut Capsule) -> i64>;
+use crate::{containers::{python_container_process_factory_impl::PythonContainerProcessFactoryImpl, PythonContainerFactoryImpl}, jvalue, Capsule, CapsuleMap, CapsulePtr, ContainerFactory, ContainerProcessFactory, JuizError, JuizResult, Value};
+//type CppProcessEntryPointType = Symbol<'static, extern "C" fn(*mut CapsuleMap, *mut Capsule) -> i64>;
 pub struct CppPlugin{
     path: PathBuf,
     lib: Library,
@@ -69,44 +69,44 @@ impl CppPlugin {
         )?)))
     }
 
-    pub fn load_process_factory(&mut self, working_dir: Option<PathBuf>, _symbol_name: &str) -> JuizResult<Arc<Mutex<dyn ProcessFactory>>> {
-        log::trace!("CppPlugin({:?})::load_process_factory() called", self.path);
-        self.load_process_factory_with_manifest(working_dir.clone(), self.manifest.clone())
-    }
+    //pub fn load_process_factory(&mut self, working_dir: Option<PathBuf>, _symbol_name: &str) -> JuizResult<Arc<Mutex<dyn ProcessFactory>>> {
+    //    log::trace!("CppPlugin({:?})::load_process_factory() called", self.path);
+    //    self.load_process_factory_with_manifest(working_dir.clone(), self.manifest.clone())
+    // }
 
     pub unsafe fn get_cpp_process_symbol(&self, entry_point_name: &str) -> JuizResult<Symbol<extern "C" fn(*mut CapsuleMap, *mut Capsule) -> i64>> {
         Ok(self.lib.get(entry_point_name.as_bytes())?)
     }
-
-    fn load_process_factory_with_manifest(&mut self, working_dir: Option<PathBuf>, manifest: Value) -> JuizResult<Arc<Mutex<dyn ProcessFactory>>> {
-        let type_name = obj_get_str(&self.manifest, "type_name")?.to_owned();
-        let entry_point_name = "process_entry_point";
-        unsafe {
-            //let bcc = self.lib.get(entry_point_name.as_bytes())?;
-            /*
-            let _entry_point: Symbol<extern "C" fn(*mut CapsuleMap, *mut Capsule) -> i64> = self.lib.get(entry_point_name.as_bytes())?;
-            let entry_point_func = |mut cm: CapsuleMap| -> JuizResult<Capsule> {
-                let mut cap = Capsule::empty();
-                let v = _entry_point(&mut cm, &mut cap);
-                return Ok(cap);
-            };
-            */
-            //self.process_entry_point = Some(_entry_point);
-            todo!();/*
-            let procf = Arc::new(Mutex::new(CppProcessFactoryImpl::new(
-                manifest,
-                working_dir.unwrap_or(env!("CARGO_MANIFEST_DIR").into()).join(self.path.clone()),
-               // _entry_point,
-                self,
-            )?));
+    
+    // fn load_process_factory_with_manifest(&mut self, working_dir: Option<PathBuf>, manifest: Value) -> JuizResult<Arc<Mutex<dyn ProcessFactory>>> {
+    //     let type_name = obj_get_str(&self.manifest, "type_name")?.to_owned();
+    //     let entry_point_name = "process_entry_point";
+    //     unsafe {
+    //         //let bcc = self.lib.get(entry_point_name.as_bytes())?;
+    //         /*
+    //         let _entry_point: Symbol<extern "C" fn(*mut CapsuleMap, *mut Capsule) -> i64> = self.lib.get(entry_point_name.as_bytes())?;
+    //         let entry_point_func = |mut cm: CapsuleMap| -> JuizResult<Capsule> {
+    //             let mut cap = Capsule::empty();
+    //             let v = _entry_point(&mut cm, &mut cap);
+    //             return Ok(cap);
+    //         };
+    //         */
+    //         //self.process_entry_point = Some(_entry_point);
+    //         todo!();/*
+    //         let procf = Arc::new(Mutex::new(CppProcessFactoryImpl::new(
+    //             manifest,
+    //             working_dir.unwrap_or(env!("CARGO_MANIFEST_DIR").into()).join(self.path.clone()),
+    //            // _entry_point,
+    //             self,
+    //         )?));
             
-            Ok())
-            */
-        }
+    //         Ok())
+    //         */
+    //     }
         
-    }
+    // }
 
-    pub fn load_component_profile(&self, working_dir: Option<PathBuf>) -> JuizResult<Value> {
+    pub fn load_component_profile(&self, _working_dir: Option<PathBuf>) -> JuizResult<Value> {
         Ok(self.get_manifest().clone())
     }
 
