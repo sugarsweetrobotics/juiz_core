@@ -20,7 +20,7 @@ impl CppProcessFactoryImpl {
 
     pub fn new(plugin: Rc<CppPlugin>) -> JuizResult<Self> {
         let type_name = obj_get_str(plugin.get_manifest(), "type_name")?;
-        let symbol_name = "process_factory";
+        let symbol_name = "process_factory_entry_point";
         type SymbolType = libloading::Symbol<'static, unsafe fn() -> unsafe fn(*mut CapsuleMap, *mut Capsule)->i64>;
         let f = unsafe {
             let symbol = plugin.load_symbol::<SymbolType>(symbol_name.as_bytes())?;

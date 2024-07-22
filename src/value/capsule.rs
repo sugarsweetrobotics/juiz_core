@@ -1,3 +1,4 @@
+use std::ffi::CStr;
 use std::sync::{Arc, Mutex};
 use std::{collections::HashMap, mem::swap};
 
@@ -370,5 +371,155 @@ pub unsafe extern "C" fn capsule_get_int(capsule: *mut Capsule, v: *mut i64) -> 
 pub unsafe extern "C" fn capsule_set_int(capsule: *mut Capsule, v: i64) -> bool {
     let cap = capsule.as_mut().unwrap();
     cap.replace_value(jvalue!(v).into());
+    return true;
+}
+
+
+
+#[no_mangle]
+pub unsafe extern "C" fn capsule_is_uint(capsule: *mut Capsule) -> bool {
+    if capsule_is_value(capsule) {
+        let c = capsule.as_ref().unwrap();
+        c.as_value().unwrap().is_u64()
+    } else {
+        false
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn capsule_get_uint(capsule: *mut Capsule, v: *mut u64) -> bool {
+    if capsule_is_value(capsule) {
+        let val = capsule.as_ref().unwrap().as_value().unwrap();
+        if !val.is_u64() {
+            false
+        } else {
+            *v = val.as_u64().unwrap();
+            true
+        }
+    } else {
+        false
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn capsule_set_uint(capsule: *mut Capsule, v: u64) -> bool {
+    let cap = capsule.as_mut().unwrap();
+    cap.replace_value(jvalue!(v).into());
+    return true;
+}
+
+
+
+#[no_mangle]
+pub unsafe extern "C" fn capsule_is_float(capsule: *mut Capsule) -> bool {
+    if capsule_is_value(capsule) {
+        let c = capsule.as_ref().unwrap();
+        c.as_value().unwrap().is_f64()
+    } else {
+        false
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn capsule_get_float(capsule: *mut Capsule, v: *mut f64) -> bool {
+    if capsule_is_value(capsule) {
+        let val = capsule.as_ref().unwrap().as_value().unwrap();
+        if !val.is_f64() {
+            false
+        } else {
+            *v = val.as_f64().unwrap();
+            true
+        }
+    } else {
+        false
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn capsule_set_float(capsule: *mut Capsule, v: f64) -> bool {
+    let cap = capsule.as_mut().unwrap();
+    cap.replace_value(jvalue!(v).into());
+    return true;
+}
+
+
+
+#[no_mangle]
+pub unsafe extern "C" fn capsule_is_bool(capsule: *mut Capsule) -> bool {
+    if capsule_is_value(capsule) {
+        let c = capsule.as_ref().unwrap();
+        c.as_value().unwrap().is_boolean()
+    } else {
+        false
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn capsule_get_bool(capsule: *mut Capsule, v: *mut i64) -> bool {
+    if capsule_is_value(capsule) {
+        let val = capsule.as_ref().unwrap().as_value().unwrap();
+        if !val.is_boolean() {
+            false
+        } else {
+            *v = if val.as_bool().unwrap() { 1 } else { 0 };
+            true
+        }
+    } else {
+        false
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn capsule_set_bool(capsule: *mut Capsule, v: i64) -> bool {
+    let cap = capsule.as_mut().unwrap();
+    cap.replace_value(jvalue!(if v != 0 { true } else { false } ).into());
+    return true;
+}
+
+
+
+#[no_mangle]
+pub unsafe extern "C" fn capsule_is_string(capsule: *mut Capsule) -> bool {
+    if capsule_is_value(capsule) {
+        let c = capsule.as_ref().unwrap();
+        c.as_value().unwrap().is_string()
+    } else {
+        false
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn capsule_get_string(capsule: *mut Capsule, v: *mut *const u8) -> bool {
+    if capsule_is_value(capsule) {
+        let val = capsule.as_ref().unwrap().as_value().unwrap();
+        if !val.is_string() {
+            false
+        } else {
+            *v = val.as_str().unwrap().as_ptr();
+            true
+        }
+    } else {
+        false
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn capsule_set_string(capsule: *mut Capsule, v: *const i8) -> bool {
+    let cap = capsule.as_mut().unwrap();
+    cap.replace_value(jvalue!(CStr::from_ptr(v).to_str().unwrap()).into());
+    return true;
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn capsule_set_empty_object(capsule: *mut Capsule) -> bool {
+    let cap = capsule.as_mut().unwrap();
+    cap.replace_value(jvalue!({}).into());
+    return true;
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn capsule_set_empty_array(capsule: *mut Capsule) -> bool {
+    let cap = capsule.as_mut().unwrap();
+    cap.replace_value(jvalue!([]).into());
     return true;
 }

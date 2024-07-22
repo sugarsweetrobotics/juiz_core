@@ -1,4 +1,4 @@
-PROJECT_NAME=cppadd
+PROJECT_NAME=increment_process_cpp
 DYLIB_EXT=dylib
 TARGET=${JUIZ_LIB_DIR}/lib${PROJECT_NAME}.${DYLIB_EXT}
 
@@ -7,12 +7,12 @@ CXX=clang++
 AR=ar
 
 
-JUIZ_DIR=../../..
+JUIZ_DIR=../../../..
 JUIZ_LIB_DIR=${JUIZ_DIR}/target/debug
 JUIZ_INCLUDE_DIR=${JUIZ_DIR}/cppjuiz/include
 
 CFLAGS=-Wall -O -I${JUIZ_INCLUDE_DIR} -c -fPIC -arch arm64 #-arch x86_64 -fPIC
-CXXFLAGS=-Wall -O -I${JUIZ_INCLUDE_DIR} -c -fPIC -arch arm64 -std=c++17 #-arch x86_64 -fPIC
+CXXFLAGS=-Wall -O -I${JUIZ_INCLUDE_DIR} -c -fPIC -arch arm64 -std=c++20 #-arch x86_64 -fPIC
 ARFLAGS= rc
 CDYLIBFLAGS=-L${JUIZ_LIB_DIR} -ljuiz_core -dynamiclib -arch arm64 #-arch x86_64
 CXXDYLIBFLAGS=-L${JUIZ_LIB_DIR} -ljuiz_core -dynamiclib -arch arm64 #-arch x86_64
