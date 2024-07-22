@@ -3,7 +3,7 @@
 
 use std::{collections::HashMap, ffi::CStr, sync::{Arc, Mutex}};
 
-use opencv::core::Mat;
+pub use opencv::core::Mat;
 use serde_json::Map;
 
 use crate::{jvalue, Capsule, JuizError, JuizResult, Value};
@@ -176,7 +176,7 @@ impl CapsulePtr {
         }
     }
 
-    pub fn lock_as_mat<T, F>(&self, func: F) -> JuizResult<T> where F: FnOnce(&Mat) -> T{
+    pub fn lock_as_mat<T, F>(&self, func: F) -> JuizResult<T> where F: FnOnce(&opencv::prelude::Mat) -> T{
         match self.value.lock() {
             Ok(c) => {
                 match c.as_mat() {

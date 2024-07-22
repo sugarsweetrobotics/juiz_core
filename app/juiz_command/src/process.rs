@@ -126,7 +126,7 @@ fn on_process_call(system: &mut System, id: String, arg: String, fileout: Option
             if value.is_value()? {
                 println!("{:?}", value);
             } else if value.is_mat()? {
-                let _ = value.lock_as_mat(|mat| {
+                let _ = value.lock_as_mat(|mat: &opencv::prelude::Mat| {
 
                     let params: Vector<i32> = Vector::new();
                     match fileout {

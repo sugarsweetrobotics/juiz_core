@@ -7,6 +7,8 @@ use juiz_core::brokers::CRUDBroker;
 //use juiz_core::processes::capsule::unwrap_arc_capsule;
 
 use juiz_core::value::capsule_to_value;
+use opencv::core::{Vector, VectorToVec};
+use opencv::imgcodecs::imencode;
 use utoipa::openapi::path::OperationBuilder;
 use utoipa::openapi::request_body::RequestBodyBuilder;
 use utoipa::openapi::{ContentBuilder, PathItem, PathItemType};
@@ -28,7 +30,7 @@ pub mod container_process;
 pub mod broker;
 pub mod execution_context;
 pub mod connection;
-use cv_convert::TryFromCv;
+// use cv_convert::TryFromCv;
 
 #[derive(Deserialize, IntoParams, Debug)]
 pub struct IdentifierQuery {
@@ -100,24 +102,29 @@ pub fn json_output_wrap(result: JuizResult<CapsulePtr>) -> impl IntoResponse {
             } else if v.is_mat().unwrap() {
                 v.lock_as_mat(|result| {
                 //Json(jvalue!({"message": "ERROR.this is image"})).into_response()
-                let img = image::RgbImage::try_from_cv(result).unwrap();
+                
+                //let img = image::RgbImage::try_from_cv(result).unwrap();
 
-                use image::ImageFormat;
+               // use image::ImageFormat;
 
-                use std::io::{BufWriter, Cursor};
+                //use std::io::{BufWriter, Cursor};
 
-                let mut buffer = BufWriter::new(Cursor::new(Vec::new()));
-                img.write_to(&mut buffer, ImageFormat::Png).unwrap();
+                //let mut buffer = BufWriter::new(Cursor::new(Vec::new()));
+                let mut buf : opencv::core::Vector<u8> = Vector::new();
+
+                let params: Vector<i32> = Vector::new();
+                imencode(".png", result, &mut buf, &params);
+                // img.write_to(&mut buffer, ImageFormat::Png).unwrap();
 
                 //Json(jvalue!({"message": "ERROR.this is image"})).into_response()
                 
-                let bytes: Vec<u8> = buffer.into_inner().unwrap().into_inner(); 
+                //let bytes: Vec<u8> = buffer.into_inner().unwrap().into_inner(); 
                 
                 let response =  Response::builder()
                     .extension("png")
                     .header("Content-Type", "image/png")
                     .status(StatusCode::OK)
-                    .body(Body::from(bytes)).unwrap();
+                    .body(Body::from(buf.to_vec())).unwrap();
                 //response.into_response()
                 response.into_response()
                 }).unwrap()

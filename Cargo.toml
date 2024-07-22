@@ -35,9 +35,9 @@ futures = "0.3.29"
 interprocess = {version="2.2.0", features=["tokio"]}
 
 # opencv = {version="0.84.0", default-features=false, features=["clang-runtime"]}
-opencv = {version="0.84.0", default-features=false, features=["imgproc", "imgcodecs", "clang-runtime"]}
+opencv = {version="0.92.0", default-features=false, features=["imgproc", "imgcodecs", "clang-runtime"]}
 image = "0.24.0"
-cv-convert = {version="0.25.0", default-features=false, features=["opencv_0-84", "image_0-24"]}
+# cv-convert = {version="0.25.0", default-features=false, features=["opencv_0-84", "image_0-24"]}
 
 num-traits = "0.2.19"
 nalgebra = "0.32.5"

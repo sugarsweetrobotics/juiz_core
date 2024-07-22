@@ -29,9 +29,9 @@ pub use core::result::JuizResult;
 
 pub use utils::yaml_conf_load;
 
-pub use cv_convert as cv_convert;
-pub use cv_convert::opencv as opencv;
+// pub use cv_convert as cv_convert;
+// pub use cv_convert::opencv as opencv;
 pub use log;
 
 // Re export 
-pub use opencv::core::Mat;
+//pub use opencv::core::Mat;

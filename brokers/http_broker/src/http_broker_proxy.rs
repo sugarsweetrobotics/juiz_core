@@ -129,7 +129,7 @@ impl CRUDBrokerProxy for HTTPBrokerProxy {
                 if hdr["content-type"] == "image/png" {
                     let mut buf: Vec<u8> = Vec::new();
                     let _result = response.read_to_end(&mut buf)?;
-                    Ok(imdecode(&opencv::types::VectorOfu8::from_iter(buf), IMREAD_COLOR)?.into())
+                    Ok(imdecode(&opencv::core::Vector::<u8>::from_iter(buf), IMREAD_COLOR)?.into())
                 } else {
                     match response.json::<Value>() {
                         Err(e) => Err(anyhow::Error::from(e)),
