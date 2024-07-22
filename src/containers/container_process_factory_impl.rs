@@ -1,24 +1,30 @@
 use std::sync::{Arc, Mutex, RwLock};
-use super::{container_impl::ContainerImpl, container_process_impl::{ContainerFunctionType, ContainerProcessImpl}};
+use super::{container_impl::ContainerImpl, container_process_impl::{ContainerFunctionType, ContainerProcessImpl}, ContainerProcessFactoryPtr};
 use crate::{object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, value::obj_get_str, Capsule, CapsuleMap, ContainerProcessFactory, ContainerPtr, JuizObject, JuizResult, ProcessPtr, Value};
 
-struct ContainerProcessFactoryImpl<T> {
+pub struct ContainerProcessFactoryImpl<T> {
     core: ObjectCore,
     manifest: Value,
     function: ContainerFunctionType<T>,
 }
 
 impl<T: 'static> ContainerProcessFactoryImpl<T> {
-    pub fn new(manifest: crate::Value, function: ContainerFunctionType<T>) -> JuizResult<Arc<Mutex<dyn ContainerProcessFactory>>> {
+    pub fn new(manifest: crate::Value, function: ContainerFunctionType<T>) -> JuizResult<Self> {
         let type_name = obj_get_str(&manifest, "type_name")?;
-        Ok(Arc::new(Mutex::new(
-            ContainerProcessFactoryImpl{
+        Ok(ContainerProcessFactoryImpl{
                 core: ObjectCore::create_factory(JuizObjectClass::ContainerProcessFactory("ContainerProcessFactoryImpl"), 
                 type_name),
                 function,
                 manifest,
             }
-        )))
+        )
+    }
+
+    pub fn create(manifest: crate::Value, function: &'static impl Fn(&mut ContainerImpl<T>, CapsuleMap) -> JuizResult<Capsule> ) -> JuizResult<ContainerProcessFactoryPtr> {
+        //let type_name = obj_get_str(&manifest, "type_name")?;
+        let f = Arc::new(|c: &mut ContainerImpl<T>, v| { function(c, v) } );
+        Ok(Arc::new(Mutex::new(Self::new(manifest, f)?)))
+        
     }
 
     fn apply_default_manifest(&self, manifest: Value) -> JuizResult<Value> {
@@ -30,18 +36,18 @@ impl<T: 'static> ContainerProcessFactoryImpl<T> {
     }
 }
 
-pub fn create_container_process_factory<T: 'static>(
-        manifest: crate::Value, 
-        //function: ContainerFunctionType<T>
-        f: &'static impl Fn(&mut ContainerImpl<T>, CapsuleMap) -> JuizResult<Capsule>    
-    ) -> JuizResult<Arc<Mutex<dyn ContainerProcessFactory>>> 
-//where F: 
-{
-    log::trace!("create_container_process_factory({}) called", manifest);
-    //et function = f.clone();
-    let ff = Arc::new(|c: &mut ContainerImpl<T>, v| { f(c, v) } );
-    ContainerProcessFactoryImpl::<T>::new(manifest, ff)
-}
+// pub fn create_container_process_factory<T: 'static>(
+//         manifest: crate::Value, 
+//         //function: ContainerFunctionType<T>
+//         f: &'static impl Fn(&mut ContainerImpl<T>, CapsuleMap) -> JuizResult<Capsule>    
+//     ) -> JuizResult<Arc<Mutex<dyn ContainerProcessFactory>>> 
+// //where F: 
+// {
+//     log::trace!("create_container_process_factory({}) called", manifest);
+//     //et function = f.clone();
+//     let ff = Arc::new(|c: &mut ContainerImpl<T>, v| { f(c, v) } );
+//     ContainerProcessFactoryImpl::<T>::create(manifest, ff)
+// }
 
 impl<T: 'static> JuizObjectCoreHolder for ContainerProcessFactoryImpl<T> {
     fn core(&self) -> &crate::object::ObjectCore {

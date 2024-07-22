@@ -26,14 +26,32 @@ impl CppPlugin {
     pub fn get_manifest(&self) -> &Value {
         &self.manifest
     }
+
+    pub fn load_component_profile(&self, working_dir: Option<PathBuf>) -> JuizResult<Value> {
+        Ok(self.get_manifest().clone())
+    }
     
-    pub fn new(path: PathBuf) -> JuizResult<CppPlugin> {
-        log::trace!("CppPlugin::load({:?}) called", path);
+    pub fn new(path: PathBuf, manifest_entry_point: &str) -> JuizResult<CppPlugin> {
+        log::trace!("CppPlugin::load({:?}, {:?}) called", path, manifest_entry_point);
+        let entry_point = manifest_entry_point.to_owned() + "_entry_point";
         unsafe {
-            let lib = Library::new(path.clone()).unwrap();
+            let lib = match Library::new(path.clone()) {
+                Ok(l) => Ok(l),
+                Err(e) => {
+                    log::error!("Library::new({path:?}) failed. Error ({e:?})");
+                    Err(e)
+                }
+            }?;
+            //let lib = .unwrap();
             
             let mut manif_cap = CapsulePtr::new();
-            let manifest_function: Symbol<extern "C" fn(*mut CapsulePtr) -> i64> = lib.get(b"manifest_entry_point").unwrap();
+            let manifest_function: Symbol<extern "C" fn(*mut CapsulePtr) -> i64> = match lib.get(entry_point.as_bytes()) {
+                Ok(f) => Ok(f),
+                Err(e) => {
+                    log::error!("Library({path:?})::get({entry_point}) failed. Error ({e:?})");
+                    Err(e)
+                }
+            }?;
             let retval = manifest_function(&mut manif_cap);
             if retval != 0 {
                 return Err(anyhow::Error::from(JuizError::CppProcessFunctionCallError{}));
@@ -106,10 +124,6 @@ impl CppPlugin {
         
     // }
 
-    pub fn load_component_profile(&self, _working_dir: Option<PathBuf>) -> JuizResult<Value> {
-        Ok(self.get_manifest().clone())
-    }
-
 
     pub fn load_symbol<T>(&self, symbol_name: &[u8]) -> JuizResult<libloading::Symbol<T>> {
         log::trace!("CppPlugin::load_symbol({:?}) called", std::str::from_utf8(symbol_name));
@@ -117,7 +131,7 @@ impl CppPlugin {
             match self.lib.get::<T>(symbol_name) {
                 Ok(func) => Ok(func),
                 Err(_) => {
-                    log::error!("CppPlugin::load_symbol({:?}) failed.", symbol_name);
+                    log::error!("CppPlugin::load_symbol({:?}) failed.", std::str::from_utf8(symbol_name));
                     Err(anyhow::Error::from(JuizError::PluginLoadSymbolFailedError{plugin_path:self.path.display().to_string(), symbol_name: std::str::from_utf8(symbol_name)?.to_string()}))
                 }
             }

@@ -1,6 +1,6 @@
 use std::{collections::HashMap, path::PathBuf, sync::{Arc, Mutex}};
 
-use crate::{brokers::BrokerProxy, processes::{capsule::CapsuleMap, value_to_capsule}, utils::juiz_lock, CapsulePtr, JuizError, JuizResult, Value};
+use crate::{brokers::BrokerProxy, value::{CapsuleMap, value_to_capsule}, utils::juiz_lock, CapsulePtr, JuizError, JuizResult, Value};
 
 
 

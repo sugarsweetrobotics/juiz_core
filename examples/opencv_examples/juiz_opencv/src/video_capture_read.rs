@@ -1,10 +1,7 @@
 
 
-use std::sync::{Arc, Mutex};
-
 use opencv::prelude::*;
-use juiz_core::{containers::{container_impl::ContainerImpl, create_container_process_factory}, jvalue, processes::capsule::{Capsule, CapsuleMap}, ContainerProcessFactory, JuizResult};
-
+use juiz_core::prelude::*;
 use crate::video_capture::CvVideoCapture;
 
 fn cv_video_capture_read_function(container: &mut ContainerImpl<CvVideoCapture>, _v: CapsuleMap) -> JuizResult<Capsule> {
@@ -13,16 +10,14 @@ fn cv_video_capture_read_function(container: &mut ContainerImpl<CvVideoCapture>,
     return Ok(frame.into());
 }
 
+fn manifest() -> Value {
+    ContainerProcessManifest::new(CvVideoCapture::manifest(), "cv_video_capture_read").into()
+}
 
 #[no_mangle]
-pub unsafe extern "Rust" fn cv_video_capture_read_factory() -> JuizResult<Arc<Mutex<dyn ContainerProcessFactory>>> {
-    create_container_process_factory::<CvVideoCapture>(
-        jvalue!({
-            "container_type_name": "cv_video_capture",
-            "type_name": "cv_video_capture_read",
-            "arguments" : {
-            }, 
-        }),
+pub unsafe extern "Rust" fn cv_video_capture_read_factory() -> JuizResult<ContainerProcessFactoryPtr> {
+    ContainerProcessFactoryImpl::create(
+        manifest(),
         &cv_video_capture_read_function)
 }
 

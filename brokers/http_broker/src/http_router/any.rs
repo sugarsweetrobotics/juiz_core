@@ -3,7 +3,7 @@
 use std::sync::{Mutex, Arc};
 use axum::{response::IntoResponse, extract::{Path, Query, State}, routing, Json, Router};
 
-use juiz_core::{brokers::crud_broker::CRUDBroker, processes::capsule::CapsuleMap, utils::juiz_lock, Value};
+use juiz_core::{brokers::crud_broker::CRUDBroker, value::CapsuleMap, utils::juiz_lock, Value};
 
 use super::{IdentifierQuery, PathQuery, json_output_wrap, query_to_map};
 use utoipa::OpenApi;

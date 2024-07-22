@@ -1,8 +1,7 @@
 use std::collections::HashMap;
 
-use crate::{connections::DestinationConnection, jvalue, CapsulePtr, JuizResult, Value};
+use crate::{value::*, connections::DestinationConnection, jvalue, CapsulePtr, JuizResult, Value};
 
-use super::capsule::Capsule;
 
 
 pub struct Outlet {

@@ -17,7 +17,7 @@ use crate::{jvalue, CapsulePtr, Identifier, JuizError, JuizObject, JuizResult, P
 use crate::utils::{check_manifest_before_call, check_process_manifest};
 use crate::connections::{SourceConnection, SourceConnectionImpl, DestinationConnection, DestinationConnectionImpl};
 
-use super::capsule::{Capsule, CapsuleMap};
+use crate::value::{Capsule, CapsuleMap};
 use super::inlet::Inlet;
 use super::outlet::Outlet;
 
@@ -197,7 +197,7 @@ impl Process for ProcessImpl {
     }
 
     fn try_connect_to(&mut self, destination: ProcessPtr, arg_name: &str, connection_manifest: Value) -> JuizResult<Value> {
-        log::info!("ProcessImpl(id={:?}).try_connect_to(destination=Process()) called", self.identifier());
+        log::trace!("ProcessImpl(id={:?}).try_connect_to(destination=Process()) called", self.identifier());
         let destination_id = proc_lock(&destination).context("ProcessImpl::try_connect_to()")?.identifier().clone();
         self.outlet.insert(
             arg_name.to_owned(), 
@@ -207,7 +207,7 @@ impl Process for ProcessImpl {
                 destination, 
                 connection_manifest.clone(), 
                 arg_name.to_owned())?));
-        log::info!("ProcessImpl(id={:?}).try_connect_to(destination=Process()) exit", self.identifier());
+        log::trace!("ProcessImpl(id={:?}).try_connect_to(destination=Process()) exit", self.identifier());
         Ok(connection_manifest.into())
     }
 

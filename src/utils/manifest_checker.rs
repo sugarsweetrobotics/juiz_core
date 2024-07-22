@@ -1,7 +1,7 @@
 
 use anyhow::Context;
 
-use crate::processes::capsule::CapsuleMap;
+use crate::value::CapsuleMap;
 use crate::JuizError;
 use crate::JuizResult;
 use crate::value::*;

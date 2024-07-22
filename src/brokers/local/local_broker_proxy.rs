@@ -1,6 +1,6 @@
 use std::{sync::{Arc, Mutex}, time::Duration, ops::Deref};
 
-use crate::{brokers::messenger_broker_proxy_factory::create_messenger_broker_proxy_factory, processes::capsule::CapsuleMap, CapsulePtr, JuizError, JuizResult};
+use crate::{brokers::messenger_broker_proxy_factory::create_messenger_broker_proxy_factory, value::CapsuleMap, CapsulePtr, JuizError, JuizResult};
 
 use super::local_broker::ProxySideSenderReceiverPair;
 

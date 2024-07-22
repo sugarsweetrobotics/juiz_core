@@ -72,7 +72,7 @@ fn manifest_to_connection_id<'a>(manifest: &'a Value, source_id: &Identifier, de
 impl ConnectionCore { 
 
     pub fn new(connection_impl_class_name: &'static str, source_process_identifier: Identifier, destination_process_identifier: Identifier, arg_name: String, connection_manifest: &Value) -> JuizResult<Self> {
-        log::trace!("ConnectionCore::new() called");
+        //log::trace!("ConnectionCore::new() called");
         let manif = check_connection_manifest(connection_manifest.clone())?;
         let connection_type = connection_type_from(obj_get_str(&manif, "type"))?;
         let connection_id = manifest_to_connection_id(&manif, &source_process_identifier, &destination_process_identifier)?;

@@ -1,8 +1,6 @@
 
-use std::sync::{Arc, Mutex};
 use opencv::highgui::*;
-use juiz_core::{create_container_factory, jvalue, value::obj_get_str, ContainerFactory, JuizResult, Value};
-
+use juiz_core::{prelude::*, value::obj_get_str};
 
 #[allow(dead_code)]
 #[repr(Rust)]
@@ -11,17 +9,25 @@ pub struct CvWindow {
 }
 
 
+impl CvWindow {
+
+    pub fn manifest() -> Value {
+
+        ContainerManifest::new("cv_window").into()
+    }
+}
+
 fn create_cv_window_container(manifest: Value) -> JuizResult<Box<CvWindow>> {
     let name = obj_get_str(&manifest, "name")?;
-    println!("opencv::named_window({name:})");
+    //println!("opencv::named_window({name:})");
     named_window(name, 1)?;
     Ok(Box::new(CvWindow{name: name.to_owned()}))
 }
 
 #[no_mangle]
-pub unsafe extern "Rust" fn cv_window_factory() -> JuizResult<Arc<Mutex<dyn ContainerFactory>>> {
+pub unsafe extern "Rust" fn cv_window_factory() -> JuizResult<ContainerFactoryPtr> {
     // env_logger::init();
-    create_container_factory(jvalue!({ "type_name": "cv_window"}), create_cv_window_container)
+    ContainerFactoryImpl::create(CvWindow::manifest(), create_cv_window_container)
 }
 
 

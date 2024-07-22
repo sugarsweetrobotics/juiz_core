@@ -4,21 +4,14 @@ use std::path::PathBuf;
 
 use crate::{jvalue, JuizError, JuizResult, Value};
 
+use super::plugin::Plugin;
+
 pub struct RustPlugin {
     path: PathBuf,
     lib: Library,
 }
 
-/*
-pub type Symbol<'lib, T> = libloading::Symbol<'lib, libloading::Symbol<'lib, T>>;
-*/
 impl RustPlugin {
-
-    pub fn profile_full(&self) -> JuizResult<Value> {
-        Ok(jvalue!({
-            "path": self.path,
-        }))
-    }
 
     pub fn load(path: PathBuf) -> JuizResult<RustPlugin> {
         log::trace!("RustPlugin::load({:?}) called", path);
@@ -56,4 +49,12 @@ impl RustPlugin {
         })
     }
     
+}
+
+impl Plugin for RustPlugin {
+    fn profile_full(&self) -> JuizResult<Value> {
+        Ok(jvalue!({
+            "path": self.path,
+        }))
+    }
 }

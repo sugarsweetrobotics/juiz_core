@@ -3,7 +3,7 @@ use std::io::prelude::*;
 
 use interprocess::local_socket::{prelude::*, GenericFilePath, Stream};
 
-use crate::{brokers::messenger_broker_proxy_factory::create_messenger_broker_proxy_factory, processes::capsule::CapsuleMap, CapsulePtr, JuizResult, Value};
+use crate::{brokers::messenger_broker_proxy_factory::create_messenger_broker_proxy_factory, value::CapsuleMap, CapsulePtr, JuizResult, Value};
 
 //use super::ipc_broker::ProxySideSenderReceiverPair;
 

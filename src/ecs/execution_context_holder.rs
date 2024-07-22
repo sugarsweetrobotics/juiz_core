@@ -37,6 +37,10 @@ impl ExecutionContextHolder {
         )))
     }
 
+    pub fn profile_full(&self) -> JuizResult<Value> {
+        self.object_core.profile_full()
+    }
+
     pub fn start(&mut self) -> JuizResult<Value> { 
         let flag = match self.execution_context.read() {
             Ok(ec) => Ok(ec.is_periodic()),
@@ -258,6 +262,7 @@ impl ExecutionContextHolder {
             }
         }
     }
+
 }
 
 impl JuizObjectCoreHolder for ExecutionContextHolder {

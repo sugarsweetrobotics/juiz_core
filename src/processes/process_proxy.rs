@@ -1,24 +1,7 @@
 
 
-use std::sync::Arc;
-use std::sync::Mutex;
-use std::sync::RwLock;
-
-
-use crate::processes::proc_lock;
-use crate::CapsulePtr;
-use crate::JuizError;
-use crate::object::JuizObjectClass;
-use crate::utils::juiz_lock;
-use crate::{ProcessPtr, JuizObject, JuizResult, Process, Value};
-use crate::brokers::BrokerProxy;
-use crate::object::JuizObjectCoreHolder;
-use crate::object::ObjectCore;
-use crate::identifier::*;
-
-
-use super::capsule::CapsuleMap;
-
+use std::sync::{Arc, Mutex, RwLock};
+use crate::{identifier::*, object::*, brokers::BrokerProxy, utils::juiz_lock, JuizError, ProcessPtr, JuizObject, JuizResult, Process, value::*, processes::proc_lock};
 
 #[allow(unused)]
 pub struct ProcessProxy {

@@ -1,32 +1,22 @@
 
-pub mod example_container_get {
 
-    use std::sync::{Arc, Mutex};
-
-    use example_container::example_container::ExampleContainer;
-    use juiz_core::{containers::{container_impl::ContainerImpl, create_container_process_factory}, jvalue, processes::capsule::{Capsule, CapsuleMap}, ContainerProcessFactory, JuizResult, Value};
-
-    
-    #[no_mangle]
-    pub unsafe extern "Rust" fn _manifest() -> Value { 
-        return jvalue!({
-            "container_type_name": "example_container",
-            "type_name": "example_container_get",
-            "arguments" : {
-            }, 
-        }); 
-    }
+use example_container::ExampleContainer;
+use juiz_core::prelude::*;
 
 
-    fn get_function(container: &mut ContainerImpl<ExampleContainer>, _v: CapsuleMap) -> JuizResult<Capsule> {
-        return Ok(jvalue!(container.value).into());
-    }
+fn manifest() -> Value { 
+    ContainerProcessManifest::new(ExampleContainer::manifest(), "example_container_get")
+        .description("Example(get)")
+        .into()
+}
+
+fn get_function(container: &mut ContainerImpl<ExampleContainer>, _v: CapsuleMap) -> JuizResult<Capsule> {
+    return Ok(jvalue!(container.value).into());
+}
 
 
-    #[no_mangle]
-    pub unsafe extern "Rust" fn container_process_factory() -> JuizResult<Arc<Mutex<dyn ContainerProcessFactory>>> {
-        env_logger::init();
-        create_container_process_factory::<ExampleContainer>(_manifest(), &get_function )
-    }
-
+#[no_mangle]
+pub unsafe extern "Rust" fn container_process_factory() -> JuizResult<ContainerProcessFactoryPtr> {
+    env_logger::init();
+    ContainerProcessFactoryImpl::create(manifest(), &get_function)
 }

@@ -1,59 +1,31 @@
-use std::{cell::RefCell, rc::Rc, sync::{Arc, Mutex}};
+use std::{cell::RefCell, sync::{Arc, Mutex}};
 
 use anyhow::Context;
 
-use crate::{core::{cpp_plugin::CppPlugin, python_plugin::PythonPlugin, RustPlugin}, jvalue, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, utils::juiz_lock, value::obj_merge, ContainerProcessFactory, ContainerPtr, JuizObject, JuizResult, ProcessPtr, Value};
+use crate::{core::plugin::{Plugin, JuizObjectPlugin}, jvalue, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, utils::juiz_lock, value::obj_merge, ContainerProcessFactory, ContainerPtr, JuizObject, JuizResult, ProcessPtr, Value};
 
 #[allow(dead_code)]
 pub struct ContainerProcessFactoryWrapper {
     core: ObjectCore,
-    rust_plugin: Option<Rc<RustPlugin>>,
-    python_plugin: Option<Rc<PythonPlugin>>,
-    cpp_plugin: Option<Rc<CppPlugin>>,
+    plugin: JuizObjectPlugin,
     container_process_factory: Arc<Mutex<dyn ContainerProcessFactory>>,
     container_processes: RefCell<Vec<ProcessPtr>>
 }
 
 impl ContainerProcessFactoryWrapper {
-    
-    pub fn new(plugin: Rc<RustPlugin>, container_process_factory: Arc<Mutex<dyn ContainerProcessFactory>>) -> JuizResult<Arc<Mutex<dyn ContainerProcessFactory>>> {
+
+
+    pub fn new(plugin: JuizObjectPlugin, container_process_factory: Arc<Mutex<dyn ContainerProcessFactory>>) -> JuizResult<Arc<Mutex<dyn ContainerProcessFactory>>> {
         let cpf = juiz_lock(&container_process_factory)?;
         let type_name = cpf.type_name();
         Ok(Arc::new(Mutex::new(ContainerProcessFactoryWrapper{
             core: ObjectCore::create_factory(JuizObjectClass::ContainerProcessFactory("ContainerProcessFactoryWrapper"), type_name),
-            rust_plugin: Some(plugin),
-            python_plugin: None, 
-            cpp_plugin: None,
+            plugin,
             container_process_factory: Arc::clone(&container_process_factory),
             container_processes: RefCell::new(vec![])
         })))
     }
 
-    pub fn new_python(plugin: Rc<PythonPlugin>, container_process_factory: Arc<Mutex<dyn ContainerProcessFactory>>) -> JuizResult<Arc<Mutex<dyn ContainerProcessFactory>>> {
-        let pf = juiz_lock(&container_process_factory)?;
-        let type_name = pf.type_name();
-        Ok(Arc::new(Mutex::new(ContainerProcessFactoryWrapper{
-            core: ObjectCore::create_factory(JuizObjectClass::ContainerProcessFactory("ContainerProcessFactoryWrapper"), type_name),
-            rust_plugin: None,
-            cpp_plugin: None,
-            python_plugin: Some(plugin), 
-            container_process_factory: Arc::clone(&container_process_factory),
-            container_processes: RefCell::new(vec![])
-        })))
-    }
-
-    pub fn new_cpp(plugin: Rc<CppPlugin>, container_process_factory: Arc<Mutex<dyn ContainerProcessFactory>>) -> JuizResult<Arc<Mutex<dyn ContainerProcessFactory>>> {
-        let pf = juiz_lock(&container_process_factory)?;
-        let type_name = pf.type_name();
-        Ok(Arc::new(Mutex::new(ContainerProcessFactoryWrapper{
-            core: ObjectCore::create_factory(JuizObjectClass::ContainerProcessFactory("ContainerProcessFactoryWrapper"), type_name),
-            rust_plugin: None,
-            cpp_plugin: Some(plugin),
-            python_plugin: None, 
-            container_process_factory: Arc::clone(&container_process_factory),
-            container_processes: RefCell::new(vec![])
-        })))
-    }
 }
 
 impl JuizObjectCoreHolder for ContainerProcessFactoryWrapper {
@@ -65,9 +37,15 @@ impl JuizObjectCoreHolder for ContainerProcessFactoryWrapper {
 impl JuizObject for ContainerProcessFactoryWrapper {
     
     fn profile_full(&self) -> JuizResult<Value> {
-        let prof = self.rust_plugin.as_ref().and_then(|p|{ Some(p.profile_full().unwrap()) }).or( Some(self.python_plugin.as_ref().unwrap().profile_full().unwrap()) );
+        //let prof = self.rust_plugin.as_ref().and_then(|p|{ Some(p.profile_full().unwrap()) }).or( Some(self.python_plugin.as_ref().unwrap().profile_full().unwrap()) );
+        let prof = match &self.plugin {
+            JuizObjectPlugin::Rust(p) => p.profile_full().unwrap(),
+            JuizObjectPlugin::Python(p) => p.profile_full().unwrap(),
+            JuizObjectPlugin::Cpp(p) => p.profile_full().unwrap(),
+        };
+        
         Ok(obj_merge(self.core.profile_full()?.try_into()?, &jvalue!({
-            "plugin": prof.unwrap(),
+            "plugin": prof,
             "container_process_factory": juiz_lock(&self.container_process_factory)?.profile_full()?,
             //container_processes: RefCell<Vec<Arc<Mutex<dyn ContainerProcess>>>>
         }))?.into())

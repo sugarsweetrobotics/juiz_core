@@ -8,3 +8,4 @@ pub mod core_store;
 pub mod error;
 pub mod result;
 pub use rust_plugin::RustPlugin;
+pub mod plugin;

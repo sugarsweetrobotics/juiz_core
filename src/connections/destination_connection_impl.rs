@@ -21,9 +21,9 @@ pub struct DestinationConnectionImpl{
 impl DestinationConnectionImpl {
 
     pub fn new(owner_identifier: &Identifier, destination_process_id: &Identifier, dest_process: ProcessPtr, connection_manifest: Value, arg_name: String) -> JuizResult<Self> {
-        log::trace!("# DestinationConnectionImpl::new() called");
         let manifest = check_connection_manifest(connection_manifest.clone())?;
         let destination_process_identifier = destination_process_id.clone();// juiz_lock(&dest_process).context("DestinationConnection::new()")?.identifier().clone();
+        log::trace!("DestinationConnectionImpl::new(owner={:}, dest={:}, manifest={:}, arg_name={:}) called", owner_identifier, destination_process_id, manifest, arg_name);
         Ok(DestinationConnectionImpl{
             core: ConnectionCore::new("DestinationConnection", 
                 owner_identifier.to_string(), 

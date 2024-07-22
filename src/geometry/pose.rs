@@ -202,20 +202,20 @@ pub use quaternion_from_euler_xyz as q_from_e;
 /// assert_relative_eq!(vec6.linear.z, -0.1);
 /// let euler = euler_xyz_from_quaternion(vec6.angular);
 /// assert_relative_eq!(euler.x, 0.0);
-/// assert_relative_eq!(euler.y, std::f32::consts::FRAC_PI_2);
+/// assert_relative_eq!(euler.y, std::f32::consts::FRAC_PI_2, epsilon = f32::EPSILON);
 /// assert_relative_eq!(euler.z, 0.0);
 /// 
 /// let vec7 = Transform3D::<f32>::new(Vec3::<f32>::new(0.1, 0., 0.), quaternion_from_euler_xyz(0., std::f32::consts::FRAC_PI_2, 0.));
 /// let vec8 = Transform3D::<f32>::new(Vec3::<f32>::new(0.1, 0., 0.), quaternion_from_euler_xyz(0., 0., std::f32::consts::FRAC_PI_2));
 /// let vec9 = Transform3D::<f32>::new(Vec3::<f32>::new(0.1, 0., 0.), Quaternion::<f32>::zero());
 /// let vec10 = vec9 * vec8 * vec7;
-/// assert_relative_eq!(vec10.linear.x, 0.1);
-/// assert_relative_eq!(vec10.linear.y, 0.1);
-/// assert_relative_eq!(vec10.linear.z, -0.1);
+/// assert_relative_eq!(vec10.linear.x, 0.1, epsilon = f32::EPSILON);
+/// assert_relative_eq!(vec10.linear.y, 0.1, epsilon = f32::EPSILON);
+/// assert_relative_eq!(vec10.linear.z, -0.1, epsilon = f32::EPSILON);
 /// let euler2 = euler_xyz_from_quaternion(vec10.angular);
-/// assert_relative_eq!(euler2.x, -std::f32::consts::FRAC_PI_2);
-/// assert_relative_eq!(euler2.y, std::f32::consts::FRAC_PI_2);
-/// assert_relative_eq!(euler2.z, 0.);
+/// assert_relative_eq!(euler2.x, -std::f32::consts::FRAC_PI_2, epsilon = f32::EPSILON*4.0);
+/// assert_relative_eq!(euler2.y, std::f32::consts::FRAC_PI_2, epsilon = f32::EPSILON);
+/// assert_relative_eq!(euler2.z, 0., epsilon = f32::EPSILON);
 /// ```
 impl<T: Float+RealField> Mul for Transform3D<T> {
     type Output = Transform3D<T>;

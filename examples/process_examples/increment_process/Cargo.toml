@@ -11,11 +11,7 @@ crate-type = ["cdylib"]
 
 
 [dependencies]
-juiz_core = { path = "../../" }
-# tokio = { version = "1", features = ["full"] }
-
-# libloading = "0.8.1"
-
+juiz_core = { path = "../../../" }
+log = "0.4.20"
 env_logger = "0.10.1"
 
-# opencv = {version="0.84.0", default-features=false, features=["highgui", "videoio", "imgproc", "imgcodecs", "clang-runtime"]}

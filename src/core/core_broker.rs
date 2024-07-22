@@ -11,7 +11,7 @@ use crate::containers::container_lock;
 use crate::containers::container_proxy::ContainerProxy;
 use crate::identifier::connection_identifier_split;
 
-use crate::processes::capsule::CapsuleMap;
+use crate::value::CapsuleMap;
 
 use crate::processes::proc_lock;
 use crate::processes::proc_lock_mut;

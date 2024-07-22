@@ -1,7 +1,7 @@
 use std::{collections::HashMap, io::Read, sync::{Arc, Mutex}};
 
 
-use juiz_core::{brokers::{create_broker_proxy_factory_impl, BrokerProxy, BrokerProxyFactory}, identifier::IdentifierStruct, jvalue, processes::capsule::CapsuleMap, value::obj_get_str, CapsulePtr, JuizError, JuizResult, Value};
+use juiz_core::{brokers::{create_broker_proxy_factory_impl, BrokerProxy, BrokerProxyFactory}, identifier::IdentifierStruct, jvalue, value::CapsuleMap, value::obj_get_str, CapsulePtr, JuizError, JuizResult, Value};
 
 use juiz_core::brokers::{CRUDBrokerProxy, CRUDBrokerProxyHolder};
 

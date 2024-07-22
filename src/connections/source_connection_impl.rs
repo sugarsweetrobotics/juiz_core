@@ -17,8 +17,8 @@ pub struct SourceConnectionImpl {
 
 impl SourceConnectionImpl {
     pub fn new(owner_identifier: Identifier, source_process: ProcessPtr, manifest: Value, arg_name: String) -> JuizResult<Self> {
-        log::trace!("SourceConnectionImpl::new() called");
         let source_process_identifier = proc_lock(&source_process)?.identifier().clone();
+        log::trace!("SourceConnectionImpl::new(owner={:}, src={:}, manifest={:}, arg_name={:}) called", owner_identifier, source_process_identifier, manifest, arg_name);
         Ok(SourceConnectionImpl{
             core: ConnectionCore::new("SourceConnection", 
                 source_process_identifier, 

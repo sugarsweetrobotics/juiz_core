@@ -1,66 +1,31 @@
-use std::{cell::RefCell, rc::Rc, sync::{Arc, Mutex}};
+use std::{cell::RefCell, sync::{Arc, Mutex}};
 
 use anyhow::Context;
 
-use crate::{core::{cpp_plugin::CppPlugin, python_plugin::PythonPlugin, RustPlugin}, jvalue, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, utils::juiz_lock, value::obj_merge, JuizObject, JuizResult, ProcessFactory, ProcessPtr, Value};
-
-#[allow(unused)]
-enum Plugins {
-    Rust(RustPlugin),
-    Python(PythonPlugin),
-    Cpp(CppPlugin),
-}
+use crate::{jvalue, core::plugin::JuizObjectPlugin, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, utils::juiz_lock, value::obj_merge, JuizObject, JuizResult, ProcessFactory, ProcessPtr, Value};
 
 #[allow(dead_code)]
 pub struct ProcessFactoryWrapper {
     core: ObjectCore,
-    rust_plugin: Option<Rc<RustPlugin>>,
-    python_plugin: Option<Rc<PythonPlugin>>,
-    cpp_plugin: Option<Rc<CppPlugin>>,
+    plugin: JuizObjectPlugin,
     process_factory: Arc<Mutex<dyn ProcessFactory>>,
     processes: RefCell<Vec<ProcessPtr>>
 }
 
 impl ProcessFactoryWrapper {
     
-    pub fn new(plugin: Rc<RustPlugin>, process_factory: Arc<Mutex<dyn ProcessFactory>>) -> JuizResult<Arc<Mutex<dyn ProcessFactory>>> {
+
+    pub fn new(plugin: JuizObjectPlugin, process_factory: Arc<Mutex<dyn ProcessFactory>>) -> JuizResult<Arc<Mutex<dyn ProcessFactory>>> {
         let pf = juiz_lock(&process_factory)?;
         let type_name = pf.type_name();
         Ok(Arc::new(Mutex::new(ProcessFactoryWrapper{
             core: ObjectCore::create_factory(JuizObjectClass::ProcessFactory("ProcessFactoryWrapper"), type_name),
-            rust_plugin: Some(plugin), 
-            python_plugin: None,
-            cpp_plugin: None,
+            plugin,
             process_factory: Arc::clone(&process_factory),
             processes: RefCell::new(vec![])
         })))
     }
 
-    pub fn new_python(plugin: Rc<PythonPlugin>, process_factory: Arc<Mutex<dyn ProcessFactory>>) -> JuizResult<Arc<Mutex<dyn ProcessFactory>>> {
-        let pf = juiz_lock(&process_factory)?;
-        let type_name = pf.type_name();
-        Ok(Arc::new(Mutex::new(ProcessFactoryWrapper{
-            core: ObjectCore::create_factory(JuizObjectClass::ProcessFactory("ProcessFactoryWrapper"), type_name),
-            rust_plugin: None,
-            python_plugin: Some(plugin), 
-            cpp_plugin: None,
-            process_factory: Arc::clone(&process_factory),
-            processes: RefCell::new(vec![])
-        })))
-    }
-
-    pub fn new_cpp(plugin: Rc<CppPlugin>, process_factory: Arc<Mutex<dyn ProcessFactory>>) -> JuizResult<Arc<Mutex<dyn ProcessFactory>>> {
-        let pf = juiz_lock(&process_factory)?;
-        let type_name = pf.type_name();
-        Ok(Arc::new(Mutex::new(ProcessFactoryWrapper{
-            core: ObjectCore::create_factory(JuizObjectClass::ProcessFactory("ProcessFactoryWrapper"), type_name),
-            rust_plugin: None,
-            python_plugin: None, 
-            cpp_plugin: Some(plugin),
-            process_factory: Arc::clone(&process_factory),
-            processes: RefCell::new(vec![])
-        })))
-    }
 }
 
 impl JuizObjectCoreHolder for ProcessFactoryWrapper {
@@ -72,16 +37,11 @@ impl JuizObjectCoreHolder for ProcessFactoryWrapper {
 impl JuizObject for ProcessFactoryWrapper {
 
     fn profile_full(&self) -> JuizResult<Value> {
-        let prof = self.rust_plugin.as_ref().and_then(|p|{ Some(p.profile_full().unwrap()) }).or( Some(self.python_plugin.as_ref().unwrap().profile_full().unwrap()) );
-        /*
-        let profile = if f {
-            self.rust_plugin.unwrap().profile_full()?
-        } else {
-            self.python_plugin.unwrap().profile_full()?
-        };*/
+        log::trace!("ProcessFactoryWrapper({:})::profile_full() called", self.type_name());
+        let prof = self.plugin.profile_full().unwrap();
         let v = self.core.profile_full()?;
         Ok(obj_merge(v, &jvalue!({
-            "plugin": prof.unwrap(),
+            "plugin": prof,
             "process_factory": juiz_lock(&self.process_factory)?.profile_full()?,
         }))?.into())
     }

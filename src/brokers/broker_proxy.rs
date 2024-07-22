@@ -3,7 +3,7 @@
 
 use std::path::PathBuf;
 
-use crate::{identifier::IdentifierStruct, processes::capsule::{Capsule, CapsuleMap}, value::value_merge, CapsulePtr, Identifier, JuizObject, JuizResult, Value};
+use crate::{identifier::IdentifierStruct, value::{Capsule, CapsuleMap}, value::value_merge, CapsulePtr, Identifier, JuizObject, JuizResult, Value};
 
 
 

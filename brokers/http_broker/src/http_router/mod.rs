@@ -6,7 +6,7 @@ use juiz_core::brokers::CRUDBroker;
 
 //use juiz_core::processes::capsule::unwrap_arc_capsule;
 
-use juiz_core::processes::capsule_to_value;
+use juiz_core::value::capsule_to_value;
 use utoipa::openapi::path::OperationBuilder;
 use utoipa::openapi::request_body::RequestBodyBuilder;
 use utoipa::openapi::{ContentBuilder, PathItem, PathItemType};

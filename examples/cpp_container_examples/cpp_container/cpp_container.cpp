@@ -16,8 +16,10 @@ juiz::Value manifest() {
 }
 
 extern "C" {
-   CppContainer* create_container(value* manifest);
+  CppContainer* create_container(value* manifest);
+  bool destroy_container(CppContainer* p_container);
 }
+
 
 CppContainer* create_container(value* manifest) {
     int64_t int_value = 0;
@@ -30,6 +32,14 @@ CppContainer* create_container(value* manifest) {
         }   
     }
     return new CppContainer(int_value);
+}
+
+bool destroy_container(CppContainer* p_container) {
+    if (p_container) {
+        delete p_container;
+        return true;
+    }
+    return false;
 }
 
 DEFINE_MANIFEST_ENTRY_POINT(manifest)

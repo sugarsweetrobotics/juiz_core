@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::{containers::{container_lock, container_lock_mut}, jvalue, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, processes::{capsule::{Capsule, CapsuleMap}, process_impl::ProcessImpl}, utils::check_process_manifest, value::{obj_get_str, obj_merge}, CapsulePtr, ContainerPtr, Identifier, JuizError, JuizObject, JuizResult, Process, ProcessPtr, Value};
+use crate::{containers::{container_lock, container_lock_mut}, jvalue, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, value::{Capsule, CapsuleMap}, processes::process_impl::ProcessImpl, utils::check_process_manifest, value::{obj_get_str, obj_merge}, CapsulePtr, ContainerPtr, Identifier, JuizError, JuizObject, JuizResult, Process, ProcessPtr, Value};
 
 use super::container_impl::ContainerImpl;
 //use crate::containers::container_process_impl::JuizObjectClass::ContainerProcess;

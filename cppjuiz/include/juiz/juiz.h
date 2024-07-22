@@ -267,6 +267,7 @@ namespace juiz {
 
 extern "C" {
     int64_t manifest_entry_point(capsule_ptr* ptr);
+    int64_t component_profile_entry_point(capsule_ptr* ptr);
     int64_t process_entry_point(capsule_map* cm, capsule* cp);
     int64_t (*process_factory())(capsule_map*,capsule*);
 }
@@ -300,6 +301,12 @@ int64_t manifest_entry_point(capsule_ptr* ptr) { \
     return capsule_ptr_set_value(ptr, v); \
 }
 
+
+#define DEFINE_COMPONENT_PROFILE_ENTRY_POINT(manif) \
+int64_t component_profile_entry_point(capsule_ptr* ptr) { \
+    auto v = manif(); \
+    return capsule_ptr_set_value(ptr, v); \
+}
 
 
 #define DEFINE_CONTAINER_PROCESS_ENTRY_POINT(container_type, func, deser, ser)\

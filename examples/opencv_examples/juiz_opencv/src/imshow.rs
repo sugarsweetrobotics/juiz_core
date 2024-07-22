@@ -1,20 +1,13 @@
 
-
-use std::sync::{Arc, Mutex};
-
+use juiz_core::prelude::*;
 
 use opencv::highgui::*;
-
-use juiz_core::{containers::{container_impl::ContainerImpl, create_container_process_factory}, jvalue, processes::capsule::{Capsule, CapsuleMap}, ContainerProcessFactory, JuizResult};
-
 use crate::window::CvWindow;
 
 fn imshow_function(container: &mut ContainerImpl<CvWindow>, args: CapsuleMap) -> JuizResult<Capsule> {
     let window_name = container.name.as_str();
     println!("imshow_function(name={window_name:})");
     args.get("src")?.lock_as_mat(|img| {
-        //let mut params: Vector<i32> = Vector::new();
-        //imwrite("hoge.png", img, &params);
         match imshow(window_name, img) {
             Ok(()) => {
                 println!("ok");
@@ -29,21 +22,17 @@ fn imshow_function(container: &mut ContainerImpl<CvWindow>, args: CapsuleMap) ->
     })?
 }
 
+fn manifest() -> Value {
+    ContainerProcessManifest::new(CvWindow::manifest(), "imshow")
+        .add_image_arg("src", "")
+        .into()
+}
+
 
 #[no_mangle]
-pub unsafe extern "Rust" fn imshow_factory() -> JuizResult<Arc<Mutex<dyn ContainerProcessFactory>>> {
-    create_container_process_factory::<CvWindow>(
-        jvalue!({
-            "container_type_name": "cv_window",
-            "type_name": "imshow",
-            "arguments" : {
-                "src": {
-                    "type": "image",
-                    "description": "",
-                    "default": {}
-                },
-            }, 
-        }),
+pub unsafe extern "Rust" fn imshow_factory() -> JuizResult<ContainerProcessFactoryPtr> {
+    ContainerProcessFactoryImpl::create(
+        manifest(),
         &imshow_function)
 }
 

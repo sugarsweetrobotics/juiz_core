@@ -24,6 +24,7 @@ impl<T, TF> RwStoreWorker<T, TF> where T: JuizObject + ?Sized, TF: JuizObject + 
         let type_name = juiz_lock(&pf)?.type_name().to_string();
         log::trace!("StoreWorker({})::registerfactory(Factory(type_name={:?})) called",self.name,type_name);
         if self.factories.contains_key(&type_name) {
+            log::error!("StoreWorker({})::registerfactory(Factory(type_name={:?})) failed. Already Exists.", self.name, type_name );
             return Err(anyhow::Error::from(JuizError::FactoryOfSameTypeNameAlreadyExistsError{type_name: type_name}));
         }
         self.factories.insert(type_name, Arc::clone(&pf));

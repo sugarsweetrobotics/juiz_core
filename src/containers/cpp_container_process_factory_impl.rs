@@ -20,10 +20,32 @@ pub struct CppContainerProcessFactoryImpl {
 
 impl CppContainerProcessFactoryImpl {
 
-    pub fn new(plugin: Rc<CppPlugin>) -> JuizResult<Self> {
+    pub fn new(plugin: Rc<CppPlugin>, symbol_name: &str) -> JuizResult<Self> {
+        log::trace!("new(symbol_name={symbol_name:}) called");
         let manifest = plugin.get_manifest();
         let type_name = obj_get_str(&manifest, "type_name")?;
-        let symbol_name = "container_process_factory";
+        //let symbol_name = "container_process_factory";
+        type SymbolType = libloading::Symbol<'static, unsafe fn() -> unsafe fn(*mut std::ffi::c_void, *mut CapsuleMap, *mut Capsule)->i64>;
+        let f = unsafe {
+            let symbol = plugin.load_symbol::<SymbolType>(symbol_name.as_bytes())?;
+            (symbol)()
+        };
+
+        Ok( CppContainerProcessFactoryImpl{
+                core: ObjectCore::create_factory(JuizObjectClass::ContainerProcessFactory("ContainerProcessFactoryImpl"), type_name),
+                manifest: check_process_factory_manifest(manifest.clone())?,
+                plugin,
+                entry_point: f,
+            }
+        )
+    }
+
+
+    pub fn new_with_manifest(plugin: Rc<CppPlugin>, symbol_name: &str, manifest: &Value) -> JuizResult<Self> {
+        log::trace!("new_with_manifest(manifest={manifest:?}, symbol_name={symbol_name:}) called");
+        //let manifest = plugin.get_manifest();
+        let type_name = obj_get_str(&manifest, "type_name")?;
+        //let symbol_name = "container_process_factory";
         type SymbolType = libloading::Symbol<'static, unsafe fn() -> unsafe fn(*mut std::ffi::c_void, *mut CapsuleMap, *mut Capsule)->i64>;
         let f = unsafe {
             let symbol = plugin.load_symbol::<SymbolType>(symbol_name.as_bytes())?;

@@ -5,9 +5,6 @@ pub type Identifier = String;
 
 
 pub fn identifier_new(broker_type_name: &str, broker_name: &str, class_name: &str, type_name: &str, object_name: &str) -> Identifier {
-    // "core://core/process/inc0::increment_function"
-    // "http://localhost:3000/procss/inc0::increment_function"
-    // "{broker_type_name}://{broker_name}/{class_name}/{object_name}::{type_name}
     broker_type_name.to_string() + "://" + broker_name + "/" + class_name + "/" + object_name + "::" + type_name
 }
 

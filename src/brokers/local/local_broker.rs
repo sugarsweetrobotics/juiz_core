@@ -1,7 +1,7 @@
 use std::{sync::{Arc, Mutex, mpsc}, time::Duration, ops::Deref};
 
 
-use crate::{brokers::create_messenger_broker_factory, jvalue, processes::capsule::{Capsule, CapsuleMap}, utils::juiz_lock, CapsulePtr, CoreBroker, JuizError, JuizResult, Value};
+use crate::{brokers::create_messenger_broker_factory, jvalue, value::{Capsule, CapsuleMap}, utils::juiz_lock, CapsulePtr, CoreBroker, JuizError, JuizResult, Value};
 use crate::brokers::{BrokerFactory, MessengerBroker, MessengerBrokerCore, MessengerBrokerCoreFactory};
 
 

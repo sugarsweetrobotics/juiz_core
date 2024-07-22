@@ -16,7 +16,7 @@ juiz::Value manifest() {
 }
 
 extern "C" {
-   int64_t cpp_container_get(CppContainer* container, capsule_map* cm);
+    int64_t cpp_container_get(CppContainer* container, capsule_map* cm);
     int64_t (*container_process_factory())(CppContainer*, capsule_map*,capsule*);
 }
 
