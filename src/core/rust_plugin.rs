@@ -1,8 +1,9 @@
 
+use anyhow::Context;
 use libloading::Library;
-use std::path::PathBuf;
+use std::{path::PathBuf, sync::{Arc, Mutex}};
 
-use crate::{jvalue, JuizError, JuizResult, Value};
+use crate::{jvalue, prelude::ProcessFactoryPtr, JuizError, JuizResult, ProcessFactory, Value};
 
 use super::plugin::Plugin;
 
@@ -38,6 +39,14 @@ impl RustPlugin {
                     Err(anyhow::Error::from(JuizError::PluginLoadSymbolFailedError{plugin_path:self.path.display().to_string(), symbol_name: std::str::from_utf8(symbol_name)?.to_string()}))
                 }
             }
+        }
+    }
+
+    pub fn load_process_factory(&self, _working_dir: Option<PathBuf>, symbol_name: &str) -> JuizResult<Arc<Mutex<dyn ProcessFactory>>> {
+        type SymbolType = libloading::Symbol<'static, unsafe extern "Rust" fn() -> JuizResult<ProcessFactoryPtr>>;
+        unsafe {
+            let symbol = self.load_symbol::<SymbolType>(symbol_name.as_bytes())?;
+            (symbol)().with_context(||format!("calling symbol '{symbol_name}'"))
         }
     }
 

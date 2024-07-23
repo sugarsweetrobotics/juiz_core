@@ -28,17 +28,13 @@ impl JuizObjectPlugin {
     pub fn load_process_factory(&self, working_dir: Option<PathBuf>, symbol_name: &str) -> JuizResult<ProcessFactoryPtr> {
         match self {
             JuizObjectPlugin::Rust(p) => {
-                type SymbolType = libloading::Symbol<'static, unsafe extern "Rust" fn() -> JuizResult<ProcessFactoryPtr>>;
-                unsafe {
-                    let symbol = p.load_symbol::<SymbolType>(symbol_name.as_bytes())?;
-                    (symbol)().with_context(||format!("calling symbol '{symbol_name}'"))
-                }
+                p.load_process_factory(working_dir, symbol_name)
             },
             JuizObjectPlugin::Python(p) => {
                 p.load_process_factory(working_dir, symbol_name)
             },
             JuizObjectPlugin::Cpp(p) => {
-                Ok(Arc::new(Mutex::new(CppProcessFactoryImpl::new(p.clone())?)))
+                p.load_process_factory(working_dir, symbol_name)
             },
         }
     }

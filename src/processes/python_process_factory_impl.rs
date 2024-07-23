@@ -1,5 +1,5 @@
 
-use std::{collections::HashMap, fs, path::PathBuf, sync::{Arc, Mutex}};
+use std::{collections::HashMap, fs, path::PathBuf, rc::Rc, sync::{Arc, Mutex}};
 use pyo3::{prelude::*, types::PyTuple};
 use serde_json::Map;
 
@@ -11,18 +11,21 @@ pub struct PythonProcessFactoryImpl {
     core: ObjectCore,
     manifest: Value,
     fullpath: PathBuf,
-    //function: Box<PythonFunctionType>,
+    entry_point: Rc<Py<PyAny>>,
 }
-
-pub fn create_process_factory(manifest: crate::Value, fullpath: PathBuf/*, function: Box<PythonFunctionType>*/) -> JuizResult<Arc<Mutex<dyn ProcessFactory>>> {
-    log::trace!("create_process_factory called");
-    Ok(Arc::new(Mutex::new(PythonProcessFactoryImpl::new(manifest, fullpath/*, function*/)?)))
-}
-
 impl PythonProcessFactoryImpl {
 
-    pub fn new(manifest: crate::Value, fullpath: PathBuf /* function: Box<PythonFunctionType>*/) -> JuizResult<Self> {
+    pub fn new(manifest: crate::Value, fullpath: PathBuf, symbol_name: &str) -> JuizResult<Self> {
         let type_name = obj_get_str(&manifest, "type_name")?;
+        //let symbol_name = "process_factory";
+        let fp = fullpath.clone();
+        let entry_point = Python::with_gil(|py| -> PyResult<Py<PyAny>> {
+            let py_app = fs::read_to_string(fp).unwrap();
+            let module = PyModule::from_code_bound(py, &py_app.to_string(), "", "")?;
+            let app_func: Py<PyAny> = module.getattr(symbol_name)?.into();
+            let result = app_func.call0(py)?;
+            Ok(result)
+        })?;
 
         Ok(
             PythonProcessFactoryImpl{
@@ -31,6 +34,7 @@ impl PythonProcessFactoryImpl {
                 ),
                 fullpath,
                 manifest: check_process_factory_manifest(manifest)?, 
+                entry_point: Rc::new(entry_point),
                 //function
             }
         )
@@ -107,27 +111,19 @@ impl ProcessFactory for PythonProcessFactoryImpl {
 
     fn create_process(&self, manifest: Value) -> JuizResult<ProcessPtr>{
         log::trace!("PythonProcessFactoryImpl::create_process(manifest={}) called", manifest);
-        
-        let type_name = self.type_name().to_owned();
-        let fullpath = self.fullpath.clone();
+        let entry_point = self.entry_point.clone();
         let pyfunc: Box<dyn Fn(CapsuleMap)->JuizResult<Capsule>> = Box::new(move |argument: CapsuleMap| -> JuizResult<Capsule> {
-            let mut func_result : Capsule = Capsule::empty();
-            // let type_name = self.type_name();
-            let tn = type_name.clone();
-            let fp = fullpath.clone();
-            let _pyobj = Python::with_gil(|py| -> PyResult<Py<PyAny>> {
-                let py_app = fs::read_to_string(fp).unwrap();
-                let module = PyModule::from_code_bound(py, &py_app.to_string(), "", "")?;
-                let app_func: Py<PyAny> = module.getattr(tn.as_str())?.into();
-                let result = app_func.call1(py, PyTuple::new_bound(py, capsulemap_to_pytuple(py, &argument)))?;
-                let result_value = pyany_to_value(result.extract::<&PyAny>(py)?)?;
-                func_result = result_value.into();
-                Ok(result)
-            });
-            //println!("result: {:?}", pyobj);
-
-            //println!("wow: func_result: {:?}", func_result);
-            return Ok(func_result);
+            Python::with_gil(|py| {
+                match entry_point.call1(py, PyTuple::new_bound(py, capsulemap_to_pytuple(py, &argument))) {
+                    Ok(result) => {
+                        Ok(pyany_to_value(result.extract::<&PyAny>(py)?)?.into())
+                    }
+                    Err(e) => {
+                        log::error!("Error calling python call. {e:}");
+                        Err(anyhow::Error::from(e))
+                    }
+                }
+            })
         });
 
 

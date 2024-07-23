@@ -8,7 +8,7 @@ def pysubmodule_test(arg0, arg1):
 
 def manifest():
     return {
-        "type_name": "pysubmodule_test",
+        "type_name": "submodule_test_python",
         "arguments" : {
             "arg0": {
                 "type": "int",
@@ -22,3 +22,6 @@ def manifest():
             }, 
         }, 
     }
+
+def process_factory():
+    return pysubmodule_test

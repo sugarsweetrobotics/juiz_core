@@ -1,11 +1,15 @@
 
 
-def pyadd(arg0, arg1):
-    return arg0 + arg1
+def pydict_test(arg0, arg1):
+    return {
+        "arg0": arg0,
+        "arg1": arg1,
+        "string_data": "this_is_string",
+    }
 
 def manifest():
     return {
-        "type_name": "pyadd",
+        "type_name": "dict_test_python",
         "arguments" : {
             "arg0": {
                 "type": "int",
@@ -19,3 +23,6 @@ def manifest():
             }, 
         }, 
     }
+
+def process_factory():
+    return pydict_test
