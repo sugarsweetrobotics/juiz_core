@@ -1,10 +1,14 @@
 #pragma once
 
 #include "core.h"
-
+#include "value.h"
+#include <utility>
+#include <functional>
 //#ifdef __cplusplus
 
 #include <optional>
+
+
 
 namespace juiz {
 
@@ -25,11 +29,11 @@ namespace juiz {
 
         int64_t get_int(const std::string& name) const {
             capsule_ptr* ptr = NULL;
-            if (capsule_map_get_capsule(this->_pmap, name.c_str(), &ptr) != 0) {
+            if (capsule_map_get_capsule(this->_pmap, name.c_str(), &ptr) != JUIZ_OK) {
                 throw ValueNotFoundError();
             }
             int64_t iv;
-            if (capsule_ptr_get_int(ptr, &iv) != 0) {
+            if (capsule_ptr_get_int(ptr, &iv) != JUIZ_OK) {
                 throw ValueNotFoundError();
             }
             return iv;
@@ -37,7 +41,7 @@ namespace juiz {
 
         uint64_t get_uint(const std::string& name) const {
             capsule_ptr* ptr = NULL;
-            if (capsule_map_get_capsule(this->_pmap, name.c_str(), &ptr) != 0) {
+            if (capsule_map_get_capsule(this->_pmap, name.c_str(), &ptr) != JUIZ_OK) {
                 throw ValueNotFoundError();
             }
             uint64_t iv;
@@ -49,7 +53,7 @@ namespace juiz {
 
         bool get_bool(const std::string& name) const {
             capsule_ptr* ptr = NULL;
-            if (capsule_map_get_capsule(this->_pmap, name.c_str(), &ptr) != 0) {
+            if (capsule_map_get_capsule(this->_pmap, name.c_str(), &ptr) != JUIZ_OK) {
                 throw ValueNotFoundError();
             }
             int64_t iv;
@@ -61,11 +65,11 @@ namespace juiz {
 
         double get_float(const std::string& name) const {
             capsule_ptr* ptr = NULL;
-            if (capsule_map_get_capsule(this->_pmap, name.c_str(), &ptr) != 0) {
+            if (capsule_map_get_capsule(this->_pmap, name.c_str(), &ptr) != JUIZ_OK) {
                 throw ValueNotFoundError();
             }
             double iv;
-            if (capsule_ptr_get_float(ptr, &iv) != 0) {
+            if (capsule_ptr_get_float(ptr, &iv) != JUIZ_OK) {
                 throw ValueNotFoundError();
             }
             return iv;
@@ -73,11 +77,11 @@ namespace juiz {
 
         std::string get_string(const std::string& name) const {
             capsule_ptr* ptr = NULL;
-            if (capsule_map_get_capsule(this->_pmap, name.c_str(), &ptr) != 0) {
+            if (capsule_map_get_capsule(this->_pmap, name.c_str(), &ptr) != JUIZ_OK) {
                 throw ValueNotFoundError();
             }
             char* iv;
-            if (capsule_ptr_get_string(ptr, &iv) != 0) {
+            if (capsule_ptr_get_string(ptr, &iv) != JUIZ_OK) {
                 throw ValueNotFoundError();
             }
             return std::string(iv);
@@ -128,17 +132,78 @@ namespace juiz {
                 __set_value_array_value(&v, elem);
             }
         });
-        return 0;
+        return JUIZ_OK;
     }
     
     int64_t capsule_ptr_set_value(capsule_ptr* ptr, Value v) {
+        int retval = 0;
         if (v.isObjectValue()) {
-            if (capsule_ptr_set_empty_object(ptr) != 0) { return -1; }
-            capsule_ptr_lock_as_value_with_arg(ptr, _set_value_obj_callback, (void*)&v);
+            if ((retval = capsule_ptr_set_empty_object(ptr)) != JUIZ_OK) { 
+                return retval; 
+            }
+            return capsule_ptr_lock_as_value_with_arg(ptr, _set_value_obj_callback, (void*)&v);
         } else if (v.isListValue()) {
-            if (capsule_ptr_set_empty_array(ptr) != 0) { return -1; }
-            capsule_ptr_lock_as_value_with_arg(ptr, _set_value_array_callback, (void*)&v);
+            if ((retval = capsule_ptr_set_empty_array(ptr)) != JUIZ_OK) { 
+                return retval; 
+            }
+            return capsule_ptr_lock_as_value_with_arg(ptr, _set_value_array_callback, (void*)&v);
         }
-        return 0;
+        return JUIZ_OK;
     }
-}
+
+    class ValueConvertError : public std::exception {
+    };
+
+
+    juiz::Value into_value(value* v);
+
+    void __value_array_callback(void* arg, value* v) {
+        juiz::Value& vref = *(juiz::Value*)arg;
+        vref.emplace_back(juiz::into_value(v));
+    }
+
+    void __value_object_callback(void* arg, const char* k, value* v) {
+        juiz::Value& vref = *(juiz::Value*)arg;
+        vref.emplace({k, juiz::into_value(v)});
+    }
+
+    juiz::Value into_value(value* v) {
+        if (value_is_bool(v)) {
+            int bv;
+            if (value_get_bool(v, &bv)!=JUIZ_OK) {
+                throw ValueConvertError();
+            }
+            return juiz::Value{bv != 0};
+        } else if (value_is_int(v)) {
+            int64_t iv;
+            if (value_get_int(v, &iv)!=JUIZ_OK) {
+                throw ValueConvertError();
+            }
+            return juiz::Value{iv};
+        } else if (value_is_float(v)) {
+            double fv;
+            if (value_get_float(v, &fv)!=JUIZ_OK) {
+                throw ValueConvertError();
+            }
+            return juiz::Value{fv};
+        } else if (value_is_string(v)) {
+            char* cv;
+            if (value_get_string(v, &cv)!=JUIZ_OK) {
+                throw ValueConvertError();
+            }
+            return juiz::Value{cv};
+        } else if (value_is_array(v)) {
+            juiz::Value array_v = juiz::Value::list();
+            value_array_foreach(v, __value_array_callback, &array_v);
+            return array_v;
+        } else if (value_is_object(v)) {
+            juiz::Value obj_v = juiz::Value::object();
+            value_object_foreach(v, __value_object_callback, &obj_v);
+            return obj_v;
+        }
+        return juiz::Value();
+    }
+
+
+
+}// namespace juiz

@@ -1,4 +1,4 @@
-PROJECT_NAME=cpp_container_increment
+PROJECT_NAME=example_container_cpp_get
 DYLIB_EXT=dylib
 TARGET=${JUIZ_LIB_DIR}/lib${PROJECT_NAME}.${DYLIB_EXT}
 
@@ -10,7 +10,7 @@ AR=ar
 JUIZ_DIR=../../../..
 JUIZ_LIB_DIR=${JUIZ_DIR}/target/debug
 JUIZ_INCLUDE_DIR=${JUIZ_DIR}/cppjuiz/include
-CONTIAINER_INCLUDE_DIR=../cpp_container/
+CONTIAINER_INCLUDE_DIR=../example_container/
 
 CFLAGS=-Wall -O -I${JUIZ_INCLUDE_DIR} -I${CONTIAINER_INCLUDE_DIR} -c -fPIC -arch arm64 #-arch x86_64 -fPIC
 CXXFLAGS=-Wall -O -I${JUIZ_INCLUDE_DIR} -I${CONTIAINER_INCLUDE_DIR} -c -fPIC -arch arm64 -std=c++17 #-arch x86_64 -fPIC
@@ -18,7 +18,7 @@ ARFLAGS= rc
 CDYLIBFLAGS=-L${JUIZ_LIB_DIR} -ljuiz_core -dynamiclib -arch arm64 #-arch x86_64
 CXXDYLIBFLAGS=-L${JUIZ_LIB_DIR} -ljuiz_core -dynamiclib -arch arm64 #-arch x86_64
 
-all: ${TARGET} 
+all: ${TARGET}
 
 .c.o:
 	$(CC) $(CFLAGS) $<

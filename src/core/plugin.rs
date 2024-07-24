@@ -40,6 +40,7 @@ impl JuizObjectPlugin {
     }
 
     pub fn load_container_factory(&self, working_dir: Option<PathBuf>, symbol_name: &str, container_profile: &Value) -> JuizResult<ContainerFactoryPtr> {
+        log::trace!("load_container_factory({working_dir:?}, {symbol_name}, {container_profile}) called");
         match self {
             JuizObjectPlugin::Rust(p) => {
                 type SymbolType = libloading::Symbol<'static, unsafe extern "Rust" fn() -> JuizResult<ContainerFactoryPtr>>;
@@ -52,7 +53,8 @@ impl JuizObjectPlugin {
                 p.load_container_factory(working_dir, "container_factory")
             },
             JuizObjectPlugin::Cpp(p) => {
-                Ok(Arc::new(Mutex::new(CppContainerFactoryImpl::new_with_manifest(p.clone(), container_profile)?)))
+                p.load_container_factory(working_dir, "container_factory")
+                //Ok(Arc::new(Mutex::new(CppContainerFactoryImpl::new_with_manifest(p.clone(), container_profile)?)))
             },
         }
     }
@@ -71,7 +73,8 @@ impl JuizObjectPlugin {
                 p.load_container_process_factory(working_dir, symbol_name)
             },
             JuizObjectPlugin::Cpp(p) => {
-                Ok(Arc::new(Mutex::new(CppContainerProcessFactoryImpl::new_with_manifest(p.clone(), symbol_name, manifest)?)))
+                p.load_container_process_factory(working_dir, symbol_name)
+                //Ok(Arc::new(Mutex::new(CppContainerProcessFactoryImpl::new_with_manifest(p.clone(), symbol_name, manifest)?)))
             },
         }
     }

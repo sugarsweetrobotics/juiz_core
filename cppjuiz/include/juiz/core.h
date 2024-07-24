@@ -52,12 +52,12 @@ int value_get_float(value* v, double* float_value);
 int value_is_string(value* v);
 int value_get_string(value* v, char** char_value);
 int value_is_object(value* v);
-int value_object_foreach(value* v, void callback(const char* key, value* v));
+int value_object_foreach(value* v, void callback(void*, const char* key, value* v), void*);
 value* value_object_get_value(value*, const char* key);
 int value_is_bool(value* v);
 int value_get_bool(value* v, int* bool_value);
 int value_is_array(value* v);
-int value_is_array_foreach(value* v);
+int value_array_foreach(value* v, void callback(void*, value* v), void*);
 int value_is_null(value* v);
 
 value* value_object_set_bool(value* v, const char* key, int64_t d);

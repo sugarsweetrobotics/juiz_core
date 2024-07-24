@@ -158,17 +158,3 @@ impl From<&[(&str, Value)]> for CapsuleMap {
         c
     }
 }
-
-#[no_mangle]
-pub unsafe extern "C" fn capsule_map_get_capsule(cmap: *mut CapsuleMap, name: *const i8, ptr: &mut *mut CapsulePtr) -> i64 {
-    match cmap.as_mut().unwrap().get_mutref(CStr::from_ptr(name).to_str().unwrap()) {
-        Err(_) => {
-            *ptr = std::ptr::null_mut();
-            return -1;
-        },
-        Ok(cp) => { 
-            *ptr = cp;
-            return 0;
-        }
-    }
-}

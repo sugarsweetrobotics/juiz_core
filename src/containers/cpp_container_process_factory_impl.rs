@@ -9,7 +9,7 @@ use crate::{containers::{container_process_impl::ContainerProcessImpl, cpp_conta
 pub struct CppContainerProcessFactoryImpl {
     core: ObjectCore,
     manifest: Value,
-    plugin: Rc<CppPlugin>,
+    //plugin: Rc<CppPlugin>,
     entry_point: unsafe fn(*mut std::ffi::c_void, *mut CapsuleMap, *mut Capsule) -> i64,
 }
 
@@ -22,6 +22,8 @@ impl CppContainerProcessFactoryImpl {
 
     pub fn new(plugin: Rc<CppPlugin>, symbol_name: &str) -> JuizResult<Self> {
         log::trace!("new(symbol_name={symbol_name:}) called");
+        todo!()
+        /*
         let manifest = plugin.get_manifest();
         let type_name = obj_get_str(&manifest, "type_name")?;
         //let symbol_name = "container_process_factory";
@@ -38,11 +40,23 @@ impl CppContainerProcessFactoryImpl {
                 entry_point: f,
             }
         )
+        */
     }
 
+    pub fn new2(manifest: &Value, entry_point: unsafe fn(*mut std::ffi::c_void, *mut CapsuleMap, *mut Capsule) -> i64) -> JuizResult<Self> {
 
-    pub fn new_with_manifest(plugin: Rc<CppPlugin>, symbol_name: &str, manifest: &Value) -> JuizResult<Self> {
+        log::trace!("new2({manifest:}) called");
+        let type_name = obj_get_str(manifest, "type_name")?;
+        Ok( CppContainerProcessFactoryImpl{
+            core: ObjectCore::create_factory(JuizObjectClass::ContainerFactory("ContainerFactoryImpl"), type_name),
+            manifest: check_process_factory_manifest(manifest.clone())?,
+            entry_point
+        })
+    }
+
+    fn new_with_manifest(plugin: Rc<CppPlugin>, symbol_name: &str, manifest: &Value) -> JuizResult<Self> {
         log::trace!("new_with_manifest(manifest={manifest:?}, symbol_name={symbol_name:}) called");
+        /*
         //let manifest = plugin.get_manifest();
         let type_name = obj_get_str(&manifest, "type_name")?;
         //let symbol_name = "container_process_factory";
@@ -58,7 +72,8 @@ impl CppContainerProcessFactoryImpl {
                 plugin,
                 entry_point: f,
             }
-        )
+        )*/
+        todo!()
     }
 
     fn apply_default_manifest(&self, manifest: Value) -> Result<Value, JuizError> {
