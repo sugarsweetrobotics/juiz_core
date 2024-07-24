@@ -1,7 +1,7 @@
 
 //pub type CapsulePtr = Arc<Mutex<Capsule>>;
 
-use std::{collections::HashMap, ffi::CStr, sync::{Arc, Mutex}};
+use std::{collections::HashMap, sync::{Arc, Mutex}};
 
 pub use opencv::core::Mat;
 use serde_json::Map;

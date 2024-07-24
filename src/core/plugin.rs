@@ -1,8 +1,8 @@
-use std::{path::PathBuf, rc::Rc, sync::{Arc, Mutex}};
+use std::{path::PathBuf, rc::Rc};
 
 use anyhow::Context;
 
-use crate::{containers::{cpp_container_factory_impl::CppContainerFactoryImpl, cpp_container_process_factory_impl::CppContainerProcessFactoryImpl, ContainerFactoryPtr, ContainerProcessFactoryPtr}, prelude::ProcessFactoryPtr, processes::cpp_process_factory_impl::CppProcessFactoryImpl, JuizResult, Value};
+use crate::{containers::{ContainerFactoryPtr, ContainerProcessFactoryPtr}, prelude::ProcessFactoryPtr, JuizResult, Value};
 
 use super::{cpp_plugin::CppPlugin, python_plugin::PythonPlugin, RustPlugin};
 
@@ -59,7 +59,7 @@ impl JuizObjectPlugin {
         }
     }
 
-    pub fn load_container_process_factory(&self, working_dir: Option<PathBuf>, symbol_name: &str, manifest: &Value) -> JuizResult<ContainerProcessFactoryPtr> {
+    pub fn load_container_process_factory(&self, working_dir: Option<PathBuf>, symbol_name: &str, _manifest: &Value) -> JuizResult<ContainerProcessFactoryPtr> {
         log::trace!("load_container_process_factory({working_dir:?}, {symbol_name}) called");
         match self {
             JuizObjectPlugin::Rust(p) => {

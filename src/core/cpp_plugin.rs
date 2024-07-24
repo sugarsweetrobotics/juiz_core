@@ -2,7 +2,7 @@
 use std::{path::PathBuf, sync::{Arc, Mutex}};
 use libloading::{Library, Symbol};
 
-use crate::{containers::{cpp_container_factory_impl::CppContainerFactoryImpl, cpp_container_process_factory_impl::CppContainerProcessFactoryImpl, python_container_process_factory_impl::PythonContainerProcessFactoryImpl, PythonContainerFactoryImpl}, jvalue, processes::cpp_process_factory_impl::CppProcessFactoryImpl, value::obj_get_str, Capsule, CapsuleMap, CapsulePtr, ContainerFactory, ContainerProcessFactory, JuizError, JuizResult, ProcessFactory, Value};
+use crate::{containers::{cpp_container_factory_impl::CppContainerFactoryImpl, cpp_container_process_factory_impl::CppContainerProcessFactoryImpl, python_container_process_factory_impl::PythonContainerProcessFactoryImpl, PythonContainerFactoryImpl}, jvalue, processes::cpp_process_factory_impl::CppProcessFactoryImpl, Capsule, CapsuleMap, CapsulePtr, ContainerFactory, ContainerProcessFactory, JuizError, JuizResult, ProcessFactory, Value};
 //type CppProcessEntryPointType = Symbol<'static, extern "C" fn(*mut CapsuleMap, *mut Capsule) -> i64>;
 pub struct CppPlugin{
     path: PathBuf,
@@ -27,7 +27,7 @@ impl CppPlugin {
         &self.manifest
     }
 
-    pub fn load_component_profile(&self, working_dir: Option<PathBuf>) -> JuizResult<Value> {
+    pub fn load_component_profile(&self, _working_dir: Option<PathBuf>) -> JuizResult<Value> {
         Ok(self.get_manifest().clone())
     }
     
@@ -73,7 +73,7 @@ impl CppPlugin {
     }
 
 
-    pub fn load_container_factory(&self, working_dir: Option<PathBuf>, symbol_name: &str) -> JuizResult<Arc<Mutex<dyn ContainerFactory>>> {
+    pub fn load_container_factory(&self, _working_dir: Option<PathBuf>, symbol_name: &str) -> JuizResult<Arc<Mutex<dyn ContainerFactory>>> {
         log::trace!("CppPlugin({:?})::load_container_factory() called", self.path);
         let full_symbol_name = symbol_name.to_owned() + "_entry_point";
         type SymbolType = libloading::Symbol<'static, unsafe fn() -> unsafe fn(*mut Value, *mut *mut std::ffi::c_void)->i64>;
@@ -91,7 +91,7 @@ impl CppPlugin {
         )?)))
     }
 
-    pub fn load_container_process_factory(&self, working_dir: Option<PathBuf>, symbol_name: &str) -> JuizResult<Arc<Mutex<dyn ContainerProcessFactory>>> {
+    pub fn load_container_process_factory(&self, _working_dir: Option<PathBuf>, symbol_name: &str) -> JuizResult<Arc<Mutex<dyn ContainerProcessFactory>>> {
         log::trace!("CppPlugin({:?})::load_container_process_factory() called", self.path);
 
         let full_symbol_name = symbol_name.to_owned() + "_entry_point";

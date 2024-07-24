@@ -1,5 +1,5 @@
 
-use std::{collections::HashMap, fs, path::PathBuf, rc::Rc, sync::{Arc, Mutex}};
+use std::{collections::HashMap, fs, path::PathBuf, rc::Rc};
 use pyo3::{prelude::*, types::PyTuple};
 use serde_json::Map;
 

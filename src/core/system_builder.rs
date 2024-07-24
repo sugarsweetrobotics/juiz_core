@@ -224,7 +224,7 @@
                 {
                     let symbol = plugin.load_symbol::<ECFactorySymbolType>(b"execution_context_factory")?;
                     cpf = (symbol)().with_context(||format!("calling symbol 'execution_context_factory'. arg is {manifest:}"))?;
-                    let ccpf = juiz_lock(&cpf)?;
+                    let _ccpf = juiz_lock(&cpf)?;
                 }
                 system.core_broker().lock().unwrap().store_mut().ecs.register_factory(ExecutionContextHolderFactory::new(plugin, cpf)?)?;
             }

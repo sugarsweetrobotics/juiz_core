@@ -1,4 +1,4 @@
-use std::{collections::HashMap, ffi::CStr};
+use std::collections::HashMap;
 use serde_json::Map;
 use crate::{jvalue, utils::get_hashmap, CapsulePtr, JuizError, JuizResult, Value};
 
