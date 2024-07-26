@@ -12,18 +12,18 @@ pub type PythonFunctionType = dyn Fn(CapsuleMap)->JuizResult<Capsule>;
 pub struct CppProcessFactoryImpl {
     core: ObjectCore,
     manifest: Value,
-    plugin: Rc<CppPlugin>,
+    //plugin: Rc<CppPlugin>,
     entry_point: unsafe fn(*mut CapsuleMap, *mut Capsule) -> i64,
 }
 
 impl CppProcessFactoryImpl {
 
-    pub fn new(plugin: Rc<CppPlugin>) -> JuizResult<Self> {
+    pub fn _new(plugin: Rc<CppPlugin>, symbol_name: &str) -> JuizResult<Self> {
         let type_name = obj_get_str(plugin.get_manifest(), "type_name")?;
-        let symbol_name = "process_factory";
+        let full_symbol_name = symbol_name.to_owned() + "_entry_point";
         type SymbolType = libloading::Symbol<'static, unsafe fn() -> unsafe fn(*mut CapsuleMap, *mut Capsule)->i64>;
         let f = unsafe {
-            let symbol = plugin.load_symbol::<SymbolType>(symbol_name.as_bytes())?;
+            let symbol = plugin.load_symbol::<SymbolType>(full_symbol_name.as_bytes())?;
             (symbol)()
         };
 
@@ -33,8 +33,22 @@ impl CppProcessFactoryImpl {
                     type_name
                 ),
                 manifest: check_process_factory_manifest(plugin.get_manifest().clone())?, 
-                plugin,
+                //plugin,
                 entry_point: f
+            }
+        )
+    }
+
+    pub fn new2(manifest: &Value, entry_point: unsafe fn(*mut CapsuleMap, *mut Capsule) -> i64) -> JuizResult<Self> {
+        let type_name = obj_get_str(manifest, "type_name")?;
+        
+        Ok(
+            CppProcessFactoryImpl{
+                core: ObjectCore::create_factory(JuizObjectClass::ProcessFactory("ProcessFactoryImpl"),
+                    type_name
+                ),
+                manifest: check_process_factory_manifest(manifest.clone())?, 
+                entry_point
             }
         )
     }

@@ -1,4 +1,4 @@
-use std::{collections::HashMap, ffi::CStr};
+use std::collections::HashMap;
 use serde_json::Map;
 use crate::{jvalue, utils::get_hashmap, CapsulePtr, JuizError, JuizResult, Value};
 
@@ -156,19 +156,5 @@ impl From<&[(&str, Value)]> for CapsuleMap {
             c.insert((*k).to_owned(), (*v).clone().into());
         }
         c
-    }
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn capsule_map_get_capsule(cmap: *mut CapsuleMap, name: *const i8, ptr: &mut *mut CapsulePtr) -> i64 {
-    match cmap.as_mut().unwrap().get_mutref(CStr::from_ptr(name).to_str().unwrap()) {
-        Err(_) => {
-            *ptr = std::ptr::null_mut();
-            return -1;
-        },
-        Ok(cp) => { 
-            *ptr = cp;
-            return 0;
-        }
     }
 }

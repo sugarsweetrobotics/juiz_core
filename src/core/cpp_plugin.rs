@@ -2,7 +2,7 @@
 use std::{path::PathBuf, sync::{Arc, Mutex}};
 use libloading::{Library, Symbol};
 
-use crate::{containers::{python_container_process_factory_impl::PythonContainerProcessFactoryImpl, PythonContainerFactoryImpl}, jvalue, Capsule, CapsuleMap, CapsulePtr, ContainerFactory, ContainerProcessFactory, JuizError, JuizResult, Value};
+use crate::{containers::{cpp_container_factory_impl::CppContainerFactoryImpl, cpp_container_process_factory_impl::CppContainerProcessFactoryImpl, python_container_process_factory_impl::PythonContainerProcessFactoryImpl, PythonContainerFactoryImpl}, jvalue, processes::cpp_process_factory_impl::CppProcessFactoryImpl, Capsule, CapsuleMap, CapsulePtr, ContainerFactory, ContainerProcessFactory, JuizError, JuizResult, ProcessFactory, Value};
 //type CppProcessEntryPointType = Symbol<'static, extern "C" fn(*mut CapsuleMap, *mut Capsule) -> i64>;
 pub struct CppPlugin{
     path: PathBuf,
@@ -27,12 +27,12 @@ impl CppPlugin {
         &self.manifest
     }
 
-    pub fn load_component_profile(&self, working_dir: Option<PathBuf>) -> JuizResult<Value> {
+    pub fn load_component_profile(&self, _working_dir: Option<PathBuf>) -> JuizResult<Value> {
         Ok(self.get_manifest().clone())
     }
     
     pub fn new(path: PathBuf, manifest_entry_point: &str) -> JuizResult<CppPlugin> {
-        log::trace!("CppPlugin::load({:?}, {:?}) called", path, manifest_entry_point);
+        log::trace!("CppPlugin::new({:?}, {:?}) called", path, manifest_entry_point);
         let entry_point = manifest_entry_point.to_owned() + "_entry_point";
         unsafe {
             let lib = match Library::new(path.clone()) {
@@ -41,9 +41,7 @@ impl CppPlugin {
                     log::error!("Library::new({path:?}) failed. Error ({e:?})");
                     Err(e)
                 }
-            }?;
-            //let lib = .unwrap();
-            
+            }?;            
             let mut manif_cap = CapsulePtr::new();
             let manifest_function: Symbol<extern "C" fn(*mut CapsulePtr) -> i64> = match lib.get(entry_point.as_bytes()) {
                 Ok(f) => Ok(f),
@@ -63,9 +61,27 @@ impl CppPlugin {
         }
     }
 
-    pub fn load_container_factory(&self, working_dir: Option<PathBuf>, _symbol_name: &str) -> JuizResult<Arc<Mutex<dyn ContainerFactory>>> {
-        log::trace!("PythonPlugin({:?})::load_container_factory() called", self.path);
-        self.load_container_factory_with_manifest(working_dir.clone(), self.get_manifest().clone())
+    pub fn load_process_factory(&self, _working_dir: Option<PathBuf>, symbol_name: &str) -> JuizResult<Arc<Mutex<dyn ProcessFactory>>> {
+        //let type_name = obj_get_str(self.get_manifest(), "type_name")?;
+        let full_symbol_name = symbol_name.to_owned() + "_entry_point";
+        type SymbolType = libloading::Symbol<'static, unsafe fn() -> unsafe fn(*mut CapsuleMap, *mut Capsule)->i64>;
+        let f = unsafe {
+            let symbol = self.load_symbol::<SymbolType>(full_symbol_name.as_bytes())?;
+            (symbol)()
+        };
+        Ok(Arc::new(Mutex::new(CppProcessFactoryImpl::new2(self.get_manifest(), f)?)))
+    }
+
+
+    pub fn load_container_factory(&self, _working_dir: Option<PathBuf>, symbol_name: &str) -> JuizResult<Arc<Mutex<dyn ContainerFactory>>> {
+        log::trace!("CppPlugin({:?})::load_container_factory() called", self.path);
+        let full_symbol_name = symbol_name.to_owned() + "_entry_point";
+        type SymbolType = libloading::Symbol<'static, unsafe fn() -> unsafe fn(*mut Value, *mut *mut std::ffi::c_void)->i64>;
+        let f = unsafe {
+            let symbol = self.load_symbol::<SymbolType>(full_symbol_name.as_bytes())?;
+            (symbol)()
+        };
+        Ok(Arc::new(Mutex::new(CppContainerFactoryImpl::new2(self.get_manifest(), f)?)))
     }
     
     pub fn load_container_factory_with_manifest(&self, working_dir: Option<PathBuf>, manifest: Value) -> JuizResult<Arc<Mutex<dyn ContainerFactory>>> {
@@ -75,9 +91,16 @@ impl CppPlugin {
         )?)))
     }
 
-    pub fn load_container_process_factory(&self, working_dir: Option<PathBuf>, _symbol_name: &str) -> JuizResult<Arc<Mutex<dyn ContainerProcessFactory>>> {
-        log::trace!("PythonPlugin({:?})::load_container_factory() called", self.path);
-        self.load_container_process_factory_with_manifest(working_dir.clone(), self.get_manifest().clone())
+    pub fn load_container_process_factory(&self, _working_dir: Option<PathBuf>, symbol_name: &str) -> JuizResult<Arc<Mutex<dyn ContainerProcessFactory>>> {
+        log::trace!("CppPlugin({:?})::load_container_process_factory() called", self.path);
+
+        let full_symbol_name = symbol_name.to_owned() + "_entry_point";
+        type SymbolType = libloading::Symbol<'static, unsafe fn() -> unsafe fn(*mut std::ffi::c_void, *mut CapsuleMap, *mut Capsule) -> i64>;
+        let f = unsafe {
+            let symbol = self.load_symbol::<SymbolType>(full_symbol_name.as_bytes())?;
+            (symbol)()
+        };
+        Ok(Arc::new(Mutex::new(CppContainerProcessFactoryImpl::new2(self.get_manifest(), f)?)))
     }
 
     pub fn load_container_process_factory_with_manifest(&self, working_dir: Option<PathBuf>, manifest: Value) -> JuizResult<Arc<Mutex<dyn ContainerProcessFactory>>> {

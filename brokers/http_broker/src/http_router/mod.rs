@@ -113,7 +113,7 @@ pub fn json_output_wrap(result: JuizResult<CapsulePtr>) -> impl IntoResponse {
                 let mut buf : opencv::core::Vector<u8> = Vector::new();
 
                 let params: Vector<i32> = Vector::new();
-                imencode(".png", result, &mut buf, &params);
+                let _ = imencode(".png", result, &mut buf, &params);
                 // img.write_to(&mut buffer, ImageFormat::Png).unwrap();
 
                 //Json(jvalue!({"message": "ERROR.this is image"})).into_response()
