@@ -387,7 +387,6 @@
         let r = juiz_try_lock(system.core_broker()).and_then(|mut cb|{
             cb.store_mut().clear()
         });
-        // system.cleanup_procsses()?;
         log::trace!("system_builder::cleanup_processes() exit");
         r
     }

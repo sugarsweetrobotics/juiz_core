@@ -61,6 +61,6 @@ impl Plugin for RustPlugin {
 
 impl Drop for RustPlugin {
     fn drop(&mut self) {
-        log::trace!("RustPlugin::drop() called");
+        log::info!("RustPlugin({})::drop() called", self.path);
     }
 }
