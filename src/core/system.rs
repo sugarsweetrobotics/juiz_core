@@ -253,6 +253,7 @@ impl System {
 
     fn cleanup(&mut self) -> JuizResult<()> {
         log::trace!("System::cleanup() called");
+        system_builder::cleanup_containers(self).context("system_builder::cleanup_cotainers in System::cleanup() failed")?;
         system_builder::cleanup_processes(self).context("system_builder::cleanup_processes in System::cleanup() failed")?;
         system_builder::cleanup_ecs(self).context("system_builder::cleanup_ecs in System::cleanup() failed")?;
         system_builder::cleanup_brokers(self).context("system_builder::cleanup_brokers in System::cleanup() failed")?;

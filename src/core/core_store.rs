@@ -311,13 +311,26 @@ impl CoreStore {
 
     pub fn clear(&mut self) -> JuizResult<()> {
         log::trace!("CoreStore::clear() called");
-
+        self.clear_container_process_factories()?;
+        self.clear_container_factories()?;
         self.clear_process_factories()?;
         self.clear_broker_factories()?;
         Ok(())
     }
-
     
+    fn clear_container_process_factories(&mut self) -> JuizResult<()> {
+        log::trace!("clear_container_process_factories() called");
+        self.container_processes.clear();
+        Ok(())
+    }
+    
+    
+    fn clear_container_factories(&mut self) -> JuizResult<()> {
+        log::trace!("clear_container_factories() called");
+        self.containers.clear();
+        Ok(())
+    }
+
     fn clear_process_factories(&mut self) -> JuizResult<()> {
         log::trace!("clear_broker_factories() called");
         self.processes.clear();

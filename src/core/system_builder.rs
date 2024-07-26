@@ -372,13 +372,23 @@
     }
 
     
+    pub fn cleanup_containers(system: &mut System) -> JuizResult<()> {
+        log::trace!("system_builder::cleanup_containers() called");
+        let r = juiz_try_lock(system.core_broker()).and_then(|mut cb|{
+            cb.store_mut().clear()
+        });
+        log::trace!("system_builder::cleanup_containers() exit");
+        r
+    }
+
+    
     pub fn cleanup_processes(system: &mut System) -> JuizResult<()> {
         log::trace!("system_builder::cleanup_processes() called");
         let r = juiz_try_lock(system.core_broker()).and_then(|mut cb|{
             cb.store_mut().clear()
         });
         // system.cleanup_procsses()?;
-        log::trace!("system_builder::cleanup_brokers() exit");
+        log::trace!("system_builder::cleanup_processes() exit");
         r
     }
 

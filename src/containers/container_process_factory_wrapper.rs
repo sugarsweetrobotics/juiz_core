@@ -7,9 +7,9 @@ use crate::{core::plugin::{Plugin, JuizObjectPlugin}, jvalue, object::{JuizObjec
 #[allow(dead_code)]
 pub struct ContainerProcessFactoryWrapper {
     core: ObjectCore,
-    plugin: JuizObjectPlugin,
     container_process_factory: Arc<Mutex<dyn ContainerProcessFactory>>,
-    container_processes: RefCell<Vec<ProcessPtr>>
+    container_processes: RefCell<Vec<ProcessPtr>>,
+    plugin: JuizObjectPlugin,
 }
 
 impl ContainerProcessFactoryWrapper {
@@ -60,5 +60,12 @@ impl ContainerProcessFactory for ContainerProcessFactoryWrapper {
         let p = juiz_lock(&self.container_process_factory).with_context(||format!("ContainerProcessFactoryWrapper::create_container_process(manifest:{manifest:}) failed."))?.create_container_process(container, manifest)?;
         self.container_processes.borrow_mut().push(Arc::clone(&p));
         Ok(Arc::clone(&p))
+    }
+}
+
+impl Drop for ContainerProcessFactoryWrapper {
+
+    fn drop(&mut self) {
+        log::trace!("ContainerProcessFactoryWrapper()::drop() called");
     }
 }
