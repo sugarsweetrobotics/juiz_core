@@ -10,6 +10,7 @@ pub mod local;
 pub mod messenger;
 pub mod crud;
 pub mod ipc;
+pub mod http;
 // pub mod _http_;
 
 

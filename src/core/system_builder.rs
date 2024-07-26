@@ -5,7 +5,7 @@
     use std::{path::PathBuf, rc::Rc, sync::{mpsc, Arc, Mutex}};
 
     use anyhow::Context;
-    use crate::{brokers::{broker_factories_wrapper::BrokerFactoriesWrapper, ipc::{ipc_broker::create_ipc_broker_factory, ipc_broker_proxy::create_ipc_broker_proxy_factory}, local::{local_broker::{create_local_broker_factory, BrokerSideSenderReceiverPair, ProxySideSenderReceiverPair}, local_broker_proxy::create_local_broker_proxy_factory}, local_broker::ByteSenderReceiverPair, BrokerFactory, BrokerProxy, BrokerProxyFactory}, containers::{ContainerFactoryPtr, ContainerProcessFactoryPtr}, core::{cpp_plugin::CppPlugin, plugin::JuizObjectPlugin, python_plugin::PythonPlugin}, processes::ProcessFactoryPtr, utils::sync_util::{juiz_borrow_mut, juiz_try_lock}, value::obj_get_obj, JuizError};
+    use crate::{brokers::{broker_factories_wrapper::BrokerFactoriesWrapper, http::{http_broker_factory, http_broker_proxy_factory},  ipc::{ipc_broker::create_ipc_broker_factory, ipc_broker_proxy::create_ipc_broker_proxy_factory}, local::{local_broker::{create_local_broker_factory, BrokerSideSenderReceiverPair, ProxySideSenderReceiverPair}, local_broker_proxy::create_local_broker_proxy_factory}, local_broker::ByteSenderReceiverPair, BrokerFactory, BrokerProxy, BrokerProxyFactory}, containers::{ContainerFactoryPtr, ContainerProcessFactoryPtr}, core::{cpp_plugin::CppPlugin, plugin::JuizObjectPlugin, python_plugin::PythonPlugin}, processes::ProcessFactoryPtr, utils::sync_util::{juiz_borrow_mut, juiz_try_lock}, value::obj_get_obj, JuizError};
     use crate::{value::*, connections::connection_builder::connection_builder, containers::{container_factory_wrapper::ContainerFactoryWrapper, container_process_factory_wrapper::ContainerProcessFactoryWrapper}, core::RustPlugin, ecs::{execution_context_holder::ExecutionContextHolder, execution_context_holder_factory::ExecutionContextHolderFactory, ExecutionContextFactory}, jvalue, processes::ProcessFactoryWrapper, utils::{get_array, get_hashmap, juiz_lock, manifest_util::when_contains_do_mut, when_contains_do}, value::{obj_get, obj_get_str}, CapsulePtr, JuizResult, System, Value};
 
     pub fn setup_plugins(system: &mut System, manifest: &Value) -> JuizResult<()> {
@@ -213,9 +213,6 @@
         })?;
         Ok(())
     }
-    
-
-
 
     fn setup_execution_context_factories(system: &System, manifest: &serde_json::Value) -> JuizResult<()> {
         log::trace!("system_builder::setup_execution_context_factories() called");
@@ -235,6 +232,14 @@
             }
             log::info!("ExecutionContextFactory (name={name:}) Loaded");
         }
+        Ok(())
+    }
+
+    pub fn setup_http_broker_factory(system: &mut System) -> JuizResult<()> {
+        log::trace!("system_builder::setup_http_broker_factory() called");
+        let hbf = http_broker_factory(system.core_broker().clone())?;
+        let hbpf = http_broker_proxy_factory()?;
+        let _wrapper = system.register_broker_factories_wrapper(BrokerFactoriesWrapper::new(None, hbf, hbpf)?)?;
         Ok(())
     }
 
@@ -323,6 +328,19 @@
             }
             Ok(())
         })?;
+        Ok(())
+    }
+
+    pub fn setup_http_broker(system: &mut System, port_number: i64) -> JuizResult<()> {
+        log::trace!("system_builder::setup_http_broker() called");
+        let http_broker = system.create_broker(&jvalue!({
+            "type_name": "http",
+            "name": "default_http",
+            "host": "0.0.0.0",
+            "port": port_number,
+        })).context("system.create_broker() failed in system_builder::setup_http_broker()")?;
+        system.register_broker(http_broker)?;
+        log::info!("LocalBroker Created");
         Ok(())
     }
 

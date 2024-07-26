@@ -9,43 +9,41 @@ edition = "2021"
 crate-type = ["cdylib", "lib"]
 
 [dependencies]
-serde = {version = "1.0.193", features = ["derive"]}
-serde_json="1.0.108"
-yaml-rust2 = "0.8.0"
-
 anyhow = "1.0.75"
-thiserror = "1.0.50"
-log = "0.4.20"
-env_logger = "0.10.1"
+approx = "*"
+axum = "0.7.2"
 
-regex = "1.7.0"
+env_logger = "0.10.1"
+futures = "0.3.29"
 hashlink = "0.8"
 home = "0.5.9"
-
-signal-hook = "0.3.17"
-
-libloading = "0.8.1"
-mopa = "0.2.2"
-
-tokio = { version = "1.38.0", features = ["full"] }
-axum = "0.7.2"
-uuid = "1.6.1"
-futures = "0.3.29"
-
-interprocess = {version="2.2.0", features=["tokio"]}
-
-# opencv = {version="0.84.0", default-features=false, features=["clang-runtime"]}
-opencv = {version="0.92.0", default-features=false, features=["imgproc", "imgcodecs", "clang-runtime"]}
 image = "0.24.0"
-# cv-convert = {version="0.25.0", default-features=false, features=["opencv_0-84", "image_0-24"]}
-
+image-stream = "0.1.0"
+interprocess = {version="2.2.0", features=["tokio"]}
+libloading = "0.8.1"
+log = "0.4.20"
+mopa = "0.2.2"
 num-traits = "0.2.19"
 nalgebra = "0.32.5"
-quaternion-core = "0.5.0"
-approx = "*"
-# example_container = { path="container_examples/example_container" }
-
+opencv = {version="0.92.0", default-features=false, features=["imgproc", "imgcodecs", "clang-runtime"]}
 pyo3 = {version = "0.22.1", features=["auto-initialize", "gil-refs"]}
+
+quaternion-core = "0.5.0"
+regex = "1.7.0"
+reqwest = {version="0.11.22", features = ["blocking", "json"]}
+serde = {version = "1.0.193", features = ["derive"]}
+serde_json="1.0.108"
+signal-hook = "0.3.17"
+
+thiserror = "1.0.50"
+tokio = { version = "1.38.0", features = ["full"] }
+uuid = "1.6.1"
+utoipa = { version="4.1.0", features = ["axum_extras"] }
+utoipa-swagger-ui = { version = "5.0.0", features = ["axum"] }
+utoipa-redoc = { version="2.0.0", features = ["axum"] }
+utoipa-rapidoc = { version="2.0.0", features = ["axum"] }
+
+yaml-rust2 = "0.8.0"
 
 [workspace]
 members = [
@@ -69,11 +67,11 @@ default-members = [
     "ecs/timer_ec",
     "ecs/one_shot_ec", 
     "ecs/main_loop_ec",
-    "brokers/http_broker",
-    "examples/rust/container_examples",
-    "examples/rust/process_examples/increment_process",
-    "examples/rust/container_examples/example_container",
-    "examples/rust/container_examples/example_container_get",
-    "examples/rust/container_examples/example_container_increment",
-    "examples/rust/opencv_examples/juiz_opencv",
+    #"brokers/http_broker",
+    #"examples/rust/container_examples",
+    #"examples/rust/process_examples/increment_process",
+    #"examples/rust/container_examples/example_container",
+    #"examples/rust/container_examples/example_container_get",
+    #"examples/rust/container_examples/example_container_increment",
+    #"examples/rust/opencv_examples/juiz_opencv",
 ]

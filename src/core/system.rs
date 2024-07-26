@@ -217,7 +217,10 @@ impl System {
         let _ = when_contains_do(&self.manifest, "containers", |v| {
             system_builder::setup_containers(self, v).context("system_builder::setup_containers in System::setup() failed")
         })?;
+        system_builder::setup_http_broker_factory(self).context("system_builder::setup_http_broker_factory in System::setup() failed.")?;
 
+        let port_number: i64 = 8000;
+        system_builder::setup_http_broker(self, port_number).context("system_builder::setup_http_broker in System::setup() failed.")?;
 
         system_builder::setup_local_broker_factory(self).context("system_builder::setup_local_broker_factory in System::setup() failed.")?;
         system_builder::setup_local_broker(self).context("system_builder::setup_local_broker in System::setup() failed.")?;
@@ -350,7 +353,7 @@ impl System {
         let type_name = juiz_lock(&bf)?.type_name().to_string();
         log::trace!("System::register_broker_factories_wrapper(BrokerFactory(type_name={:?})) called", type_name);
         if self.broker_factories.contains_key(&type_name) {
-            log::error!("system does not contains broker factory with type_name='{type_name:}'.");
+            log::error!("system already contains broker factory with type_name='{type_name:}'.");
             return Err(anyhow::Error::from(JuizError::BrokerFactoryOfSameTypeNameAlreadyExistsError{type_name: type_name}));
         }
         self.broker_factories.insert(type_name.clone(), Arc::clone(&bf));

@@ -18,6 +18,7 @@ impl RustPlugin {
         unsafe {
             match libloading::Library::new(path.clone()) {
                 Ok(lib) => {
+                    log::debug!("RustPlugin::load({:?}) loaded", path);
                     Ok(RustPlugin{lib:Some(lib), path})
                 },
                 Err(_) => {
@@ -61,6 +62,6 @@ impl Plugin for RustPlugin {
 
 impl Drop for RustPlugin {
     fn drop(&mut self) {
-        log::info!("RustPlugin({})::drop() called", self.path);
+        log::info!("RustPlugin({})::drop() called", self.path.display());
     }
 }
