@@ -5,7 +5,7 @@
     use std::{path::PathBuf, rc::Rc, sync::{mpsc, Arc, Mutex}};
 
     use anyhow::Context;
-    use crate::{brokers::{broker_factories_wrapper::BrokerFactoriesWrapper, ipc::{ipc_broker::create_ipc_broker_factory, ipc_broker_proxy::create_ipc_broker_proxy_factory}, local::{local_broker::{create_local_broker_factory, BrokerSideSenderReceiverPair, ProxySideSenderReceiverPair}, local_broker_proxy::create_local_broker_proxy_factory}, local_broker::ByteSenderReceiverPair, BrokerFactory, BrokerProxy, BrokerProxyFactory}, containers::{ContainerFactoryPtr, ContainerProcessFactoryPtr}, core::{cpp_plugin::CppPlugin, plugin::JuizObjectPlugin, python_plugin::PythonPlugin}, processes::ProcessFactoryPtr, value::obj_get_obj, JuizError};
+    use crate::{brokers::{broker_factories_wrapper::BrokerFactoriesWrapper, ipc::{ipc_broker::create_ipc_broker_factory, ipc_broker_proxy::create_ipc_broker_proxy_factory}, local::{local_broker::{create_local_broker_factory, BrokerSideSenderReceiverPair, ProxySideSenderReceiverPair}, local_broker_proxy::create_local_broker_proxy_factory}, local_broker::ByteSenderReceiverPair, BrokerFactory, BrokerProxy, BrokerProxyFactory}, containers::{ContainerFactoryPtr, ContainerProcessFactoryPtr}, core::{cpp_plugin::CppPlugin, plugin::JuizObjectPlugin, python_plugin::PythonPlugin}, processes::ProcessFactoryPtr, utils::sync_util::{juiz_borrow_mut, juiz_try_lock}, value::obj_get_obj, JuizError};
     use crate::{value::*, connections::connection_builder::connection_builder, containers::{container_factory_wrapper::ContainerFactoryWrapper, container_process_factory_wrapper::ContainerProcessFactoryWrapper}, core::RustPlugin, ecs::{execution_context_holder::ExecutionContextHolder, execution_context_holder_factory::ExecutionContextHolderFactory, ExecutionContextFactory}, jvalue, processes::ProcessFactoryWrapper, utils::{get_array, get_hashmap, juiz_lock, manifest_util::when_contains_do_mut, when_contains_do}, value::{obj_get, obj_get_str}, CapsulePtr, JuizResult, System, Value};
 
     pub fn setup_plugins(system: &mut System, manifest: &Value) -> JuizResult<()> {
@@ -34,6 +34,11 @@
     #[cfg(target_os = "macos")]
     fn plugin_name_to_file_name(name: &str) -> String {
         "lib".to_owned() + name + ".dylib"
+    }
+
+    #[cfg(target_os = "windows")]
+    fn plugin_name_to_file_name(name: &str) -> String {
+        name.to_owned() + ".dll"
     }
 
     fn plugin_name_to_python_file_name(name: &str) -> String {
@@ -366,9 +371,25 @@
         Ok(())
     }
 
+    
+    pub fn cleanup_processes(system: &mut System) -> JuizResult<()> {
+        log::trace!("system_builder::cleanup_processes() called");
+        let r = juiz_try_lock(system.core_broker()).and_then(|mut cb|{
+            cb.store_mut().clear()
+        });
+        // system.cleanup_procsses()?;
+        log::trace!("system_builder::cleanup_brokers() exit");
+        r
+    }
+
     pub fn cleanup_brokers(system: &mut System) -> JuizResult<()> {
-        log::trace!("system_builder::cleanup_ecs() called");
-        system.cleanup_brokers()
+        log::trace!("system_builder::cleanup_brokers() called");
+        let r = juiz_try_lock(system.core_broker()).and_then(|mut cb|{
+            cb.store_mut().clear()
+        });
+        system.cleanup_brokers()?;
+        log::trace!("system_builder::cleanup_brokers() exit");
+        r
     }
 
     pub fn setup_ecs(system: &mut System, manifest: &Value) -> JuizResult<()> {

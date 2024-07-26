@@ -7,9 +7,9 @@ use crate::{core::RustPlugin, brokers::{Broker, BrokerProxy, BrokerFactory, Brok
 #[allow(dead_code)]
 pub struct BrokerFactoriesWrapper {
     type_name: String,
-    plugin: Option<RustPlugin>, 
     pub broker_factory: Arc<Mutex<dyn BrokerFactory>>,
     pub broker_proxy_factory: Arc<Mutex<dyn BrokerProxyFactory>>,
+    plugin: Option<RustPlugin>, 
 }
 
 impl BrokerFactoriesWrapper {
@@ -44,5 +44,12 @@ impl BrokerFactoriesWrapper {
 
     pub fn create_broker_proxy(&self, manifest: &Value) -> JuizResult<Arc<Mutex<dyn BrokerProxy>>> {
         juiz_lock(&self.broker_proxy_factory)?.create_broker_proxy(manifest.clone())
+    }
+}
+
+impl Drop for BrokerFactoriesWrapper {
+    fn drop(&mut self) {
+        log::trace!("BrokerFactoriesWrapper({})::drop() called", self.type_name);
+
     }
 }

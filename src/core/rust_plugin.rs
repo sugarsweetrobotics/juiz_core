@@ -8,7 +8,7 @@ use super::plugin::Plugin;
 
 pub struct RustPlugin {
     path: PathBuf,
-    lib: Library,
+    lib: Option<Library>,
 }
 
 impl RustPlugin {
@@ -18,7 +18,7 @@ impl RustPlugin {
         unsafe {
             match libloading::Library::new(path.clone()) {
                 Ok(lib) => {
-                    Ok(RustPlugin{lib, path})
+                    Ok(RustPlugin{lib:Some(lib), path})
                 },
                 Err(_) => {
                     log::error!("RustPlugin::load({:?}) failed.", path);
@@ -31,7 +31,7 @@ impl RustPlugin {
     pub fn load_symbol<T>(&self, symbol_name: &[u8]) -> JuizResult<libloading::Symbol<T>> {
         log::trace!("RustPlugin::load_symbol({:?}) called", std::str::from_utf8(symbol_name));
         unsafe {
-            match self.lib.get::<T>(symbol_name) {
+            match self.lib.as_ref().unwrap().get::<T>(symbol_name) {
                 Ok(func) => Ok(func),
                 Err(_) => {
                     log::error!("RustPlugin::load_symbol({:?}) failed.", symbol_name);
@@ -56,5 +56,11 @@ impl Plugin for RustPlugin {
         Ok(jvalue!({
             "path": self.path,
         }))
+    }
+}
+
+impl Drop for RustPlugin {
+    fn drop(&mut self) {
+        log::trace!("RustPlugin::drop() called");
     }
 }

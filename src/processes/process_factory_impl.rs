@@ -65,3 +65,11 @@ impl ProcessFactory for ProcessFactoryImpl {
         ))
     }    
 }
+
+
+impl Drop for ProcessFactoryImpl {
+
+    fn drop(&mut self) {
+        log::trace!("ProcessFactoryImpl({})::drop() called", self.type_name());
+    }
+}

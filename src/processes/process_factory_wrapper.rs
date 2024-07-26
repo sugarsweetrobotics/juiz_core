@@ -7,9 +7,9 @@ use crate::{jvalue, core::plugin::JuizObjectPlugin, object::{JuizObjectClass, Ju
 #[allow(dead_code)]
 pub struct ProcessFactoryWrapper {
     core: ObjectCore,
-    plugin: JuizObjectPlugin,
     process_factory: Arc<Mutex<dyn ProcessFactory>>,
-    processes: RefCell<Vec<ProcessPtr>>
+    processes: RefCell<Vec<ProcessPtr>>,
+    plugin: JuizObjectPlugin,
 }
 
 impl ProcessFactoryWrapper {
@@ -60,4 +60,11 @@ impl ProcessFactory for ProcessFactoryWrapper {
 
 
     
+}
+
+impl Drop for ProcessFactoryWrapper {
+
+    fn drop(&mut self) {
+        log::trace!("ProcecssFactoryWrapper()::drop() called");
+    }
 }

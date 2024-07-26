@@ -222,7 +222,7 @@ impl System {
         system_builder::setup_local_broker_factory(self).context("system_builder::setup_local_broker_factory in System::setup() failed.")?;
         system_builder::setup_local_broker(self).context("system_builder::setup_local_broker in System::setup() failed.")?;
 
-        system_builder::setup_ipc_broker_factory(self).context("system_builder::setup_ipc_broker_factory in System::setup() failed.")?;
+        // system_builder::setup_ipc_broker_factory(self).context("system_builder::setup_ipc_broker_factory in System::setup() failed.")?;
         //system_builder::setup_ipc_broker(self).context("system_builder::setup_ipc_broker in System::setup() failed.")?;
         
         let _ = when_contains_do_mut(&manifest_copied, "brokers", |v| {
@@ -253,14 +253,21 @@ impl System {
 
     fn cleanup(&mut self) -> JuizResult<()> {
         log::trace!("System::cleanup() called");
+        system_builder::cleanup_processes(self).context("system_builder::cleanup_processes in System::cleanup() failed")?;
         system_builder::cleanup_ecs(self).context("system_builder::cleanup_ecs in System::cleanup() failed")?;
-        system_builder::cleanup_brokers(self).context("system_builder::cleanup_ecs in System::cleanup() failed")?;
+        system_builder::cleanup_brokers(self).context("system_builder::cleanup_brokers in System::cleanup() failed")?;
+        log::trace!("System::cleanup() exit");
         Ok(())
     }
 
     pub fn cleanup_brokers(&mut self) -> JuizResult<()> {
         log::trace!("System::cleanup_brokers() called");
         self.brokers.clear();
+        log::trace!("brokers cleared");
+        self.broker_factories.clear();
+        log::trace!("broker factories cleared");
+        
+        log::trace!("System::cleanup_brokers() exit");
         Ok(())
     }
 

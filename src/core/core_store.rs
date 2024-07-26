@@ -15,6 +15,13 @@ impl<T, TF> RwStoreWorker<T, TF> where T: JuizObject + ?Sized, TF: JuizObject + 
     pub fn new(name: &str) -> Box<RwStoreWorker<T, TF>> {
         Box::new(RwStoreWorker { name: name.to_string(), factories: HashMap::new(), objects: HashMap::new() })
     }
+    
+    pub fn clear(&mut self) -> JuizResult<()> {
+        self.objects.clear();
+        self.factories.clear();
+        Ok(())
+    }
+
 
     pub fn objects(&self) -> Values<String, Arc<RwLock<T>>> {
         self.objects.values()
@@ -150,6 +157,12 @@ impl<T, TF> StoreWorker<T, TF> where T: JuizObject + ?Sized, TF: JuizObject + ?S
 
     pub fn new(name: &str) -> Box<StoreWorker<T, TF>> {
         Box::new(StoreWorker { name: name.to_string(), factories: HashMap::new(), objects: HashMap::new() })
+    }
+
+    pub fn clear(&mut self) -> JuizResult<()> {
+        self.objects.clear();
+        self.factories.clear();
+        Ok(())
     }
 
     pub fn objects(&self) -> Values<String, Arc<Mutex<T>>> {
@@ -294,6 +307,29 @@ impl CoreStore {
             container_processes: RwStoreWorker::new("container_process"), 
             ecs: StoreWorker::new("ecs"),
         }
+    }
+
+    pub fn clear(&mut self) -> JuizResult<()> {
+        log::trace!("CoreStore::clear() called");
+
+        self.clear_process_factories()?;
+        self.clear_broker_factories()?;
+        Ok(())
+    }
+
+    
+    fn clear_process_factories(&mut self) -> JuizResult<()> {
+        log::trace!("clear_broker_factories() called");
+        self.processes.clear();
+        Ok(())
+    }
+
+    fn clear_broker_factories(&mut self) -> JuizResult<()> {
+        log::trace!("clear_broker_factories() called");
+        self.broker_factories_manifests.clear();
+        self.brokers_manifests.clear();
+        self.broker_proxies.clear();
+        Ok(())
     }
 
     pub fn register_broker_manifest(&mut self, type_name: &str, b: Value) -> JuizResult<()> {

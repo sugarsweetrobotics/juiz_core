@@ -51,3 +51,9 @@ impl BrokerFactory for BrokerFactoryImpl {
 pub fn create_broker_factory_impl(core_broker: Arc<Mutex<dyn BrokerProxy>>, manifest: Value, create_broker_function: fn(core_broker: Arc<Mutex<dyn BrokerProxy>>, Value)->JuizResult<Arc<Mutex<dyn Broker>>>) -> JuizResult<Arc<Mutex<dyn BrokerFactory>>>{
     Ok(BrokerFactoryImpl::new(core_broker, manifest, create_broker_function)?)
 }
+
+impl Drop for BrokerFactoryImpl {
+    fn drop(&mut self) {
+        log::trace!("BrokerFactoryImpl({})::drop() called", self.type_name());
+    }
+}
