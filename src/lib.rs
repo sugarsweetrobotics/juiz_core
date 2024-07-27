@@ -7,6 +7,7 @@ pub mod object;
 pub mod identifier;
 
 mod core;
+mod plugin;
 
 pub mod processes;
 pub mod connections;
@@ -14,6 +15,7 @@ pub mod containers;
 pub mod brokers;
 pub mod ecs;
 pub mod manifests;
+pub mod result;
 pub mod prelude;
 
 
@@ -22,10 +24,10 @@ pub use value::{Value, jvalue, load_str, Capsule, CapsulePtr, CapsuleMap};
 pub use processes::{Process, process::ProcessPtr,ProcessFactory};
 pub use containers::{Container, ContainerPtr, ContainerFactory, ContainerProcessFactory};
 pub use identifier::Identifier;
-pub use core::error::JuizError;
+pub use result::error::JuizError;
 pub use core::core_broker::CoreBroker;
 pub use core::system::System;
-pub use core::result::JuizResult;
+pub use result::result::JuizResult;
 
 pub use utils::yaml_conf_load;
 

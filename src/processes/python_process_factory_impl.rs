@@ -3,7 +3,12 @@ use std::{collections::HashMap, fs, path::PathBuf, rc::Rc};
 use pyo3::{prelude::*, types::PyTuple};
 use serde_json::Map;
 
-use crate::{core::python_plugin::pyany_to_value, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, processes::{process_impl::ProcessImpl, process_ptr}, utils::check_process_factory_manifest, value::obj_get_str, Capsule, CapsuleMap, CapsulePtr, JuizError, JuizObject, JuizResult, ProcessFactory, ProcessPtr, Value};
+use crate::prelude::*;
+use crate::{
+    plugin::pyany_to_value, 
+    object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore},
+    processes::{process_impl::ProcessImpl, process_ptr}, 
+    utils::check_process_factory_manifest, value::obj_get_str, JuizObject};
 
 pub type PythonFunctionType = dyn Fn(CapsuleMap)->JuizResult<Capsule>;
 #[repr(C)]

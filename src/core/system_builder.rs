@@ -5,8 +5,27 @@
     use std::{path::PathBuf, rc::Rc, sync::{mpsc, Arc, Mutex}};
 
     use anyhow::Context;
-    use crate::{brokers::{broker_factories_wrapper::BrokerFactoriesWrapper, http::{http_broker_factory, http_broker_proxy_factory},  ipc::{ipc_broker::create_ipc_broker_factory, ipc_broker_proxy::create_ipc_broker_proxy_factory}, local::{local_broker::{create_local_broker_factory, BrokerSideSenderReceiverPair, ProxySideSenderReceiverPair}, local_broker_proxy::create_local_broker_proxy_factory}, local_broker::ByteSenderReceiverPair, BrokerFactory, BrokerProxy, BrokerProxyFactory}, containers::{ContainerFactoryPtr, ContainerProcessFactoryPtr}, core::{cpp_plugin::CppPlugin, plugin::JuizObjectPlugin, python_plugin::PythonPlugin}, processes::ProcessFactoryPtr, utils::sync_util::{juiz_borrow_mut, juiz_try_lock}, value::obj_get_obj, JuizError};
-    use crate::{value::*, connections::connection_builder::connection_builder, containers::{container_factory_wrapper::ContainerFactoryWrapper, container_process_factory_wrapper::ContainerProcessFactoryWrapper}, core::RustPlugin, ecs::{execution_context_holder::ExecutionContextHolder, execution_context_holder_factory::ExecutionContextHolderFactory, ExecutionContextFactory}, jvalue, processes::ProcessFactoryWrapper, utils::{get_array, get_hashmap, juiz_lock, manifest_util::when_contains_do_mut, when_contains_do}, value::{obj_get, obj_get_str}, CapsulePtr, JuizResult, System, Value};
+    use crate::{object::JuizObjectClass, plugin::{concat_dirname, plugin_name_to_file_name, JuizObjectPlugin, RustPlugin}, prelude::*, value::obj_get_obj};
+    use crate::{
+        brokers::{broker_factories_wrapper::BrokerFactoriesWrapper, 
+        http::{http_broker_factory, http_broker_proxy_factory},  
+        ipc::{ipc_broker::create_ipc_broker_factory, ipc_broker_proxy::create_ipc_broker_proxy_factory}, 
+        local::{local_broker::{create_local_broker_factory, BrokerSideSenderReceiverPair, ProxySideSenderReceiverPair}, 
+        local_broker_proxy::create_local_broker_proxy_factory}, 
+        local_broker::ByteSenderReceiverPair, BrokerFactory, BrokerProxy, BrokerProxyFactory}, 
+        containers::{ContainerFactoryPtr, ContainerProcessFactoryPtr}, 
+        processes::ProcessFactoryPtr, utils::sync_util::juiz_try_lock,
+        plugin::{JuizObjectPlugin::{Rust, Cpp, Python}},
+    };
+    use crate::{
+        connections::connection_builder::connection_builder, 
+        containers::{container_factory_wrapper::ContainerFactoryWrapper, 
+            container_process_factory_wrapper::ContainerProcessFactoryWrapper}, 
+            ecs::{execution_context_holder::ExecutionContextHolder, execution_context_holder_factory::ExecutionContextHolderFactory, ExecutionContextFactory}, 
+            processes::ProcessFactoryWrapper, 
+            utils::{get_array, get_hashmap, juiz_lock, manifest_util::when_contains_do_mut, when_contains_do}, 
+            value::{obj_get, obj_get_str}, System
+    };
 
     pub fn setup_plugins(system: &mut System, manifest: &Value) -> JuizResult<()> {
         log::trace!("system_builder::setup_plugins({}) called", manifest);
@@ -31,52 +50,7 @@
         Ok(())
     }
 
-    #[cfg(target_os = "macos")]
-    fn plugin_name_to_file_name(name: &str) -> String {
-        "lib".to_owned() + name + ".dylib"
-    }
 
-    #[cfg(target_os = "windows")]
-    fn plugin_name_to_file_name(name: &str) -> String {
-        name.to_owned() + ".dll"
-    }
-
-    fn plugin_name_to_python_file_name(name: &str) -> String {
-        name.to_owned() + ".py"
-    }
-
-    /// 引数vからpathメンバの値を引き出し、nameと連結したPathを作成する
-    fn concat_dirname(v: &serde_json::Value, name: String) -> JuizResult<PathBuf> {
-        Ok(PathBuf::from(obj_get_str(v, "path")?.to_string()).join(name))
-    }
-
-    /// まずnameからpluginのファイル名に変換する。macだと.dylibをつける作業。そしてvの中のpathと連結させてpathを作る
-    fn plugin_path(name: &str, v: &Value) -> JuizResult<std::path::PathBuf> {
-        concat_dirname(v, plugin_name_to_file_name(name))
-    }
-
-    /// まずnameからpluginのファイル名に変換する。macだと.dylibをつける作業。そしてvの中のpathと連結させてpathを作る
-    fn python_plugin_path(name: &str, v: &Value) -> JuizResult<std::path::PathBuf> {
-        concat_dirname(v, plugin_name_to_python_file_name(name))
-    }
-
-    /// まずnameからpluginのファイル名に変換する。macだと.dylibをつける作業。そしてvの中のpathと連結させてpathを作る
-    fn cpp_plugin_path(name: &str, v: &Value) -> JuizResult<std::path::PathBuf> {
-        concat_dirname(v, plugin_name_to_file_name(name))
-    }
-
-    fn load_plugin(language: &str, name: &str, v: &Value, manifest_entry_point: &str) -> JuizResult<JuizObjectPlugin> {
-        //let manifest_entry_point = "manifest_entry_point";
-        match language {
-            "rust" => Ok(JuizObjectPlugin::Rust(Rc::new(RustPlugin::load(plugin_path(name, v)?)?))),
-            "python" => Ok( JuizObjectPlugin::Python(Rc::new(PythonPlugin::load(python_plugin_path(name, v)?)?))),
-            "c++" => Ok(JuizObjectPlugin::Cpp(Rc::new(CppPlugin::new(cpp_plugin_path(name, v)?, manifest_entry_point)?))),
-            _ => {
-                log::error!("In setup_container_factories() function, unknown language option ({:}) detected", language);
-                Err(anyhow::Error::from(JuizError::InvalidSettingError{message: format!("In setup_container_factories() function, unknown language option ({:}) detected", language)}))
-            } 
-        }
-    }
 
     fn setup_process_factories(system: &System, manifest: &serde_json::Value) -> JuizResult<()> {
         log::trace!("system_builder::setup_process_factories() called");
@@ -142,7 +116,7 @@
             },
             Some(obj) => {
                 let language = obj.get("language").and_then(|v| { v.as_str() }).or(Some("rust")).unwrap();
-                register_process_factory(system, load_plugin(language, name, v, manifest_entry_point)?, "process_factory")
+                register_process_factory(system, JuizObjectPlugin::new(language, name, v, manifest_entry_point)?, "process_factory")
             }
         }
     }
@@ -157,12 +131,12 @@
             },
             Some(obj) => {
                 let language = obj.get("language").and_then(|v| { v.as_str() }).or(Some("rust")).unwrap();
-                let ctr = register_container_factory(system, load_plugin(language, name, container_profile, manifest_entry_point)?, "container_factory", container_profile)?;
+                let ctr = register_container_factory(system, JuizObjectPlugin::new(language, name, container_profile, manifest_entry_point)?, "container_factory", container_profile)?;
                 log::info!("ContainerFactory ({name:}) Loaded");
                 when_contains_do(container_profile, "processes", |container_process_profile_map| {
                     for (cp_name, container_process_profile) in get_hashmap(container_process_profile_map)?.iter() {
                         log::debug!(" - ContainerProcessFactory ({cp_name:}) Loading...");
-                        register_container_process_factory(system, load_plugin(language, cp_name, container_process_profile, manifest_entry_point)?, "container_process_factory", container_process_profile)?;
+                        register_container_process_factory(system, JuizObjectPlugin::new(language, cp_name, container_process_profile, manifest_entry_point)?, "container_process_factory", container_process_profile)?;
                         log::info!(" - ContainerProcessFactory ({cp_name:}) Loaded");
                     }
                     Ok(())
@@ -178,7 +152,7 @@
         
         log::trace!("setup_component(name={:}, value={:}) called", name, v);
         let language = obj_get_str(v, "language").or::<JuizResult<&str>>(Ok("rust")).unwrap();
-        let plugin = load_plugin(language, name, v, manifest_entry_point)?;
+        let plugin = JuizObjectPlugin::new(language, name, v, manifest_entry_point)?;
         let component_profile = plugin.load_component_profile(system.get_working_dir())?;
         when_contains_do(&component_profile, "containers", |container_profiles| -> JuizResult<()> {
             for container_profile in get_array(container_profiles)?.iter() {
@@ -480,4 +454,4 @@
         system.core_broker().lock().unwrap().store_mut().container_processes.register_factory(ContainerProcessFactoryWrapper::new(plugin, cpf)?)
     }
 
-//}
+

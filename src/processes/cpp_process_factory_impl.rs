@@ -3,7 +3,7 @@ use std::{collections::HashMap, rc::Rc};
 use libloading::Symbol;
 use pyo3::prelude::*;
 use serde_json::Map;
-use crate::{core::cpp_plugin::CppPlugin, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, processes::{process_impl::ProcessImpl, process_ptr}, utils::check_process_factory_manifest, value::obj_get_str, Capsule, CapsuleMap, CapsulePtr, JuizError, JuizObject, JuizResult, ProcessFactory, ProcessPtr, Value};
+use crate::{plugin::CppPlugin, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, processes::{process_impl::ProcessImpl, process_ptr}, utils::check_process_factory_manifest, value::obj_get_str, Capsule, CapsuleMap, CapsulePtr, JuizError, JuizObject, JuizResult, ProcessFactory, ProcessPtr, Value};
 
 pub type CppFunctionType = Symbol<'static, extern "C" fn(*mut CapsuleMap, *mut Capsule) -> i64>;
 

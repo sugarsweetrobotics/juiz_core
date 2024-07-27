@@ -2,7 +2,7 @@
 
 use crate::{utils::juiz_lock, JuizError, JuizResult, Value};
 use std::sync::{Arc, Mutex};
-use crate::{core::RustPlugin, brokers::{Broker, BrokerProxy, BrokerFactory, BrokerProxyFactory}};
+use crate::{plugin::RustPlugin, brokers::{Broker, BrokerProxy, BrokerFactory, BrokerProxyFactory}};
 
 #[allow(dead_code)]
 pub struct BrokerFactoriesWrapper {

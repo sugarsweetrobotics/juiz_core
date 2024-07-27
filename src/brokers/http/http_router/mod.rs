@@ -2,22 +2,19 @@
 use std::collections::HashMap;
 
 use std::sync::{Mutex, Arc};
-use crate::prelude::*;
+// use crate::prelude::*;
 use crate::brokers::CRUDBroker;
 use crate::value::capsule_to_value;
-//use juiz_core::processes::capsule::unwrap_arc_capsule;
 
 use opencv::core::{Vector, VectorToVec};
 use opencv::imgcodecs::imencode;
-use utoipa::openapi::path::OperationBuilder;
-use utoipa::openapi::request_body::RequestBodyBuilder;
-use utoipa::openapi::{ContentBuilder, PathItem, PathItemType};
-use utoipa::OpenApi;
-use axum::Router;
+
+use utoipa::{IntoParams, OpenApi};
+use utoipa::openapi::{path::OperationBuilder, request_body::RequestBodyBuilder, ContentBuilder, PathItem, PathItemType};
 use utoipa_swagger_ui::SwaggerUi;
-use axum::{response::{Response, IntoResponse}, body::Body, http::StatusCode, Json, extract::Query};
+
+use axum::{Router, response::{Response, IntoResponse}, body::Body, http::StatusCode, Json, extract::Query};
 use serde::Deserialize;
-use utoipa::IntoParams;
 
 use crate::{jvalue, CapsulePtr, JuizResult, Value};
 

@@ -2,6 +2,10 @@
 
 
 pub use crate::{
+    identifier::{
+        Identifier,
+        IdentifierStruct,
+    },
     manifests::{
         argument_manifest::{ArgumentManifest, ArgumentType}, 
         process_manifest::ProcessManifest,
@@ -10,8 +14,10 @@ pub use crate::{
         container_process_manifest::ContainerProcessManifest,
     },
     processes::{
+        ProcessFactory, 
         ProcessFactoryPtr, 
         ProcessFactoryImpl, 
+        process::ProcessPtr,
         
     },
     containers::{
@@ -21,8 +27,22 @@ pub use crate::{
         ContainerFactoryImpl,
         ContainerProcessFactoryPtr,
         ContainerProcessFactoryImpl,
+        container::ContainerPtr,
     },
-    value::{Capsule, CapsuleMap}, 
-    jvalue, 
-    JuizResult, ProcessFactory, Value,
+    brokers::{
+        Broker,
+        BrokerFactory,
+        BrokerProxy,
+        BrokerProxyFactory,
+    },
+    value::{
+        jvalue, Value, 
+        Capsule, 
+        CapsuleMap,
+        CapsulePtr,
+    }, 
+    result:: {
+        JuizResult,
+        JuizError,
+    }
 };
