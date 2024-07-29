@@ -20,6 +20,7 @@ async fn on_start(broker_manifest: Value, crud_broker: Arc<Mutex<CRUDBroker>>) -
 
 pub fn http_broker_factory(core_broker: Arc<Mutex<dyn BrokerProxy>>) -> JuizResult<Arc<Mutex<dyn BrokerFactory>>> {
     fn create_broker_function(core_broker: Arc<Mutex<dyn BrokerProxy>>, manifest: Value) -> JuizResult<Arc<Mutex<dyn Broker>>> {
+
         CRUDBrokerHolder::new("HTTPBroker", "http", core_broker, &on_start, manifest.clone())
     }
 

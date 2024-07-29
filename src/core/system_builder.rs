@@ -308,7 +308,7 @@
         log::trace!("system_builder::setup_http_broker() called");
         let http_broker = system.create_broker(&jvalue!({
             "type_name": "http",
-            "name": "default_http",
+            "name": format!("0.0.0.0:{}", port_number),
             "host": "0.0.0.0",
             "port": port_number,
         })).context("system.create_broker() failed in system_builder::setup_http_broker()")?;

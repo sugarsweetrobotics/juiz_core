@@ -1,19 +1,17 @@
 [package]
-name = "juiz_command"
+name = "example_component"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[lib]
+crate-type = ["cdylib"]
 
 [dependencies]
-juiz_core = { path="../../" }
-env_logger = "0.10.1"
-structopt = "0.3.26"
-log = "0.4.20"
-home = "0.5.9"
 
 anyhow = "1.0.75"
+juiz_core = { path="../../../../" }
+env_logger = "0.10.1"
 
-clap = { version="4.4.10", features = ["derive"] }
 opencv = {version="*", default-features=false, features=["highgui", "videoio", "imgproc", "imgcodecs", "clang-runtime"]}
