@@ -1,6 +1,9 @@
 use std::{collections::{hash_map::Values, HashMap}, sync::{Arc, Mutex, RwLock}};
-
-use crate::{brokers::{BrokerProxy, BrokerProxyFactory}, ecs::{execution_context_holder::ExecutionContextHolder, execution_context_holder_factory::ExecutionContextHolderFactory}, jvalue, utils::{juiz_lock, manifest_util::{get_array_mut, get_hashmap_mut}, sync_util::juiz_try_lock}, value::obj_get_str, Container, ContainerFactory, ContainerProcessFactory, Identifier, JuizError, JuizObject, JuizResult, Process, ProcessFactory, Value};
+use crate::{prelude::*, utils::juiz_lock, value::obj_get_str};
+use crate::{
+    ecs::{execution_context_holder::ExecutionContextHolder, execution_context_holder_factory::ExecutionContextHolderFactory},
+    utils::{manifest_util::{get_array_mut, get_hashmap_mut}, sync_util::juiz_try_lock}, 
+    JuizObject, JuizResult, Process, ProcessFactory, Value};
 
 
 
@@ -320,20 +323,20 @@ impl CoreStore {
     
     fn clear_container_process_factories(&mut self) -> JuizResult<()> {
         log::trace!("clear_container_process_factories() called");
-        self.container_processes.clear();
+        self.container_processes.clear()?;
         Ok(())
     }
     
     
     fn clear_container_factories(&mut self) -> JuizResult<()> {
         log::trace!("clear_container_factories() called");
-        self.containers.clear();
+        self.containers.clear()?;
         Ok(())
     }
 
     fn clear_process_factories(&mut self) -> JuizResult<()> {
         log::trace!("clear_broker_factories() called");
-        self.processes.clear();
+        self.processes.clear()?;
         Ok(())
     }
 
@@ -341,7 +344,7 @@ impl CoreStore {
         log::trace!("clear_broker_factories() called");
         self.broker_factories_manifests.clear();
         self.brokers_manifests.clear();
-        self.broker_proxies.clear();
+        self.broker_proxies.clear()?;
         Ok(())
     }
 

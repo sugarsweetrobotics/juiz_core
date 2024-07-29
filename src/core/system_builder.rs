@@ -2,10 +2,10 @@
 
 
 //pub mod system_builder {
-    use std::{path::PathBuf, rc::Rc, sync::{mpsc, Arc, Mutex}};
+    use std::sync::{mpsc, Arc, Mutex};
 
     use anyhow::Context;
-    use crate::{object::JuizObjectClass, plugin::{concat_dirname, plugin_name_to_file_name, JuizObjectPlugin, RustPlugin}, prelude::*, value::obj_get_obj};
+    use crate::{plugin::{concat_dirname, plugin_name_to_file_name, JuizObjectPlugin, RustPlugin}, prelude::*, value::obj_get_obj};
     use crate::{
         brokers::{broker_factories_wrapper::BrokerFactoriesWrapper, 
         http::{http_broker_factory, http_broker_proxy_factory},  
@@ -15,7 +15,6 @@
         local_broker::ByteSenderReceiverPair, BrokerFactory, BrokerProxy, BrokerProxyFactory}, 
         containers::{ContainerFactoryPtr, ContainerProcessFactoryPtr}, 
         processes::ProcessFactoryPtr, utils::sync_util::juiz_try_lock,
-        plugin::{JuizObjectPlugin::{Rust, Cpp, Python}},
     };
     use crate::{
         connections::connection_builder::connection_builder, 
@@ -163,7 +162,7 @@
                 when_contains_do(container_profile, "processes", |container_process_profiles| {
                     for container_process_profile in get_array(container_process_profiles)?.iter() {
                         let container_process_type_name = obj_get_str(container_process_profile, "type_name")?;
-                        log::debug!(" - ContainerProcessFactory ({container_process_type_name:}:{container_type_name}) Loading...");
+                        log::debug!(" - ContainerProcessFactory ({container_process_type_name:}:{container_type_name}, prof={container_process_profile:}) Loading...");
                         register_container_process_factory(system, plugin.clone(), obj_get_str(container_process_profile, "factory")?, container_process_profile)?;
                         log::info!(" - ContainerProcessFactory ({container_process_type_name:}:{container_type_name}) Loaded");
                         
@@ -449,7 +448,7 @@
     }
 
     fn register_container_process_factory(system: &System, plugin: JuizObjectPlugin, symbol_name: &str, profile: &Value) -> JuizResult<ContainerProcessFactoryPtr> {
-        log::trace!("register_container_process_factory() called");
+        log::trace!("register_container_process_factory(prof={profile:}) called");
         let cpf = plugin.load_container_process_factory(system.get_working_dir(), symbol_name, profile)?;
         system.core_broker().lock().unwrap().store_mut().container_processes.register_factory(ContainerProcessFactoryWrapper::new(plugin, cpf)?)
     }

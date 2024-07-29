@@ -123,7 +123,7 @@ impl CoreBroker {
     }
 
     pub fn create_container_process_ref(&mut self, container: ContainerPtr, manifest: Value) -> JuizResult<ProcessPtr> {
-        log::trace!("CoreBroker::create_container_process(manifest={}) called", manifest);
+        log::trace!("CoreBroker::create_container_process_ref(manifest={}) called", manifest);
         let typ_name = type_name(&manifest)?;
         let arc_pf = self.core_store.container_processes.factory(typ_name).with_context(||format!("CoreBroker::create_container_process({})", typ_name))?;
         let p = juiz_lock(arc_pf)?.create_container_process(Arc::clone(&container), self.precreate_check(manifest)?)?;

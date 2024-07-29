@@ -14,6 +14,7 @@ pub use crate::{
         container_process_manifest::ContainerProcessManifest,
     },
     processes::{
+        Process,
         ProcessFactory, 
         ProcessFactoryPtr, 
         ProcessFactoryImpl, 
@@ -23,8 +24,10 @@ pub use crate::{
     containers::{
         Container,
         ContainerImpl,
+        ContainerFactory,
         ContainerFactoryPtr,
         ContainerFactoryImpl,
+        ContainerProcessFactory,
         ContainerProcessFactoryPtr,
         ContainerProcessFactoryImpl,
         container::ContainerPtr,
