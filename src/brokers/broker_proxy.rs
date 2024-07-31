@@ -16,6 +16,12 @@ pub trait SystemBrokerProxy {
 
 pub trait ProcessBrokerProxy {
 
+    /// プロセス作成。
+    /// 引数はマニフェスト
+    /// type_name, nameが最低限の引数。
+    /// use_memoはオプション
+    // fn process_create(&mut self, manifest: Value) -> JuizResult<Value>;
+
     fn process_list(&self) -> JuizResult<Value>;
 
     fn process_profile_full(&self, id: &Identifier) -> JuizResult<Value>;

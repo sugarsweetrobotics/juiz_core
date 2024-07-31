@@ -1,14 +1,16 @@
+use std::cell::RefCell;
+
 /// inlet.rs
 /// 
 /// 
 /// 
-use crate::{connections::SourceConnection, jvalue, CapsulePtr, Identifier, JuizResult, Value};
+use crate::{connections::{connection::ConnectionType, SourceConnection}, jvalue, CapsulePtr, Identifier, JuizResult, Value};
 
 pub struct Inlet {
     name: String,
     source_connections: Vec<Box<dyn SourceConnection>>,
     default_value: CapsulePtr,
-    buffer: CapsulePtr,
+    buffer: RefCell<Option<CapsulePtr>>,
 }
 
 
@@ -19,7 +21,7 @@ impl Inlet {
             name: name.to_owned(), 
             default_value: default_value.into(),
             source_connections: Vec::new(),
-            buffer: CapsulePtr::new(),
+            buffer: RefCell::new(None),
         }
     }
 
@@ -63,27 +65,34 @@ impl Inlet {
         Ok(false)
     }
    
-    // データを収集。pullする。あとからの接続を優先
+    /// データを収集。
+    /// 
+    /// まず全てのコネクションに対してpullでデータ収集を行う。
+    /// 出力はself.bufferに保存されるため、あとからの接続が優先される。
+    /// エラーはログは出すが無視する。
+    /// 接続が無いか、全ての接続がPull型ではないか、もしくはPull型接続をpullしてもエラーがあった場合、
+    /// self.bufferを確認する。bufferがNoneならばデフォルトの値を出力する。
+    /// bufferにデータが残っていればそれを返す。
     pub fn collect_value(&self) -> CapsulePtr {
+        log::trace!("Inlet({})::collect_value() called", self.name());
         for sc in self.source_connections.iter() {
-            match sc.pull() {
-                Err(_) => {},
-                Ok(output) => {
-                    return output.clone();
+            if sc.connection_type() == ConnectionType::Pull {
+                match sc.pull() {
+                    Err(e) => {
+                        log::error!("Pull data via Connection({}) in Inlet({})::collect_value() failed. Error: {:}", sc.name(), self.name(), e);
+                    },
+                    Ok(output) => {
+                        self.buffer.replace(Some(output.clone()));
+                        //return self.buffer.borrow().unwrap().clone();
+                    }
                 }
             }
         }
-        match self.buffer.is_empty() {
-            Err(_e) => {
-                return self.default_value.clone();
-            },
-            Ok(v) => {
-                if v {
-                    return self.default_value.clone();
-                }
-            }
-        } 
-        return self.buffer.clone();
+        if self.buffer.borrow().is_none() {
+            self.default_value.clone()
+        } else {
+            self.buffer.borrow().clone().unwrap()
+        }
     }
 
     pub(crate) fn insert(&mut self, con: Box<crate::connections::SourceConnectionImpl>) {
@@ -92,7 +101,9 @@ impl Inlet {
 
     pub fn bind(&mut self, value: CapsulePtr) -> JuizResult<CapsulePtr> {
         //self.buffer = value;
-        self.buffer.replace(value);
-        Ok(self.buffer.clone())
+        if self.buffer.borrow().is_none() {
+            self.buffer.replace(Some(value.clone()));
+        } 
+        Ok(value)
     }
 }

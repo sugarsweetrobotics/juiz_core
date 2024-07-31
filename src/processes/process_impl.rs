@@ -11,7 +11,7 @@ use crate::identifier::{identifier_from_manifest, create_identifier_from_manifes
 use crate::object::{JuizObjectCoreHolder, ObjectCore, JuizObjectClass};
 
 use crate::processes::proc_lock;
-use crate::value::{obj_get_str, obj_get_obj, obj_merge_mut};
+use crate::value::{obj_get_bool, obj_get_obj, obj_get_str, obj_merge_mut};
 use crate::{jvalue, CapsulePtr, Identifier, JuizError, JuizObject, JuizResult, Process, ProcessPtr, Value};
 
 use crate::utils::{check_manifest_before_call, check_process_manifest};
@@ -29,7 +29,6 @@ pub struct ProcessImpl {
     manifest: Value,
     function: Box<FunctionTrait>,
     identifier: Identifier,
-    //output_memo: RefCell<Output>,
     outlet: Outlet,
     inlets: Vec<Inlet>,
 }
@@ -46,7 +45,10 @@ impl ProcessImpl {
         let manifest = check_process_manifest(manif)?;
         let type_name = obj_get_str(&manifest, "type_name")?;
         let object_name = obj_get_str(&manifest, "name")?;
-
+        let use_memo = match obj_get_bool(&manifest, "use_memo") {
+            Err(_) => false,
+            Ok(v) => v
+        };
         Ok(Self{
             core: ObjectCore::create(class_name, 
                 type_name,
@@ -55,7 +57,7 @@ impl ProcessImpl {
             manifest: manifest.clone(), 
             function: Box::new(func), 
             identifier: create_identifier_from_manifest("Process", &manifest)?,
-            outlet: Outlet::new(),
+            outlet: Outlet::new(object_name, use_memo),
             inlets: Self::create_inlets(&manifest)?,
         })
     }
@@ -81,11 +83,13 @@ impl ProcessImpl {
     pub(crate) fn clousure_new_with_class_name(class_name: JuizObjectClass, manif: Value, func: Box<FunctionTrait>) -> JuizResult<Self> {
         log::trace!("ProcessImpl::new(manifest={}) called", manif);
         let manifest = check_process_manifest(manif)?;
+        let object_name = obj_get_str(&manifest, "name")?;
+        let use_memo = obj_get_bool(&manifest, "use_memo").or::<bool>(Ok(true)).unwrap();
         Ok(Self{
-            core: ObjectCore::create(class_name, obj_get_str(&manifest, "type_name")?, obj_get_str(&manifest, "name")?),
+            core: ObjectCore::create(class_name, obj_get_str(&manifest, "type_name")?, object_name),
             function: func, 
             identifier: identifier_from_manifest("core", "core", "Process", &manifest)?,
-            outlet: Outlet::new(),
+            outlet: Outlet::new(object_name, use_memo),
             inlets: Self::create_inlets(&manifest)?,
             manifest: manifest, 
         })
@@ -97,12 +101,14 @@ impl ProcessImpl {
 
         
     fn collect_values(&self) -> CapsuleMap {
-        log::trace!("ProcessImpl({:?}).collect_values() called.", &self.identifier);
+        log::trace!("ProcessImpl({}).collect_values() called.", &self.identifier);
         self.inlets.iter().map(|inlet| { (inlet.name().clone(), inlet.collect_value() )} ).collect::<Vec<(String, CapsulePtr)>>().into()
     }
 
+    /// invokeが起こった時にinletから入力データを収集する関数。
     fn collect_values_exclude(&self, arg_name: &str, arg_value: CapsulePtr) -> CapsuleMap {
-        log::trace!("ProcessImpl({:?}).collect_values_exclude({:?}) called.", &self.identifier, arg_name);
+        log::trace!("ProcessImpl({}).collect_values_exclude(arg_name={}) called.", &self.identifier, arg_name);
+        // excludeされるべきarg_nameでないinletにはcollect_valueをそれぞれ呼び出す。
         self.inlets.iter().map(|inlet| {
             if inlet.name() == arg_name { return (arg_name.to_owned(), arg_value.clone()); }
             return (inlet.name().clone(), inlet.collect_value());
@@ -139,43 +145,62 @@ impl Process for ProcessImpl {
     }
 
     fn call(&self, args: CapsuleMap) -> JuizResult<CapsulePtr> {
-        log::trace!("ProcessImpl::call() called");
+        log::trace!("ProcessImpl({})::call(args={:?}) called", self.identifier(), args);
         check_manifest_before_call(&(self.manifest), &args)?;
         Ok( (self.function)(args)?.into() )
     }
 
     fn is_updated(&self) -> JuizResult<bool> {
-        self.is_updated_exclude(&"".to_string())
+        self.is_updated_exclude("")
     }
 
     fn is_updated_exclude(&self, arg_name: &str) -> JuizResult<bool> {
+        log::trace!("ProcessImpl({})::is_updated_exclude(arg_name='{}') called now", self.identifier(), arg_name);
         if self.outlet.memo().is_empty()? {
+            log::trace!(" - MEMO is empty. Must be updated.");
             return Ok(true)
         }
         for inlet in self.inlets.iter() {
             if inlet.name() == arg_name { continue; }
             if inlet.is_updated()? {
+                log::trace!(" - Inlet({}) is updated. Must be updated.", inlet.name());
                 return Ok(true)
             }
         }
+        log::trace!("ProcessImpl({})::is_updated_exclude(arg_name='{}') returned false", self.identifier(), arg_name);
         Ok(false)
     }
 
+    /// invokeする
+    /// 
+    /// inletから入力を受け取ってcallをして、出力を得る。無事に出力が得られたらmemoに書き込む。
     fn invoke<'b>(&'b self) -> JuizResult<CapsulePtr> {
-        log::trace!("Processimpl({:?})::invoke() called", self.identifier());
+        log::trace!("Processimpl({})::invoke() called", self.identifier());
         if self.outlet.memo().is_empty()? || self.is_updated()? {
             return Ok(self.outlet.set_value(self.call(self.collect_values())?));
         }
         return Ok(self.outlet.memo().clone());
     }
 
+    /// invokeをするが、inletのうちarg_nameで指定されるものに関してはデータ収集を行わずに引数valueとして受け取った値を入力として使う
+    /// 
+    /// これは後段のsource_connectionからpushされた場合に使う。
+    /// 
     fn invoke_exclude<'b>(&self, arg_name: &str, value: CapsulePtr) -> JuizResult<CapsulePtr> {
-        if self.outlet.memo().is_empty()? || self.is_updated_exclude(arg_name)? {
+        log::trace!("Processimpl({})::invoke_exclude(arg_name={}) called", self.identifier(), arg_name);
+        if self.outlet.memo().is_empty()? {
+            log::trace!("Processimpl({})::invoke_exclude() called. memo is empty.", self.identifier());
             return Ok(self.outlet.set_value(self.call(self.collect_values_exclude(arg_name, value))?));
+        } else if self.is_updated_exclude(arg_name)? {
+            log::trace!("Processimpl({})::invoke_exclude() called. inlet is updated.", self.identifier());
+            return Ok(self.outlet.set_value(self.call(self.collect_values_exclude(arg_name, value))?));
+        } else {
+            log::trace!("Processimpl({})::invoke_exclude() called but memo is not empty and inlet is not updated.", self.identifier());
         }
         return Ok(self.outlet.memo().clone());
     }
     fn execute(&self) -> JuizResult<CapsulePtr> {
+        log::trace!("Processimpl({})::execute() called", self.identifier());
         self.outlet.push(self.invoke()?)
     }
 

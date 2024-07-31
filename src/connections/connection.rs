@@ -6,7 +6,7 @@ use crate::jvalue;
 use crate::{JuizObject, JuizError, JuizResult, object::{ObjectCore, JuizObjectClass}, Value, Identifier, utils::check_connection_manifest, value::obj_get_str};
 
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum ConnectionType {
     Pull,
     Push
@@ -22,14 +22,14 @@ impl ToString for ConnectionType {
     }
 }
 
-pub fn connection_type_from(typ_str_result: JuizResult<&str>) -> JuizResult<&'static ConnectionType> {
+pub fn connection_type_from(typ_str_result: JuizResult<&str>) -> JuizResult<ConnectionType> {
     if typ_str_result.is_err() {
-        return Ok(&ConnectionType::Pull);
+        return Ok(ConnectionType::Pull);
     }
     let typ_str = typ_str_result.unwrap();
     match typ_str {
-        "pull" => Ok(&ConnectionType::Pull),
-        "push" => Ok(&ConnectionType::Push),
+        "pull" => Ok(ConnectionType::Pull),
+        "push" => Ok(ConnectionType::Push),
         _ => {
             Err(anyhow::Error::from(JuizError::ConnectionTypeError { type_string: typ_str.to_string() }))
         }
@@ -40,7 +40,7 @@ pub fn connection_type_from(typ_str_result: JuizResult<&str>) -> JuizResult<&'st
 pub struct ConnectionCore {
     core: ObjectCore, 
     manifest: Value,
-    connection_type: &'static ConnectionType,
+    connection_type: ConnectionType,
     source_process_identifier: Identifier, 
     destination_process_identifier: Identifier,
     arg_name: String,
@@ -50,7 +50,7 @@ impl Clone for ConnectionCore {
     fn clone(&self) -> Self {
         Self { core: self.core.clone(),
              manifest: self.manifest.clone(), 
-             connection_type: self.connection_type, 
+             connection_type: self.connection_type.clone(), 
              source_process_identifier: self.source_process_identifier.clone(), 
              destination_process_identifier: self.destination_process_identifier.clone(), 
              arg_name: self.arg_name.clone() }
@@ -102,14 +102,14 @@ impl ConnectionCore {
         &self.arg_name
     }
 
-    pub fn connection_type(&self) -> &'static ConnectionType {
-        &self.connection_type
+    pub fn connection_type(&self) -> ConnectionType {
+        self.connection_type.clone()
     }   
 
     pub fn profile_full(&self) -> JuizResult<Value> {
         Ok(jvalue!({
             "identifier": self.core.identifier(),
-            "connection_type": self.connection_type.to_string(),
+            "type": self.connection_type.to_string(),
             "arg_name": self.arg_name().to_owned(),
             "destination_identifier": self.destination_identifier().to_owned(),
             "source_process_identifier": self.source_process_identifier.to_owned(),
@@ -127,7 +127,7 @@ pub trait Connection : JuizObject {
         self.connection_core().arg_name()
     }
 
-    fn connection_type(&self) -> &ConnectionType {
+    fn connection_type(&self) -> ConnectionType {
         self.connection_core().connection_type()
     }
 }

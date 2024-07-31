@@ -66,7 +66,7 @@ default-members = [
     "app/juiz_command",
     #"ecs/timer_ec",
     #"ecs/one_shot_ec", 
-    #"ecs/main_loop_ec",
+    "ecs/main_loop_ec",
     #"brokers/http_broker",
     #"examples/rust/container",
     #"examples/rust/process/increment_process",
@@ -74,5 +74,5 @@ default-members = [
     #"examples/rust/container/example_container",
     #"examples/rust/container/example_container_get",
     #"examples/rust/container/example_container_increment",
-    #"examples/rust/opencv_examples/juiz_opencv",
+    "examples/rust/component/example_component",
 ]

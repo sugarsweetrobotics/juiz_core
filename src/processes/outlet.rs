@@ -5,19 +5,27 @@ use crate::{value::*, connections::DestinationConnection, jvalue, CapsulePtr, Ju
 
 
 pub struct Outlet {
+    name: String, 
     destination_connections: HashMap<String, Box<dyn DestinationConnection>>,
     output_memo: CapsulePtr,
+    use_memo: bool,
 }
 
 
 impl Outlet {
 
-    pub fn new() -> Outlet {
-
+    pub fn new(name: &str, use_memo: bool) -> Outlet {
+        log::trace!("Outlet()::new(use_memo='{}') called", use_memo);
         Outlet{
+            name: name.to_owned(),
             destination_connections: HashMap::new(),
             output_memo: Capsule::empty().into(),
+            use_memo: use_memo,
         }
+    }
+
+    pub fn use_memo(&self) -> bool {
+        self.use_memo
     }
 
     pub fn push(&self, output: CapsulePtr) -> JuizResult<CapsulePtr> {
@@ -68,7 +76,13 @@ impl Outlet {
     */
 
     pub(crate) fn set_value(&self, capsule: CapsulePtr) -> CapsulePtr {
-        self.output_memo.replace(capsule);
+        log::trace!("Outlet({})::set_value() called", self.name);
+        if self.use_memo {
+            self.output_memo.replace(capsule);
+        } else {
+            log::trace!("Outlet({})::set_value() called but 'use_memo' property is set to false so value is spoiled.", self.name);
+            return capsule;
+        }
         self.memo()
     }
 }

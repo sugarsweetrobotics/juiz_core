@@ -66,7 +66,7 @@ impl SourceConnection for SourceConnectionImpl {
     }
  
     fn pull(&self) -> JuizResult<CapsulePtr> {
-        log::trace!("SourceConnectionImpl({:?}).pull() called", self.identifier());
+        log::trace!("SourceConnectionImpl({}).pull() called", self.identifier());
         proc_lock(&self.source_process).context("SourceConnectionImpl.pull()")?.invoke()
     }
 }
