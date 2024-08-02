@@ -1,4 +1,4 @@
-use std::{collections::HashMap, path::PathBuf, sync::{Arc, Mutex}};
+use std::{collections::HashMap, os::unix::process, path::PathBuf, sync::{Arc, Mutex}};
 
 use crate::{brokers::BrokerProxy, value::{CapsuleMap, value_to_capsule}, utils::juiz_lock, CapsulePtr, JuizError, JuizResult, Value};
 
@@ -16,11 +16,40 @@ fn extract_create_parameter(args: CapsuleMap) -> Value {
 
 
 pub(crate) fn create_callback_container() -> ClassCallbackContainerType {
+    let mut create_cb_container = ClassCallbackContainerType::new();
+
+    let mut process_callbacks = CallbackContainerType::new();
+    process_callbacks.insert("create",  |cb, args| {
+       Ok(juiz_lock(&cb)?.process_create(&extract_create_parameter(args))?.into())}
+    );
+    create_cb_container.insert("process", process_callbacks);
+
+
+    let mut container_callbacks = CallbackContainerType::new();
+    container_callbacks.insert("create",  |cb, args| {
+       Ok(juiz_lock(&cb)?.container_create(&extract_create_parameter(args))?.into())}
+    );
+    create_cb_container.insert("container", container_callbacks);
+
+
+    let mut container_process_callbacks = CallbackContainerType::new();
+    container_process_callbacks.insert("create",  |cb, args| {
+        let id = args.get_param("identifier").ok_or_else(||{anyhow::Error::from(JuizError::CRUDBrokerCanNotParameterFunctionError { key_name: "identifier".to_owned() })})?;
+        Ok(juiz_lock(&cb)?.container_process_create(&id.clone(), &extract_create_parameter(args))?.into())}
+    );
+    create_cb_container.insert("container_process", container_process_callbacks);
+
+
+    let mut ec_callbacks = CallbackContainerType::new();
+    ec_callbacks.insert("create",  |cb, args| {
+       Ok(juiz_lock(&cb)?.ec_create(&extract_create_parameter(args))?.into())}
+    );
+    create_cb_container.insert("execution_context", ec_callbacks);
+
     let mut connection_callbacks = CallbackContainerType::new();
     connection_callbacks.insert("create",  |cb, args| {
-       Ok(juiz_lock(&cb)?.connection_create(extract_create_parameter(args))?.into())});
-
-    let mut create_cb_container = ClassCallbackContainerType::new();
+       Ok(juiz_lock(&cb)?.connection_create(extract_create_parameter(args))?.into())}
+    );
     create_cb_container.insert("connection", connection_callbacks);
 
     create_cb_container

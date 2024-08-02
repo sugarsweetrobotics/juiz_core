@@ -1,6 +1,6 @@
 use std::{sync::{Arc, Mutex}, time::Duration};
 use anyhow::Context;
-use crate::{brokers::broker_proxy::{BrokerBrokerProxy, ConnectionBrokerProxy, ContainerBrokerProxy, ContainerProcessBrokerProxy, ExecutionContextBrokerProxy}, jvalue, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, value::{CapsuleMap, capsule_to_value}, CapsulePtr, Identifier, JuizError, JuizObject, JuizResult, Value};
+use crate::{brokers::broker_proxy::{BrokerBrokerProxy, ConnectionBrokerProxy, ContainerBrokerProxy, ContainerProcessBrokerProxy, ExecutionContextBrokerProxy}, jvalue, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, value::{capsule_to_value, CapsuleMap}, Capsule, CapsulePtr, Identifier, JuizError, JuizObject, JuizResult, Value};
 use super::super::broker_proxy::{BrokerProxy, SystemBrokerProxy, ProcessBrokerProxy};
 
 
@@ -192,6 +192,27 @@ impl MessengerBrokerProxy {
             |value| Ok(value))
             //|value| Ok(obj_get(&value, "return")?.clone()))
     }
+
+    pub fn create_by_id(&self, class_name: &str, function_name: &str, args: CapsuleMap, id: &Identifier) -> JuizResult<CapsulePtr>  {
+        self.send_recv_and(
+            "CREATE",
+            class_name,  
+            function_name, 
+            args, 
+            &[("id".to_owned(), id.clone())],
+            |value| Ok(value))
+            //|value| Ok(obj_get(&value, "return")?.clone()))
+    }
+
+    pub fn delete_by_id(&self, class_name: &str, function_name: &str, id: &Identifier) -> JuizResult<CapsulePtr>  {
+        self.send_recv_and(
+            "DELETE",
+            class_name,  
+            function_name, 
+            CapsuleMap::new(),
+            &[("id".to_owned(), id.clone())],
+            |value| Ok(value))
+    }
     
 }
 
@@ -269,6 +290,14 @@ impl ProcessBrokerProxy for MessengerBrokerProxy {
         let arg = vec!(("arg_name", jvalue!(arg_name)), ("value", capsule_to_value(value)?));
         self.update_by_id("process", "bind", arg.into(), id)
     }
+    
+    fn process_create(&mut self, manifest: &Value) -> JuizResult<Value> {
+        capsule_to_value(self.create("process","create", manifest.clone().try_into()?)?)
+    }
+    
+    fn process_destroy(&mut self, identifier: &Identifier) -> JuizResult<Value> {
+        capsule_to_value(self.delete_by_id("process", "destroy", identifier)?)
+    }
 }
 
 
@@ -280,6 +309,14 @@ impl ContainerBrokerProxy for MessengerBrokerProxy {
 
     fn container_list(&self) -> JuizResult<Value> {
         capsule_to_value(self.read("container", "list")?)
+    }
+    
+    fn container_create(&mut self, manifest: &Value) -> JuizResult<Value> {
+        capsule_to_value(self.create("container","create", manifest.clone().try_into()?)?)
+    }
+    
+    fn container_destroy(&mut self, identifier: &Identifier) -> JuizResult<Value> {
+        capsule_to_value(self.delete_by_id("container", "destroy", identifier)?)
     }
 }
 
@@ -298,6 +335,14 @@ impl ContainerProcessBrokerProxy for MessengerBrokerProxy {
     
     fn container_process_execute(&self, id: &Identifier) -> JuizResult<CapsulePtr> {
         self.update_output_by_id("container_process", "execute", CapsuleMap::new(), id)
+    }
+    
+    fn container_process_create(&mut self, container_id: &Identifier, manifest: &Value) -> JuizResult<Value> {
+        capsule_to_value(self.create_by_id("container_process","create", manifest.clone().try_into()?, container_id)?)
+    }
+    
+    fn container_process_destroy(&mut self, identifier: &Identifier) -> JuizResult<Value> {
+        capsule_to_value(self.delete_by_id("container_process", "destroy", identifier)?)
     }
 }
 
@@ -322,6 +367,14 @@ impl ExecutionContextBrokerProxy for MessengerBrokerProxy {
     fn ec_stop(&mut self, id: &Identifier) -> JuizResult<Value> {
         capsule_to_value(self.update_by_id("execution_context", "stop", CapsuleMap::new(), id)?)
     }
+    
+    fn ec_create(&mut self, manifest: &Value) -> JuizResult<Value> {
+        capsule_to_value(self.create("execution_context","create", manifest.clone().try_into()?)?)
+    }
+    
+    fn ec_destroy(&mut self, identifier: &Identifier) -> JuizResult<Value> {
+        capsule_to_value(self.delete_by_id("execution_context", "destroy", identifier)?)
+    }
 }
 
 impl BrokerBrokerProxy for MessengerBrokerProxy {
@@ -345,6 +398,10 @@ impl ConnectionBrokerProxy for MessengerBrokerProxy {
 
     fn connection_create(&mut self, manifest: Value) -> JuizResult<Value> {
         capsule_to_value(self.create("connection", "create", manifest.try_into()?)?)
+    }
+    
+    fn connection_destroy(&mut self, id: &Identifier) -> JuizResult<Value> {
+        capsule_to_value(self.delete_by_id("connection", "destroy", id)?)
     }
 }
 

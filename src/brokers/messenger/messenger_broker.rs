@@ -96,6 +96,7 @@ fn handle_function(crud_broker: Arc<Mutex<CRUDBroker>>, args: CapsuleMap) -> Jui
         "CREATE" => juiz_lock(&crud_broker)?.create_class(args),
         "READ" =>  juiz_lock(&crud_broker)?.read_class(args),
         "UPDATE" =>  juiz_lock(&crud_broker)?.update_class(args),
+        "DELETE" => juiz_lock(&crud_broker)?.delete_class(args),
         _ => {
             Err(anyhow::Error::from(JuizError::CRUDBRokerCanNotFindMethodError{method_name: "".to_owned()}))
         }

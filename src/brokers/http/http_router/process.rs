@@ -2,8 +2,25 @@ use crate::Value;
 use utoipa::OpenApi;
 
 use super::IdentifierQuery;
-
 use axum::{extract::Query, Json};
+
+#[utoipa::path(
+    post,
+    path = "/api/process",
+    params(
+        IdentifierQuery
+    ),
+    request_body = Value,
+    responses(
+        (status = 200, description = "System")
+    ),
+    tag = "universal.process",
+)]
+pub fn create_dummy(
+_query: Query<IdentifierQuery>,
+Json(_body): Json<Value>) {
+}
+
 #[utoipa::path(
     get,
     path = "/api/process/profile_full",

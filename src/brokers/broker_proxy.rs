@@ -20,7 +20,9 @@ pub trait ProcessBrokerProxy {
     /// 引数はマニフェスト
     /// type_name, nameが最低限の引数。
     /// use_memoはオプション
-    // fn process_create(&mut self, manifest: Value) -> JuizResult<Value>;
+    fn process_create(&mut self, manifest: &Value) -> JuizResult<Value>;
+
+    fn process_destroy(&mut self, identifier: &Identifier) -> JuizResult<Value>;
 
     fn process_list(&self) -> JuizResult<Value>;
 
@@ -39,12 +41,20 @@ pub trait ProcessBrokerProxy {
 
 pub trait ContainerBrokerProxy {
 
+    fn container_create(&mut self, manifest: &Value) -> JuizResult<Value>;
+
+    fn container_destroy(&mut self, identifier: &Identifier) -> JuizResult<Value>;
+
     fn container_list(&self) -> JuizResult<Value>;
 
     fn container_profile_full(&self, id: &Identifier) -> JuizResult<Value>;
 }
 
 pub trait ContainerProcessBrokerProxy {
+
+    fn container_process_create(&mut self, container_id: &Identifier, manifest: &Value) -> JuizResult<Value>;
+
+    fn container_process_destroy(&mut self, identifier: &Identifier) -> JuizResult<Value>;
 
     fn container_process_list(&self) -> JuizResult<Value>;
 
@@ -56,6 +66,10 @@ pub trait ContainerProcessBrokerProxy {
 }
 
 pub trait ExecutionContextBrokerProxy {
+
+    fn ec_create(&mut self, manifest: &Value) -> JuizResult<Value>;
+
+    fn ec_destroy(&mut self, identifier: &Identifier) -> JuizResult<Value>;
     
     fn ec_list(&self) -> JuizResult<Value>;
 
@@ -81,6 +95,8 @@ pub trait ConnectionBrokerProxy {
     fn connection_profile_full(&self, id: &Identifier) -> JuizResult<Value>;
 
     fn connection_create(&mut self, manifest: Value) -> JuizResult<Value>;
+
+    fn connection_destroy(&mut self, id: &Identifier) -> JuizResult<Value>;
 
 }
 
