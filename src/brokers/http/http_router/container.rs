@@ -31,11 +31,28 @@ pub fn profile_handler_dummy(
 pub fn list_dummy() {
 }
 
+
+#[utoipa::path(
+    delete,
+    path = "/api/container/destroy",
+    params(
+        IdentifierQuery
+    ),
+    responses(
+        (status = 200, description = "System")
+    ),
+    tag = "universal.container",
+)]
+pub fn delete_dummy(
+_query: Query<IdentifierQuery>) {
+}
+
 #[derive(OpenApi)]
 #[openapi(
     paths(
         profile_handler_dummy,
         list_dummy,
+        delete_dummy,
     ),
     components(schemas(
     ))

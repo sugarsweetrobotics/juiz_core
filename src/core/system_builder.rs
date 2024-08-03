@@ -272,6 +272,16 @@
         } 
         Ok(())
     }
+    
+    pub fn cleanup_processes(system: &mut System) -> JuizResult<()> {
+        log::trace!("system_builder::cleanup_processes() called");
+        let r = juiz_try_lock(system.core_broker()).and_then(|mut cb|{
+            cb.store_mut().clear()
+        });
+        log::trace!("system_builder::cleanup_processes() exit");
+        r
+    }
+    
     pub fn setup_connections(system: &System, manifest: &serde_json::Value) -> JuizResult<()> {
         log::trace!("system_builder::setup_connections() called");
         for c in get_array(manifest)?.iter() {
@@ -372,15 +382,7 @@
         r
     }
 
-    
-    pub fn cleanup_processes(system: &mut System) -> JuizResult<()> {
-        log::trace!("system_builder::cleanup_processes() called");
-        let r = juiz_try_lock(system.core_broker()).and_then(|mut cb|{
-            cb.store_mut().clear()
-        });
-        log::trace!("system_builder::cleanup_processes() exit");
-        r
-    }
+
 
     pub fn cleanup_brokers(system: &mut System) -> JuizResult<()> {
         log::trace!("system_builder::cleanup_brokers() called");

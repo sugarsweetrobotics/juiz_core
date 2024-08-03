@@ -82,6 +82,21 @@ _query: Query<IdentifierQuery>,
 Json(_body): Json<Value>) {
 }
 
+#[utoipa::path(
+    delete,
+    path = "/api/process/destroy",
+    params(
+        IdentifierQuery
+    ),
+    responses(
+        (status = 200, description = "System")
+    ),
+    tag = "universal.process",
+)]
+pub fn delete_dummy(
+_query: Query<IdentifierQuery>) {
+}
+
 
 #[derive(OpenApi)]
 #[openapi(
@@ -90,6 +105,7 @@ Json(_body): Json<Value>) {
         list_dummy,
         call_dummy,
         execute_dummy,
+        delete_dummy,
     ),
     components(schemas(
     ))

@@ -32,9 +32,9 @@ impl<T, TF> RwStoreWorker<T, TF> where T: JuizObject + ?Sized, TF: JuizObject + 
 
     pub fn register_factory(&mut self, pf: Arc<Mutex<TF>>) -> JuizResult<Arc<Mutex<TF>>> {
         let type_name = juiz_lock(&pf)?.type_name().to_string();
-        log::trace!("StoreWorker({})::registerfactory(Factory(type_name={:?})) called",self.name,type_name);
+        log::trace!("RWStoreWorker({})::registerfactory(Factory(type_name={:?})) called",self.name,type_name);
         if self.factories.contains_key(&type_name) {
-            log::error!("StoreWorker({})::registerfactory(Factory(type_name={:?})) failed. Already Exists.", self.name, type_name );
+            log::error!("RWStoreWorker({})::registerfactory(Factory(type_name={:?})) failed. Already Exists.", self.name, type_name );
             return Err(anyhow::Error::from(JuizError::FactoryOfSameTypeNameAlreadyExistsError{type_name: type_name}));
         }
         self.factories.insert(type_name, Arc::clone(&pf));
@@ -51,16 +51,32 @@ impl<T, TF> RwStoreWorker<T, TF> where T: JuizObject + ?Sized, TF: JuizObject + 
     pub fn register(&mut self, p: Arc<RwLock<T>>) -> JuizResult<Arc<RwLock<T>>> {
         // let id = proc_lock(&p)?.identifier().clone();
         let id = p.read().unwrap().identifier().clone();
-        log::trace!("StoreWorker({})::register(Process(id={:?})) called", self.name, id);
+        log::trace!("RWStoreWorker({})::register(Object(id={:?})) called", self.name, id);
         self.objects.insert(id.clone(), p);
         self.get(&id)
+    }
+
+    pub fn deregister(&mut self, p: Arc<RwLock<T>>) -> JuizResult<Arc<RwLock<T>>> {
+        let id = p.read().unwrap().identifier().clone();
+        self.deregister_by_id(&id)
+    }
+
+    pub fn deregister_by_id(&mut self, id: &Identifier) -> JuizResult<Arc<RwLock<T>>> {
+        log::trace!("RWStoreWorker({})::deregister(Object(id={:?})) called", self.name, id);
+        match self.objects.remove(id) {
+            Some(p) => Ok(p),
+            None => {
+                log::trace!("RwStoreWorker({})::deregister(id={:}) failed. Not found.", self.name, id);
+                Err(anyhow::Error::from(JuizError::ObjectCanNotFoundByIdError { id: id.clone() }))
+            }
+        }
     }
 
     pub fn get(&self, id: &Identifier) -> JuizResult<Arc<RwLock<T>>> {
         match self.objects.get(id) {
             Some(p) => Ok(Arc::clone(p)),
             None => {
-                log::trace!("StoreWorker({})::get(id={:?}) failed.", self.name, id);
+                log::trace!("RWStoreWorker({})::get(id={:?}) failed.", self.name, id);
                 log::trace!(" - CoreStore includes processes[");
                 for (k, _v) in self.objects.iter() {
                     log::trace!("    - {:?}", k);
@@ -90,7 +106,7 @@ impl<T, TF> RwStoreWorker<T, TF> where T: JuizObject + ?Sized, TF: JuizObject + 
 
     pub fn objects_profile_full(&self) -> JuizResult<Value> {
         let name = &self.name;
-        log::trace!("StoreWorker({name})::objects_profile_full() called");
+        log::trace!("RWStoreWorker({name})::objects_profile_full() called");
         let mut prof = jvalue!({});
         let o_hashmap = get_hashmap_mut(&mut prof)?;
         self.objects.iter().for_each(|(identifier, arc_obj)| {
@@ -191,9 +207,25 @@ impl<T, TF> StoreWorker<T, TF> where T: JuizObject + ?Sized, TF: JuizObject + ?S
 
     pub fn register(&mut self, p: Arc<Mutex<T>>) -> JuizResult<Arc<Mutex<T>>> {
         let id = juiz_lock(&p)?.identifier().clone();
-        log::trace!("StoreWorker({})::register(Process(id={:?})) called", self.name, id);
+        log::trace!("StoreWorker({})::register(Object(id={:?})) called", self.name, id);
         self.objects.insert(id.clone(), p);
         self.get(&id)
+    }
+
+    pub fn deregister(&mut self, p: Arc<Mutex<T>>) -> JuizResult<Arc<Mutex<T>>> {
+        let id = p.lock().unwrap().identifier().clone();
+        self.deregister_by_id(&id)
+    }
+
+    pub fn deregister_by_id(&mut self, id: &Identifier) -> JuizResult<Arc<Mutex<T>>> {
+        log::trace!("StoreWorker({})::deregister(Object(id={:?})) called", self.name, id);
+        match self.objects.remove(id) {
+            Some(p) => Ok(p),
+            None =>{
+                log::trace!("StoreWorker({})::deregister(id={:}) failed. Not found.", self.name, id);
+                Err(anyhow::Error::from(JuizError::ObjectCanNotFoundByIdError { id: id.clone() }))
+            }
+        }
     }
 
     pub fn get(&self, id: &Identifier) -> JuizResult<Arc<Mutex<T>>> {

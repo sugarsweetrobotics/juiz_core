@@ -122,4 +122,10 @@ impl Process for ProcessProxy {
         juiz_lock(&self.broker_proxy)?.process_bind(self.identifier(), arg_name, value)
     }
     
+    fn purge(&mut self) -> JuizResult<()> {
+
+        log::trace!("ProcessProxy({})::purge() called", self.identifier());
+        todo!()
+    }
+    
 }

@@ -56,6 +56,8 @@ pub trait Process : Send + Sync + JuizObject {
     fn destination_connections(&self) -> JuizResult<Vec<&Box<dyn DestinationConnection>>>;
 
     fn bind(&mut self, arg_name: &str, value: CapsulePtr) -> JuizResult<CapsulePtr>;
+
+    fn purge(&mut self) -> JuizResult<()>;
 }
 
 

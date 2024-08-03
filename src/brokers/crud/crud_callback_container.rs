@@ -193,6 +193,34 @@ pub(crate) fn update_callback_container() -> ClassCallbackContainerType {
 
 
 pub(crate) fn delete_callback_container() -> ClassCallbackContainerType {
-    let delete_cb_container = ClassCallbackContainerType::new();
+    let mut delete_cb_container = ClassCallbackContainerType::new();
+
+    let mut proc_cbs = CallbackContainerType::new();
+    proc_cbs.insert("destroy", |cb, args| {
+        log::trace!("delete_callback_container()/anonymous func() for 'process/destroy' called");
+        let id = args.get_param("identifier").ok_or_else(||{anyhow::Error::from(JuizError::CRUDBrokerCanNotParameterFunctionError { key_name: "identifier".to_owned() })})?.as_str();
+        let v = juiz_lock(&cb)?.process_destroy(&id.to_owned())?;
+        Ok(v.into())
+    });
+    delete_cb_container.insert("process", proc_cbs);
+
+    let mut cont_proc_cbs = CallbackContainerType::new();
+    cont_proc_cbs.insert("destroy", |cb, args| {
+        log::trace!("delete_callback_container()/anonymous func() for 'container_process/destroy' called");
+        let id = args.get_param("identifier").ok_or_else(||{anyhow::Error::from(JuizError::CRUDBrokerCanNotParameterFunctionError { key_name: "identifier".to_owned() })})?.as_str();
+        let v = juiz_lock(&cb)?.container_process_destroy(&id.to_owned())?;
+        Ok(v.into())
+    });
+    delete_cb_container.insert("container_process", cont_proc_cbs);
+
+    let mut cont_cbs = CallbackContainerType::new();
+    cont_cbs.insert("destroy", |cb, args| {
+        log::trace!("delete_callback_container()/anonymous func() for 'container/destroy' called");
+        let id = args.get_param("identifier").ok_or_else(||{anyhow::Error::from(JuizError::CRUDBrokerCanNotParameterFunctionError { key_name: "identifier".to_owned() })})?.as_str();
+        let v = juiz_lock(&cb)?.container_destroy(&id.to_owned())?;
+        Ok(v.into())
+    });
+    delete_cb_container.insert("container", cont_cbs);
+
     delete_cb_container
 }

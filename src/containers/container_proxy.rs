@@ -13,6 +13,7 @@ use crate::Container;
 use crate::object::JuizObjectClass;
 use crate::utils::juiz_lock;
 use crate::ContainerPtr;
+use crate::ProcessPtr;
 use crate::{JuizObject, JuizResult, Value};
 use crate::brokers::BrokerProxy;
 use crate::object::JuizObjectCoreHolder;
@@ -74,6 +75,26 @@ impl Display for ContainerProxy {
 
 impl Container for ContainerProxy {
     fn manifest(&self) -> &Value {
+        todo!()
+    }
+    
+    fn process(&self, name_or_id: &String) -> Option<ProcessPtr> {
+        todo!()
+    }
+
+    fn purge_process(&mut self, name_or_id: &String) -> JuizResult<()> {
+        todo!()
+    }
+
+    fn clear(&mut self) -> JuizResult<()> {
+        todo!()
+    }
+    
+    fn processes(&self) -> Vec<ProcessPtr> {
+        todo!()
+    }
+    
+    fn register_process(&mut self, p: ProcessPtr) -> JuizResult<ProcessPtr> {
         todo!()
     }
 }

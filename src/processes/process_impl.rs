@@ -249,11 +249,16 @@ impl Process for ProcessImpl {
     fn bind(&mut self, arg_name: &str, value: CapsulePtr) -> JuizResult<CapsulePtr> {
         self.inlet_mut(arg_name)?.bind(value)
     }
+    
+    fn purge(&mut self) -> JuizResult<()> {
+        log::trace!("ProcessImpl({})::purge() called", self.identifier());
+        Ok(())
+    }
 }
 
 impl Drop for ProcessImpl {
     fn drop(&mut self) {
-        //self.source_connections.drop();
+        log::trace!("ProcessImpl::drop() called");
     }
 }
 

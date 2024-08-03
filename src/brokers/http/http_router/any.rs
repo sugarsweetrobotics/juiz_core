@@ -135,12 +135,12 @@ pub async fn object_delete_handler(
     State(crud_broker): State<Arc<Mutex<CRUDBroker>>>, 
 ) -> impl IntoResponse {
     let map = query_to_map(&query);
-    log::trace!("HTTPBroker/object_delete_handler({class_name}, {function_name}, {map:?}) called");
+    log::trace!("HTTPBroker/object_delete_handler({class_name}, {map:?}) called");
     //json_wrap(delete_class(&crud_broker, class_name.as_str(), function_name.as_str(), map))
     //let method_name = "DELETE";
     //json_wrap(delete_class(&crud_broker, construct_capsule_map(CapsuleMap::new(), method_name, class_name.as_str(), function_name.as_str(), query)))
     json_output_wrap(juiz_lock(&crud_broker).and_then(|cb| {
-        cb.create_class(construct_capsule_map(CapsuleMap::new(), "DELETE", class_name.as_str(), function_name.as_str(), query))
+        cb.delete_class(construct_capsule_map(CapsuleMap::new(), "DELETE", class_name.as_str(), function_name.as_str(), query))
     }))
 }
 

@@ -3,11 +3,14 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::Mutex;
+use std::sync::RwLock;
 
 
 use anyhow::Context;
 
 use crate::containers::container_lock;
+use crate::containers::container_lock_mut;
+use crate::containers::container_process_impl::ContainerProcessImpl;
 use crate::containers::container_proxy::ContainerProxy;
 use crate::identifier::connection_identifier_split;
 
@@ -115,6 +118,11 @@ impl CoreBroker {
         self.store_mut().processes.register(p)
     }
 
+    pub fn destroy_process_ref(&mut self, identifier: &Identifier) -> JuizResult<ProcessPtr> {
+        log::trace!("CoreBroker::destroy_process(identifier={}) called", identifier);
+        self.store_mut().processes.deregister_by_id(identifier)
+    }
+
     pub fn create_container_ref(&mut self, manifest: Value) -> JuizResult<ContainerPtr> {
         log::trace!("CoreBroker::create_container(manifest={}) called", manifest);
         let arc_pf = self.core_store.containers.factory(type_name(&manifest)?)?;
@@ -122,12 +130,40 @@ impl CoreBroker {
         self.store_mut().containers.register(p)
     }
 
+    pub fn destroy_container_ref(&mut self, identifier: &Identifier) -> JuizResult<Value> {
+        log::trace!("CoreBroker::destroy_container_ref(identifier={}) called", identifier);
+        let cont = self.store_mut().containers.deregister_by_id(identifier)?;
+
+        match container_lock_mut(&mut cont.clone()) {
+            Ok(mut c) =>  {
+                for p in c.processes().iter() {
+                    let id = proc_lock(p)?.identifier().clone();
+                    log::trace!(" - deregistering container_process ({})...", id);
+                    self.container_process_destroy(&id)?;
+                    c.purge_process(&id)?;
+                }
+                let prof =c.profile_full()?;
+                c.clear()?;
+                log::trace!("container_destroy({}) exit", identifier);
+                Ok(prof)
+            },
+            Err(_) => todo!(),
+        }
+
+    }
+
     pub fn create_container_process_ref(&mut self, container: ContainerPtr, manifest: Value) -> JuizResult<ProcessPtr> {
         log::trace!("CoreBroker::create_container_process_ref(manifest={}) called", manifest);
         let typ_name = type_name(&manifest)?;
         let arc_pf = self.core_store.container_processes.factory(typ_name).with_context(||format!("CoreBroker::create_container_process({})", typ_name))?;
         let p = juiz_lock(arc_pf)?.create_container_process(Arc::clone(&container), self.precreate_check(manifest)?)?;
+        container_lock_mut(&container)?.register_process(p.clone())?;
         self.store_mut().container_processes.register(p)
+    }
+
+    pub fn destroy_container_process_ref(&mut self, identifier: &Identifier) -> JuizResult<ProcessPtr> {
+        log::trace!("CoreBroker::destroy_container_process(identifier={}) called", identifier);
+        self.store_mut().container_processes.deregister_by_id(identifier)
     }
 
     pub fn create_ec_ref(&mut self, manifest: Value) -> JuizResult<Arc<Mutex<ExecutionContextHolder>>> {
@@ -168,6 +204,14 @@ impl CoreBroker {
 
     pub fn container_process_from_typename_and_name(&self, type_name: &str, name: &str) -> JuizResult<ProcessPtr> {
         self.store().container_processes.get(&construct_id("ContainerProcess", type_name, name, "core", "core"))
+    }
+
+    pub fn container_processes_by_container(&self, container: ContainerPtr) -> JuizResult<Vec<ProcessPtr>> {
+        for p in self.store().container_processes.objects().into_iter() {
+            //let c = (p as Arc<RwLock<ContainerProcessImpl>>).container;
+        }
+        todo!();
+        //self.container_process_from_id(&id_from_manifest_and_class_name(manifest, "ContainerProcess")?)
     }
 
     pub fn container_process_from_manifest(&self, manifest: &Value) -> JuizResult<ProcessPtr> {
@@ -375,7 +419,17 @@ impl ProcessBrokerProxy for CoreBroker {
     }
     
     fn process_destroy(&mut self, identifier: &Identifier) -> JuizResult<Value> {
-        todo!()
+        log::trace!("process_destroy({}) called", identifier);
+        let proc = self.destroy_process_ref(identifier)?;
+        match proc_lock_mut(&proc.clone()) {
+            Ok(mut p) => {
+                let prof = p.profile_full()?;
+                p.purge()?;
+                log::trace!("process_destroy({}) exit", identifier);
+                Ok(prof)
+            },
+            Err(_) => todo!(),
+        }
     }
    
 }
@@ -395,7 +449,8 @@ impl ContainerBrokerProxy for CoreBroker {
     }
     
     fn container_destroy(&mut self, identifier: &Identifier) -> JuizResult<Value> {
-        todo!()
+        log::trace!("container_destroy({}) called", identifier);
+        self.destroy_container_ref(identifier)
     }
 }
 
@@ -424,7 +479,17 @@ impl ContainerProcessBrokerProxy for CoreBroker {
     }
     
     fn container_process_destroy(&mut self, identifier: &Identifier) -> JuizResult<Value> {
-        todo!()
+        log::trace!("container_process_destroy({}) called", identifier);
+        let proc = self.destroy_container_process_ref(identifier)?;
+        match proc_lock_mut(&proc.clone()) {
+            Ok(mut p) => {
+                let prof = p.profile_full()?;
+                p.purge()?;
+                log::trace!("container_process_destroy({}) exit", identifier);
+                Ok(prof)
+            },
+            Err(_) => todo!(),
+        }
     }
 }
 
