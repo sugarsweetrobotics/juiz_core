@@ -10,24 +10,30 @@ pub type CallbackContainerType = HashMap<&'static str, CBFnType>;
 pub type ClassCallbackContainerType = HashMap<&'static str, CallbackContainerType>;
 
 
-fn extract_create_parameter(args: CapsuleMap) -> Value {
-    return args.into();
-}
 
 
 pub(crate) fn create_callback_container() -> ClassCallbackContainerType {
+
+    fn extract_create_parameter(args: CapsuleMap) -> JuizResult<Value> {
+        log::warn!("extract_create_param({args:?})");
+        let v = args.into();
+        log::warn!(" - value: {v:?}");
+        return Ok(v);
+        //return args.get("map")?.try_into().or_else(|e|{Err(anyhow::Error::from(e))})
+    }
+
     let mut create_cb_container = ClassCallbackContainerType::new();
 
     let mut process_callbacks = CallbackContainerType::new();
     process_callbacks.insert("create",  |cb, args| {
-       Ok(juiz_lock(&cb)?.process_create(&extract_create_parameter(args))?.into())}
+       Ok(juiz_lock(&cb)?.process_create(&extract_create_parameter(args)?)?.into())}
     );
     create_cb_container.insert("process", process_callbacks);
 
 
     let mut container_callbacks = CallbackContainerType::new();
     container_callbacks.insert("create",  |cb, args| {
-       Ok(juiz_lock(&cb)?.container_create(&extract_create_parameter(args))?.into())}
+       Ok(juiz_lock(&cb)?.container_create(&extract_create_parameter(args)?)?.into())}
     );
     create_cb_container.insert("container", container_callbacks);
 
@@ -35,20 +41,20 @@ pub(crate) fn create_callback_container() -> ClassCallbackContainerType {
     let mut container_process_callbacks = CallbackContainerType::new();
     container_process_callbacks.insert("create",  |cb, args| {
         let id = args.get_param("identifier").ok_or_else(||{anyhow::Error::from(JuizError::CRUDBrokerCanNotParameterFunctionError { key_name: "identifier".to_owned() })})?;
-        Ok(juiz_lock(&cb)?.container_process_create(&id.clone(), &extract_create_parameter(args))?.into())}
+        Ok(juiz_lock(&cb)?.container_process_create(&id.clone(), &extract_create_parameter(args)?)?.into())}
     );
     create_cb_container.insert("container_process", container_process_callbacks);
 
 
     let mut ec_callbacks = CallbackContainerType::new();
     ec_callbacks.insert("create",  |cb, args| {
-       Ok(juiz_lock(&cb)?.ec_create(&extract_create_parameter(args))?.into())}
+       Ok(juiz_lock(&cb)?.ec_create(&extract_create_parameter(args)?)?.into())}
     );
     create_cb_container.insert("execution_context", ec_callbacks);
 
     let mut connection_callbacks = CallbackContainerType::new();
     connection_callbacks.insert("create",  |cb, args| {
-       Ok(juiz_lock(&cb)?.connection_create(extract_create_parameter(args))?.into())}
+       Ok(juiz_lock(&cb)?.connection_create(extract_create_parameter(args)?)?.into())}
     );
     create_cb_container.insert("connection", connection_callbacks);
 

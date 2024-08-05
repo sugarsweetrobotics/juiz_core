@@ -6,10 +6,7 @@ use axum::{extract::Query, Json};
 
 #[utoipa::path(
     post,
-    path = "/api/process",
-    params(
-        IdentifierQuery
-    ),
+    path = "/api/process/create",
     request_body = Value,
     responses(
         (status = 200, description = "System")
@@ -106,6 +103,7 @@ _query: Query<IdentifierQuery>) {
         call_dummy,
         execute_dummy,
         delete_dummy,
+        create_dummy,
     ),
     components(schemas(
     ))
