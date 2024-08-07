@@ -3,8 +3,8 @@ use std::{fs, path::PathBuf, sync::{Arc, RwLock}};
 use anyhow::Context;
 use pyo3::{prelude::*, types::PyTuple};
 
-use super::container_impl::ContainerImpl;
-use crate::{containers::{container_process_impl::ContainerProcessImpl, PythonContainerStruct}, plugin::pyany_to_value, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, processes::python_process_factory_impl::capsulemap_to_pytuple, utils::check_process_factory_manifest, value::obj_get_str, Capsule, CapsuleMap, ContainerProcessFactory, ContainerPtr, JuizError, JuizObject, JuizResult, ProcessPtr, Value};
+use super::{container_impl::ContainerImpl, container_process_impl::ContainerProcessPtr};
+use crate::{containers::{container_process_impl::{container_proc_lock, ContainerProcessImpl}, PythonContainerStruct}, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, plugin::pyany_to_value, processes::python_process_factory_impl::capsulemap_to_pytuple, utils::check_process_factory_manifest, value::obj_get_str, Capsule, CapsuleMap, ContainerProcessFactory, ContainerPtr, JuizError, JuizObject, JuizResult, Value};
 
 #[repr(C)]
 pub struct PythonContainerProcessFactoryImpl {
@@ -52,7 +52,7 @@ impl JuizObject for PythonContainerProcessFactoryImpl {}
 
 
 impl ContainerProcessFactory for PythonContainerProcessFactoryImpl {
-    fn create_container_process(&self, container: ContainerPtr, manifest: crate::Value) -> JuizResult<ProcessPtr> {
+    fn create_container_process(&self, container: ContainerPtr, manifest: crate::Value) -> JuizResult<ContainerProcessPtr> {
         log::trace!("ContainerProcessFactoryImpl::create_container_process(container, manifest={}) called", manifest);
         
 
@@ -99,5 +99,11 @@ impl ContainerProcessFactory for PythonContainerProcessFactoryImpl {
                 pyfunc)?
         )))
         
+    }
+    
+    fn destroy_container_process(&mut self, p: ContainerProcessPtr) -> JuizResult<Value> {
+        log::warn!("PythonContainerFactoryImpl::destroy_container_process() called");
+        let prof = container_proc_lock(&p)?.profile_full()?;
+        Ok(prof)
     }
 }

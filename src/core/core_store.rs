@@ -1,5 +1,5 @@
 use std::{collections::{hash_map::Values, HashMap}, sync::{Arc, Mutex, RwLock}};
-use crate::{prelude::*, utils::juiz_lock, value::obj_get_str};
+use crate::{containers::container_process_impl::ContainerProcessImpl, prelude::*, utils::juiz_lock, value::obj_get_str};
 use crate::{
     ecs::{execution_context_holder::ExecutionContextHolder, execution_context_holder_factory::ExecutionContextHolderFactory},
     utils::{manifest_util::{get_array_mut, get_hashmap_mut}, sync_util::juiz_try_lock}, 
@@ -324,7 +324,7 @@ pub struct CoreStore {
 
     pub processes: Box<RwStoreWorker::<dyn Process, dyn ProcessFactory>>,
     pub containers: Box<RwStoreWorker::<dyn Container, dyn ContainerFactory>>,
-    pub container_processes: Box<RwStoreWorker::<dyn Process, dyn ContainerProcessFactory>>,
+    pub container_processes: Box<RwStoreWorker::<ContainerProcessImpl, dyn ContainerProcessFactory>>,
     pub ecs: Box<StoreWorker::<ExecutionContextHolder, ExecutionContextHolderFactory>>,
     pub broker_proxies: Box<StoreWorker::<dyn BrokerProxy, dyn BrokerProxyFactory>>,
 }

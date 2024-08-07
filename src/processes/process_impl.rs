@@ -258,7 +258,8 @@ impl Process for ProcessImpl {
 
 impl Drop for ProcessImpl {
     fn drop(&mut self) {
-        log::trace!("ProcessImpl::drop() called");
+        log::info!("ProcessImpl({})::drop() called", self.identifier());
+        log::trace!("ProcessImpl({})::drop() exit", self.identifier());
     }
 }
 

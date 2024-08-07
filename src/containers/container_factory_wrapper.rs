@@ -1,7 +1,7 @@
 use std::{cell::RefCell, sync::{Arc, Mutex}};
 
 use anyhow::Context;
-use crate::prelude::*;
+use crate::{containers::container_lock, prelude::*, value::obj_get_str};
 use crate::{plugin::{JuizObjectPlugin, Plugin}, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, utils::juiz_lock, value::obj_merge, ContainerFactory, ContainerPtr, JuizObject, JuizResult, Value};
 
 #[allow(dead_code)]
@@ -58,6 +58,16 @@ impl ContainerFactory for ContainerFactoryWrapper {
         let p = juiz_lock(&self.container_factory).with_context(||format!("ContainerFactoryWrapper::create_container(manifest:{manifest:}) failed."))?.create_container(manifest)?;
         self.containers.borrow_mut().push(Arc::clone(&p));
         Ok(Arc::clone(&p))
+    }
+
+
+    fn destroy_container(&mut self, c: ContainerPtr) -> JuizResult<Value> {
+        let prof = container_lock(&c)?.profile_full()?;
+        let id = obj_get_str(&prof, "identifier")?;
+        log::trace!("ContainerFactoryWrapper::destroy_container(manifest={}) called", prof);
+        let index = self.containers.borrow().iter().enumerate().find(|rc| container_lock(&rc.1).unwrap().identifier() == id).unwrap().0;
+        self.containers.borrow_mut().remove(index);
+        juiz_lock(&self.container_factory)?.destroy_container(c)
     }
 }
 

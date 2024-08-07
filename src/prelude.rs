@@ -30,6 +30,7 @@ pub use crate::{
         ContainerProcessFactory,
         ContainerProcessFactoryPtr,
         ContainerProcessFactoryImpl,
+        ContainerProcessPtr,
         container::ContainerPtr,
     },
     brokers::{
@@ -47,5 +48,6 @@ pub use crate::{
     result:: {
         JuizResult,
         JuizError,
-    }
+    },
+    log,
 };

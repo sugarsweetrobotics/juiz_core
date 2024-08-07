@@ -2,7 +2,7 @@
 use std::sync::{Mutex, Arc};
 
 use super::container_impl::ContainerImpl;
-use crate::{JuizError, Value, ContainerPtr, ContainerFactory, JuizResult, utils::check_process_factory_manifest, value::obj_get_str, JuizObject, object::{ObjectCore, JuizObjectClass, JuizObjectCoreHolder}};
+use crate::{containers::container_lock, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, utils::check_process_factory_manifest, value::obj_get_str, ContainerFactory, ContainerPtr, JuizError, JuizObject, JuizResult, Value};
 
 use super::container_factory::ContainerConstructFunction;
 
@@ -55,6 +55,12 @@ impl<T: 'static> ContainerFactory for ContainerFactoryImpl<T> {
                 self.apply_default_manifest(manifest.clone())?,
                 (self.constructor)(manifest)?
             )?)
+    }
+    
+    fn destroy_container(&mut self, c: ContainerPtr) -> JuizResult<Value> {
+        // todo!()
+        log::trace!("ContainerFractoryImpl::destroy_container() called");
+        container_lock(&c)?.profile_full()
     }
     
 }

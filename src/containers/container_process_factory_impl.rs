@@ -1,8 +1,8 @@
 use std::sync::{Arc, Mutex, RwLock};
-use super::{container_impl::ContainerImpl, container_process_impl::{ContainerFunctionType, ContainerProcessImpl}, ContainerProcessFactoryPtr};
-use crate::{object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, value::obj_get_str, Capsule, CapsuleMap, ContainerProcessFactory, ContainerPtr, JuizObject, JuizResult, ProcessPtr, Value};
+use super::{container_impl::ContainerImpl, container_process_impl::{ContainerFunctionType, ContainerProcessImpl, ContainerProcessPtr}, ContainerProcessFactoryPtr};
+use crate::{containers::container_process_impl::container_proc_lock_mut, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, value::obj_get_str, Capsule, CapsuleMap, ContainerProcessFactory, ContainerPtr, JuizObject, JuizResult, Value};
 
-pub struct ContainerProcessFactoryImpl<T> {
+pub struct ContainerProcessFactoryImpl<T> where T: 'static {
     core: ObjectCore,
     manifest: Value,
     function: ContainerFunctionType<T>,
@@ -58,7 +58,7 @@ impl<T: 'static> JuizObjectCoreHolder for ContainerProcessFactoryImpl<T> {
 impl<T: 'static> JuizObject for ContainerProcessFactoryImpl<T> {}
 
 impl<T: 'static> ContainerProcessFactory for ContainerProcessFactoryImpl<T> {
-    fn create_container_process(&self, container: ContainerPtr, manifest: crate::Value) -> JuizResult<ProcessPtr> {
+    fn create_container_process(&self, container: ContainerPtr, manifest: crate::Value) -> JuizResult<ContainerProcessPtr> {
         log::trace!("ContainerProcessFactoryImpl::create_container_process(container, manifest={}) called", manifest);
         Ok(Arc::new(RwLock::new(
             ContainerProcessImpl::new(
@@ -68,5 +68,22 @@ impl<T: 'static> ContainerProcessFactory for ContainerProcessFactoryImpl<T> {
                 //Box::new(|c, v|{ self.function(c, v) }),
             )?
         )))
+    }
+    
+    fn destroy_container_process(&mut self, proc: ContainerProcessPtr) -> JuizResult<Value> {
+        log::trace!("ContainerProcessFactoryImpl({})::destroy_container_process() called", self.type_name());
+        match container_proc_lock_mut(&proc) {
+            Ok(mut p) => {
+                let prof = p.profile_full()?;
+                p.container.take();
+                p.process.take();
+                log::trace!("ContainerFactoryImpl({})::destroy_container_process() exit", self.type_name());
+                Ok(prof)
+            },
+            Err(e) => {
+                log::error!("destroy_container_process() failed. Can not lock container process.");
+                Err(anyhow::Error::from(e))
+            },
+        }
     }
 }

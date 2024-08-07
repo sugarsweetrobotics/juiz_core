@@ -2,8 +2,8 @@
 use std::sync::{Arc, RwLock};
 
 
-use super::container_impl::ContainerImpl;
-use crate::{containers::{container_process_impl::ContainerProcessImpl, cpp_container_factory_impl::CppContainerStruct}, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, utils::check_process_factory_manifest, value::obj_get_str, Capsule, CapsuleMap, ContainerProcessFactory, ContainerPtr, JuizError, JuizObject, JuizResult, ProcessPtr, Value};
+use super::{container_impl::ContainerImpl, container_process_impl::ContainerProcessPtr};
+use crate::{containers::{container_process_impl::{container_proc_lock, ContainerProcessImpl}, cpp_container_factory_impl::CppContainerStruct}, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, utils::check_process_factory_manifest, value::obj_get_str, Capsule, CapsuleMap, ContainerProcessFactory, ContainerPtr, JuizError, JuizObject, JuizResult, Value};
 
 #[repr(C)]
 pub struct CppContainerProcessFactoryImpl {
@@ -46,7 +46,7 @@ impl JuizObject for CppContainerProcessFactoryImpl {}
 
 
 impl ContainerProcessFactory for CppContainerProcessFactoryImpl {
-    fn create_container_process(&self, container: ContainerPtr, manifest: crate::Value) -> JuizResult<ProcessPtr> {
+    fn create_container_process(&self, container: ContainerPtr, manifest: crate::Value) -> JuizResult<ContainerProcessPtr> {
         log::trace!("ContainerProcessFactoryImpl::create_container_process(container, manifest={}) called", manifest);
         
 
@@ -71,5 +71,11 @@ impl ContainerProcessFactory for CppContainerProcessFactoryImpl {
                 function)?
         )))
         
+    }
+    
+    fn destroy_container_process(&mut self, p: ContainerProcessPtr) -> JuizResult<Value> {
+        log::warn!("CppContainerFactoryImpl::destroy_container_process() called");
+        let prof = container_proc_lock(&p)?.profile_full()?;
+        Ok(prof)
     }
 }

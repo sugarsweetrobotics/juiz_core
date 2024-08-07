@@ -323,7 +323,7 @@
             "port": port_number,
         })).context("system.create_broker() failed in system_builder::setup_http_broker()")?;
         system.register_broker(http_broker)?;
-        log::info!("LocalBroker Created");
+        log::info!("HTTPBroker Created");
         Ok(())
     }
 

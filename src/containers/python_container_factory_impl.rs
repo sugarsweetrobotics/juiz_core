@@ -4,7 +4,7 @@ use anyhow::Context;
 use pyo3::{prelude::*, types::PyTuple};
 
 use super::container_impl::ContainerImpl;
-use crate::{object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, processes::python_process_factory_impl::value_to_pytuple, utils::check_process_factory_manifest, value::obj_get_str, ContainerFactory, ContainerPtr, JuizError, JuizObject, JuizResult, Value};
+use crate::{containers::container_lock, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, processes::python_process_factory_impl::value_to_pytuple, utils::check_process_factory_manifest, value::obj_get_str, ContainerFactory, ContainerPtr, JuizError, JuizObject, JuizResult, Value};
 
 pub struct PythonContainerStruct {
     pub pyobj: Py<PyAny>
@@ -79,6 +79,12 @@ impl ContainerFactory for PythonContainerFactoryImpl {
                     pyobj
                 })
             )?)
+    }
+    
+    fn destroy_container(&mut self, c: ContainerPtr) -> JuizResult<Value> {
+        log::warn!("PythonContainerFactoryImpl::destroy_container() called");
+        let prof = container_lock(&c)?.profile_full()?;
+        Ok(prof)
     }
     
 }

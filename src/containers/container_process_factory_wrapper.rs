@@ -2,13 +2,15 @@ use std::{cell::RefCell, sync::{Arc, Mutex}};
 
 use anyhow::Context;
 
-use crate::{plugin::{Plugin, JuizObjectPlugin}, jvalue, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, utils::juiz_lock, value::obj_merge, ContainerProcessFactory, ContainerPtr, JuizObject, JuizResult, ProcessPtr, Value};
+use crate::{containers::container_process_impl::container_proc_lock, jvalue, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, plugin::{JuizObjectPlugin, Plugin}, utils::juiz_lock, value::{obj_get_str, obj_merge}, ContainerProcessFactory, ContainerPtr, JuizObject, JuizResult, Value};
+
+use super::container_process_impl::ContainerProcessPtr;
 
 #[allow(dead_code)]
 pub struct ContainerProcessFactoryWrapper {
     core: ObjectCore,
     container_process_factory: Arc<Mutex<dyn ContainerProcessFactory>>,
-    container_processes: RefCell<Vec<ProcessPtr>>,
+    container_processes: RefCell<Vec<ContainerProcessPtr>>,
     plugin: JuizObjectPlugin,
 }
 
@@ -55,11 +57,22 @@ impl JuizObject for ContainerProcessFactoryWrapper {
 
 impl ContainerProcessFactory for ContainerProcessFactoryWrapper {
 
-    fn create_container_process(&self, container: ContainerPtr, manifest: Value) -> JuizResult<ProcessPtr> {
+    fn create_container_process(&self, container: ContainerPtr, manifest: Value) -> JuizResult<ContainerProcessPtr> {
         log::trace!("ContainerProcessFactoryWrapper::create_container_process(manifest={}) called", manifest);
         let p = juiz_lock(&self.container_process_factory).with_context(||format!("ContainerProcessFactoryWrapper::create_container_process(manifest:{manifest:}) failed."))?.create_container_process(container, manifest)?;
         self.container_processes.borrow_mut().push(Arc::clone(&p));
         Ok(Arc::clone(&p))
+    }
+    
+    fn destroy_container_process(&mut self, p: ContainerProcessPtr) -> JuizResult<Value> {
+        let prof = container_proc_lock(&p)?.profile_full()?;
+        let id = obj_get_str(&prof, "identifier")?;
+        log::trace!("ContainerProcessFactoryWrapper::destroy_container_process(identifier={}) called", id);
+        let index = self.container_processes.borrow().iter().enumerate().find(|r| container_proc_lock(&r.1).unwrap().identifier() == id).unwrap().0;
+        self.container_processes.borrow_mut().remove(index);
+        let r = juiz_lock(&self.container_process_factory)?.destroy_container_process(p);
+        log::trace!("ContainerProcessFactoryWrapper::destroy_container_process(identifier={}) exit", id);
+        r
     }
 }
 

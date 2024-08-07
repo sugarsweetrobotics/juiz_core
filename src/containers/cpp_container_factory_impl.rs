@@ -3,7 +3,7 @@ use std::ffi::c_void;
 
 
 use super::container_impl::ContainerImpl;
-use crate::{object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, utils::check_process_factory_manifest, value::obj_get_str, ContainerFactory, ContainerPtr, JuizError, JuizObject, JuizResult, Value};
+use crate::{containers::container_lock, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, utils::check_process_factory_manifest, value::obj_get_str, ContainerFactory, ContainerPtr, JuizError, JuizObject, JuizResult, Value};
 
 pub struct CppContainerStruct {
     pub cobj: *mut std::ffi::c_void
@@ -69,6 +69,12 @@ impl ContainerFactory for CppContainerFactoryImpl {
                 cobj: pobj,
             })
         )?)
+    }
+    
+    fn destroy_container(&mut self, c: ContainerPtr) -> JuizResult<Value> {
+        log::warn!("CppContainerFactoryImpl::destroy_container() called");
+        let prof = container_lock(&c)?.profile_full()?;
+        Ok(prof)
     }
     
 }

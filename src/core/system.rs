@@ -157,7 +157,7 @@ impl System {
 
     pub fn container_process_from_typename_and_name(&self, type_name: &str, name: &str) -> JuizResult<ProcessPtr> {
         let id = construct_id("ContainerProcess", type_name, name, "core", "core");
-        juiz_lock(&self.core_broker)?.store().container_processes.get(&id)
+        Ok(juiz_lock(&self.core_broker)?.store().container_processes.get(&id)?)
     }
 
     pub fn any_process_from_typename_and_name(&self, type_name: &str, name: &str) -> JuizResult<ProcessPtr> {

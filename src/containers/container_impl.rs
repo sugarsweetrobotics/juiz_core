@@ -1,12 +1,12 @@
 
 
-use std::{collections::HashMap, fmt::Display, ops::{Deref, DerefMut}};
+use std::{collections::HashMap, fmt::Display, ops::{Deref, DerefMut}, sync::{Arc, RwLock}};
 use crate::{prelude::*, processes::{proc_lock, proc_lock_mut}};
 use crate::{object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, value::obj_get_str, JuizObject};
 
-use super::container_ptr;
 
-pub struct ContainerImpl<S> {
+
+pub struct ContainerImpl<S> where S: 'static {
     core: ObjectCore,
     manifest: Value,
     pub t: Box<S>,
@@ -24,12 +24,12 @@ impl<S: 'static> ContainerImpl<S> {
     pub fn new(manifest: Value, t: Box<S>) -> JuizResult<ContainerPtr> {
         let type_name = obj_get_str(&manifest, "type_name")?;
         let object_name = obj_get_str(&manifest, "name")?;
-        Ok(container_ptr(ContainerImpl{
+        Ok(Arc::new(RwLock::new(ContainerImpl{
             core: ObjectCore::create(JuizObjectClass::Container("ContainerImpl"), type_name, object_name),
             manifest, 
             t,
             processes: HashMap::new(),
-        }))
+        })))
     }
 }
 
@@ -64,6 +64,7 @@ impl<S: 'static> Container for ContainerImpl<S> {
     }
 
     fn process(&self, name_or_id: &String) -> Option<ProcessPtr> {
+        log::trace!("ContainerImpl({}):process({}) called", self.identifier(), name_or_id);
         for (k, p) in self.processes.iter() {
             if k == name_or_id {
                 return Some(p.clone());
@@ -91,20 +92,25 @@ impl<S: 'static> Container for ContainerImpl<S> {
     }
 
     fn purge_process(&mut self, name_or_id: &String) -> JuizResult<()> {
+        log::trace!("ContainerImpl({})::purge_process({}) called", self.identifier(), name_or_id);
+
         match self.process(name_or_id) {
             Some(p) => {
-                let _ = p.write().unwrap().purge()?;
-                self.processes.remove(p.read().unwrap().identifier());
+                //let _ = p.write().unwrap().purge()?;
+                let _res = self.processes.remove(p.read().unwrap().identifier());
+                //log::trace!("ContainerImpl::purge_process({}) result: {:?}", name_or_id, res.is_some());
                 Ok(())
             },
             None => {
+                log::error!("purge_process({}) failed. Process is None.", name_or_id);
                 Err(anyhow::Error::from(JuizError::ObjectCanNotFoundByIdError { id: name_or_id.clone() }))
             },
         }
     }
 
     fn clear(&mut self) -> JuizResult<()> {
-        for (k, p) in self.processes.iter() {
+        log::trace!("ContainerImpl({})::clear() called", self.identifier());
+        for (_k, p) in self.processes.iter() {
             proc_lock_mut(p)?.purge()?;
         }
         self.processes.clear();
@@ -120,10 +126,11 @@ impl<S: 'static> Display for ContainerImpl<S> {
     }
 }
 
-impl<S> Drop for ContainerImpl<S> {
+impl<S: 'static> Drop for ContainerImpl<S> {
     fn drop(&mut self) {
-        log::trace!("ContainerImpl()::drop() called");
+        let id = self.type_name().to_owned();
+        log::info!("ContainerImpl({})::drop() called", id);
         self.processes.clear();
-        log::trace!("ContainerImpl()::drop() exit");
+        log::trace!("ContainerImpl({})::drop() exit", id);
     }
 }

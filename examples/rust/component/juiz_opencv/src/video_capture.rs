@@ -3,7 +3,6 @@
 use opencv::videoio;
 use juiz_core::prelude::*;
 
-
 #[allow(dead_code)]
 #[repr(Rust)]
 pub struct CvVideoCapture {
@@ -17,13 +16,20 @@ impl CvVideoCapture {
     }
 }
 
+impl Drop for CvVideoCapture {
+    fn drop(&mut self) {
+        log::info!("CvVideoCapture::drop() called");
+    }
+}
+
 fn create_cv_capture_container(_manifest: Value) -> JuizResult<Box<CvVideoCapture>> {
+    log::trace!("create_cv_capture_container({}) called", _manifest);
     let cam = videoio::VideoCapture::new(0, videoio::CAP_ANY)?; // 0 is the default camera
     Ok(Box::new(CvVideoCapture{camera: cam}))
 }
 
 #[no_mangle]
 pub unsafe extern "Rust" fn cv_video_capture_factory() -> JuizResult<ContainerFactoryPtr> {
-    // env_logger::init();
+    log::trace!("cv_video_capture_factory() called");
     ContainerFactoryImpl::create(CvVideoCapture::manifest(), create_cv_capture_container)
 }

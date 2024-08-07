@@ -78,11 +78,11 @@ impl Container for ContainerProxy {
         todo!()
     }
     
-    fn process(&self, name_or_id: &String) -> Option<ProcessPtr> {
+    fn process(&self, _name_or_id: &String) -> Option<ProcessPtr> {
         todo!()
     }
 
-    fn purge_process(&mut self, name_or_id: &String) -> JuizResult<()> {
+    fn purge_process(&mut self, _name_or_id: &String) -> JuizResult<()> {
         todo!()
     }
 
@@ -94,7 +94,7 @@ impl Container for ContainerProxy {
         todo!()
     }
     
-    fn register_process(&mut self, p: ProcessPtr) -> JuizResult<ProcessPtr> {
+    fn register_process(&mut self, _p: ProcessPtr) -> JuizResult<ProcessPtr> {
         todo!()
     }
 }
