@@ -229,6 +229,7 @@
         Ok(())
     }
 
+    #[allow(unused)]
     pub fn setup_ipc_broker_factory(system: &mut System) -> JuizResult<()> {
         log::trace!("system_builder::setup_local_broker_factory() called");
         let lbf = create_ipc_broker_factory(system.core_broker().clone())?;

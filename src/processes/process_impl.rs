@@ -46,7 +46,7 @@ impl ProcessImpl {
         let type_name = obj_get_str(&manifest, "type_name")?;
         let object_name = obj_get_str(&manifest, "name")?;
         let use_memo = match obj_get_bool(&manifest, "use_memo") {
-            Err(_) => false,
+            Err(_) => true,
             Ok(v) => v
         };
         Ok(Self{

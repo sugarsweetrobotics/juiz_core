@@ -98,32 +98,24 @@ pub fn json_output_wrap(result: JuizResult<CapsulePtr>) -> impl IntoResponse {
                 }).unwrap()
             } else if v.is_mat().unwrap() {
                 v.lock_as_mat(|result| {
-                //Json(jvalue!({"message": "ERROR.this is image"})).into_response()
-                
-                //let img = image::RgbImage::try_from_cv(result).unwrap();
+                    let mut buf : opencv::core::Vector<u8> = Vector::new();
 
-               // use image::ImageFormat;
-
-                //use std::io::{BufWriter, Cursor};
-
-                //let mut buffer = BufWriter::new(Cursor::new(Vec::new()));
-                let mut buf : opencv::core::Vector<u8> = Vector::new();
-
-                let params: Vector<i32> = Vector::new();
-                imencode(".png", result, &mut buf, &params);
-                // img.write_to(&mut buffer, ImageFormat::Png).unwrap();
-
-                //Json(jvalue!({"message": "ERROR.this is image"})).into_response()
-                
-                //let bytes: Vec<u8> = buffer.into_inner().unwrap().into_inner(); 
-                
-                let response =  Response::builder()
-                    .extension("png")
-                    .header("Content-Type", "image/png")
-                    .status(StatusCode::OK)
-                    .body(Body::from(buf.to_vec())).unwrap();
-                //response.into_response()
-                response.into_response()
+                    match imencode(".png", result, &mut buf, &Vector::new()) {
+                        Ok(_result) => {
+                            Response::builder()
+                                .extension("png")
+                                .header("Content-Type", "image/png")
+                                .status(StatusCode::OK)
+                                .body(Body::from(buf.to_vec())).unwrap().into_response()
+                        },
+                        Err(e) => {
+                            Json(jvalue!({
+                                "result": "Error",
+                                "error": format!("{}", e)
+                            })).into_response()
+                        },
+                    }
+                    
                 }).unwrap()
             } else {
                 Json(jvalue!({})).into_response()

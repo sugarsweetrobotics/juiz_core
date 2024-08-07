@@ -51,7 +51,8 @@ fn simple_connection_execute_test() {
 
 
     let manifeset =jvalue!({
-        "id": "con1"
+        "id": "con1",
+        "type": "push",
     });
 
     // rp1 -> rp2
@@ -73,7 +74,7 @@ fn simple_connection_execute_test() {
     //let result = juiz_lock(&output).unwrap();
     //assert_eq!(result.is_some(), true);
     //let v = result.unwrap();
-    //println!("value = {:?}", result.as_value());
+    println!("value = {:?}", output);
     let iv = output.lock_as_value(|value| { value.as_i64().unwrap() }).unwrap();
     assert_eq!(iv, 3);
 }

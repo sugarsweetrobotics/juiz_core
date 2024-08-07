@@ -123,7 +123,10 @@ impl CapsulePtr {
             Ok(c) => {
                 match c.as_value() {
                     Some(v) => Ok(func(v)),
-                    None => todo!(),
+                    None => {
+                        Err(anyhow::Error::from(JuizError::ValueTypeError { message: format!("lock_as_value() failed. Value is not value-type") }))
+                        //todo!()
+                    },
                 }
             }
             Err(_e) => Err(anyhow::Error::from(JuizError::MutexLockFailedError { error: "CapsulePtr.lock_as_value() lock error.".to_owned() })),
