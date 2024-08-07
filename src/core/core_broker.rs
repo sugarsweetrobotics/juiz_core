@@ -128,21 +128,16 @@ impl CoreBroker {
 
     pub fn destroy_container_ref(&mut self, identifier: &Identifier) -> JuizResult<Value> {
         log::trace!("CoreBroker::destroy_container_ref(identifier={}) called", identifier);
-        let cont = self.store_mut().containers.deregister_by_id(identifier)?;
+        let cont = self.store().containers.get(identifier)?;
         let tn = container_lock(&cont)?.type_name().to_owned();
-        match container_lock_mut(&mut cont.clone()) {
-            Ok(mut c) =>  {
-                for p in c.processes().iter() {
-                    let id = proc_lock(p)?.identifier().clone();
-                    self.container_process_destroy(&id)?;
-                    c.purge_process(&id)?;
-                }
-                c.clear()?;
-            },
-            Err(e) => {
-                return Err(e);
-            }
+        let ids = container_lock_mut(&mut cont.clone())?.processes().iter().map(|cp|{
+            proc_lock(cp).unwrap().identifier().clone()
+        }).collect::<Vec<Identifier>>();
+        for pid in ids.iter() {
+            self.container_process_destroy(pid)?;
+            //container_lock_mut(&mut cont.clone())?.purge_process(pid)?;
         }
+        self.store_mut().containers.deregister_by_id(identifier)?;
         let f = self.store().containers.factory(tn.as_str())?;
         log::trace!("container_destroy({}) exit", identifier);
         juiz_lock(f)?.destroy_container(cont)

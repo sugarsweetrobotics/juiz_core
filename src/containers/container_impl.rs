@@ -1,7 +1,7 @@
 
 
 use std::{collections::HashMap, fmt::Display, ops::{Deref, DerefMut}, sync::{Arc, RwLock}};
-use crate::{prelude::*, processes::{proc_lock, proc_lock_mut}};
+use crate::{containers::container_process_impl::container_proc_lock, prelude::*, processes::{proc_lock, proc_lock_mut}, value::obj_merge};
 use crate::{object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, value::obj_get_str, JuizObject};
 
 
@@ -55,7 +55,14 @@ impl<S: 'static> JuizObjectCoreHolder for ContainerImpl<S> {
     }
 }
 
-impl<S: 'static> JuizObject for ContainerImpl<S> {}
+impl<S: 'static> JuizObject for ContainerImpl<S> {
+    fn profile_full(&self) -> JuizResult<Value> {
+        log::trace!("ContainerImpl({})::profile_full() called", self.identifier());
+        let ids = self.processes().iter().map(|p|{ proc_lock(p).unwrap().identifier().clone()}).collect::<Vec<Identifier>>();
+        obj_merge(self.core.profile_full()?, &jvalue!({
+            "processes": ids}))
+    }
+}
 
 impl<S: 'static> Container for ContainerImpl<S> {
 

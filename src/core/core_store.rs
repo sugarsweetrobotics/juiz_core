@@ -76,8 +76,8 @@ impl<T, TF> RwStoreWorker<T, TF> where T: JuizObject + ?Sized, TF: JuizObject + 
         match self.objects.get(id) {
             Some(p) => Ok(Arc::clone(p)),
             None => {
-                log::trace!("RWStoreWorker({})::get(id={:?}) failed.", self.name, id);
-                log::trace!(" - CoreStore includes processes[");
+                log::error!("RWStoreWorker({})::get(id={:?}) failed.", self.name, id);
+                log::trace!(" Error Additional Info - CoreStore includes processes[");
                 for (k, _v) in self.objects.iter() {
                     log::trace!("    - {:?}", k);
                 }
