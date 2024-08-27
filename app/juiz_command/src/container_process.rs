@@ -20,7 +20,7 @@ pub(crate) enum ContProcSubCommands {
     }
 }
 
-pub(crate) fn on_container_process(manifest: Value, working_dir: &Path, subcommand: ContProcSubCommands) -> JuizResult<()> {
+pub(crate) fn on_container_process(_manifest: Value, working_dir: &Path, subcommand: ContProcSubCommands) -> JuizResult<()> {
     match subcommand {
         ContProcSubCommands::List { server, filepath} => {
             log::trace!("container-process list command is selected.");

@@ -11,6 +11,7 @@ pub(crate) fn create_broker_proxy_function(manifest: Value) -> JuizResult<Arc<Mu
     Ok(CRUDBrokerProxyHolder::new("QuicBrokerProxy", "qmp", name, Box::new(QuicBrokerProxy::new(&manifest)?))?)
 }
 
+#[allow(unused)]
 struct QuicBrokerProxy {
     //base_url: String,
     rt:  tokio::runtime::Runtime,

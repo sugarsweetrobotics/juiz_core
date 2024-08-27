@@ -10,7 +10,6 @@ use anyhow::Context;
 
 use crate::prelude::*;
 use crate::value::{obj_get_bool, obj_get_i64};
-use crate::value::value_converter::value_get_bool;
 use crate::{
     CoreBroker,
     yaml_conf_load::yaml_conf_load_with,
