@@ -272,8 +272,14 @@ impl CoreBroker {
             "type_name": type_name,
             "name": broker_name
         });
-        let bf = self.store().broker_proxies.factory(type_name)?.clone();
-        let bp = juiz_lock(&bf)?.create_broker_proxy(manifest)?;
+        let bf = self.store().broker_proxies.factory(type_name).or_else(|e| {
+            log::error!("creating BrokerProxyFactory(type_name={type_name}) failed. Error ({e})");
+            Err(e)
+        })?;
+        let bp = juiz_lock(&bf)?.create_broker_proxy(manifest).or_else(|e| {
+            log::error!("creating BrokerProxy(type_name={type_name}) failed. Error ({e})");
+            Err(e)
+        })?;
         self.store_mut().broker_proxies.register(bp.clone())?;
         Ok(bp)
     }

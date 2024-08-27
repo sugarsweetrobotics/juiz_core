@@ -42,7 +42,7 @@ impl MessengerBroker {
                 core: ObjectCore::create(JuizObjectClass::Broker(impl_class_name), type_name, object_name),
                 thread_handle: None,
                 messenger,
-                crud_broker: CRUDBroker::new(core_broker.clone())?,
+                crud_broker: Arc::new(Mutex::new(CRUDBroker::new(core_broker.clone())?)),
                 end_flag: Arc::new(Mutex::new(AtomicBool::from(false))),
                 //tokio_runtime: Some(runtime::Builder::new_multi_thread().enable_all().build().unwrap()),
                 tokio_runtime: Some(tokio::runtime::Builder::new_multi_thread().thread_name("messenger_broker").worker_threads(4).enable_all().build().unwrap()), 

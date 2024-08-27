@@ -21,7 +21,7 @@ impl<F, Fut> CRUDBrokerHolder<F, Fut> where F: Fn(Value, Arc<Mutex<CRUDBroker>>)
         let object_name = obj_get_str(&manifest, "name")?;
         Ok(Arc::new(Mutex::new(CRUDBrokerHolder{
             core: ObjectCore::create(JuizObjectClass::Broker(impl_class_name), type_name, object_name), 
-            crud_broker: CRUDBroker::new(core_broker)?,
+            crud_broker: Arc::new(Mutex::new(CRUDBroker::new(core_broker)?)),
             thread_handle: None,
             tokio_runtime: runtime::Builder::new_multi_thread().enable_all().build().unwrap(),
             on_start_function,

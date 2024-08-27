@@ -34,6 +34,7 @@ pub async fn object_post_handler(
     }))
 }
 
+
 fn body_to_capsule_map(body: Value) -> Result<CapsuleMap, anyhow::Error> {
     body.try_into()
 }

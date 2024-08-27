@@ -11,10 +11,17 @@ async fn on_start(broker_manifest: Value, crud_broker: Arc<Mutex<CRUDBroker>>) -
     let port  = obj_get_i64(&broker_manifest, "port").or::<i64>( Ok(8080)).unwrap();
     let address = format!("{:}:{:}", host, port);
     log::info!("http_broker::on_start(address={address}, {broker_manifest:?})) called");
-    axum::serve(TcpListener::bind( address ).await.unwrap(), app_new(crud_broker)).await.unwrap();
+    match TcpListener::bind( address ).await {
+        Ok(listener) => {
+            axum::serve(listener, app_new(crud_broker)).await.unwrap();
+        },
+        Err(e) => {
+            log::error!("on_start(broker_manifest='{broker_manifest:}') failed. Error({e})");
+            return ();
+        },
+    }
+//    axum::serve(TcpListener::bind( address ).await.unwrap(), app_new(crud_broker)).await.unwrap();
     log::trace!("http_broker::on_start() exit");
-
-
 }
 
 

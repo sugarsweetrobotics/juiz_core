@@ -1,7 +1,5 @@
 
-use juiz_core::prelude::*;
-
-use opencv::highgui::*;
+use juiz_core::{prelude::*, anyhow, opencv::highgui::*};
 use crate::window::CvWindow;
 
 fn imshow_function(container: &mut ContainerImpl<CvWindow>, args: CapsuleMap) -> JuizResult<Capsule> {

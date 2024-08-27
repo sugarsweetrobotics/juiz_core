@@ -1,7 +1,7 @@
 
 use std::path::Path;
 
-use juiz_core::{containers::container_lock, JuizResult, System, Value};
+use juiz_core::{containers::container_lock, log, yaml_conf_load, JuizResult, System, Value};
 
 
 use clap::Subcommand;
@@ -14,6 +14,9 @@ pub(crate) enum ContSubCommands {
     List {
         #[arg(short = 's', default_value = "localhost:8080", help = "Host of server (ex., localhost:8080)")]
         server: String,
+
+        #[arg(short = 'f', default_value = "./juiz.conf", help = "Input system definition file path")]
+        filepath: String,
     },
 
     /// get logs
@@ -34,8 +37,11 @@ pub(crate) fn on_container(manifest: Value, working_dir: &Path, subcommand: Cont
 
 pub(crate) fn on_container_inner(manifest: Value, working_dir: &Path, subcommand: ContSubCommands) -> JuizResult<()> {
     match subcommand {
-        ContSubCommands::List { server } => {
-            System::new(manifest)?
+        ContSubCommands::List { server, filepath } => {
+            log::trace!("container list command is selected.");
+            let manifest2 = yaml_conf_load(filepath.clone())?;
+
+            System::new(manifest2)?
             .set_working_dir(working_dir)
             .run_and_do_once( |system| { on_container_list(system, server) }) 
         },
@@ -50,8 +56,11 @@ pub(crate) fn on_container_inner(manifest: Value, working_dir: &Path, subcommand
 }
 
 fn on_container_list(system: &mut System, _server: String) -> JuizResult<()> {
+    log::trace!("on_container_list() called");
     let proc_manifests: Vec<Value> = system.container_list()?;
+    log::debug!("system.container_list() returns '{proc_manifests:?}'");
     let mut ids: Vec<String> = Vec::new();
+
     for v in proc_manifests.iter() {
         ids.push(v.as_str().unwrap().to_owned());
     }

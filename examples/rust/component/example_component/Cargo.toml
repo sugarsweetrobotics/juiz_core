@@ -10,8 +10,5 @@ crate-type = ["cdylib"]
 
 [dependencies]
 
-anyhow = "1.0.75"
 juiz_core = { path="../../../../" }
-env_logger = "0.10.1"
 
-opencv = {version="*", default-features=false, features=["highgui", "videoio", "imgproc", "imgcodecs", "clang-runtime"]}

@@ -1,7 +1,7 @@
 
 
-use opencv::{core::Mat, imgproc::{cvt_color, COLOR_BGR2RGB}};
-use juiz_core::prelude::*;
+
+use juiz_core::{prelude::*, anyhow, opencv::{imgproc::{cvt_color, COLOR_BGR2RGB}, prelude::*}};
 
 
 fn cvt_color_function(args: CapsuleMap) -> JuizResult<Capsule> {

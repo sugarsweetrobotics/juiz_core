@@ -9,9 +9,4 @@ edition = "2021"
 crate-type = ["cdylib"]
 
 [dependencies]
-
-anyhow = "1.0.75"
 juiz_core = { path="../../../../" }
-env_logger = "0.10.1"
-
-opencv = {version="0.92.0", default-features=false, features=["highgui", "videoio", "imgproc", "imgcodecs", "clang-runtime"]}

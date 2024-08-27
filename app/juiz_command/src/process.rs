@@ -1,9 +1,9 @@
 
 use std::path::Path;
-
+use juiz_core::{log, yaml_conf_load};
 use juiz_core::{processes::proc_lock, JuizResult, System, Value};
-use opencv::imgcodecs::imwrite;
-use opencv::core::Vector;
+use juiz_core::opencv::imgcodecs::imwrite;
+use juiz_core::opencv::core::{Mat, Vector};
 use clap::Subcommand;
 
 #[derive(Debug, Subcommand)]
@@ -18,8 +18,8 @@ pub(crate) enum ProcSubCommands {
         #[arg(short = 'a', help = "Any process includes")]
         any_process: bool,
         
-        //#[arg(short = 'f', default_value = "./juiz.conf", help = "Input system definition file path")]
-        //filepath: String,
+        #[arg(short = 'f', default_value = "./juiz.conf", help = "Input system definition file path")]
+        filepath: String,
     },
 
     /// get logs
@@ -55,8 +55,11 @@ pub(crate) fn on_process(manifest: Value, working_dir: &Path, subcommand: ProcSu
 }
 pub(crate) fn on_process_inner(manifest: Value, working_dir: &Path, subcommand: ProcSubCommands) -> JuizResult<()> {
     match subcommand {
-        ProcSubCommands::List { server, any_process} => {
-            System::new(manifest)?
+        ProcSubCommands::List { server, any_process, filepath} => {
+            log::trace!("process list command is selected.");
+            let manifest2 = yaml_conf_load(filepath.clone())?;
+
+            System::new(manifest2)?
                 .set_working_dir(working_dir)
                 .run_and_do_once( |system| { 
                 if any_process {
@@ -126,7 +129,7 @@ fn on_process_call(system: &mut System, id: String, arg: String, fileout: Option
             if value.is_value()? {
                 println!("{:?}", value);
             } else if value.is_mat()? {
-                let _ = value.lock_as_mat(|mat: &opencv::prelude::Mat| {
+                let _ = value.lock_as_mat(|mat: &Mat| {
 
                     let params: Vector<i32> = Vector::new();
                     match fileout {

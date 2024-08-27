@@ -1,11 +1,10 @@
 
 
-use opencv::prelude::*;
-use juiz_core::prelude::*;
+use juiz_core::{prelude::*, opencv::{core::Mat, prelude::*}};
 use crate::video_capture::CvVideoCapture;
 
 fn cv_video_capture_read_function(container: &mut ContainerImpl<CvVideoCapture>, _v: CapsuleMap) -> JuizResult<Capsule> {
-    let mut frame: opencv::core::Mat = Mat::default();
+    let mut frame: Mat = Mat::default();
     container.camera.read(&mut frame)?;
     return Ok(frame.into());
 }

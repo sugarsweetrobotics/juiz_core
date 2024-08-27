@@ -92,8 +92,12 @@ impl ContainerProcessBrokerProxy for CRUDBrokerProxyHolder {
     }
 
     fn container_process_list(&self) -> JuizResult<Value> {
-        let v = capsule_to_value(self.broker.read("container_process", "list", HashMap::new())?)?;
-        self.convert_identifier_name(&v)
+        log::trace!("CRUDBrokerProxyHolder::container_process_list() called");
+        let v = self.broker.read("container_process", "list", HashMap::new())?;
+        log::debug!("CRUDBrokerProxyHolder::container_process_list() = {v:?}");
+        v.lock_as_value(|value| {
+            self.convert_identifier_name(value)
+        })?
     }
     
     fn container_process_call(&self, id: &Identifier, args: CapsuleMap) -> JuizResult<CapsulePtr> {
@@ -121,8 +125,12 @@ impl ContainerBrokerProxy for CRUDBrokerProxyHolder {
     }
 
     fn container_list(&self) -> JuizResult<Value> {
-        let v = capsule_to_value(self.broker.read("container", "list", HashMap::new())?)?;
-        self.convert_identifier_name(&v)
+        log::trace!("CRUDBrokerProxyHolder::container_list() called");
+        let v = self.broker.read("container", "list", HashMap::new())?;
+        log::debug!("CRUDBrokerProxyHolder::container_list() returns '{v:?}'");
+        v.lock_as_value(|value| {
+            self.convert_identifier_name(value)
+        })?
     }
     
     fn container_create(&mut self, manifest: &Value) -> JuizResult<Value> {
@@ -153,8 +161,12 @@ impl ProcessBrokerProxy for CRUDBrokerProxyHolder {
     }
 
     fn process_list(&self) -> JuizResult<Value> {
-        let v = capsule_to_value(self.broker.read("process", "list", HashMap::new())?)?;
-        self.convert_identifier_name(&v)
+        log::trace!("CRUDBrokerProxyHolder::process_list() called");
+        let v = self.broker.read("process", "list", HashMap::new())?;
+        log::trace!("CRUDBrokerProxyHolder::process_list() => {v:?}");
+        v.lock_as_value(|value| {
+            self.convert_identifier_name(value)
+        })?
     }
 
     fn process_try_connect_to(&mut self, source_process_id: &Identifier, arg_name: &str, destination_process_id: &Identifier, manifest: Value) -> JuizResult<Value> {

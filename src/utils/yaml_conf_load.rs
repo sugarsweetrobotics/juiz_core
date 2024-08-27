@@ -2,10 +2,10 @@ use crate::{jvalue, JuizError, JuizResult, Value};
 
 
 use serde_json::Map;
-use yaml_rust2::{YamlLoader, Yaml};
+use yaml_rust2::{YamlLoader, Yaml, yaml::Hash};
 use std::{collections::HashMap, fs};
 
-use hashlink::LinkedHashMap;
+// use hashlink::LinkedHashMap;
 
 fn yaml_to_value(yv: &Yaml) -> JuizResult<Value> {
     match yv {
@@ -36,7 +36,7 @@ fn yaml_to_value(yv: &Yaml) -> JuizResult<Value> {
     }
 }
 
-fn yaml_hash_to_value(yv: &LinkedHashMap<Yaml, Yaml>) -> Result<serde_json::Value, anyhow::Error> {
+fn yaml_hash_to_value(yv: &Hash) -> Result<serde_json::Value, anyhow::Error> {
     let mut vec: Vec<(String, Value)> = Vec::new();
     for (k, v) in yv {
         match k {

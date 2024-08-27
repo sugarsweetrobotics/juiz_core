@@ -9,6 +9,8 @@ use home::home_dir;
 use anyhow::Context;
 
 use crate::prelude::*;
+use crate::value::{obj_get_bool, obj_get_i64};
+use crate::value::value_converter::value_get_bool;
 use crate::{
     CoreBroker,
     yaml_conf_load::yaml_conf_load_with,
@@ -67,10 +69,66 @@ impl JuizObject for System {
 }
 
 
+
+fn get_options(manifest: &Value) -> Option<&Value> {
+    match manifest.as_object() {
+        Some(obj_manif) => {
+            match obj_manif.get("option") {
+                Some(v) => Some(v),
+                None => None
+            }
+        },
+        None => None
+    }
+}
+
+fn get_http_option(option: Option<&Value>) -> Option<&Value> {
+    if option.is_none() {
+        None
+    } else {
+        match option.unwrap().as_object() {
+            Some(opt_obj) => {
+                match opt_obj.get("http_broker") {
+                    Some(v) => Some(v),
+                    None => None
+                }
+            },
+            None => {
+                log::error!("Manifest file is invalid. option value must be object type.");
+                None
+            }
+        }
+    }
+}
+
+fn is_http_broker_start(option: Option<&Value>) -> bool {
+    match get_http_option(option) {
+        Some(http_broker_opt) => {
+            match obj_get_bool(http_broker_opt, "start") {
+                Ok(v) => return v,
+                Err(_e) => return true,
+            }
+        }
+        None => return true,
+    }
+}
+
+fn get_http_port(option: Option<&Value>) -> i64 {
+    match get_http_option(option) {
+        Some(http_broker_opt) => {
+            match obj_get_i64(http_broker_opt, "port") {
+                Ok(v) => return v,
+                Err(_e) => return 8000,
+            }
+        }
+        None => return 8000,
+    }
+}
+
 impl System {
 
     pub fn new(manifest: Value) -> JuizResult<System> {
-        env_logger::init();
+        //env_logger::init();
         let checked_manifest = check_system_manifest(manifest)?;
         let updated_manifest:Value = merge_home_manifest(checked_manifest)?;
         Ok(System{
@@ -223,9 +281,14 @@ impl System {
             system_builder::setup_containers(self, v).context("system_builder::setup_containers in System::setup() failed")
         })?;
         system_builder::setup_http_broker_factory(self).context("system_builder::setup_http_broker_factory in System::setup() failed.")?;
-
-        let port_number: i64 = 8000;
-        system_builder::setup_http_broker(self, port_number).context("system_builder::setup_http_broker in System::setup() failed.")?;
+        
+        {
+            let options = get_options(&self.manifest);
+            if is_http_broker_start(options) {
+                let port_number: i64 = get_http_port(options);
+                system_builder::setup_http_broker(self, port_number).context("system_builder::setup_http_broker in System::setup() failed.")?;
+            }
+        }
 
         system_builder::setup_local_broker_factory(self).context("system_builder::setup_local_broker_factory in System::setup() failed.")?;
         system_builder::setup_local_broker(self).context("system_builder::setup_local_broker in System::setup() failed.")?;
@@ -402,7 +465,11 @@ impl System {
         log::trace!("System::create_broker_proxy({manifest:}) called");
         let type_name = obj_get_str(manifest, "type_name")?;
         let bf = self.broker_factories_wrapper(type_name)?;
-        let b = juiz_lock(bf).context("Locking BrokerFactoriesWrapper in System::create_broker_proxy() failed.")?.create_broker_proxy(&manifest).context("BrokerFactoriesWrapper.create_broker_proxy() failed in System::create_broker()")?;
+        let b = juiz_lock(bf).context("Locking BrokerFactoriesWrapper in System::create_broker_proxy() failed.")?
+            .create_broker_proxy(&manifest).or_else(|e| {
+                log::error!("creating BrokerProxy(type_name={type_name}) failed. Error ({e})");
+                Err(e)
+            }).context("BrokerFactoriesWrapper.create_broker_proxy() failed in System::create_broker()")?;
         self.register_broker_proxy(b)
     }
     
@@ -437,8 +504,20 @@ impl System {
         log::trace!("System::container_list() called");
         let mut local_containers = juiz_lock(&self.core_broker())?.store().containers.list_manifests()?;
         for proxy in juiz_lock(&self.core_broker())?.store().broker_proxies.objects().into_iter() {
-            for v in get_array(&juiz_lock(proxy)?.container_list()?)?.iter() {
-                local_containers.push(v.clone());
+            match juiz_lock(proxy) {
+                Err(e) => return Err(e),
+                Ok(p) => {
+                    match p.container_list() {
+                        Ok(v) => {
+                            for v in get_array(&v)?.iter() {
+                                local_containers.push(v.clone());
+                            }
+                        }
+                        Err(e) => {
+                            log::error!("BrokerProxy({:}).container_list() in System::container_list() failed. Error({e:?}) ", p.identifier());
+                        }
+                    }
+                }
             }
         }
         log::debug!("ids: {local_containers:?}");    

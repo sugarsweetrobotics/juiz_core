@@ -9,7 +9,7 @@ use std::path::PathBuf;
 
 use container::{on_container, ContSubCommands};
 use container_process::{on_container_process, ContProcSubCommands};
-use juiz_core::{ yaml_conf_load, JuizResult, System};
+use juiz_core::{ env_logger, log, yaml_conf_load, JuizResult, System};
 use crate::process::{on_process, ProcSubCommands};
 use crate::setup::{on_setup, SetupSubCommands};
 
@@ -82,6 +82,7 @@ fn do_task(_system: &mut System) -> JuizResult<()> {
 }
 
 fn main() -> () {
+    env_logger::init();
     match do_once() {
         Ok(_) => (),
         Err(e) => println!("Error:{:?}", e)
@@ -89,6 +90,7 @@ fn main() -> () {
 }
 
 fn do_once() -> JuizResult<()>{
+    log::trace!("main::do_once called");
     let args = Args::parse();
     let manifest = yaml_conf_load(args.filepath.clone())?;
     let manifest_filepath = PathBuf::from(args.filepath.as_str().to_string());

@@ -97,11 +97,11 @@ impl CRUDBrokerProxy for HTTPBrokerProxy {
 
 
     fn read(&self, class_name: &str, function_name: &str, param: std::collections::HashMap<String, String>) -> JuizResult<CapsulePtr> {
-        log::trace!("HTTPBrokerProxy({class_name:}, {function_name}, {param:?}).read() called");
+        log::trace!("HTTPBrokerProxy({}).read({class_name:}, {function_name}, {param:?}) called", self.base_url);
         
         let client = reqwest::blocking::Client::new();
         let url  =construct_url(&self.base_url, class_name, function_name, &param);
-        log::trace!("HTTPBrokerProxy.read(url={url:})");
+        log::trace!("HTTPBrokerProxy({}).read(url={url:})", self.base_url);
         match client.get(url.clone()).send() {
             Err(e) => Err(anyhow::Error::from(e)),
             Ok(response) => {
@@ -110,7 +110,7 @@ impl CRUDBrokerProxy for HTTPBrokerProxy {
                     return Err(anyhow::Error::from(HTTPBrokerError::HTTPStatusError{status_code: response.status(), message: format!("{:?}", response) }));
                 }
                 let value = response.json::<Value>().map_err(|e| anyhow::Error::from(e))?;
-                log::trace!("HTTPBrokerProxy.read() Response = {value:?}");
+                log::trace!("HTTPBrokerProxy.read({}) Response = {value:?}", self.base_url);
                 Ok(value.into())
             }
         }

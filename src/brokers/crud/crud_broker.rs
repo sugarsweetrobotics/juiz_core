@@ -54,13 +54,13 @@ fn extract_function_name<'a>(args: &'a CapsuleMap) -> JuizResult<&String> {
 }
 
 impl CRUDBroker {
-    pub fn new(core_broker: Arc<Mutex<dyn BrokerProxy>>) -> JuizResult<Arc<Mutex<CRUDBroker>>> {
-        Ok(Arc::new(Mutex::new(CRUDBroker{core_broker, 
+    pub fn new(core_broker: Arc<Mutex<dyn BrokerProxy>>) -> JuizResult<CRUDBroker> {
+        Ok(CRUDBroker{core_broker, 
             create_callback_container: create_callback_container(), 
             read_callback_container: read_callback_container(),
             update_callback_container: update_callback_container(),
             delete_callback_container: delete_callback_container()
-        })))
+        })
     }
 
     /*

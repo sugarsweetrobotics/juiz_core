@@ -9,7 +9,7 @@ mod filesystem;
 mod imwrite;
 
 pub mod cv_camera_capture {
-    use juiz_core::{jvalue, Value};
+    use juiz_core::{jvalue, Value, env_logger};
 
     #[no_mangle]
     pub unsafe extern "Rust" fn component_profile() -> Value {

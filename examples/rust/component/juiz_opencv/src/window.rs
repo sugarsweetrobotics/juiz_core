@@ -1,6 +1,7 @@
 
-use opencv::highgui::*;
-use juiz_core::{prelude::*, value::obj_get_str};
+
+use juiz_core::{prelude::*, opencv::highgui::*};
+use juiz_core::value::obj_get_str;
 
 #[allow(dead_code)]
 #[repr(Rust)]

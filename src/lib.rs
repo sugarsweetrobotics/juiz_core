@@ -33,7 +33,11 @@ pub use utils::yaml_conf_load;
 
 // pub use cv_convert as cv_convert;
 // pub use cv_convert::opencv as opencv;
-pub use log;
 
 // Re export 
-//pub use opencv::core::Mat;
+pub use log;
+pub use anyhow;
+pub use env_logger;
+pub use opencv;
+pub use tokio;
+pub use futures;

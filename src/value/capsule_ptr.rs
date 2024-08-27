@@ -213,8 +213,19 @@ impl CapsulePtr {
 }
 
 impl From<Value> for CapsulePtr {
-    fn from(value: Value) -> Self {
-        Self{value: Arc::new(Mutex::new(value.into()))}
+    fn from(mut value: Value) -> Self {
+        log::trace!("From<Value>({value:?}) -> CapsulePtr called");
+        match value.as_object_mut() {
+            None => Self{value: Arc::new(Mutex::new(value.into()))},
+            Some(obj) => {
+                match obj.remove_entry("__value__") {
+                    None => Self{value: Arc::new(Mutex::new(value.into()))},
+                    Some((_k, v)) => {
+                        Self{value: Arc::new(Mutex::new(v.into()))}
+                    },
+                }
+            }
+        }
     }
 }
 

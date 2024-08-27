@@ -1,6 +1,6 @@
 [package]
 name = "juiz_core"
-version = "0.2.0"
+version = "0.4.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -13,24 +13,24 @@ anyhow = "1.0.75"
 approx = "*"
 axum = "0.7.2"
 
-env_logger = "0.10.1"
+env_logger = "0.11.5"
 futures = "0.3.29"
-hashlink = "0.8"
 home = "0.5.9"
-image = "0.24.0"
+image = "0.25.2"
 image-stream = "0.1.0"
 interprocess = {version="2.2.0", features=["tokio"]}
 libloading = "0.8.1"
 log = "0.4.20"
 mopa = "0.2.2"
 num-traits = "0.2.19"
-nalgebra = "0.32.5"
-opencv = {version="0.92.0", default-features=false, features=["imgproc", "imgcodecs", "clang-runtime"]}
+nalgebra = "0.33.0"
+
+opencv = {version="0.92.0", default-features=false, features=["highgui", "videoio", "imgproc", "imgcodecs", "clang-runtime"]}
 pyo3 = {version = "0.22.1", features=["auto-initialize", "gil-refs"]}
 
 quaternion-core = "0.5.0"
 regex = "1.7.0"
-reqwest = {version="0.11.22", features = ["blocking", "json"]}
+reqwest = {version="0.12.5", features = ["blocking", "json"]}
 serde = {version = "1.0.193", features = ["derive"]}
 serde_json="1.0.108"
 signal-hook = "0.3.17"
@@ -39,9 +39,9 @@ thiserror = "1.0.50"
 tokio = { version = "1.38.0", features = ["full"] }
 uuid = "1.6.1"
 utoipa = { version="4.1.0", features = ["axum_extras"] }
-utoipa-swagger-ui = { version = "5.0.0", features = ["axum"] }
-utoipa-redoc = { version="2.0.0", features = ["axum"] }
-utoipa-rapidoc = { version="2.0.0", features = ["axum"] }
+utoipa-swagger-ui = { version = "7.1.0", features = ["axum"] }
+utoipa-redoc = { version="4.0.0", features = ["axum"] }
+utoipa-rapidoc = { version="4.0.0", features = ["axum"] }
 
 yaml-rust2 = "0.8.0"
 
@@ -58,21 +58,21 @@ members = [
     "examples/rust/container/example_container_get",
     "examples/rust/container/example_container_increment",
     "examples/rust/component/juiz_opencv",
-    "examples/rust/component/example_component",
-    #"examples/python/python_container", 
+    "examples/rust/component/example_component", 
+    "brokers/qmp_broker",
 ]
 default-members = [
     ".",
     "app/juiz_command",
-    #"ecs/timer_ec",
-    #"ecs/one_shot_ec", 
+    "ecs/timer_ec",
+    "ecs/one_shot_ec", 
     "ecs/main_loop_ec",
-    #"brokers/http_broker",
     #"examples/rust/container",
     #"examples/rust/process/increment_process",
     #"examples/rust/process/decrement_process",
     #"examples/rust/container/example_container",
     #"examples/rust/container/example_container_get",
     #"examples/rust/container/example_container_increment",
-    "examples/rust/component/example_component",
+    #"examples/rust/component/example_component",
+    "brokers/qmp_broker",
 ]
