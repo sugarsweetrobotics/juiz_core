@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use crate::{object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, plugin::RustPlugin, utils::juiz_lock, JuizObject, JuizResult, Value};
 
-use super::{execution_context_holder::ExecutionContextHolder, execution_context_factory::ExecutionContextFactory};
+use super::{execution_context_factory::ExecutionContextFactory, execution_context_function::ExecutionContextFunction, execution_context_holder::ExecutionContextHolder};
 
 #[allow(unused)]
 pub struct ExecutionContextHolderFactory {
@@ -25,7 +25,7 @@ impl ExecutionContextHolderFactory {
     }
 
 
-    pub fn create(&self, manifest: Value) -> JuizResult<Arc<Mutex<ExecutionContextHolder>>> {
+    pub fn create(&self, manifest: Value) -> JuizResult<Arc<Mutex<dyn ExecutionContextFunction>>> {
         let f = juiz_lock(&self.ec_factory)?;
         Ok(
             ExecutionContextHolder::new(

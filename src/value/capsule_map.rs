@@ -94,7 +94,7 @@ impl TryFrom<Value> for CapsuleMap {
                     c.set_param(key.as_str(), (*value).as_str().unwrap());
                 }
             } else {
-                log::warn!("Trying to convert from Value to CapuleMap but it does not contain key 'map' and 'param'.");
+                // log::warn!("Trying to convert from Value to CapuleMap but it does not contain key 'map' and 'param'.");
                 c.insert(k.to_owned(), v.clone().into());                
             }
         }

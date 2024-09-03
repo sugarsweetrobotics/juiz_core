@@ -4,9 +4,9 @@ use std::sync::{Mutex, Arc, RwLock, atomic::AtomicBool};
 
 use tokio::runtime;
 
-use crate::{ecs::execution_context_core::ExecutionContextState, jvalue, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, utils::{juiz_lock, sync_util::{juiz_borrow, juiz_borrow_mut}}, value::obj_merge_mut, JuizError, JuizObject, JuizResult, ProcessPtr, System, Value};
+use crate::{ecs::execution_context_core::ExecutionContextState, jvalue, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, utils::{juiz_lock, sync_util::{juiz_borrow, juiz_borrow_mut}}, value::obj_merge_mut, Identifier, JuizError, JuizObject, JuizResult, ProcessPtr, System, Value};
 
-use super::{execution_context::ExecutionContext, execution_context_core::ExecutionContextCore};
+use super::{execution_context::ExecutionContext, execution_context_core::ExecutionContextCore, execution_context_function::ExecutionContextFunction};
 
 pub struct ExecutionContextHolder{
     object_core: ObjectCore,
@@ -37,20 +37,15 @@ impl ExecutionContextHolder {
         )))
     }
 
-    pub fn profile_full(&self) -> JuizResult<Value> {
-        self.object_core.profile_full()
-    }
 
-    pub fn start(&mut self) -> JuizResult<Value> { 
+    
+    
+    fn is_periodic(&self) -> JuizResult<bool> {
         let flag = match self.execution_context.read() {
             Ok(ec) => Ok(ec.is_periodic()),
             Err(_e) => Err(anyhow::Error::from(JuizError::ObjectLockError{target: "ExecutionContext".to_owned()}))
         }?;
-        if flag {
-            return self.start_periodic();
-        } else {
-            return self.start_oneshot();
-        }
+        Ok(flag)
     }
 
     fn start_oneshot(&mut self) -> JuizResult<Value> {
@@ -180,32 +175,9 @@ impl ExecutionContextHolder {
         log::trace!("ExecutionContextHolder::start(type_name={:}) exit", self.type_name());
         Ok(jvalue!({}))
     }
-        
-    pub fn start_(&mut self) -> JuizResult<Value> {
-
-        todo!()
-        /*let result = juiz_lock(&self.execution_context)?.on_starting(self.core.clone())?;
-        match self.state.lock() {
-            Err(e) => return Err(anyhow::Error::from(JuizError::ExecutionContextCanNotLockStateError{})),
-            Ok(s) => {
-                s.store(ExecutionContextState::STARTED.to_i64(), std::sync::atomic::Ordering::SeqCst);
-            }
-        }
-        return Ok(jvalue!(ExecutionContextState::STARTED.to_string()));*/
-    }
 
 
-    pub fn stop(&mut self) -> JuizResult<Value> { 
-        let flag = match self.execution_context.read() {
-            Ok(ec) => Ok(ec.is_periodic()),
-            Err(_e) => Err(anyhow::Error::from(JuizError::ObjectLockError{target: "ExecutionContext".to_owned()}))
-        }?;
-        if flag {
-            return self.stop_periodic();
-        } else {
-            return self.stop_oneshot();
-        }
-    }
+    
 
     fn stop_periodic(&mut self) -> JuizResult<Value> {
         log::info!("ExecutionContextHolder::stop() called");
@@ -228,39 +200,10 @@ impl ExecutionContextHolder {
         })
     }
 
-    pub fn stop_(&mut self) -> JuizResult<Value> {
-        todo!()
-        //let result = juiz_lock(&self.execution_context)?.on_stopping(Arc::clone(&self.core))?;
-        /*
-        match self.state.lock() {
-            Err(e) => return Err(anyhow::Error::from(JuizError::ExecutionContextCanNotLockStateError{})),
-            Ok(s) => {
-                s.store(ExecutionContextState::STOPPED.to_i64(), std::sync::atomic::Ordering::SeqCst);
-            }
-        }
-        return Ok(jvalue!(ExecutionContextState::STOPPED.to_string()));
-        */
-    }
 
-    pub fn bind(&mut self, target_process: ProcessPtr) -> JuizResult<()> {
-        juiz_lock(&self.core)?.bind(target_process)
-    }
-
-    pub fn get_state(&self) -> JuizResult<ExecutionContextState> {
-        let s = juiz_lock(&self.core)?.state.load(std::sync::atomic::Ordering::SeqCst);
-        Ok(ExecutionContextState::from(s))
-    }
-
-
-    pub fn on_load(&mut self, system: &mut System) -> () {
-        match self.execution_context.write() {
-            Ok(mut v) => {
-                v.on_load(system, self.core.clone());
-            },
-            Err(e) => {
-                log::error!("ExecutionContextHolder::on_load() failed. RwLock.write() failed. {:?}", e);
-            }
-        }
+    
+    pub fn identifier(&self) -> &Identifier {
+        self.object_core.identifier()
     }
 
 }
@@ -283,4 +226,49 @@ impl JuizObject for ExecutionContextHolder {
         obj_merge_mut(&mut v, &cv)?;
         Ok(v.into())
     }
+}
+
+
+impl ExecutionContextFunction for ExecutionContextHolder {
+
+    fn start(&mut self) -> JuizResult<Value> { 
+        if self.is_periodic()? {
+            return self.start_periodic();
+        } else {
+            return self.start_oneshot();
+        }
+    }
+    
+    fn stop(&mut self) -> JuizResult<Value> { 
+        if self.is_periodic()? {
+            return self.stop_periodic();
+        } else {
+            return self.stop_oneshot();
+        }
+    }
+
+    fn get_state(&self) -> JuizResult<ExecutionContextState> {
+        let s = juiz_lock(&self.core)?.state.load(std::sync::atomic::Ordering::SeqCst);
+        Ok(ExecutionContextState::from(s))
+    }
+
+    fn bind(&mut self, target_process: ProcessPtr) -> JuizResult<()> {
+        juiz_lock(&self.core)?.bind(target_process)
+    }
+
+    fn unbind(&mut self, target_process_id: Identifier) -> JuizResult<()> {
+        juiz_lock(&self.core)?.unbind(target_process_id)
+    }
+
+    fn on_load(&mut self, system: &mut System) -> () {
+        match self.execution_context.write() {
+            Ok(mut v) => {
+                v.on_load(system, self.core.clone());
+            },
+            Err(e) => {
+                log::error!("ExecutionContextHolder::on_load() failed. RwLock.write() failed. {:?}", e);
+            }
+        }
+    }
+
 }

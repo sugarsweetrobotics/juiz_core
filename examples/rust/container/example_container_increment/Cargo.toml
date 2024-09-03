@@ -10,5 +10,4 @@ crate-type = ["cdylib"]
 
 [dependencies]
 juiz_core = { path="../../../../" }
-env_logger = "0.10.1"
 example_container = { path="../example_container/" }

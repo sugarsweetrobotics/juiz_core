@@ -1,6 +1,7 @@
 
 use std::collections::HashMap;
 
+use std::path::PathBuf;
 use std::sync::{Mutex, Arc};
 // use crate::prelude::*;
 use crate::brokers::CRUDBroker;
@@ -9,6 +10,7 @@ use crate::value::capsule_to_value;
 use opencv::core::{Vector, VectorToVec};
 use opencv::imgcodecs::imencode;
 
+use tower_http::services::ServeDir;
 use utoipa::{IntoParams, OpenApi};
 use utoipa::openapi::{path::OperationBuilder, request_body::RequestBodyBuilder, ContentBuilder, PathItem, PathItemType};
 use utoipa_swagger_ui::SwaggerUi;
@@ -139,7 +141,7 @@ pub fn json_output_wrap(result: JuizResult<CapsulePtr>) -> impl IntoResponse {
 )]
 struct ApiDoc;
 
-pub fn app_new(crud_broker: Arc<Mutex<CRUDBroker>>) -> Router {
+pub fn app_new(crud_broker: Arc<Mutex<CRUDBroker>>, static_filepaths: Option<Vec<(String, PathBuf)>>) -> Router {
     let mut api = ApiDoc::openapi();
     api.merge(system::ApiDoc::openapi());
     api.merge(process::ApiDoc::openapi());
@@ -148,9 +150,21 @@ pub fn app_new(crud_broker: Arc<Mutex<CRUDBroker>>) -> Router {
     api.merge(broker::ApiDoc::openapi());
     api.merge(execution_context::ApiDoc::openapi());
     api.merge(connection::ApiDoc::openapi());
-    Router::new()
+    log::warn!("static_filepaths: {:?}", static_filepaths);
+    let mut r = Router::new()
             .merge(SwaggerUi::new("/docs").url("/api-docs/openapi.json", api))
-            .nest("/api/", any::object_router(crud_broker.clone()))
+            .nest("/api/", any::object_router(crud_broker.clone()));
+
+    match static_filepaths {
+        Some(paths) => {
+            for (url, path) in paths.iter() {
+                log::debug!("http_broker serves url={url} for path={path:?}");
+                r = r.nest_service(url.as_str(), ServeDir::new(path));
+            }
+            r
+        },
+        None => r
+    }
 }
 
 #[allow(unused)]

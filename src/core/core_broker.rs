@@ -4,6 +4,7 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
 use anyhow::Context;
+use crate::ecs::execution_context_proxy::ExecutionContextProxy;
 use crate::prelude::*;
 
 use crate::containers::container_process_impl::container_proc_lock_mut;
@@ -31,7 +32,7 @@ use crate::brokers::broker_proxy::{
 };
 
 use crate::ecs::execution_context_holder::ExecutionContextHolder;
-
+use crate::ecs::execution_context_function::ExecutionContextFunction;
 
 use crate::identifier::IdentifierStruct;
 
@@ -104,7 +105,11 @@ impl CoreBroker {
     }
 
     fn precreate_check<'b>(&'b self, manifest: Value) -> JuizResult<Value> {
-        self.gen_identifier(self.gen_name_if_noname(self.check_has_type_name(manifest)?)?)
+        log::trace!("precreate_check(manifest={manifest:}) called");
+        self.gen_identifier(self.gen_name_if_noname(self.check_has_type_name(manifest)?)?).or_else(|e| {
+            log::trace!("precreate_check() failed. Error({e})");
+            Err(e)
+        })
     }
 
     pub fn create_process_ref(&mut self, manifest: Value) -> JuizResult<ProcessPtr> {
@@ -166,13 +171,23 @@ impl CoreBroker {
         v
     }
 
-    pub fn create_ec_ref(&mut self, manifest: Value) -> JuizResult<Arc<Mutex<ExecutionContextHolder>>> {
-        log::trace!("CoreBroker::create_ec(manifest={}) called", manifest);
-        let arc_pf = self.core_store.ecs.factory(type_name(&manifest)?)?;
-        let p = juiz_lock(arc_pf)?.create(self.precreate_check(manifest)?)?;
+    pub fn create_ec_ref(&mut self, manifest: Value) -> JuizResult<Arc<Mutex<dyn ExecutionContextFunction>>> {
+        log::trace!("CoreBroker::create_ec_ref(manifest={}) called", manifest);
+        let arc_pf = self.core_store.ecs.factory(type_name(&manifest)?).or_else(|e| {
+            log::error!("create_ec_ref({manifest:}) failed. Searching factory failed. Error({e:})");
+            Err(e)
+        })?;
+        let p = juiz_lock(arc_pf)?.create(self.precreate_check(manifest.clone())?).or_else(|e| {
+            log::error!("create_ec_ref({:}) failed. Error({e})", manifest.clone());
+            Err(e)
+        })?;
+
         self.store_mut().ecs.register(p)
     }
 
+    pub fn ec_from_id(&self, id: &Identifier) -> JuizResult<Arc<Mutex<dyn ExecutionContextFunction>>> {
+        self.store().ecs.get(id)
+    }
 
     pub fn process_from_id(&self, id: &Identifier) -> JuizResult<ProcessPtr> {
         self.store().processes.get(id)
@@ -302,6 +317,16 @@ impl CoreBroker {
         }
         let broker_proxy = self.broker_proxy(&id_struct.broker_type_name, &id_struct.broker_name)?;
         Ok(ProcessProxy::new(JuizObjectClass::Process("ProcessProxy"),identifier, broker_proxy)?)
+    }
+
+    pub fn ec_proxy_from_identifier(&mut self, identifier: &Identifier) -> JuizResult<Arc<Mutex<dyn ExecutionContextFunction>>> {
+        log::info!("CoreBroker::ec_proxy_from_identifier({identifier}) called");
+        let id_struct = IdentifierStruct::from(identifier.clone());
+        if id_struct.broker_name == "core" && id_struct.broker_type_name == "core" {
+            return self.ec_from_id(identifier)
+        }
+        let broker_proxy = self.broker_proxy(&id_struct.broker_type_name, &id_struct.broker_name)?;
+        Ok(ExecutionContextProxy::new(JuizObjectClass::ExecutionContext("ExecutionContextProxy"),identifier, broker_proxy)?)
     }
 
     pub fn process_proxy_from_manifest(&mut self, manifest: &Value) -> JuizResult<ProcessPtr> {

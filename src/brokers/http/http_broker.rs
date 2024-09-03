@@ -1,19 +1,30 @@
-use std::sync::{Arc, Mutex};
+use std::{path::PathBuf, sync::{Arc, Mutex}};
 use tokio::net::TcpListener;
-use crate::{jvalue, JuizResult, brokers::{CRUDBrokerHolder, broker_factory::create_broker_factory_impl, BrokerFactory}, Value, value::{obj_get_str, obj_get_i64}};
+use crate::{brokers::{broker_factory::create_broker_factory_impl, BrokerFactory, CRUDBrokerHolder}, jvalue, value::{obj_get_i64, obj_get_obj, obj_get_str}, JuizResult, Value};
 use crate::brokers::{Broker, BrokerProxy, CRUDBroker};
 
 use super::http_router::app_new;
 
 async fn on_start(broker_manifest: Value, crud_broker: Arc<Mutex<CRUDBroker>>) -> () {
-    log::trace!("http_broker::on_start() called");
+    log::trace!("http_broker::on_start(broker_manifest={broker_manifest:}) called");
     let host = obj_get_str(&broker_manifest, "host").or::<&str>(Ok("0.0.0.0") ).unwrap();
     let port  = obj_get_i64(&broker_manifest, "port").or::<i64>( Ok(8080)).unwrap();
     let address = format!("{:}:{:}", host, port);
     log::info!("http_broker::on_start(address={address}, {broker_manifest:?})) called");
+    let static_filepaths: Option<Vec<(String, PathBuf)>> = match obj_get_obj(&broker_manifest, "static_filepaths") {
+        Ok(v) => {
+            Some(v.iter().map(|(s, val)| {
+                let path: PathBuf = val.as_str().or(Some("")).unwrap().into();
+                (s.clone(), path)
+            }).collect::<Vec<(String, PathBuf)>>())
+        }
+        Err(_e) => {
+            None
+        }
+    };
     match TcpListener::bind( address ).await {
         Ok(listener) => {
-            axum::serve(listener, app_new(crud_broker)).await.unwrap();
+            axum::serve(listener, app_new(crud_broker, static_filepaths)).await.unwrap();
         },
         Err(e) => {
             log::error!("on_start(broker_manifest='{broker_manifest:}') failed. Error({e})");

@@ -31,7 +31,7 @@ impl ExecutionContext for MainLoopEC {
     }
 
     fn type_name(&self) -> &str {
-        "MainLoopEC"
+        "main_loop_ec"
     }
 
     fn profile(&self) -> JuizResult<Value> {
@@ -75,7 +75,7 @@ struct MainLoopECFactory {
 
 impl ExecutionContextFactory for MainLoopECFactory {
     fn type_name(&self) -> &str {
-        "MainLoopEC"
+        "main_loop_ec"
     }
 
     fn create(&self, manifest: Value) -> JuizResult<Arc<RwLock<dyn ExecutionContext>>> {

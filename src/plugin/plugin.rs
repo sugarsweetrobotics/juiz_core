@@ -18,7 +18,7 @@ pub enum JuizObjectPlugin {
 
 /// 引数vからpathメンバの値を引き出し、nameと連結したPathを作成する
 pub fn concat_dirname(v: &serde_json::Value, name: String) -> JuizResult<PathBuf> {
-    Ok(PathBuf::from(obj_get_str(v, "path")?.to_string()).join(name))
+    Ok(PathBuf::from(obj_get_str(v, "path")?.to_owned()).join(name))
 }
 
 #[cfg(target_os = "macos")]
@@ -89,7 +89,7 @@ impl JuizObjectPlugin {
         }
     }
 
-    pub fn load_container_factory(&self, working_dir: Option<PathBuf>, symbol_name: &str, container_profile: &Value) -> JuizResult<ContainerFactoryPtr> {
+    pub fn load_container_factory(&self, working_dir: Option<PathBuf>, symbol_name: &str, container_profile: Value) -> JuizResult<ContainerFactoryPtr> {
         log::trace!("load_container_factory({working_dir:?}, {symbol_name}, {container_profile}) called");
         match self {
             JuizObjectPlugin::Rust(p) => {
@@ -100,7 +100,7 @@ impl JuizObjectPlugin {
                 }
             },
             JuizObjectPlugin::Python(p) => {
-                p.load_container_factory(working_dir, "container_factory")
+                p.load_container_factory(working_dir, symbol_name, container_profile)
             },
             JuizObjectPlugin::Cpp(p) => {
                 p.load_container_factory(working_dir, "container_factory")
@@ -109,7 +109,7 @@ impl JuizObjectPlugin {
         }
     }
 
-    pub fn load_container_process_factory(&self, working_dir: Option<PathBuf>, symbol_name: &str, _manifest: &Value) -> JuizResult<ContainerProcessFactoryPtr> {
+    pub fn load_container_process_factory(&self, working_dir: Option<PathBuf>, symbol_name: &str, manifest: &Value) -> JuizResult<ContainerProcessFactoryPtr> {
         log::trace!("load_container_process_factory({working_dir:?}, {symbol_name}) called");
         match self {
             JuizObjectPlugin::Rust(p) => {
@@ -120,7 +120,7 @@ impl JuizObjectPlugin {
                 }
             },
             JuizObjectPlugin::Python(p) => {
-                p.load_container_process_factory(working_dir, symbol_name)
+                p.load_container_process_factory(working_dir, symbol_name, manifest)
             },
             JuizObjectPlugin::Cpp(p) => {
                 p.load_container_process_factory(working_dir, symbol_name)

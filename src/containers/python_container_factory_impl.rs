@@ -65,6 +65,7 @@ impl ContainerFactory for PythonContainerFactoryImpl {
         let full_path = self.fullpath.clone();
         
         let pyobj = Python::with_gil(|py| -> PyResult<Py<PyAny>> {
+            /// log::debug!("PythonPlugin uses python version={:?}", py.version_info());
             let py_app = fs::read_to_string(full_path).unwrap();
             let module = PyModule::from_code_bound(py, &py_app.to_string(), "", "")?;
             let app_func: Py<PyAny> = module.getattr(type_name.as_str())?.into();

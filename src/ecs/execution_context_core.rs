@@ -61,6 +61,20 @@ impl ExecutionContextCore {
         Ok(())
     }
 
+    pub fn unbind(&mut self, target_process_id: Identifier) -> JuizResult<()> {
+        let mut remove_index: Option<usize> = None;
+        for (i, p) in self.target_processes.iter().enumerate() {
+            if target_process_id == *proc_lock(p)?.identifier() {
+                remove_index = Some(i);
+            }
+        }
+        if let Some(index) = remove_index {
+            let _pp = self.target_processes.remove(index);
+        }
+        Ok(())
+    }
+
+
     pub fn get_state(&self) -> ExecutionContextState {
         ExecutionContextState::from(self.state.load(std::sync::atomic::Ordering::SeqCst))
     }

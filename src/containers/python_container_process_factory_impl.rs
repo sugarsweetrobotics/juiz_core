@@ -1,10 +1,10 @@
 
 use std::{fs, path::PathBuf, sync::{Arc, RwLock}};
-use anyhow::Context;
+use anyhow::{anyhow, Context};
 use pyo3::{prelude::*, types::PyTuple};
 
 use super::{container_impl::ContainerImpl, container_process_impl::ContainerProcessPtr};
-use crate::{containers::{container_process_impl::{container_proc_lock, ContainerProcessImpl}, PythonContainerStruct}, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, plugin::pyany_to_value, processes::python_process_factory_impl::capsulemap_to_pytuple, utils::check_process_factory_manifest, value::obj_get_str, Capsule, CapsuleMap, ContainerProcessFactory, ContainerPtr, JuizError, JuizObject, JuizResult, Value};
+use crate::{containers::{container_process_impl::{container_proc_lock, ContainerProcessImpl}, PythonContainerStruct}, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, plugin::{pyany_to_mat, pyany_to_value}, processes::python_process_factory_impl::capsulemap_to_pytuple, utils::check_process_factory_manifest, value::obj_get_str, Capsule, CapsuleMap, ContainerProcessFactory, ContainerPtr, JuizError, JuizObject, JuizResult, Value};
 
 #[repr(C)]
 pub struct PythonContainerProcessFactoryImpl {
@@ -58,28 +58,42 @@ impl ContainerProcessFactory for PythonContainerProcessFactoryImpl {
 
         let type_name = self.type_name().to_owned();
         let fullpath = self.fullpath.clone();
-        let pyfunc: Arc<dyn Fn(&mut ContainerImpl<PythonContainerStruct>, CapsuleMap)->JuizResult<Capsule>> = Arc::new(move |c: &mut ContainerImpl<PythonContainerStruct>, argument: CapsuleMap| -> JuizResult<Capsule> {
-            let mut func_result : Capsule = Capsule::empty();
+        let pyfunc: Arc<dyn Fn(&mut ContainerImpl<PythonContainerStruct>, CapsuleMap)->JuizResult<Capsule>> 
+            = Arc::new(move |c: &mut ContainerImpl<PythonContainerStruct>, argument: CapsuleMap| -> JuizResult<Capsule> {
+                log::trace!("PythonContainerProcess function (type_name={type_name}) called");
+                let mut func_result : Capsule = Capsule::empty();
             // let type_name = self.type_name();
             let tn = type_name.clone();
             let fp = fullpath.clone();
             // ここ、実行するたびにファイルを開くのでよくないかもしれない。
-            let _pyobj = Python::with_gil(|py| -> PyResult<Py<PyAny>> {
+            Python::with_gil(|py| -> PyResult<Py<PyAny>> {
+                log::trace!(" - with_gil()");
+                // log::debug!("PythonPlugin uses python version={:?}", py.version_info());
                 let py_app = fs::read_to_string(fp).unwrap();
                 let module = PyModule::from_code_bound(py, &py_app.to_string(), "", "")?;
+                log::trace!(" - module: {module:?}");
                 let app_func: Py<PyAny> = module.getattr(tn.as_str())?.into();
                 let mut vec_arg: Vec<&Py<PyAny>> = Vec::new();
                 vec_arg.push(&c.t.pyobj);
                 let v  = capsulemap_to_pytuple(py, &argument);
                 vec_arg.extend(v.iter());
-                // = capsulemap_to_pytuple(py, &argument);
-                //vec_arg.
+
                 let result = app_func.call1(py, PyTuple::new_bound(py, vec_arg))?;
-                let result_value = pyany_to_value(result.extract::<&PyAny>(py)?)?;
-                func_result = result_value.into();
+                log::trace!(" - returns {:?}", result);
+                let object = result.extract::<&PyAny>(py)?;
+                let result_value: Capsule = if check_object_is_ndarray(&py, object) {
+                    pyany_to_mat(py, object).unwrap()
+                } else {
+                    pyany_to_value(object)?.into()
+                };
+                log::trace!(" - returns {:?}", result_value);
+                func_result = result_value;
                 //println!("func_result: {:?}", func_result);
                 Ok(result)
-            });
+            }).or_else(|e| {
+                log::error!("Python ContainerProcess(type_name={type_name}) call failed. Error({e:})");
+                Err(anyhow!(e))
+            })?;
             // println!("result: {:?}", pyobj);
 
             // println!("wow: func_result: {:?}", func_result);
@@ -106,4 +120,11 @@ impl ContainerProcessFactory for PythonContainerProcessFactoryImpl {
         let prof = container_proc_lock(&p)?.profile_full()?;
         Ok(prof)
     }
+}
+
+fn check_object_is_ndarray(py: &Python, value: &PyAny) -> bool {
+    //log::debug!("check_object_is_ndarray({value:?}");
+    let pytype = value.get_type();
+    //log::debug!(" - {:}", pytype.to_string());
+    pytype.to_string() == "<class 'numpy.ndarray'>".to_owned()
 }

@@ -1,5 +1,5 @@
 use example_container::ExampleContainer;
-use juiz_core::prelude::*;
+use juiz_core::{env_logger, prelude::*};
 
 fn manifest() -> Value { 
     ContainerProcessManifest::new(ExampleContainer::manifest(), "example_container_increment")

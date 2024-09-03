@@ -234,7 +234,14 @@ impl BrokerBrokerProxy for CRUDBrokerProxyHolder {
 
 impl ExecutionContextBrokerProxy for CRUDBrokerProxyHolder {
     fn ec_list(&self) -> JuizResult<Value> {
-        capsule_to_value(self.broker.read("execution_context", "list", HashMap::new())?)
+
+        log::trace!("CRUDBrokerProxyHolder::container_list() called");
+        let v = self.broker.read("execution_context", "list", HashMap::new())?;
+
+        log::trace!("CRUDBrokerProxyHolder::process_list() => {v:?}");
+        v.lock_as_value(|value| {
+            self.convert_identifier_name(value)
+        })?
     }
 
     fn ec_profile_full(&self, id: &Identifier) -> JuizResult<Value> { 

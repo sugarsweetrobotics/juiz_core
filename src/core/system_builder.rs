@@ -5,7 +5,7 @@
     use std::sync::{mpsc, Arc, Mutex};
 
     use anyhow::Context;
-    use crate::{plugin::{concat_dirname, plugin_name_to_file_name, JuizObjectPlugin, RustPlugin}, prelude::*, value::obj_get_obj};
+    use crate::{ecs::execution_context_function::ExecutionContextFunction, plugin::{concat_dirname, plugin_name_to_file_name, JuizObjectPlugin, RustPlugin}, prelude::*, processes::proc_lock, value::obj_get_obj};
     use crate::{
         brokers::{broker_factories_wrapper::BrokerFactoriesWrapper, 
         http::{http_broker_factory, http_broker_proxy_factory},  
@@ -130,7 +130,7 @@
             },
             Some(obj) => {
                 let language = obj.get("language").and_then(|v| { v.as_str() }).or(Some("rust")).unwrap();
-                let ctr = register_container_factory(system, JuizObjectPlugin::new(language, name, container_profile, manifest_entry_point)?, "container_factory", container_profile)?;
+                let ctr = register_container_factory(system, JuizObjectPlugin::new(language, name, container_profile, manifest_entry_point)?, "container_factory", container_profile.clone())?;
                 log::info!("ContainerFactory ({name:}) Loaded");
                 when_contains_do(container_profile, "processes", |container_process_profile_map| {
                     for (cp_name, container_process_profile) in get_hashmap(container_process_profile_map)?.iter() {
@@ -157,7 +157,7 @@
             for container_profile in get_array(container_profiles)?.iter() {
                 let container_type_name = obj_get_str(container_profile, "type_name")?;
                 log::debug!(" - ContainerFactory ({container_type_name:}) Loading...");
-                register_container_factory(system, plugin.clone(), obj_get_str(container_profile, "factory")?, container_profile)?;
+                register_container_factory(system, plugin.clone(), obj_get_str(container_profile, "factory")?, container_profile.clone())?;
                 log::info!(" - ContainerFactory ({container_type_name:}) Loaded");
                 when_contains_do(container_profile, "processes", |container_process_profiles| {
                     for container_process_profile in get_array(container_process_profiles)?.iter() {
@@ -190,8 +190,10 @@
     fn setup_execution_context_factories(system: &System, manifest: &serde_json::Value) -> JuizResult<()> {
         log::trace!("system_builder::setup_execution_context_factories() called");
         for (name, value) in get_hashmap(manifest)?.iter() {
-            log::debug!("ExecutionContextFactory (name={name:}) Loading...");
+            log::debug!("ExecutionContextFactory (name={name:}, value='{value:}') Loading...");
             let plugin_filename = concat_dirname(value, plugin_name_to_file_name(name))?;
+
+            log::debug!(" - filename: {plugin_filename:?}");
             let cpf;
             unsafe {
                 type ECFactorySymbolType<'a> = libloading::Symbol<'a, unsafe extern "Rust" fn() -> JuizResult<Arc<Mutex<dyn ExecutionContextFactory>>>>;
@@ -315,14 +317,42 @@
         Ok(())
     }
 
-    pub fn setup_http_broker(system: &mut System, port_number: i64) -> JuizResult<()> {
+
+    fn get_http_staticfilepaths(options: &Value) -> Option<&Value> {
+        match options.as_object() {
+            Some(obj_manif) => {
+                match obj_manif.get("static_filepaths") {
+                    Some(v) => Some(v),
+                    None => None
+                }
+            },
+            None => None
+        }
+    }
+
+    pub fn setup_http_broker(system: &mut System, port_number: i64, options: Value) -> JuizResult<()> {
         log::trace!("system_builder::setup_http_broker() called");
-        let http_broker = system.create_broker(&jvalue!({
-            "type_name": "http",
-            "name": format!("0.0.0.0:{}", port_number),
-            "host": "0.0.0.0",
-            "port": port_number,
-        })).context("system.create_broker() failed in system_builder::setup_http_broker()")?;
+        let manifest = match get_http_staticfilepaths(&options) {
+            None => {
+                jvalue!({
+                    "type_name": "http",
+                    "name": format!("0.0.0.0:{}", port_number),
+                    "host": "0.0.0.0",
+                    "port": port_number,
+                })
+            }
+            Some(v) => {
+                jvalue!({
+                    "type_name": "http",
+                    "name": format!("0.0.0.0:{}", port_number),
+                    "host": "0.0.0.0",
+                    "port": port_number,
+                    "static_filepaths": v
+                })
+            }
+        };
+        
+        let http_broker = system.create_broker(&manifest).context("system.create_broker() failed in system_builder::setup_http_broker()")?;
         system.register_broker(http_broker)?;
         log::info!("HTTPBroker Created");
         Ok(())
@@ -407,8 +437,23 @@
             match obj_get(p, "bind") {
                 Err(_) => {},
                 Ok(binds_obj) => {
+                    log::trace!("start bind setup for {binds_obj}");
                     for b in get_array(binds_obj)?.iter() {
                         setup_ec_bind(system, Arc::clone(&ec), b)?;
+                    }
+                }
+            };
+            match obj_get(p, "auto_start") {
+                Err(_) => {},
+                Ok(auto_start_obj) => {
+                    log::trace!("start ec setup for {auto_start_obj}");
+                    match auto_start_obj.as_bool() {
+                        Some(flag) => {
+                            if flag {
+                                juiz_lock(&ec)?.start()?;
+                            }
+                        }
+                        None => {},
                     }
                 }
             };
@@ -421,17 +466,14 @@
         juiz_lock(system.core_broker())?.cleanup_ecs()
     }
 
-    fn setup_ec_bind(system: &System, ec: Arc<Mutex<ExecutionContextHolder>>, bind_info: &Value) -> JuizResult<()> {
-        log::trace!("system_builder::setup_ec_bind() called");
-        let ec_prof = juiz_lock(&ec)?.profile_full()?;
-        let ec_name = obj_get_str(&ec_prof, "name")?;
-        let process_info = obj_get(bind_info, "target")?;
-        let p_id = obj_get_str(&process_info, "identifier")?;
-        log::trace!("EC({:}) -> Process({:})", ec_name, p_id);
-        let target_process = system.any_process_from_manifest(process_info)?;
+    fn setup_ec_bind(system: &System, ec: Arc<Mutex<dyn ExecutionContextFunction>>, bind_info: &Value) -> JuizResult<()> {
+        let ec_id = juiz_lock(&ec)?.identifier().clone();
+        log::trace!("system_builder::setup_ec_bind(ec={:}) called", ec_id);
+        let target_process = system.any_process_from_manifest(bind_info)?;
+        let proc_id = proc_lock(&target_process)?.identifier().clone();
+        log::trace!("EC({:}) -> Process({:})", ec_id, proc_id);
         let ret = juiz_lock(&ec)?.bind(target_process);
-
-        log::info!("EC({:}) -> Process({:}) Bound", ec_name, p_id);
+        log::info!("EC({:}) -> Process({:}) Bound", ec_id, proc_id);
         ret
     }
 
@@ -444,7 +486,7 @@
         system.core_broker().lock().unwrap().store_mut().processes.register_factory(ProcessFactoryWrapper::new(plugin, pf)?)
     }
 
-    fn register_container_factory(system: &System, plugin: JuizObjectPlugin, symbol_name: &str, profile: &Value) -> JuizResult<ContainerFactoryPtr> {
+    fn register_container_factory(system: &System, plugin: JuizObjectPlugin, symbol_name: &str, profile: Value) -> JuizResult<ContainerFactoryPtr> {
         log::trace!("register_container_factory({symbol_name}, {profile}) called");
         let pf = plugin.load_container_factory(system.get_working_dir(), symbol_name, profile)?;
         system.core_broker().lock().unwrap().store_mut().containers.register_factory(ContainerFactoryWrapper::new(plugin, pf)?)

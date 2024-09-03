@@ -1,4 +1,4 @@
-use juiz_core::prelude::*;
+use juiz_core::{env_logger, prelude::*};
 
 #[repr(Rust)]
 pub struct ExampleContainer {

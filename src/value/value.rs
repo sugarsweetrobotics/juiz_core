@@ -105,7 +105,10 @@ pub fn obj_get_mut<'a>(value: &'a mut Value, key: &str) -> JuizResult<&'a mut Va
 pub fn obj_get_str<'a>(value: &'a Value, key: &str) -> JuizResult<&'a str> {
     let obj = obj_get(value, key)?;
     match obj.as_str() {
-        None  => Err(anyhow::Error::from(JuizError::ValueWithKeyIsNotStringError{value: value.clone(), key: key.to_string()})),
+        None  => {
+            log::error!("obj_get_str(value='{value:}', key='{key:}') called, but failed.");
+            Err(anyhow::Error::from(JuizError::ValueWithKeyIsNotStringError{value: value.clone(), key: key.to_string()}))
+        },
         Some(s) => return Ok(s)
     }
 }

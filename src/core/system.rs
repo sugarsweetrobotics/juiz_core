@@ -8,6 +8,8 @@ use home::home_dir;
 
 use anyhow::Context;
 
+use crate::ecs::execution_context_function::ExecutionContextFunction;
+use crate::ecs::execution_context_holder::ExecutionContextHolder;
 use crate::prelude::*;
 use crate::value::{obj_get_bool, obj_get_i64};
 use crate::{
@@ -80,6 +82,7 @@ fn get_options(manifest: &Value) -> Option<&Value> {
         None => None
     }
 }
+
 
 fn get_http_option(option: Option<&Value>) -> Option<&Value> {
     if option.is_none() {
@@ -265,6 +268,10 @@ impl System {
         juiz_lock(&self.core_broker)?.container_process_proxy_from_identifier(id)
     }
 
+    pub fn ec_proxy(&self, id: &Identifier) -> JuizResult<Arc<Mutex<dyn ExecutionContextFunction>>> {
+        juiz_lock(&self.core_broker)?.ec_proxy_from_identifier(id)
+    }
+
     fn setup(&mut self) -> JuizResult<()> {
         log::trace!("System::setup() called");
         let manifest_copied = self.manifest.clone();
@@ -285,7 +292,8 @@ impl System {
             let options = get_options(&self.manifest);
             if is_http_broker_start(options) {
                 let port_number: i64 = get_http_port(options);
-                system_builder::setup_http_broker(self, port_number).context("system_builder::setup_http_broker in System::setup() failed.")?;
+                let opt = options.unwrap().clone();
+                system_builder::setup_http_broker(self, port_number, opt).context("system_builder::setup_http_broker in System::setup() failed.")?;
             }
         }
 
@@ -541,6 +549,29 @@ impl System {
         let mut cps = self.container_process_list()?;
         cps.append(&mut ps);
         return Ok(cps)
+    }
+
+    pub fn ec_list(&self) -> JuizResult<Vec<Value>> {
+        log::trace!("System::ec_list() called");
+        let mut local_ecs = juiz_lock(&self.core_broker())?.store().ecs.list_manifests()?;
+        for proxy in juiz_lock(&self.core_broker())?.store().broker_proxies.objects().into_iter() {
+            log::trace!("ec_list for proxy ()");
+            for v in get_array(&juiz_lock(proxy)?.ec_list()?)?.iter() {
+                local_ecs.push(v.clone());
+            }
+        }
+        log::debug!("ids: {local_ecs:?}");    
+        return Ok(local_ecs);
+    }
+
+    ///
+    pub fn ec_from_id(&self, id: &Identifier) -> JuizResult<Arc<Mutex<dyn ExecutionContextFunction>>> {
+        log::trace!("System::ec_from_id(id={id:}) called");
+        let s = IdentifierStruct::from(id.clone());
+        if s.broker_type_name == "core" {
+            return juiz_lock(&self.core_broker)?.store().ecs.get(id);
+        }
+        self.ec_proxy(id)
     }
     
 }
