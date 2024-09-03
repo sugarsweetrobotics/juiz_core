@@ -122,7 +122,7 @@ impl ContainerProcessFactory for PythonContainerProcessFactoryImpl {
     }
 }
 
-fn check_object_is_ndarray(py: &Python, value: &PyAny) -> bool {
+fn check_object_is_ndarray(_py: &Python, value: &PyAny) -> bool {
     //log::debug!("check_object_is_ndarray({value:?}");
     let pytype = value.get_type();
     //log::debug!(" - {:}", pytype.to_string());

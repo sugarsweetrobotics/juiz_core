@@ -31,7 +31,6 @@ use crate::brokers::broker_proxy::{
     SystemBrokerProxy
 };
 
-use crate::ecs::execution_context_holder::ExecutionContextHolder;
 use crate::ecs::execution_context_function::ExecutionContextFunction;
 
 use crate::identifier::IdentifierStruct;

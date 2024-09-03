@@ -1,7 +1,7 @@
 
 
-use std::sync::{Arc, Mutex, RwLock};
-use crate::{identifier::*, object::*, brokers::BrokerProxy, utils::juiz_lock, JuizError, ProcessPtr, JuizObject, JuizResult, Process, value::*, processes::proc_lock};
+use std::sync::{Arc, Mutex};
+use crate::{identifier::*, object::*, brokers::BrokerProxy, utils::juiz_lock, JuizError, ProcessPtr, JuizObject, JuizResult, value::*};
 
 use super::execution_context_function::ExecutionContextFunction;
 
@@ -64,11 +64,11 @@ impl ExecutionContextFunction for ExecutionContextProxy {
         todo!()
     }
 
-    fn bind(&mut self, target_process: ProcessPtr) -> JuizResult<()> {
+    fn bind(&mut self, _target_process: ProcessPtr) -> JuizResult<()> {
         todo!()
     }
 
-    fn unbind(&mut self, target_process_id: Identifier) -> JuizResult<()> {
+    fn unbind(&mut self, _target_process_id: Identifier) -> JuizResult<()> {
         todo!()
     }
 }

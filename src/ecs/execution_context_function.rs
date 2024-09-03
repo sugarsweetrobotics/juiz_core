@@ -15,7 +15,7 @@ pub trait ExecutionContextFunction : Send + Sync + JuizObject {
     fn unbind(&mut self, target_process_id: Identifier) -> JuizResult<()>;
 
 
-    fn on_load(&mut self, system: &mut System) -> () {
+    fn on_load(&mut self, _system: &mut System) -> () {
         
     }
 }

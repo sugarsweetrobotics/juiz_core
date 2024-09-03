@@ -3,9 +3,7 @@
 use std::path::Path;
 use juiz_core::utils::juiz_lock;
 use juiz_core::{log, yaml_conf_load};
-use juiz_core::{processes::proc_lock, JuizResult, System, Value};
-use juiz_core::opencv::imgcodecs::imwrite;
-use juiz_core::opencv::core::{Mat, Vector};
+use juiz_core::{JuizResult, System, Value};
 use clap::Subcommand;
 
 #[derive(Debug, Subcommand)]
@@ -43,7 +41,7 @@ pub(crate) fn on_execution_context(manifest: Value, working_dir: &Path, subcomma
     Ok(())
 }
 
-pub(crate) fn on_ec_inner(manifest: Value, working_dir: &Path, subcommand: EcSubCommands) -> JuizResult<()> {
+pub(crate) fn on_ec_inner(_manifest: Value, working_dir: &Path, subcommand: EcSubCommands) -> JuizResult<()> {
     match subcommand {
         EcSubCommands::List { server, filepath} => {
             log::trace!("ec list command is selected.");

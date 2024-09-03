@@ -9,7 +9,6 @@ use home::home_dir;
 use anyhow::Context;
 
 use crate::ecs::execution_context_function::ExecutionContextFunction;
-use crate::ecs::execution_context_holder::ExecutionContextHolder;
 use crate::prelude::*;
 use crate::value::{obj_get_bool, obj_get_i64};
 use crate::{
