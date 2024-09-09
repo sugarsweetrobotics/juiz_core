@@ -4,7 +4,8 @@
 use anyhow::Context;
 use serde_json::Value;
 
-use crate::{object::JuizObjectCoreHolder, processes::proc_lock, utils::manifest_checker::check_connection_manifest, CapsulePtr, Identifier, JuizObject, JuizResult, ProcessPtr};
+use crate::prelude::*;
+use crate::{object::JuizObjectCoreHolder, processes::proc_lock, utils::manifest_checker::check_connection_manifest};
 
 
 use core::fmt::Debug;

@@ -1,10 +1,11 @@
 use std::cell::RefCell;
 
+use crate::prelude::*;
 /// inlet.rs
 /// 
 /// 
 /// 
-use crate::{connections::{connection::ConnectionType, SourceConnection}, jvalue, CapsulePtr, Identifier, JuizResult, Value};
+use crate::connections::{connection::ConnectionType, SourceConnection};
 
 pub struct Inlet {
     name: String,

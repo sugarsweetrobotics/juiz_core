@@ -2,7 +2,6 @@
 use std::sync::{Arc, Mutex};
 
 use crate::prelude::*;
-use crate::JuizObject;
 
 /// ContainerProcessを生成するためのFactoryクラスのtrait
 /// 

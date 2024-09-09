@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use crate::{JuizObject, JuizResult, ProcessPtr, Value};
+use crate::prelude::*;
 
 pub trait ProcessFactory: JuizObject {
     fn create_process(&self, manifest: Value) -> JuizResult<ProcessPtr>;

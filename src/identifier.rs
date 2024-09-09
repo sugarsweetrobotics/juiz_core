@@ -1,4 +1,5 @@
-use crate::{value::obj_get_str, JuizError, JuizResult, Value};
+use crate::prelude::*;
+use crate::value::obj_get_str;
 
 pub type Identifier = String;
 
@@ -25,8 +26,7 @@ pub fn connection_identifier_split(connection_id: Identifier) -> JuizResult<(Str
 
 #[cfg(test)]
 mod tests {
-    use crate::JuizResult;
-
+    use crate::prelude::*;
     use super::{connection_identifier_new, connection_identifier_split};
 
 

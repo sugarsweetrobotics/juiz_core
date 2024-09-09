@@ -2,7 +2,8 @@ use std::{cell::RefCell, sync::{Arc, Mutex}};
 
 use anyhow::Context;
 
-use crate::{containers::container_process_impl::container_proc_lock, jvalue, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, plugin::{JuizObjectPlugin, Plugin}, utils::juiz_lock, value::{obj_get_str, obj_merge}, ContainerProcessFactory, ContainerPtr, JuizObject, JuizResult, Value};
+use crate::prelude::*;
+use crate::{containers::container_process_impl::container_proc_lock, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, plugin::{JuizObjectPlugin, Plugin}, utils::juiz_lock, value::{obj_get_str, obj_merge}};
 
 use super::container_process_impl::ContainerProcessPtr;
 

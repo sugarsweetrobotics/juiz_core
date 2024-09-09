@@ -1,6 +1,8 @@
 use std::sync::{Arc, Mutex};
 
-use juiz_core::{brokers::CRUDBroker, futures, prelude::*, tokio, CoreBroker};
+
+use juiz_core::prelude::*;
+use juiz_core::{brokers::CRUDBroker, futures, prelude::*, tokio};
 
 extern crate qmp_broker;
 extern crate juiz_core;

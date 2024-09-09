@@ -4,7 +4,7 @@ use std::{collections::HashMap, mem::swap};
 
 use opencv::core::Mat;
 
-use crate::{jvalue, JuizError, Value};
+use crate::prelude::*;
 
 #[derive(Clone, Debug)]
 pub enum CapsuleValue {

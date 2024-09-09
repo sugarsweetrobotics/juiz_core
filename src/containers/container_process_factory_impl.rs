@@ -1,6 +1,8 @@
 use std::sync::{Arc, Mutex, RwLock};
+
+use crate::prelude::*;
 use super::{container_impl::ContainerImpl, container_process_impl::{ContainerFunctionType, ContainerProcessImpl, ContainerProcessPtr}, ContainerProcessFactoryPtr};
-use crate::{containers::container_process_impl::container_proc_lock_mut, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, value::obj_get_str, Capsule, CapsuleMap, ContainerProcessFactory, ContainerPtr, JuizObject, JuizResult, Value};
+use crate::{containers::container_process_impl::container_proc_lock_mut, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, value::obj_get_str};
 
 pub struct ContainerProcessFactoryImpl<T> where T: 'static {
     core: ObjectCore,
@@ -9,7 +11,7 @@ pub struct ContainerProcessFactoryImpl<T> where T: 'static {
 }
 
 impl<T: 'static> ContainerProcessFactoryImpl<T> {
-    pub fn new(manifest: crate::Value, function: ContainerFunctionType<T>) -> JuizResult<Self> {
+    pub fn new(manifest: Value, function: ContainerFunctionType<T>) -> JuizResult<Self> {
         let type_name = obj_get_str(&manifest, "type_name")?;
         Ok(ContainerProcessFactoryImpl{
                 core: ObjectCore::create_factory(JuizObjectClass::ContainerProcessFactory("ContainerProcessFactoryImpl"), 
@@ -20,7 +22,7 @@ impl<T: 'static> ContainerProcessFactoryImpl<T> {
         )
     }
 
-    pub fn create(manifest: crate::Value, function: &'static impl Fn(&mut ContainerImpl<T>, CapsuleMap) -> JuizResult<Capsule> ) -> JuizResult<ContainerProcessFactoryPtr> {
+    pub fn create(manifest: Value, function: &'static impl Fn(&mut ContainerImpl<T>, CapsuleMap) -> JuizResult<Capsule> ) -> JuizResult<ContainerProcessFactoryPtr> {
         //let type_name = obj_get_str(&manifest, "type_name")?;
         let f = Arc::new(|c: &mut ContainerImpl<T>, v| { function(c, v) } );
         Ok(Arc::new(Mutex::new(Self::new(manifest, f)?)))
@@ -58,7 +60,7 @@ impl<T: 'static> JuizObjectCoreHolder for ContainerProcessFactoryImpl<T> {
 impl<T: 'static> JuizObject for ContainerProcessFactoryImpl<T> {}
 
 impl<T: 'static> ContainerProcessFactory for ContainerProcessFactoryImpl<T> {
-    fn create_container_process(&self, container: ContainerPtr, manifest: crate::Value) -> JuizResult<ContainerProcessPtr> {
+    fn create_container_process(&self, container: ContainerPtr, manifest: Value) -> JuizResult<ContainerProcessPtr> {
         log::trace!("ContainerProcessFactoryImpl::create_container_process(container, manifest={}) called", manifest);
         Ok(Arc::new(RwLock::new(
             ContainerProcessImpl::new(

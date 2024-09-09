@@ -1,4 +1,5 @@
-use crate::{JuizResult, JuizObject};
+
+use crate::prelude::*;
 
 pub trait Broker : JuizObject {
 

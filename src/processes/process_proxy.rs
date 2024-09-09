@@ -1,7 +1,9 @@
 
 
 use std::sync::{Arc, Mutex, RwLock};
-use crate::{identifier::*, object::*, brokers::BrokerProxy, utils::juiz_lock, JuizError, ProcessPtr, JuizObject, JuizResult, Process, value::*, processes::proc_lock};
+
+use crate::prelude::*;
+use crate::{identifier::*, object::*, brokers::BrokerProxy, utils::juiz_lock, value::*, processes::proc_lock};
 
 #[allow(unused)]
 pub struct ProcessProxy {

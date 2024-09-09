@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex, RwLock};
 use std::time::Duration;
 
-use juiz_core::{prelude::*, utils::juiz_lock, System, value::{obj_get_f64, obj_get_str}};
+use juiz_core::{prelude::*, utils::juiz_lock, value::{obj_get_f64, obj_get_str}};
 use juiz_core::ecs::{ExecutionContext, ExecutionContextCore, ExecutionContextFactory, execution_context_core::ExecutionContextState};
 
 use juiz_core::log;

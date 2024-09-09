@@ -1,7 +1,7 @@
 
 use std::sync::{Arc, Mutex};
 
-use crate::{ContainerPtr, Value, JuizResult, JuizObject};
+use crate::prelude::*;
 
 
 pub type ContainerConstructFunction<T>=fn(Value) -> JuizResult<Box<T>>;

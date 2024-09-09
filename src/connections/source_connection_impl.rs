@@ -3,7 +3,8 @@
 
 use anyhow::Context;
 
-use crate::{object::{JuizObjectCoreHolder, ObjectCore}, processes::proc_lock, CapsulePtr, Identifier, JuizObject, JuizResult, ProcessPtr, Value};
+use crate::prelude::*;
+use crate::{object::{JuizObjectCoreHolder, ObjectCore}, processes::proc_lock};
 
 use core::fmt::Debug;
 use std::clone::Clone;

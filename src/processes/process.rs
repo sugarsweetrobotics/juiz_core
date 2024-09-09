@@ -5,7 +5,8 @@
 /// 
 use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
-use crate::{connections::{DestinationConnection, SourceConnection}, CapsuleMap, CapsulePtr, JuizError, JuizObject, JuizResult, Value};
+use crate::prelude::*;
+use crate::connections::{DestinationConnection, SourceConnection};
 
 
 pub type ProcessPtr = Arc<RwLock<dyn Process>>;

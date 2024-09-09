@@ -60,7 +60,7 @@ yaml-rust2 = "0.8.0"
 [workspace]
 members = [
     ".",
-    "app/juiz_command",
+    # "app/juiz_command",
     "ecs/timer_ec",
     "ecs/one_shot_ec", 
     "ecs/main_loop_ec",

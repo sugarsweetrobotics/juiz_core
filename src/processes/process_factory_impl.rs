@@ -3,7 +3,9 @@
 /// 
 /// 
 use std::sync::{Mutex, Arc};
-use crate::{object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, processes::{process_impl::ProcessImpl, process_ptr}, utils::check_process_factory_manifest, value::obj_get_str, JuizError, JuizObject, JuizResult, ProcessFactory, ProcessPtr, Value};
+
+use crate::prelude::*;
+use crate::{object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, processes::{process_impl::ProcessImpl, process_ptr}, utils::check_process_factory_manifest, value::obj_get_str};
 use super::{process_impl::FunctionType, ProcessFactoryPtr};
 
 #[repr(C)]
@@ -17,7 +19,7 @@ pub struct ProcessFactoryImpl {
 /// ProcessFactoryImplクラスの実装
 impl ProcessFactoryImpl {
 
-    pub fn new(manifest: crate::Value, function: FunctionType) -> JuizResult<Self> {
+    pub fn new(manifest: Value, function: FunctionType) -> JuizResult<Self> {
         let type_name = obj_get_str(&manifest, "type_name")?;
         Ok(
             ProcessFactoryImpl{
@@ -30,7 +32,7 @@ impl ProcessFactoryImpl {
         )
     }
 
-    pub fn create(manifest: crate::Value, function: FunctionType) -> JuizResult<ProcessFactoryPtr> {
+    pub fn create(manifest: Value, function: FunctionType) -> JuizResult<ProcessFactoryPtr> {
         log::trace!("ProcessFactoryImpl::create({:}) called", manifest);
         Ok(Arc::new(Mutex::new(ProcessFactoryImpl::new(manifest, function)?)))
     }

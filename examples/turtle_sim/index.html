@@ -3,8 +3,33 @@
     <link rel="stylesheet" type="text/css" href="static/css/turtle_sim.css" />
 </head>
 <body>
-    <canvas width="600px" height="600px" id="content_canvas"></canvas>
-    <canvas width="600px" height="600px" id="velocity_controller_canvas"></canvas>
+    <style>
+        #content_img {
+            position: absolute;
+            top:0;
+            z-index: 1;
+            background-color: red;
+        }
+
+        #content_canvas {
+            position: absolute;
+            top:0;
+            z-index: 2;
+            background-color: transparent;
+        }
+
+        #velocity_controller_canvas {
+            position: absolute;
+            top: 600px;
+        }
+    </style>
+    <div id="map_div">
+        <img id="content_img" width="600px" height="600px" />
+        <canvas width="600px" height="600px" id="content_canvas"></canvas>
+    </div>
+    <div id="controller_div">
+        <canvas width="600px" height="600px" id="velocity_controller_canvas"></canvas>
+    </div>
     <script src="juiz_js/juiz.js" type="text/javascript"></script>
     <script src="static/js/velocity_controller.js" type="text/javascript"></script>
     <script src="static/js/turtle_sim.js" type="text/javascript"></script>
@@ -14,9 +39,12 @@ var loop_interval_ms = 300;
 var turtleSim = new TurtleSim();
 var velController = new CanvasVelocityController(document.getElementById('velocity_controller_canvas'), 5.0, 1.5);
 var drawer = new TurtleSimDrawer(document.getElementById('content_canvas'), 10.0, 10.0);
-window.addEventListener("load", (event) => {
-    turtleSim.setup();
-    velController.setup();
+window.addEventListener("load", async (event) => {
+    await turtleSim.setup();
+    await velController.setup();
+
+    const img = URL.createObjectURL(await turtleSim.get_map());
+    document.getElementById('content_img').setAttribute('src', img);
     setInterval(async ()=>{
         if (turtleSim.loop()) {
             drawer.draw(turtleSim);

@@ -1,7 +1,11 @@
 
 use std::path::Path;
-use juiz_core::{log, yaml_conf_load};
-use juiz_core::{processes::proc_lock, JuizResult, System, Value};
+use juiz_core::utils::yaml_conf_load;
+use juiz_core::value::load_str;
+use juiz_core::{log};
+
+use juiz_core::prelude::*;
+use juiz_core::{processes::proc_lock};
 use juiz_core::opencv::imgcodecs::imwrite;
 use juiz_core::opencv::core::{Mat, Vector};
 use clap::Subcommand;
@@ -122,7 +126,7 @@ fn on_process_call(system: &mut System, id: String, arg: String, fileout: Option
     let p = system.any_process_from_id(&id);
     match p {
         Ok(ps) => {
-            let argv = juiz_core::load_str(arg.as_str())?;
+            let argv = load_str(arg.as_str())?;
             // println!("Value is {argv:?}");
             let value = proc_lock(&ps)?.call(argv.try_into()?)?;
             if value.is_value()? {

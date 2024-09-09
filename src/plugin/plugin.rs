@@ -3,9 +3,9 @@ use std::{path::PathBuf, rc::Rc};
 use anyhow::Context;
 
 use crate::prelude::*;
-use crate::{containers::{ContainerFactoryPtr, ContainerProcessFactoryPtr}, prelude::ProcessFactoryPtr, value::obj_get_str, JuizResult, Value};
+use crate::{containers::{ContainerFactoryPtr, ContainerProcessFactoryPtr}, prelude::ProcessFactoryPtr, value::obj_get_str};
 
-use super::{cpp_plugin::CppPlugin, python_plugin::PythonPlugin, RustPlugin};
+use super::{cpp::CppPlugin, python::PythonPlugin, RustPlugin};
 
 
 #[derive(Clone)]

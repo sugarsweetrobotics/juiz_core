@@ -1,7 +1,7 @@
 
 extern crate juiz_core;
 
-use crate::juiz_core::ProcessFactory;
+use juiz_core::prelude::*;
 use std::sync::{Arc, Mutex};
 
 use juiz_core::utils::juiz_lock;

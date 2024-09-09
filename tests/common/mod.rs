@@ -1,5 +1,7 @@
 
-use juiz_core::{jvalue, processes::process_impl::ProcessImpl, Capsule, CapsuleMap, JuizResult};
+
+use juiz_core::prelude::*;
+use juiz_core::{processes::process_impl::ProcessImpl};
 
 
 #[allow(dead_code)]

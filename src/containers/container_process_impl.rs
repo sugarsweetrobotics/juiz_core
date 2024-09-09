@@ -2,7 +2,8 @@ use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use anyhow::Context;
 
-use crate::{containers::{container_lock, container_lock_mut}, jvalue, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, value::{Capsule, CapsuleMap}, processes::process_impl::ProcessImpl, utils::check_process_manifest, value::{obj_get_str, obj_merge}, CapsulePtr, ContainerPtr, Identifier, JuizError, JuizObject, JuizResult, Process, ProcessPtr, Value};
+use crate::prelude::*;
+use crate::{containers::{container_lock, container_lock_mut}, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, value::{Capsule, CapsuleMap}, processes::process_impl::ProcessImpl, utils::check_process_manifest, value::{obj_get_str, obj_merge}};
 
 use super::container_impl::ContainerImpl;
 //use crate::containers::container_process_impl::JuizObjectClass::ContainerProcess;
@@ -97,26 +98,26 @@ impl JuizObject for ContainerProcessImpl {
 
 impl Process for ContainerProcessImpl {
 
-    fn manifest(&self) -> &crate::Value {
+    fn manifest(&self) -> &Value {
         log::trace!("ContainerProcessImpl({})::manifest() called", self.identifier());
         self.process().context("ContainerProcessImpl::manifest()").unwrap().manifest()
     }
 
-    fn call(&self, args: CapsuleMap) -> crate::JuizResult<CapsulePtr> {
+    fn call(&self, args: CapsuleMap) -> JuizResult<CapsulePtr> {
         log::trace!("ContainerProcessImpl({})::call() called", self.identifier());
         self.process().context("ContainerProcessImpl::call()")?.call(args)
     }
 
-    fn is_updated(& self) -> crate::JuizResult<bool> {
+    fn is_updated(& self) -> JuizResult<bool> {
         self.process().context("ContainerProcessImpl::is_updated()")?.is_updated()
     }
 
-    fn is_updated_exclude(& self, caller_id: &str) -> crate::JuizResult<bool> {
+    fn is_updated_exclude(& self, caller_id: &str) -> JuizResult<bool> {
         self.process().context("ContainerProcessImpl::is_updated_exclude()")?.is_updated_exclude(caller_id)
     }
 
 
-    fn invoke<'b>(&self) -> crate::JuizResult<CapsulePtr> {
+    fn invoke<'b>(&self) ->  JuizResult<CapsulePtr> {
         self.process()?.invoke()
     }
 

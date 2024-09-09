@@ -1,6 +1,7 @@
 
 use std::{sync::{Arc, Mutex}, ffi::CStr};
-use crate::{jvalue, Capsule};
+
+use crate::prelude::*;
 use super::converter_error::*;
 
 

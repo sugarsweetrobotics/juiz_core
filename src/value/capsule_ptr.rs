@@ -6,7 +6,7 @@ use std::{collections::HashMap, sync::{Arc, Mutex}};
 pub use opencv::core::Mat;
 use serde_json::Map;
 
-use crate::{jvalue, Capsule, JuizError, JuizResult, Value};
+use crate::prelude::*;
 
 #[repr(C)]
 #[derive(Debug)]

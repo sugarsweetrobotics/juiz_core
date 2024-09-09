@@ -1,6 +1,7 @@
 
 use std::ffi::CStr;
-use crate::{CapsuleMap, CapsulePtr};
+
+use crate::prelude::*;
 use super::converter_error::*;
 
 

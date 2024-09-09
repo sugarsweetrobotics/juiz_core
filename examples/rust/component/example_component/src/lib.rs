@@ -1,7 +1,6 @@
 
 pub mod example_component {
-    use juiz_core::{jvalue, Value, env_logger};
-
+    use juiz_core::{env_logger};
     use juiz_core::prelude::*;
 
     #[no_mangle]

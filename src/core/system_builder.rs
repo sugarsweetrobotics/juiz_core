@@ -23,7 +23,7 @@
             ecs::{execution_context_holder_factory::ExecutionContextHolderFactory, ExecutionContextFactory}, 
             processes::ProcessFactoryWrapper, 
             utils::{get_array, get_hashmap, juiz_lock, manifest_util::when_contains_do_mut, when_contains_do}, 
-            value::{obj_get, obj_get_str}, System
+            value::{obj_get, obj_get_str}
     };
 
     pub fn setup_plugins(system: &mut System, manifest: &Value) -> JuizResult<()> {

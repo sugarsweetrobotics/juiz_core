@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 
 use juiz_core::processes::process_factory_impl::ProcessFactoryImpl;
 
-use crate::juiz_core::*;
+use juiz_core::prelude::*;
 
 mod common;
 

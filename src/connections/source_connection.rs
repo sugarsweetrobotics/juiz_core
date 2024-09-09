@@ -1,7 +1,7 @@
 
 
 
-use crate::{CapsulePtr, JuizResult};
+use crate::prelude::*;
 
 use super::connection::Connection;
 

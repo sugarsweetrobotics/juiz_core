@@ -2,7 +2,9 @@
 use std::sync::{Mutex, Arc};
 
 use super::container_impl::ContainerImpl;
-use crate::{containers::container_lock, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, utils::check_process_factory_manifest, value::obj_get_str, ContainerFactory, ContainerPtr, JuizError, JuizObject, JuizResult, Value};
+
+use crate::prelude::*;
+use crate::{containers::container_lock, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, utils::check_process_factory_manifest, value::obj_get_str};
 
 use super::container_factory::ContainerConstructFunction;
 
@@ -16,7 +18,7 @@ pub struct ContainerFactoryImpl<T> {
 
 impl<S: 'static> ContainerFactoryImpl<S> {
 
-    pub fn new(manifest: crate::Value, constructor: ContainerConstructFunction<S>) -> JuizResult<Self> {
+    pub fn new(manifest: Value, constructor: ContainerConstructFunction<S>) -> JuizResult<Self> {
         let type_name = obj_get_str(&manifest, "type_name")?;
         Ok(ContainerFactoryImpl::<S>{
                 core: ObjectCore::create_factory(JuizObjectClass::ContainerFactory("ContainerFactoryImpl"), type_name),
@@ -25,7 +27,7 @@ impl<S: 'static> ContainerFactoryImpl<S> {
         })
     }
 
-    pub fn create(manifest: crate::Value, constructor: ContainerConstructFunction<S>) -> JuizResult<Arc<Mutex<dyn ContainerFactory>>> {
+    pub fn create(manifest: Value, constructor: ContainerConstructFunction<S>) -> JuizResult<Arc<Mutex<dyn ContainerFactory>>> {
         Ok(Arc::new(Mutex::new(Self::new(manifest, constructor)?)))
     }
 

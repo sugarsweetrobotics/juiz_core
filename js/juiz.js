@@ -38,7 +38,12 @@ const ContainerProcess = class {
             body: JSON.stringify(arg_data),
         });
         if (response.status === 200) {
-            return await response.json();
+            const contentType = response.headers.get('Content-Type');
+            if (contentType === 'application/json') {
+                return await response.json();
+            } else {
+                return await response.blob();
+            }
         }
         return null;
     }
@@ -56,19 +61,34 @@ const Container = class {
 
     async setup() {
         console.log('Container.setup(', this.id, ')');
+        this._processes = null;
         this.profile = await this.profile_full();
         console.log(' - profile:', this.profile);
         return this.profile;
     }
 
     async processes() {
-        let ps = [];
-        for (let proc_id of this.profile.processes) {
-            let p = new ContainerProcess(this, proc_id);
-            await p.setup();
-            ps.push(p);
+        if (this._processes === null) {
+            let ps = [];
+            for (let proc_id of this.profile.processes) {
+                let p = new ContainerProcess(this, proc_id);
+                await p.setup();
+                ps.push(p);
+            }
+            this._processes = ps;
         }
-        return ps;
+        return this._processes;
+    }
+
+    async process(query) {
+        if (query.type_name !== undefined) {
+            for (let p of await this.processes()) {
+                if (p.type_name() === query.type_name) {
+                    return p;
+                }
+            }
+        }
+        return null;
     }
 
     async profile_full() {
@@ -83,7 +103,7 @@ const Container = class {
 
 const System = class {
     constructor() {
-
+        this._containers = null;
     }
 
     async setup() {
@@ -92,13 +112,28 @@ const System = class {
     }
 
     async containers() {
-        let cs = [];
-        for (let container_id in this.profile.core_store.containers) {
-            let c = new Container(container_id);
-            await c.setup();
-            cs.push(c);
+        if (this._containers === null) {
+            let cs = [];
+            for (let container_id in this.profile.core_store.containers) {
+                let c = new Container(container_id);
+                await c.setup();
+                cs.push(c);
+            }
+            this._containers = cs;
         }
-        return cs;
+        return this._containers.map((c) => {return c;})
+    }
+
+    async container(query) {
+        const containers = await this.containers();
+        if (query.type_name !== undefined) {
+            for (let c of containers) {
+                if (c.type_name() === query.type_name) {
+                    return c;
+                }
+            }
+        }
+        return null;
     }
 
     async profile_full() {

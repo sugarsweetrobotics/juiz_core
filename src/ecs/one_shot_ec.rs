@@ -2,6 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use crate::utils::juiz_lock;
 
+use crate::prelude::*;
 use super::execution_context::ExecutionContext;
 use super::execution_context_core::ExecutionContextCore;
 
@@ -27,11 +28,11 @@ impl ExecutionContext for OneShotEC {
         "OneShotEC"
     }
 
-    fn profile(&self) -> crate::JuizResult<crate::Value> {
+    fn profile(&self) -> JuizResult<Value> {
         todo!()
     }
 
-    fn execute(&self, core: &Arc<Mutex<ExecutionContextCore>>) -> crate::JuizResult<bool> {
+    fn execute(&self, core: &Arc<Mutex<ExecutionContextCore>>) -> JuizResult<bool> {
         let _ = juiz_lock(core)?.svc().and(Ok(()))?;
         return Ok(false);
     }

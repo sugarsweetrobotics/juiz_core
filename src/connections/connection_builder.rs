@@ -1,10 +1,12 @@
 
 
 pub mod connection_builder {
+
+    use crate::{core::core_broker::CoreBroker, prelude::*};
     use std::{collections::HashMap, sync::Arc};
     use anyhow::Context;
 
-    use crate::{processes::{proc_lock, proc_lock_mut}, utils::{get_str, get_value}, CoreBroker, JuizResult, ProcessPtr, System, Value};
+    use crate::{processes::{proc_lock, proc_lock_mut}, utils::{get_str, get_value}};
 
     ///
     pub fn create_connection(system: &System, manifest: &Value) -> JuizResult<Value> {

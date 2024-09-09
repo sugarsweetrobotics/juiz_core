@@ -1,4 +1,5 @@
-use juiz_core::{System, jvalue, JuizResult};
+
+use juiz_core::prelude::*;
 
 fn main() -> JuizResult<()>{
 

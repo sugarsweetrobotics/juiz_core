@@ -1,8 +1,9 @@
 use std::{cell::RefCell, sync::{Arc, Mutex}};
 
 use anyhow::Context;
+use crate::prelude::*;
 use crate::{containers::container_lock, prelude::*, value::obj_get_str};
-use crate::{plugin::{JuizObjectPlugin, Plugin}, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, utils::juiz_lock, value::obj_merge, ContainerFactory, ContainerPtr, JuizObject, JuizResult, Value};
+use crate::{plugin::{JuizObjectPlugin, Plugin}, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, utils::juiz_lock, value::obj_merge};
 
 #[allow(dead_code)]
 pub struct ContainerFactoryWrapper {

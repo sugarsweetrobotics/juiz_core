@@ -1,9 +1,7 @@
 
 use anyhow::Context;
 
-use crate::value::CapsuleMap;
-use crate::JuizError;
-use crate::JuizResult;
+use crate::prelude::*;
 use crate::value::*;
 
 use super::get_hashmap;
@@ -97,7 +95,7 @@ fn check_arguments(args_manifest: &Value, argument: &CapsuleMap) -> JuizResult<(
                 return Err(
                 anyhow::Error::from(JuizError::ArgumentMissingWhenCallingError{
                     process_manifest: args_manifest.clone(), 
-                    missing_arg_name: arg_name.clone()}));
+                    missing_arg_name: arg_name.to_owned()}));
                 },
             Ok(_) => {}
             };
