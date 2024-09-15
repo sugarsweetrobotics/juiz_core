@@ -319,15 +319,18 @@
 
 
     fn get_http_staticfilepaths(options: &Value) -> Option<&Value> {
-        match options.as_object() {
-            Some(obj_manif) => {
-                match obj_manif.get("static_filepaths") {
-                    Some(v) => Some(v),
+        match obj_get_obj(options, "http_broker") {
+            Ok(http_opt) => {
+                match http_opt.get("static_filepaths") {
+                    Some(v) => { 
+                        Some(v)
+                    },
                     None => None
                 }
-            },
-            None => None
+            }
+            Err(_) => None
         }
+       
     }
 
     pub fn setup_http_broker(system: &mut System, port_number: i64, options: Value) -> JuizResult<()> {

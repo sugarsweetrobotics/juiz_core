@@ -78,17 +78,12 @@ pub async fn object_patch_handler(
     Json(body): Json<Value>,
 ) -> impl IntoResponse {
     let map = query_to_map(&query);
-    log::trace!("debug:{:?}", query);
-    log::trace!("HTTPBroker/object_patch_handler({class_name}, {function_name}, {body}, {map:?}) called");
-    //let result = update_class(&crud_broker, class_name.as_str(), function_name.as_str(), body.try_into().unwrap(), map);
-    //let method_name = "UPDATE";
-    json_output_wrap(juiz_lock(&crud_broker).and_then(|cb| {
+    log::trace!("[PATCH] ({class_name}, {function_name}, {body}, {map:?}) called");
+    let r = json_output_wrap(juiz_lock(&crud_broker).and_then(|cb| {
         cb.update_class(construct_capsule_map(body_to_capsule_map(body)?, "UPDATE", class_name.as_str(), function_name.as_str(), query))
-    }))
-    /*
-    let result = update_class(&crud_broker, construct_capsule_map(body_to_capsule_map(body), method_name, class_name.as_str(), function_name.as_str(), query));
-    json_output_wrap(result)
-    */
+    }));
+    log::trace!("[PATCH] ({class_name}, {function_name}) exit");
+    r
 }
 
 
@@ -108,15 +103,13 @@ pub async fn object_get_handler(
     query: Query<IdentifierQuery>,
     State(crud_broker): State<Arc<Mutex<CRUDBroker>>>, 
 ) -> impl IntoResponse {
-    log::trace!("debug:{:?}", query);
     let map = query_to_map(&query);
-    log::trace!("HTTPBroker/object_get_handler({class_name}, {function_name}, {map:?}) called");
-    //json_output_wrap(read_class(&crud_broker, class_name.as_str(), function_name.as_str(), map))
-    //let method_name = "READ";
-    //json_output_wrap(read_class(&crud_broker, construct_capsule_map(CapsuleMap::new(), method_name, class_name.as_str(), function_name.as_str(), query)))
-    json_output_wrap(juiz_lock(&crud_broker).and_then(|cb| {
+    log::trace!("[GET] ({class_name}, {function_name}, {map:?}) called");
+    let r = json_output_wrap(juiz_lock(&crud_broker).and_then(|cb| {
         cb.read_class(construct_capsule_map(CapsuleMap::new(), "READ", class_name.as_str(), function_name.as_str(), query))
-    }))
+    }));
+    log::trace!("[GET] ({class_name}, {function_name}) exit");
+    r
 }
 
 #[utoipa::path(

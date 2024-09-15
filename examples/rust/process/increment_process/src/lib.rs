@@ -1,5 +1,5 @@
 
-use juiz_core::{env_logger, prelude::*};
+use juiz_core::{env_logger, plugin::ProcessFactoryImpl, prelude::*};
 
 
 pub unsafe extern "Rust" fn manifest() -> Value { 

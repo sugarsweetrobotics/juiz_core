@@ -1,7 +1,7 @@
 
 
 use juiz_core::prelude::*;
-use juiz_core::{processes::process_impl::ProcessImpl};
+use juiz_core::processes::process_impl::ProcessImpl;
 
 
 #[allow(dead_code)]

@@ -79,6 +79,12 @@ pub(crate) fn read_callback_container() -> ClassCallbackContainerType {
         }
         Ok(value_to_capsule(juiz_lock(&cb)?.system_filesystem_list(PathBuf::from(path))?))
     });
+    system_callbacks.insert("add_subsystem", |cb, args| {
+        log::trace!("system_callbacks['add_subsystem'] called with args {args:?}");
+        let manif = args.get("profile")?.extract_value()?;
+        Ok(value_to_capsule(juiz_lock(&cb)?.system_add_subsystem(manif)?))
+    });
+
     read_cb_container.insert("system", system_callbacks);
 
     let mut broker_cbs = CallbackContainerType::new();

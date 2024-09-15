@@ -67,8 +67,6 @@ impl JuizObject for System {
     }
 }
 
-
-
 fn get_options(manifest: &Value) -> Option<&Value> {
     match manifest.as_object() {
         Some(obj_manif) => {

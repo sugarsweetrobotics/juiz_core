@@ -14,6 +14,7 @@ pub struct Vec3<T: Float> {
     pub z: T,
 }
 
+#[allow(unused)]
 impl<T: Float> Vec3<T> {
 
     pub fn zero() -> Self {
@@ -85,6 +86,7 @@ pub struct Vec4<T: Float> {
     pub w: T,
 }
 
+#[allow(unused)]
 impl<T: Float> Vec4<T> {
 
     pub fn zero() -> Self {
@@ -155,6 +157,7 @@ pub struct Transform3D<T: Float> {
     pub angular: Quaternion<T>,
 }
 
+#[allow(unused)]
 impl<T: Float> Transform3D<T> {
 
     pub fn zero() -> Self {
@@ -167,11 +170,13 @@ impl<T: Float> Transform3D<T> {
 }
 
 
+#[allow(unused)]
 pub fn quaternion_from_euler_xyz<F>(roll:F, pitch: F, yaw: F) -> Quaternion<F> where F: RealField + Float {
     let q = UnitQuaternion::from_euler_angles(roll, pitch, yaw);
     Quaternion::<F>::new(q.i, q.j, q.k, q.w)
 }
 
+#[allow(unused)]
 pub fn euler_xyz_from_quaternion<F>(q: Quaternion<F>) -> Vec3<F> where F: FloatConst + Float {
     //let qq : UnitQuaternion<F> = q.into();
     //let (roll, pitch, yaw) = qq.euler_angles();
@@ -181,6 +186,7 @@ pub fn euler_xyz_from_quaternion<F>(q: Quaternion<F>) -> Vec3<F> where F: FloatC
 
 
 
+#[allow(unused)]
 pub use quaternion_from_euler_xyz as q_from_e;
 
 /// ```

@@ -221,6 +221,12 @@ impl SystemBrokerProxy for CRUDBrokerProxyHolder {
     fn system_filesystem_list(&self, path_buf: std::path::PathBuf) -> JuizResult<Value> {
         capsule_to_value(self.broker.read("system", "profile_full", HashMap::from([("path".to_owned(), path_buf.to_str().unwrap().to_owned())]) )?)
     }
+
+    fn system_add_subsystem(&mut self, profile: Value) -> JuizResult<Value> {
+        let mut cp = CapsuleMap::new();
+        cp.insert("profile".to_owned(), profile.into());
+        capsule_to_value(self.broker.update("system", "add_subsystem", cp, HashMap::new())?)
+    }
 }
 
 impl BrokerBrokerProxy for CRUDBrokerProxyHolder {

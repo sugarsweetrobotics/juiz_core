@@ -135,7 +135,7 @@ impl Broker for MessengerBroker {
                             handle_function(Arc::clone(&crud), value) 
                         }));
                         
-                    std::thread::sleep(Duration::new(0, 10*1000*1000));
+                    std::thread::sleep(Duration::new(0, 10 * 1000));
                     match end_flag.lock() {
                         Err(e) => {
                             log::error!("Error({e:?}) in LocalBroker::routine()");

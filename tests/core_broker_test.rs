@@ -3,7 +3,6 @@ extern crate juiz_core;
 use juiz_core::prelude::*;
 use crate::juiz_core::processes::process_impl::*;
 
-use crate::juiz_core::*;
 use std::sync::Arc;
 
 mod common;

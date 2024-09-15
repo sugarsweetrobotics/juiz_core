@@ -5,7 +5,7 @@ use anyhow::Context;
 use crate::prelude::*;
 use crate::{containers::{ContainerFactoryPtr, ContainerProcessFactoryPtr}, prelude::ProcessFactoryPtr, value::obj_get_str};
 
-use super::{cpp::CppPlugin, python::PythonPlugin, RustPlugin};
+use super::{cpp::CppPlugin, python::PythonPlugin, rust::RustPlugin};
 
 
 #[derive(Clone)]

@@ -79,6 +79,10 @@ impl CapsuleMap {
         Ok(self.get(key)?.lock_as_map(|value| { f(value) })?)
     }
 
+    pub fn put(&mut self, key: &str, value: CapsulePtr) -> Option<CapsulePtr> {
+        self.map.insert(key.to_owned(), value)
+    }
+
 }
 
 impl TryFrom<Value> for CapsuleMap {

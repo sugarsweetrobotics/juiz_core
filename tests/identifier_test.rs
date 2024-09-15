@@ -7,7 +7,7 @@ use juiz_core::prelude::*;
 #[cfg(test)]
 #[test]
 fn digest_identifier_test() {
-    ///use juiz_core::identifier::IdentifierStruct;
+    // use juiz_core::identifier::IdentifierStruct;
 
 
     let identifier = "core_broker://core/Process/hoge_func0::hoge_function";

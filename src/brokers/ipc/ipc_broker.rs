@@ -242,7 +242,7 @@ async fn on_start_inner(broker_manifest: Value, crud_broker: Arc<Mutex<CRUDBroke
                     handle_buffer_function(crud_broker.clone(), &mut conn, &buffer)?;
                 }
             };
-            sleep(Duration::from_millis(500));
+            sleep(Duration::from_millis(10));
         }
     }
 

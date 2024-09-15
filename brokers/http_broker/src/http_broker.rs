@@ -13,8 +13,6 @@ async fn on_start(broker_manifest: Value, crud_broker: Arc<Mutex<CRUDBroker>>) -
     log::info!("http_broker::on_start(address={address}, {broker_manifest:?})) called");
     axum::serve(TcpListener::bind( address ).await.unwrap(), app_new(crud_broker)).await.unwrap();
     log::trace!("http_broker::on_start() exit");
-
-
 }
 
 

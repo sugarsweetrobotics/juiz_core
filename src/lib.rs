@@ -7,7 +7,7 @@ mod object;
 mod identifier;
 
 mod core;
-mod plugin;
+pub mod plugin;
 
 pub mod processes;
 pub mod connections;

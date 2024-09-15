@@ -1,31 +1,38 @@
 import time, math, traceback, typing
 import cv2
-import typing
 
-
+from turtle_py import Turtle
+from turtle_sim_map import TurtleSimMap
 turtle_sim = None
 
 class TurtleSim(object):
-    def __init__(self, map_filepath=None):
-        print('map_filepath=', map_filepath)
+    def __init__(self, turtles=None, map_metadata=None):
+        print('map_metadata=', map_metadata)
         self.timestamp = time.time()
         self.turtles = [] # typing.List[Turtle]
-        if map_filepath:
-            self.load_map(map_filepath)
+        if map_metadata:
+            self.load_map(map_metadata)
         else:
             self.map = None
-        self.spawn_turtle(0, 0, 0)
+            
+        if isinstance(turtles, list):
+            for t in turtles:
+                init_pose = t.get('init_pose', {'x':0.0,'y':0.0,'th':0.0})
+                self.spawn_turtle(init_x=init_pose['x'],
+                                  init_y=init_pose['y'],
+                                  init_th=init_pose['th'])
         pass
     
     
-    def load_map(self, map_filepath):
-        print(f'turtleSim.load_map({map_filepath})')
-        self.map = cv2.imread(map_filepath)
-        return self.map
-    
+    def load_map(self, map_metadata: dict):
+        self.map = TurtleSimMap(map_metadata=map_metadata)
+
     def get_map(self):
-        print('get_map:', self.map)
-        return self.map
+        # print('get_map:', self.map)
+        return self.map.get_colored_img()
+    
+    def get_map_metadata(self):
+        return self.map.get_metadata()
     
     def spawn_turtle(self, init_x, init_y, init_th):
         print(f'spawn_turtle({init_x}, {init_y}, {init_th})')
@@ -45,9 +52,14 @@ class TurtleSim(object):
     def get_turtle_pose(self, index):
         t = self.turtles[index]
         return t.pose
+        # return {
+        #     "x": t.pose[0],
+        #     "y": t.pose[1],
+        #     "th": t.pose[2]
+        # }
     
     def set_turtle_target_velocity(self, index, velocity):
-        print('set_turtle_target_velocity', index, velocity)
+        # print('set_turtle_target_velocity', index, velocity)
         t = self.turtles[index]
         return t.set_target_velocity(velocity)
     
@@ -62,177 +74,83 @@ class TurtleSim(object):
         }
         
     def get_turtle_lidar(self, index):
-        return {
-            'min_angle': -1.0,
-            'max_angle': 1.0,
-            'angle_res':
-                0.5,
-            'ranges': [20.0, 10.0, 10.0, 10.0, 10.0]
+        ranges = [10.0] * 200
+        init_data = {
+           'min_angle': -1.5,
+           'max_angle': 1.5,
+           'angle_res':
+               3 / len(ranges),
+           'ranges': ranges
         }
-            
+        st = time.time()
+        ld = self.map.get_lidar_on_map(self.get_turtle_pose(index), init_data)
+        # print('d:', time.time() - st)
+        return ld
         
 def turtle_sim(manifest):
-    map_filepath = manifest.get('map_filepath', None)
+    map_metadata = manifest.get('map_metadata', None)
+    turtles = manifest.get('turtles', None)
     global turtle_sim
-    turtle_sim = TurtleSim(map_filepath=map_filepath)
-    
+    turtle_sim = TurtleSim(turtles=turtles, map_metadata=map_metadata)
     return turtle_sim
 
-def load_map(turtleSim: TurtleSim, map_filepath):
-    return turtleSim.load_map(map_filepath)
     
 def load_map_factory(m=None):
-    print(f'load_map_factory({m})')
+    def load_map(turtleSim: TurtleSim, map_metadata: dict):
+        return turtleSim.load_map(map_metadata)
     return load_map
 
-def get_map(turtleSim: TurtleSim):
-    return turtleSim.get_map()
     
 def get_map_factory():
+    def get_map(turtleSim: TurtleSim):
+        return turtleSim.get_map()
     return get_map
 
-def get_turtle_lidar_factory():
-    return lambda sim, index: sim.get_turtle_lidar(index)
+def get_map_metadata_factory():
+    def get_map_metadata(turtleSim: TurtleSim) -> dict:
+        return turtleSim.get_map_metadata()
+    return get_map_metadata
 
-def spawn_turtle(turtleSim: TurtleSim, init_pose):
-    return turtleSim.spawn_turtle(init_pose['x'], init_pose['y'], init_pose['th'])
+def get_turtle_lidar_factory():
+    def get_turtle_lidar_factory(sim: TurtleSim, index: int):
+        return sim.get_turtle_lidar(index)
+    return get_turtle_lidar_factory
 
 def spawn_turtle_factory():
+    def spawn_turtle(turtleSim: TurtleSim, init_pose):
+        return turtleSim.spawn_turtle(init_pose['x'], init_pose['y'], init_pose['th'])
     return spawn_turtle
 
-def get_turtle_pose(turtleSim: TurtleSim, index):
-    return turtleSim.get_turtle_pose(index)
-
 def get_turtle_pose_factory():
+    def get_turtle_pose(turtleSim: TurtleSim, index):
+        p = turtleSim.get_turtle_pose(index).tolist()
+        return {
+            "x": p[0],
+            "y": p[1],
+            "th": p[2]
+        }
     return get_turtle_pose
     
-
 def set_turtle_target_velocity_factory():
     def set_turtle_target_velocity(turtleSim: TurtleSim, index: int, velocity: dict):
         return turtleSim.set_turtle_target_velocity(index, velocity)
     return set_turtle_target_velocity
 
-    
 def update_factory():    
     def update(turtleSim: TurtleSim):
         return turtleSim.update()
     return update
 
-def get_profile(turtleSim: TurtleSim) :
-    return turtleSim.get_profile()
     
 def get_profile_factory():
+    def get_profile(turtleSim: TurtleSim) :
+        return turtleSim.get_profile()
     return get_profile
-
-
-def normalize_angle(angle):
-    while angle > math.pi:
-        angle = angle - 2*math.pi
-    while angle <= -math.pi:
-        angle = angle + 2*math.pi
-    return angle
-
-def add_acc(current_vel, acc, dt, tgt_vel, epsilon=0.01):
-    dv = tgt_vel - current_vel
-    da = acc * dt
-    vel = 0
-    if dv > 0:
-        if dv > da:
-            vel = current_vel + da
-        else:
-            vel = tgt_vel
-    elif dv < -0:
-        if dv < -da:
-            vel = current_vel - da
-        else:
-            vel = tgt_vel
-    else:
-        vel = current_vel
-    return vel
 
 def sign(a):
     if a < 0: return -1
     return +1
 
-def fit_range(d, m):
-    if d > m: return m
-    elif d < -m: return -m
-    return d
-
-class Turtle:
-    def __init__(self, index, init_pose=(0,0,0)):
-        # print('Turtle.__init__() called')
-        self.index = index
-        self.timestamp = time.time()
-        self.accel = (0.1, 0.1, 0.05) # m/sec^2, rad/sec^2
-        self.max_velocity = (1.0, 1.0, 0.5)
-        self.target_velocity = (0, 0, 0)
-        self.velocity = (0, 0, 0)
-        self.max_pose = (20, 20)
-        self.pose = init_pose
-        
-    def profile(self):
-        return {
-            'pose': self.pose,
-            'velocity': self.velocity,
-            'accel': self.accel,
-            'max_velocity': self.max_velocity,
-            'target_velocity': self.target_velocity,
-        }
-        
-    def set_target_velocity(self, velocity: dict):
-        # print(f'set_target_velocity(vel={velocity}) called')
-        vel = [velocity['vx'], velocity['vy'], velocity['wz']]
-        self.target_velocity=[fit_range(v, m)for v,m in zip(vel,self.max_velocity)]
-        return "OK"
-        
-    def set_pose(self, pose):
-        x, y, th = pose
-        mx, my = self.max_pose
-        x = fit_range(x, mx)
-        y = fit_range(y, my)
-        th = normalize_angle(th)
-        self.pose = (x, y, th)
-        
-    def set_velocity(self, vel):
-        # print(f'set_velocity({vel}) called')
-        if len(vel) != 3:
-            print("set_velocity failed. value length is not 3.")
-            return
-        self.velocity = [fit_range(v,m) for v,m in zip(vel, self.max_velocity)]
-        
-    def update_velocity(self, dt: float):
-        #print(f'update_velocity({self.velocity}, {self.accel}, {self.target_velocity}) called')
-        self.set_velocity( [add_acc(v,a,dt,t) for v,a,t in zip(self.velocity,self.accel,self.target_velocity)] )
-
-    def update_pose(self, dt: float):
-        # print(f'update_pose({self.pose}, {self.velocity})')
-        x, y, th = self.pose
-        vx, vy, wz = self.velocity
-        ddx = vx * dt
-        ddy = vy * dt
-        ddth = wz * dt
-        cth = math.cos(th + ddth / 2)
-        sth = math.sin(th + ddth / 2)
-        dx = ddx * cth - ddy * sth
-        dy = ddx * sth + ddy * cth
-        dth = ddth
-        x = x + dx
-        y = y + dy
-        th = normalize_angle(th + dth)
-        self.set_pose((x,y,th))
-        
-    def update(self, dt: float):
-        # print(f'turtle_py.update({dt}) called')
-        try:
-            previous_time = self.timestamp
-            self.timestamp = time.time()
-            duration = self.timestamp - previous_time
-            self.update_velocity(duration)
-            self.update_pose(duration)
-            return self.timestamp
-        except:
-            traceback.print_exc()
         
 # def turtle(manifest):
 #     return Turtle()
@@ -282,8 +200,16 @@ def component_profile():
                         "type_name": "load_map",
                         "factory": "load_map_factory",
                         "arguments": {
-                            "map_filepath": {
-                                "default": "map.png"
+                            "map_metadata": {
+                                "default": {
+                                    "map": "map.png",
+                                    "width": 10.0,
+                                    "height": 10.0,
+                                    "position_of_topleft": {
+                                        "x": -5.0,
+                                        "y": -5.0
+                                    }
+                                }
                             }
                         }
                     },
@@ -356,6 +282,11 @@ def component_profile():
                         "factory": "update_factory",
                         "arguments": {
                         }
+                    },
+                    {
+                        "type_name": "get_map_metadata",
+                        "factory": "get_map_metadata_factory",
+                        "arguments": {}
                     }
                 ]  
             },

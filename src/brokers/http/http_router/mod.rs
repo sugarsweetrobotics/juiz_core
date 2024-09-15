@@ -7,6 +7,7 @@ use std::sync::{Mutex, Arc};
 use crate::brokers::CRUDBroker;
 use crate::value::capsule_to_value;
 
+use axum::http::HeaderValue;
 use opencv::core::{Vector, VectorToVec};
 use opencv::imgcodecs::imencode;
 
@@ -96,7 +97,10 @@ pub fn json_output_wrap(result: JuizResult<CapsulePtr>) -> impl IntoResponse {
         Ok(v) => {
             if v.is_value().unwrap() {
                 v.lock_as_value(|value| {
-                    Json(value).into_response()
+                    let mut r = Json(value).into_response();
+                    let mut hdrs = r.headers_mut();
+                    hdrs.append("Cache-Control", HeaderValue::from_str("no-cache").unwrap());
+                    r
                 }).unwrap()
             } else if v.is_mat().unwrap() {
                 v.lock_as_mat(|result| {

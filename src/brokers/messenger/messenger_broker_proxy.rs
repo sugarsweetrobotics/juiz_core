@@ -183,6 +183,16 @@ impl MessengerBrokerProxy {
             |value| Ok(value))
     }
 
+    pub fn update(&self, class_name: &str, function_name: &str, args: CapsuleMap, param: &[(String, String)]) -> JuizResult<CapsulePtr>  {
+        self.send_recv_and(
+            "UPDATE",
+            class_name,  
+            function_name, 
+            args, 
+            param,
+            |value| Ok(value))
+    }
+
     pub fn create(&self, class_name: &str, function_name: &str, args: CapsuleMap) -> JuizResult<CapsulePtr>  {
         self.send_recv_and(
             "CREATE",
@@ -232,6 +242,12 @@ impl SystemBrokerProxy for MessengerBrokerProxy {
     
     fn system_filesystem_list(&self, path_buf: std::path::PathBuf) -> JuizResult<Value> {
         capsule_to_value(self.read_with_param("system", "filesystem_list", &[("path".to_owned(), path_buf.to_str().unwrap().to_owned())])?)
+    }
+    
+    fn system_add_subsystem(&mut self, profile: Value) -> JuizResult<Value> {
+        let mut cp = CapsuleMap::new();
+        cp.insert("profile".to_owned(), profile.into());
+        capsule_to_value(self.update("system", "add_subsystem", cp, &[])?)
     }
 }
 

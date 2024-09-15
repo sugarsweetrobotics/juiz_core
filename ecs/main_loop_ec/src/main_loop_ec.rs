@@ -41,14 +41,16 @@ impl ExecutionContext for MainLoopEC {
     }
 
     fn execute(&self, core: &Arc<Mutex<ExecutionContextCore>>) -> JuizResult<bool> {
+        log::trace!("MainLoopEC({:}).execute() called", self.name);
         juiz_lock(&core)?.svc().and(Ok(false))
     }
 
     fn on_load(&mut self, system: &mut System, core: Arc<Mutex<ExecutionContextCore>>) -> () {
-        log::trace!("MainLoopEC({:}).on_load() called", self.name);
+        log::debug!("MainLoopEC({:}).on_load() called", self.name);
         let c = core.clone();
         let func: Box<dyn Fn() -> JuizResult<()>> = Box::new(move || -> JuizResult<()> {
             
+            log::trace!("MainLoopEC().execute_func() called");
             match juiz_lock(&c) {
                 Err(e) => return Err(e),
                 Ok(cc) => {

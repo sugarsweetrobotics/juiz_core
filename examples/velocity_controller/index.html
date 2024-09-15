@@ -1,0 +1,55 @@
+<head>
+    <title>Velocity Controller</title>
+    <link rel="stylesheet" type="text/css" href="static/css/turtle_sim.css" />
+</head>
+<body>
+    <style>
+        #content_img {
+            position: absolute;
+            top:0;
+            z-index: 1;
+            background-color: red;
+        }
+
+        #content_canvas {
+            position: absolute;
+            top:0;
+            z-index: 2;
+            background-color: transparent;
+        }
+
+        #velocity_controller_canvas {
+            position: absolute;
+            top:0px;
+        }
+    </style>
+    <div id="controller_div">
+        <canvas width="600px" height="600px" id="velocity_controller_canvas"></canvas>
+    </div>
+    <script src="juiz_js/juiz.js" type="text/javascript"></script>
+    <script src="static/js/velocity_controller.js" type="text/javascript"></script>
+    <script src="static/js/turtle_sim.js" type="text/javascript"></script>
+    <script>
+
+var loop_interval_ms = 100;
+var velController = new CanvasVelocityController(document.getElementById('velocity_controller_canvas'), 5.0, 1.5);
+var velocity_proc;
+var system = new juiz.System();
+window.addEventListener("load", async (event) => {
+    await velController.setup();
+    await system.setup();
+    velocity_proc = await system.process({type_name: "velocity_controller"});
+    setInterval(async ()=>{
+        const value = velController.update();
+        await velocity_proc.call_process({
+            velocity: {
+                "vx": value[0],
+                "vy": 0,
+                "wz": value[1]    
+            }
+        });
+    }, loop_interval_ms)
+});
+    </script>
+
+</body>

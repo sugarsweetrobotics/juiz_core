@@ -13,6 +13,9 @@ pub trait SystemBrokerProxy {
     fn system_profile_full(&self) -> JuizResult<Value>;
 
     fn system_filesystem_list(&self, path_buf: PathBuf) -> JuizResult<Value>;
+
+    fn system_add_subsystem(&mut self, profile: Value) -> JuizResult<Value>;
+
 }
 
 pub trait ProcessBrokerProxy {

@@ -1,12 +1,12 @@
-/// process_factory_impl.rs
-/// 
-/// 
-/// 
-use std::sync::{Mutex, Arc};
 
+use std::sync::{Arc, Mutex};
+
+use crate::object::JuizObjectClass;
 use crate::prelude::*;
-use crate::{object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, processes::{process_impl::ProcessImpl, process_ptr}, utils::check_process_factory_manifest, value::obj_get_str};
-use super::{process_impl::FunctionType, ProcessFactoryPtr};
+use crate::utils::check_process_factory_manifest;
+use crate::value::obj_get_str;
+use crate::{object::{JuizObjectCoreHolder, ObjectCore}, processes::{process_impl::ProcessImpl, process_ptr}};
+use crate::processes::process_impl::FunctionType;
 
 #[repr(C)]
 pub struct ProcessFactoryImpl {
@@ -33,8 +33,8 @@ impl ProcessFactoryImpl {
     }
 
     pub fn create(manifest: Value, function: FunctionType) -> JuizResult<ProcessFactoryPtr> {
-        log::trace!("ProcessFactoryImpl::create({:}) called", manifest);
-        Ok(Arc::new(Mutex::new(ProcessFactoryImpl::new(manifest, function)?)))
+       log::trace!("ProcessFactoryImpl::create({:}) called", manifest);
+       Ok(Arc::new(Mutex::new(ProcessFactoryImpl::new(manifest, function)?)))
     }
 
     fn apply_default_manifest(&self, manifest: Value) -> Result<Value, JuizError> {

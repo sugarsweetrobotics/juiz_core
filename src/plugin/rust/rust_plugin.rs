@@ -4,9 +4,9 @@ use libloading::Library;
 use std::{path::PathBuf, sync::{Arc, Mutex}};
 
 use crate::prelude::*;
-use crate::{prelude::ProcessFactoryPtr};
-
-use super::plugin::Plugin;
+use crate::prelude::ProcessFactoryPtr;
+use crate::plugin::Plugin;
+// use super::plugin::Plugin;
 
 pub struct RustPlugin {
     path: PathBuf,

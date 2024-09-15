@@ -50,13 +50,14 @@ use crate::value::obj_get_str;
 
 use crate::value::obj_merge;
 use crate::{connections::connection_builder::connection_builder, core::core_store::CoreStore};
-
+use super::subsystem_record::SubSystemRecord;
 
 #[allow(unused)]
 pub struct CoreBroker {
     core: ObjectCore,
     manifest: Value,
     core_store: CoreStore,
+    subsystem_records: Vec<SubSystemRecord>,
 }
 
 impl CoreBroker {
@@ -65,7 +66,8 @@ impl CoreBroker {
         Ok(CoreBroker{
             core: ObjectCore::create(JuizObjectClass::BrokerProxy("CoreBroker"), "core", "core"),
             manifest: check_corebroker_manifest(manifest)?,
-            core_store: CoreStore::new()
+            core_store: CoreStore::new(),
+            subsystem_records: Vec::new(),
         })
     }
 
@@ -402,6 +404,12 @@ impl SystemBrokerProxy for CoreBroker {
             }).or::<JuizError>(Ok(jvalue!("Error"))).unwrap())
             .collect::<Vec<Value>>();
         Ok(jvalue!(entries))
+    }
+    
+    fn system_add_subsystem(&mut self, profile: Value) -> JuizResult<Value> {
+        log::trace!("system_add_subsystem({profile}) called");
+        self.subsystem_records.push(SubSystemRecord::new(profile.clone())?);
+        Ok(profile)
     }
 }
 

@@ -3,7 +3,7 @@ use std::path::Path;
 
 use juiz_core::prelude::*;
 use juiz_core::utils::yaml_conf_load;
-use juiz_core::{log};
+use juiz_core::log;
 
 
 use clap::Subcommand;
