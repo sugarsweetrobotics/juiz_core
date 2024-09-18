@@ -72,7 +72,7 @@ impl CppPlugin {
             let symbol = self.load_symbol::<SymbolType>(full_symbol_name.as_bytes())?;
             (symbol)()
         };
-        Ok(Arc::new(Mutex::new(CppProcessFactoryImpl::new2(self.get_manifest(), f)?)))
+        Ok(Arc::new(Mutex::new(CppProcessFactoryImpl::new(self.get_manifest(), f)?)))
     }
 
 

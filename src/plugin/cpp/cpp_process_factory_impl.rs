@@ -1,6 +1,4 @@
 
-use std::rc::Rc;
-use super::cpp_plugin::CppPlugin;
 
 use crate::prelude::*;
 use crate::{object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, processes::{process_impl::ProcessImpl, process_ptr}, utils::check_process_factory_manifest, value::obj_get_str};
@@ -17,28 +15,7 @@ pub struct CppProcessFactoryImpl {
 
 impl CppProcessFactoryImpl {
 
-    pub fn _new(plugin: Rc<CppPlugin>, symbol_name: &str) -> JuizResult<Self> {
-        let type_name = obj_get_str(plugin.get_manifest(), "type_name")?;
-        let full_symbol_name = symbol_name.to_owned() + "_entry_point";
-        type SymbolType = libloading::Symbol<'static, unsafe fn() -> unsafe fn(*mut CapsuleMap, *mut Capsule)->i64>;
-        let f = unsafe {
-            let symbol = plugin.load_symbol::<SymbolType>(full_symbol_name.as_bytes())?;
-            (symbol)()
-        };
-
-        Ok(
-            CppProcessFactoryImpl{
-                core: ObjectCore::create_factory(JuizObjectClass::ProcessFactory("ProcessFactoryImpl"),
-                    type_name
-                ),
-                manifest: check_process_factory_manifest(plugin.get_manifest().clone())?, 
-                //plugin,
-                entry_point: f
-            }
-        )
-    }
-
-    pub fn new2(manifest: &Value, entry_point: unsafe fn(*mut CapsuleMap, *mut Capsule) -> i64) -> JuizResult<Self> {
+    pub fn new(manifest: &Value, entry_point: unsafe fn(*mut CapsuleMap, *mut Capsule) -> i64) -> JuizResult<Self> {
         let type_name = obj_get_str(manifest, "type_name")?;
         
         Ok(
@@ -70,56 +47,6 @@ impl JuizObjectCoreHolder for CppProcessFactoryImpl {
 
 impl JuizObject for CppProcessFactoryImpl {
 }
-
-/*
-fn valuearray_to_pyany(py: Python, arr: &Vec<Value>) -> Py<PyAny> {
-    arr.iter().map(|v| { value_to_pyany(py, v) }).collect::<Vec<Py<PyAny>>>().into_py(py)
-}
-
-fn valueobj_to_pyany(py: Python, map: &Map<String, Value>) -> Py<PyAny> {
-    map.iter().map(|(k, v)| { (k.clone(), value_to_pyany(py, v)) }).collect::<HashMap<String, Py<PyAny>>>().into_py(py)
-}
-
-fn value_to_pyany(py: Python, value: &Value) -> Py<PyAny> {
-    if value.is_i64() {
-        return (value.as_i64().unwrap()).into_py(py);
-    } else if value.is_f64() {
-        return (value.as_f64().unwrap()).into_py(py);
-    } else if value.is_boolean() {
-        return (value.as_bool().unwrap()).into_py(py);
-    } else if value.is_string() {
-        return (value.as_str().unwrap()).into_py(py);
-    } else if value.is_null() {
-        return (value.as_null().unwrap()).into_py(py);
-    } else if value.is_u64() { 
-        return (value.as_u64().unwrap()).into_py(py);
-    } else if value.is_array() { 
-        return valuearray_to_pyany(py, value.as_array().unwrap());
-    } else if value.is_object() {
-        return valueobj_to_pyany(py, value.as_object().unwrap());
-    }
-    todo!()
-}
-
-fn capsuleptr_to_pyany(py: Python, value: &CapsulePtr) -> Py<PyAny> {
-    if value.is_value().unwrap() {
-        return value.lock_as_value(|v| {
-            value_to_pyany(py, v)
-        }).unwrap();
-    }
-    todo!()
-}
-
-pub fn capsulemap_to_pytuple<'a>(py: Python, value: &'a CapsuleMap) -> Vec<Py<PyAny>> {
-    value.iter().map(|(_k, v)| { 
-        capsuleptr_to_pyany(py, v)
-    } ).collect::<Vec<Py<PyAny>>>()
-}
-
-pub fn value_to_pytuple<'a>(py: Python, value: &'a Value) -> Vec<Py<PyAny>> {
-    vec!(value_to_pyany(py, value))
-}
-*/
 
 impl ProcessFactory for CppProcessFactoryImpl {
 

@@ -10,7 +10,6 @@ use anyhow::Context;
 
 use crate::ecs::execution_context_function::ExecutionContextFunction;
 use crate::prelude::*;
-use crate::value::{obj_get_bool, obj_get_i64};
 use crate::{
     object::{JuizObject, ObjectCore, JuizObjectCoreHolder, JuizObjectClass},
     brokers::broker_factories_wrapper::BrokerFactoriesWrapper,
@@ -19,7 +18,6 @@ use crate::{
     utils::{
         get_array,
         juiz_lock,
-        when_contains_do,
         manifest_util::{construct_id, id_from_manifest, manifest_merge, when_contains_do_mut},
     }
 };
@@ -64,62 +62,6 @@ impl JuizObject for System {
         Ok(obj_merge(p, &jvalue!({
             "core_broker": bf,
         }))?.into())
-    }
-}
-
-fn get_options(manifest: &Value) -> Option<&Value> {
-    match manifest.as_object() {
-        Some(obj_manif) => {
-            match obj_manif.get("option") {
-                Some(v) => Some(v),
-                None => None
-            }
-        },
-        None => None
-    }
-}
-
-
-fn get_http_option(option: Option<&Value>) -> Option<&Value> {
-    if option.is_none() {
-        None
-    } else {
-        match option.unwrap().as_object() {
-            Some(opt_obj) => {
-                match opt_obj.get("http_broker") {
-                    Some(v) => Some(v),
-                    None => None
-                }
-            },
-            None => {
-                log::error!("Manifest file is invalid. option value must be object type.");
-                None
-            }
-        }
-    }
-}
-
-fn is_http_broker_start(option: Option<&Value>) -> bool {
-    match get_http_option(option) {
-        Some(http_broker_opt) => {
-            match obj_get_bool(http_broker_opt, "start") {
-                Ok(v) => return v,
-                Err(_e) => return true,
-            }
-        }
-        None => return true,
-    }
-}
-
-fn get_http_port(option: Option<&Value>) -> i64 {
-    match get_http_option(option) {
-        Some(http_broker_opt) => {
-            match obj_get_i64(http_broker_opt, "port") {
-                Ok(v) => return v,
-                Err(_e) => return 8000,
-            }
-        }
-        None => return 8000,
     }
 }
 
@@ -275,63 +217,21 @@ impl System {
             system_builder::setup_plugins(self, v).context("system_builder::setup_plugins in System::setup() failed")
         })?;
 
-        let _ = when_contains_do(&self.manifest, "processes", |v| {
-            system_builder::setup_processes(self, v).context("system_builder::setup_processes in System::setup() failed")
-        })?;
-
-        let _ = when_contains_do(&self.manifest, "containers", |v| {
-            system_builder::setup_containers(self, v).context("system_builder::setup_containers in System::setup() failed")
-        })?;
-        system_builder::setup_http_broker_factory(self).context("system_builder::setup_http_broker_factory in System::setup() failed.")?;
-        
-        {
-            let options = get_options(&self.manifest);
-            if is_http_broker_start(options) {
-                let port_number: i64 = get_http_port(options);
-                let opt = options.unwrap().clone();
-                system_builder::setup_http_broker(self, port_number, opt).context("system_builder::setup_http_broker in System::setup() failed.")?;
-            }
-        }
-
-        system_builder::setup_local_broker_factory(self).context("system_builder::setup_local_broker_factory in System::setup() failed.")?;
-        system_builder::setup_local_broker(self).context("system_builder::setup_local_broker in System::setup() failed.")?;
-
-        // system_builder::setup_ipc_broker_factory(self).context("system_builder::setup_ipc_broker_factory in System::setup() failed.")?;
-        //system_builder::setup_ipc_broker(self).context("system_builder::setup_ipc_broker in System::setup() failed.")?;
-        
-        let _ = when_contains_do_mut(&manifest_copied, "brokers", |v| {
-            system_builder::setup_brokers(self, v).context("system_builder::setup_brokers in System::setup() failed.")
-        })?;
-
-        for (type_name, broker) in self.brokers.iter() {
-            log::info!("starting Broker({type_name:})");
-            let _ = juiz_lock(&broker)?.start().context("Broker(type_name={type_name:}).start() in System::setup() failed.")?;
-        }
-
-        let _ = when_contains_do_mut(&manifest_copied, "broker_proxies", |v| {
-            system_builder::setup_broker_proxies(self, v).context("system_builder::setup_broker_proxies in System::setup() failed.")
-        })?;
-
-        let _ = when_contains_do(&manifest_copied, "ecs", |v| {
-            system_builder::setup_ecs(self, v).context("system_builder::setup_ecs in System::setup() failed")
-        })?;
-
-        let _ =  when_contains_do(&self.manifest, "connections", |v| {
-            system_builder::setup_connections(self, v).context("system_builder::setup_connections in System::setup() failed.")
-        })?;
-
+        system_builder::setup_objects(self, &manifest_copied)?;
 
         log::debug!("System::setup() successfully finished.");
         Ok(())
     }
 
     fn cleanup(&mut self) -> JuizResult<()> {
-        log::trace!("System::cleanup() called");
-        system_builder::cleanup_containers(self).context("system_builder::cleanup_cotainers in System::cleanup() failed")?;
-        system_builder::cleanup_processes(self).context("system_builder::cleanup_processes in System::cleanup() failed")?;
-        system_builder::cleanup_ecs(self).context("system_builder::cleanup_ecs in System::cleanup() failed")?;
-        system_builder::cleanup_brokers(self).context("system_builder::cleanup_brokers in System::cleanup() failed")?;
-        log::trace!("System::cleanup() exit");
+        system_builder::cleanup_objects(self)
+    }
+
+    pub fn start_brokers(&self) -> JuizResult<()> {
+        for (type_name, broker) in self.brokers.iter() {
+            log::info!("starting Broker({type_name:})");
+            let _ = juiz_lock(&broker)?.start().context("Broker(type_name={type_name:}).start() in System::setup() failed.")?;
+        }
         Ok(())
     }
 
