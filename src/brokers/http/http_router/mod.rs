@@ -98,7 +98,7 @@ pub fn json_output_wrap(result: JuizResult<CapsulePtr>) -> impl IntoResponse {
             if v.is_value().unwrap() {
                 v.lock_as_value(|value| {
                     let mut r = Json(value).into_response();
-                    let mut hdrs = r.headers_mut();
+                    let hdrs = r.headers_mut();
                     hdrs.append("Cache-Control", HeaderValue::from_str("no-cache").unwrap());
                     r
                 }).unwrap()

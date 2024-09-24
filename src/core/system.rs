@@ -28,7 +28,7 @@ use super::core_broker::{CoreBroker, CoreBrokerPtr};
 
 
 type SpinCallbackFunctionType = dyn Fn() -> JuizResult<()>;
-
+#[allow(unused)]
 
 pub struct SystemStore {
     broker_factories: HashMap<String, Arc<Mutex<BrokerFactoriesWrapper>>>,

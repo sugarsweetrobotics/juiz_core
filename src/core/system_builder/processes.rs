@@ -1,7 +1,7 @@
 
 use anyhow::Context;
 
-use crate::{plugin::JuizObjectPlugin, prelude::*, processes::ProcessFactoryWrapper, utils::{get_array, get_hashmap, sync_util::juiz_try_lock}, value::obj_get_str};
+use crate::{plugin::JuizObjectPlugin, prelude::*, processes::ProcessFactoryWrapper, utils::{get_array, get_hashmap}, value::obj_get_str};
 
 pub(super) fn setup_process_factories(system: &System, manifest: &serde_json::Value) -> JuizResult<()> {
     log::trace!("setup_process_factories({manifest:}) called");

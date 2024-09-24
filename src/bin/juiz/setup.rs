@@ -21,7 +21,7 @@ pub(crate) enum SetupSubCommands {
     },
 }
 
-pub(crate) fn on_setup(_manifest: Value, subcommand: SetupSubCommands, args: Args) -> JuizResult<()> {
+pub(crate) fn on_setup(_manifest: Value, subcommand: SetupSubCommands, _args: Args) -> JuizResult<()> {
     match subcommand {
         SetupSubCommands::Home {} => {  
             on_setup_home()
