@@ -3,6 +3,7 @@ use utoipa::OpenApi;
 use axum::extract::Query;
 use super::PathQuery;
 
+#[allow(unused)]
 #[utoipa::path(
     get,
     path = "/api/system/profile_full",
@@ -15,6 +16,7 @@ pub async fn profile_handler_dummy(){
 }
 
 
+#[allow(unused)]
 #[utoipa::path(
     get,
     path = "/api/system/filesystem_list",

@@ -11,7 +11,7 @@ fn digest_identifier_test() {
 
 
     let identifier = "core_broker://core/Process/hoge_func0::hoge_function";
-    assert_eq!(IdentifierStruct::from(identifier.to_string()), IdentifierStruct{ 
+    assert_eq!(IdentifierStruct::try_from(identifier.to_string()).unwrap(), IdentifierStruct{ 
         identifier: identifier.to_string(), 
         class_name: "Process".to_string(), 
         type_name: "hoge_function".to_string(),

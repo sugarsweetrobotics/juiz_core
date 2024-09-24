@@ -11,11 +11,11 @@ pub struct OneShotEC {
 }
 
 impl OneShotEC {
-    pub fn new(name: &str) -> Arc<Mutex<Self>> {
-        Arc::new(Mutex::new(Self{
-            name: name.to_string(),
-        }))
-    }
+    //pub fn new(name: &str) -> Arc<Mutex<Self>> {
+    //    Arc::new(Mutex::new(Self{
+    //        name: name.to_string(),
+    //    }))
+    //}
 }
 
 impl ExecutionContext for OneShotEC {

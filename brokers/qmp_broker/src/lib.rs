@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use juiz_core::{anyhow::{self, anyhow}, brokers::{create_broker_factory_impl, create_broker_proxy_factory_impl, CRUDBroker, CRUDBrokerHolder}, prelude::*};
+use juiz_core::{anyhow::{self, anyhow}, {create_broker_factory_impl, create_broker_proxy_factory_impl, CRUDBroker, CRUDBrokerHolder}, prelude::*};
 
 mod qmp_broker;
 mod qmp_broker_proxy;

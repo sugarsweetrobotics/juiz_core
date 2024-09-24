@@ -5,6 +5,7 @@ use utoipa::OpenApi;
 use super::IdentifierQuery;
 use axum::{extract::Query, Json};
 
+#[allow(unused)]
 #[utoipa::path(
     post,
     path = "/api/process/create",
@@ -19,6 +20,7 @@ _query: Query<IdentifierQuery>,
 Json(_body): Json<Value>) {
 }
 
+#[allow(unused)]
 #[utoipa::path(
     get,
     path = "/api/process/profile_full",
@@ -34,6 +36,7 @@ pub fn profile_handler_dummy(
     _query: Query<IdentifierQuery>,) {
 }
 
+#[allow(unused)]
 #[utoipa::path(
     get,
     path = "/api/process/list",
@@ -45,6 +48,7 @@ pub fn profile_handler_dummy(
 pub fn list_dummy() {
 }
 
+#[allow(unused)]
 #[utoipa::path(
     patch,
     path = "/api/process/call",
@@ -63,6 +67,7 @@ Json(_body): Json<Value>) {
 }
 
 
+#[allow(unused)]
 #[utoipa::path(
     patch,
     path = "/api/process/execute",
@@ -80,6 +85,7 @@ _query: Query<IdentifierQuery>,
 Json(_body): Json<Value>) {
 }
 
+#[allow(unused)]
 #[utoipa::path(
     delete,
     path = "/api/process/destroy",

@@ -25,6 +25,7 @@ pub struct CreateConnectionRequest {
     arg_name: String,
 }
 
+#[allow(unused)]
 #[utoipa::path(
     post,
     path = "/api/connection/create",
@@ -37,6 +38,7 @@ pub struct CreateConnectionRequest {
 pub fn create_dummy() {
 }
 
+#[allow(unused)]
 #[utoipa::path(
     get,
     path = "/api/connection/profile_full",
@@ -52,6 +54,7 @@ pub fn profile_handler_dummy(
     _query: Query<IdentifierQuery>,) {
 }
 
+#[allow(unused)]
 #[utoipa::path(
     get,
     path = "/api/connection/list",

@@ -1,9 +1,6 @@
 extern crate juiz_core;
 use std::sync::{Arc, Mutex};
-
-use juiz_core::plugin::ProcessFactoryImpl;
-
-use juiz_core::prelude::*;
+use juiz_core::{prelude::*, SystemStore, SystemStorePtr};
 
 mod common;
 
@@ -25,11 +22,12 @@ fn new_process_factory(cb: &mut CoreBroker) -> Arc<Mutex<dyn ProcessFactory>> {
 }
 
 fn new_core_broker() -> CoreBroker {
+
     let result = CoreBroker::new(jvalue!(
         {
             "name": "core_broker"
         }
-    ));
+    ), SystemStorePtr::new(SystemStore::new()));
     
     assert!(result.is_ok(), "CoreBroker::new failed. {:?}", result.err());
     result.ok().unwrap()
@@ -39,7 +37,7 @@ fn new_core_broker() -> CoreBroker {
 //#[test]
 #[allow(dead_code)]
 fn core_broker_process_factory_integration_test() {
-    use juiz_core::brokers::broker_proxy::ProcessBrokerProxy;
+    //use juiz_core::ProcessBrokerProxy;
 
     let mut cb = new_core_broker();
     let _pf = new_process_factory(&mut cb);
@@ -81,7 +79,7 @@ fn core_broker_process_factory_integration_test() {
 #[cfg(test)]
 #[test]
 fn core_broker_process_factory_integration_connection_test() {
-    use juiz_core::brokers::broker_proxy::{ConnectionBrokerProxy, ProcessBrokerProxy};
+    //use juiz_core::brokers::broker_proxy::{ConnectionBrokerProxy, ProcessBrokerProxy};
 
     let mut cb = new_core_broker();
     let _pf = new_process_factory(&mut cb);

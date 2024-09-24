@@ -12,4 +12,4 @@ pub mod one_shot_ec;
 pub use execution_context::ExecutionContext;
 pub use execution_context_core::ExecutionContextCore;
 pub use execution_context_factory::ExecutionContextFactory;
-pub use execution_context::ECServiceFunction;
+//pub use execution_context::ECServiceFunction;

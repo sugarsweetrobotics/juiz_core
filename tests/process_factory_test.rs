@@ -2,10 +2,8 @@
 extern crate juiz_core;
 
 use juiz_core::prelude::*;
-use juiz_core::utils::juiz_lock;
 use std::sync::{Arc, Mutex};
 
-use juiz_core::plugin::ProcessFactoryImpl;
 
 mod common;
 

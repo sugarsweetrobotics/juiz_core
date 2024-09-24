@@ -1,4 +1,4 @@
-use std::{sync::{atomic::AtomicBool, mpsc, Arc, Mutex}, time::Duration};
+use std::{sync::{atomic::AtomicBool, Arc, Mutex}, time::Duration};
 
 use tokio::runtime;
 
@@ -21,10 +21,10 @@ pub struct MessengerBroker {
     tokio_runtime: Option<runtime::Runtime>,
 }
 
-pub type SenderType = dyn Fn(CapsuleMap) -> JuizResult<()>;
-pub type ReceiverType = dyn Fn(Duration) -> JuizResult<Capsule>;
+// pub type SenderType = dyn Fn(CapsuleMap) -> JuizResult<()>;
+// pub type ReceiverType = dyn Fn(Duration) -> JuizResult<Capsule>;
 
-pub struct SendReceivePair(pub Box<SenderType>, pub Box<ReceiverType>);
+// pub struct SendReceivePair(pub Box<SenderType>, pub Box<ReceiverType>);
 
 pub trait MessengerBrokerCore : Send {
     fn receive_and_send(&self, timeout: Duration, func: Arc<Mutex<dyn Fn(CapsuleMap)->JuizResult<CapsulePtr >>>) -> JuizResult<Capsule>;
@@ -34,7 +34,7 @@ pub trait MessengerBrokerCoreFactory {
     fn create(&self, manifest: &Value) -> JuizResult<Arc<Mutex<dyn MessengerBrokerCore>>>;
 }
 
-pub struct SenderReceiverPair(pub mpsc::Sender<Value>, pub mpsc::Receiver<Value>);
+// pub(crate) struct SenderReceiverPair(pub mpsc::Sender<Value>, pub mpsc::Receiver<Value>);
 
 impl MessengerBroker {
 

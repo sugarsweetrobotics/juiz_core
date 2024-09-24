@@ -5,9 +5,9 @@ use crate::prelude::*;
 
 use super::execution_context_core::ExecutionContextCore;
 
-pub trait ECServiceFunction : Fn()->JuizResult<()> + Send + Sync {
+// pub trait ECServiceFunction : Fn()->JuizResult<()> + Send + Sync {
 
-}
+// }
 
 pub trait ExecutionContext : Send + Sync {
 

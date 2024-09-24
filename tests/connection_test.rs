@@ -6,7 +6,6 @@ use std::sync::RwLock;
 
 
 use juiz_core::prelude::*;
-use crate::juiz_core::connections::connect;
 
 mod common;
 

@@ -8,7 +8,7 @@ use axum::Json;
 
 use crate::prelude::*;
 
-
+#[allow(unused)]
 #[utoipa::path(
     patch,
     path = "/api/execution_context/start",
@@ -25,6 +25,7 @@ pub fn start_dummy(
     Json(_body): Json<Value>) {
 }
 
+#[allow(unused)]
 #[utoipa::path(
     patch,
     path = "/api/execution_context/stop",
@@ -42,6 +43,7 @@ pub fn stop_dummy(
 }
 
 
+#[allow(unused)]
 #[utoipa::path(
     get,
     path = "/api/execution_context/profile_full",
@@ -58,6 +60,7 @@ pub fn profile_handler_dummy(
 }
 
 
+#[allow(unused)]
 #[utoipa::path(
     get,
     path = "/api/execution_context/get_state",
@@ -73,6 +76,7 @@ pub fn get_state_dummy(
     _query: Query<IdentifierQuery>,) {
 }
 
+#[allow(unused)]
 #[utoipa::path(
     get,
     path = "/api/execution_context/list",

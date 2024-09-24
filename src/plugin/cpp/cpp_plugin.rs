@@ -118,9 +118,9 @@ impl CppPlugin {
     //    self.load_process_factory_with_manifest(working_dir.clone(), self.manifest.clone())
     // }
 
-    pub unsafe fn get_cpp_process_symbol(&self, entry_point_name: &str) -> JuizResult<Symbol<extern "C" fn(*mut CapsuleMap, *mut Capsule) -> i64>> {
-        Ok(self.lib.get(entry_point_name.as_bytes())?)
-    }
+    // pub unsafe fn get_cpp_process_symbol(&self, entry_point_name: &str) -> JuizResult<Symbol<extern "C" fn(*mut CapsuleMap, *mut Capsule) -> i64>> {
+    //     Ok(self.lib.get(entry_point_name.as_bytes())?)
+    // }
     
     // fn load_process_factory_with_manifest(&mut self, working_dir: Option<PathBuf>, manifest: Value) -> JuizResult<Arc<Mutex<dyn ProcessFactory>>> {
     //     let type_name = obj_get_str(&self.manifest, "type_name")?.to_owned();

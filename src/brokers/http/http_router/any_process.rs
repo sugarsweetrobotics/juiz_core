@@ -4,6 +4,7 @@ use super::IdentifierQuery;
 
 use axum::extract::Query;
 
+#[allow(unused)]
 #[utoipa::path(
     get,
     path = "/api/any_process/profile_full",
@@ -19,6 +20,7 @@ pub fn profile_handler_dummy(
    _query: Query<IdentifierQuery>,) {
 }
 
+#[allow(unused)]
 #[utoipa::path(
     get,
     path = "/api/any_process/list",
@@ -39,4 +41,5 @@ pub fn list_dummy() {
     components(schemas(
     ))
 )]
+#[allow(unused)]
 pub struct ApiDoc;

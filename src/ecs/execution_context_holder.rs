@@ -203,9 +203,9 @@ impl ExecutionContextHolder {
 
 
     
-    pub fn identifier(&self) -> &Identifier {
-        self.object_core.identifier()
-    }
+    // pub fn identifier(&self) -> &Identifier {
+    //     self.object_core.identifier()
+    // }
 
 }
 

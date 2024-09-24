@@ -5,9 +5,9 @@ use crate::{brokers::messenger_broker_proxy_factory::create_messenger_broker_pro
 
 use super::local_broker::ProxySideSenderReceiverPair;
 
-use crate::brokers::{BrokerProxyFactory, MessengerBrokerProxy, MessengerBrokerProxyCore, MessengerBrokerProxyCoreFactory};
+use crate::brokers::{BrokerProxyFactory, MessengerBrokerProxyCore, MessengerBrokerProxyCoreFactory};
 
-pub type LocalBrokerProxy = MessengerBrokerProxy;
+//pub type LocalBrokerProxy = MessengerBrokerProxy;
 pub struct LocalBrokerProxyCore {
     sender_receiver: Arc<Mutex<ProxySideSenderReceiverPair>>,
 }
@@ -49,9 +49,9 @@ impl MessengerBrokerProxyCore for LocalBrokerProxyCore {
 }
 
 impl LocalBrokerProxyCore {
-    pub fn new(sender_receiver: Arc<Mutex<ProxySideSenderReceiverPair>> ) -> LocalBrokerProxyCore {
-        LocalBrokerProxyCore{sender_receiver}
-    }
+    // pub fn new(sender_receiver: Arc<Mutex<ProxySideSenderReceiverPair>> ) -> LocalBrokerProxyCore {
+    //     LocalBrokerProxyCore{sender_receiver}
+    // }
 }
 
 pub fn create_local_broker_proxy_factory(sender_receiver: Arc<Mutex<ProxySideSenderReceiverPair>>) -> JuizResult<Arc<Mutex<dyn BrokerProxyFactory>>> {

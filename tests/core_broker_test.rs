@@ -1,7 +1,7 @@
 extern crate juiz_core;
 
 use juiz_core::prelude::*;
-use crate::juiz_core::processes::process_impl::*;
+//use crate::juiz_core::processes::process_impl::*;
 
 use std::sync::Arc;
 
@@ -30,14 +30,16 @@ fn new_increment_process<'a> () -> ProcessImpl  {
 fn core_broker_test() {
     use std::sync::RwLock;
 
-    use juiz_core::brokers::broker_proxy::ProcessBrokerProxy;
+    use juiz_core::{SystemStore, SystemStorePtr};
+
+    //use juiz_core::brokers::broker_proxy::ProcessBrokerProxy;
 
     
     let result = CoreBroker::new(jvalue!(
         {
             "name": "core_broker"
         }
-    ));
+    ), SystemStorePtr::new(SystemStore::new()));
     if result.is_err() {
         assert!(false, "CoreBroker::new failed. {:?}", result.err())
     }

@@ -5,6 +5,7 @@ use axum::extract::Query;
 
 
 
+#[allow(unused)]
 #[utoipa::path(
     get,
     path = "/api/broker/profile_full",
@@ -20,6 +21,7 @@ pub fn profile_handler_dummy(
     _query: Query<IdentifierQuery>,) {
 }
 
+#[allow(unused)]
 #[utoipa::path(
     get,
     path = "/api/broker/list",

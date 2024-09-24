@@ -4,6 +4,7 @@ use super::IdentifierQuery;
 use axum::extract::Query;
 
 
+#[allow(unused)]
 #[utoipa::path(
     get,
     path = "/api/container/profile_full",
@@ -20,6 +21,7 @@ pub fn profile_handler_dummy(
 }
 
 
+#[allow(unused)]
 #[utoipa::path(
     get,
     path = "/api/container/list",
@@ -32,6 +34,7 @@ pub fn list_dummy() {
 }
 
 
+#[allow(unused)]
 #[utoipa::path(
     delete,
     path = "/api/container/destroy",

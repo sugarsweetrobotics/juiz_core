@@ -164,4 +164,5 @@ pub fn object_router(crud_broker: Arc<Mutex<CRUDBroker>>) -> Router {
     components(schemas(
     ))
 )]
+#[allow(unused)]
 pub struct ApiDoc;

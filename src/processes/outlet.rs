@@ -25,9 +25,9 @@ impl Outlet {
         }
     }
 
-    pub fn use_memo(&self) -> bool {
-        self.use_memo
-    }
+    // pub fn use_memo(&self) -> bool {
+    //     self.use_memo
+    // }
 
     pub fn push(&self, output: CapsulePtr) -> JuizResult<CapsulePtr> {
         for (_name, dc) in self.destination_connections.iter() {

@@ -8,9 +8,9 @@ use crate::{brokers::messenger_broker_proxy_factory::create_messenger_broker_pro
 
 //use super::ipc_broker::ProxySideSenderReceiverPair;
 
-use crate::brokers::{BrokerProxyFactory, MessengerBrokerProxy, MessengerBrokerProxyCore, MessengerBrokerProxyCoreFactory};
+use crate::brokers::{BrokerProxyFactory, MessengerBrokerProxyCore, MessengerBrokerProxyCoreFactory};
 
-pub type IPCBrokerProxy = MessengerBrokerProxy;
+// pub type IPCBrokerProxy = MessengerBrokerProxy;
 
 #[allow(unused)]
 pub struct IPCBrokerProxyCore {
@@ -21,9 +21,9 @@ pub struct IPCBrokerProxyCore {
 }
 
 impl IPCBrokerProxyCore {
-    pub fn new(name: &str, buf_reader: BufReader<Stream>, buf_size: usize) -> IPCBrokerProxyCore {
-        IPCBrokerProxyCore{name: name.to_owned(), buf_reader: RefCell::new(buf_reader), buf_size}
-    }
+    //pub fn new(name: &str, buf_reader: BufReader<Stream>, buf_size: usize) -> IPCBrokerProxyCore {
+    //    IPCBrokerProxyCore{name: name.to_owned(), buf_reader: RefCell::new(buf_reader), buf_size}
+    // }
 }
 
 pub struct IPCBrokerProxyCoreFactory {

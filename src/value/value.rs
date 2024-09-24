@@ -8,7 +8,7 @@ pub use serde_json::json as jvalue;
 use crate::prelude::*;
 use crate::utils::{get_array, get_hashmap, manifest_util::{get_array_mut, get_hashmap_mut}};
 
-
+#[allow(unused)]
 #[repr(transparent)]
 //#[repr(C)]
 pub struct JValue(pub serde_json::Value, );

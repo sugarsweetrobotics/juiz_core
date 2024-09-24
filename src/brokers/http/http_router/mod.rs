@@ -55,6 +55,7 @@ pub fn query_to_map(query: &Query<IdentifierQuery>) -> HashMap<String, String> {
     map
 }
 
+#[allow(unused)]
 pub fn json_wrap(result: JuizResult<CapsulePtr>) -> impl IntoResponse {
     match result {
         Err(e) => {

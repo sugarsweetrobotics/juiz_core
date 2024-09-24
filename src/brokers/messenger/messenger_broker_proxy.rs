@@ -12,10 +12,10 @@ pub struct MessengerBrokerProxy {
     messenger: Box<dyn MessengerBrokerProxyCore>,
 }
 
-pub type SenderType = dyn Fn(CapsuleMap) -> JuizResult<()>;
-pub type ReceiverType = dyn Fn(Duration) -> JuizResult<CapsulePtr>;
+// pub type SenderType = dyn Fn(CapsuleMap) -> JuizResult<()>;
+// pub type ReceiverType = dyn Fn(Duration) -> JuizResult<CapsulePtr>;
 
-pub struct SendReceivePair(pub Box<SenderType>, pub Box<ReceiverType>);
+// pub struct SendReceivePair(pub Box<SenderType>, pub Box<ReceiverType>);
 pub trait MessengerBrokerProxyCore : Send {
     fn send_and_receive(&self, v: CapsuleMap, timeout: Duration) -> JuizResult<CapsulePtr>;
     fn send_and_receive_output(&self, v: CapsuleMap, timeout: Duration) -> JuizResult<CapsulePtr>;

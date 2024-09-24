@@ -67,9 +67,9 @@ pub fn process_ptr<T>(proc: T) -> ProcessPtr where T: Process + 'static {
     Arc::new(RwLock::new(proc))
 }
 
-pub fn process_ptr_clone(ptr: &ProcessPtr) -> ProcessPtr {
-    Arc::clone(ptr)
-}
+// pub fn process_ptr_clone(ptr: &ProcessPtr) -> ProcessPtr {
+//     Arc::clone(ptr)
+// }
 
 pub fn proc_lock<'a>(obj: &'a ProcessPtr) -> JuizResult<RwLockReadGuard<'a, dyn Process>> {
     match obj.read() {

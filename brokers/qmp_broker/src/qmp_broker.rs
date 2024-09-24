@@ -3,7 +3,8 @@
 use std::sync::Mutex;
 use std::time::Duration;
 use std::{net::SocketAddr, sync::Arc};
-use juiz_core::{prelude::*, utils::juiz_lock, value::{obj_get_i64, obj_get_str}, tokio, anyhow::{self, anyhow}, brokers::CRUDBroker};
+use juiz_core::anyhow::Context;
+use juiz_core::{prelude::*, tokio, anyhow::{self, anyhow}, CRUDBroker};
 
 use quinn::{Connection, Endpoint, Incoming};
 use rustls::pki_types::CertificateDer;
@@ -32,8 +33,20 @@ fn make_span(conn: &Connection) -> Span {
 pub fn make_server_endpoint(
     bind_addr: SocketAddr,
 ) -> anyhow::Result<(Endpoint, CertificateDer<'static>)> { // Result<(Endpoint, CertificateDer<'static>), Box<dyn Error + Send + Sync + 'static>> {
-    let (server_config, server_cert) = configure_server()?;
-    let endpoint = Endpoint::server(server_config, bind_addr)?;
+    let (server_config, server_cert) = match configure_server() {
+        Ok(v) => Ok(v),
+        Err(e) => {
+            log::error!("configure_server() in make_server_endpoint failed. Error({e:?})");
+            Err(anyhow!(e))
+        },
+    }.context("configure_server() failed")?;
+    let endpoint = match Endpoint::server(server_config.clone(), bind_addr) {
+        Ok(v) => Ok(v),
+        Err(e) => {
+            log::error!("Endpoint::server({server_config:?}, {bind_addr}) in make_server_endpoint failed. Error({e:?})");
+            Err(anyhow!(e))
+        }
+    }.with_context(|| {format!("Endpoint::server({server_config:?}, {bind_addr}) failed")})?;
     Ok((endpoint, server_cert))
 }
 
@@ -97,7 +110,13 @@ pub async fn on_start(broker_manifest: Value, crud_broker: Arc<Mutex<CRUDBroker>
 
 /// Runs a QUIC server bound to given address.
 async fn run_server<F>(addr: SocketAddr, callback: Arc<F>) where F: Fn(Vec<u8>)-> anyhow::Result<Vec<u8>>  + Send + Sync + 'static {
-    let (endpoint, _server_cert) = make_server_endpoint(addr).unwrap();
+    let (endpoint, _server_cert) = match make_server_endpoint(addr) {
+        Ok(v) => Ok(v), 
+        Err(e) => {
+            println!("calling make_server_endpoint failed. Error {e:?}");
+            Err(e)
+        }
+    }.unwrap();
     //let cb = Arc::new(callback);
     loop {
         log::trace!("endpoint.accept in run_server()");
