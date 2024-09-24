@@ -3,7 +3,7 @@ use std::{sync::{atomic::AtomicBool, mpsc, Arc, Mutex}, time::Duration};
 use tokio::runtime;
 
 
-use crate::{core::core_broker::CoreBroker, prelude::*};
+use crate::{core::core_broker::{CoreBroker, CoreBrokerPtr}, prelude::*};
 use crate::{object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, value::{Capsule, CapsuleMap}, utils::juiz_lock};
 use crate::brokers::Broker;
 use std::sync::atomic::Ordering::SeqCst;
@@ -38,7 +38,7 @@ pub struct SenderReceiverPair(pub mpsc::Sender<Value>, pub mpsc::Receiver<Value>
 
 impl MessengerBroker {
 
-    pub fn new<'a>(impl_class_name: &'static str, type_name: &'a str, object_name: &'a str, core_broker: Arc<Mutex<CoreBroker>>, messenger: Arc<Mutex<dyn MessengerBrokerCore>> ) -> JuizResult<Arc<Mutex<dyn Broker>>>{
+    pub fn new<'a>(impl_class_name: &'static str, type_name: &'a str, object_name: &'a str, core_broker: CoreBrokerPtr, messenger: Arc<Mutex<dyn MessengerBrokerCore>> ) -> JuizResult<Arc<Mutex<dyn Broker>>>{
         Ok(Arc::new(Mutex::new(
             MessengerBroker{
                 core: ObjectCore::create(JuizObjectClass::Broker(impl_class_name), type_name, object_name),

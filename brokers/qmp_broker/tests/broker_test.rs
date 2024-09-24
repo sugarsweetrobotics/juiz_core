@@ -1,14 +1,15 @@
 use std::sync::{Arc, Mutex};
 
 
-use juiz_core::prelude::*;
+use juiz_core::{prelude::*, SystemStore, SystemStorePtr};
 use juiz_core::{brokers::CRUDBroker, futures, prelude::*, tokio};
 
 extern crate qmp_broker;
 extern crate juiz_core;
 #[test]
 fn broker_test() {
-    let core = Arc::new(Mutex::new(CoreBroker::new(jvalue!({})).unwrap()));
+    let system_store = SystemStorePtr::new(SystemStore::new());
+    let core = CoreBrokerPtr::new(CoreBroker::new(jvalue!({}), system_store).unwrap());
     let crud = Arc::new(Mutex::new(CRUDBroker::new(core).unwrap()));
     let manifest = jvalue!({
         "type_name": "qmp",

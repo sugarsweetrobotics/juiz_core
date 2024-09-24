@@ -14,24 +14,30 @@ pub fn setup_http_broker_factory(system: &mut System) -> JuizResult<()> {
 
 
 
-fn get_http_staticfilepaths(options: &Value) -> Option<&Value> {
-    match obj_get_obj(options, "http_broker") {
-        Ok(http_opt) => {
-            match http_opt.get("static_filepaths") {
-                Some(v) => { 
-                    Some(v)
-                },
-                None => None
+fn get_http_staticfilepaths(options: Option<&Value>) -> Option<&Value> {
+    match options {
+        Some(opt) => {
+            match obj_get_obj(opt, "http_broker") {
+                Ok(http_opt) => {
+                    match http_opt.get("static_filepaths") {
+                        Some(v) => { 
+                            Some(v)
+                        },
+                        None => None
+                    }
+                }
+                Err(_) => None
             }
         }
-        Err(_) => None
+        None => None
     }
+   
    
 }
 
-pub(super) fn setup_http_broker(system: &mut System, port_number: i64, options: Value) -> JuizResult<()> {
+pub(super) fn setup_http_broker(system: &mut System, port_number: i64, options: Option<&Value>) -> JuizResult<()> {
     log::trace!("system_builder::setup_http_broker() called");
-    let manifest = match get_http_staticfilepaths(&options) {
+    let manifest = match get_http_staticfilepaths(options) {
         None => {
             jvalue!({
                 "type_name": "http",

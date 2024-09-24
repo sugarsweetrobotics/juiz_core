@@ -1,5 +1,6 @@
 use std::sync::{Arc, Mutex};
 
+use crate::core::core_broker::CoreBrokerPtr;
 use crate::prelude::*;
 use crate::{brokers::Broker, object::{JuizObjectCoreHolder, ObjectCore, JuizObjectClass}, value::obj_get_str};
 
@@ -15,12 +16,12 @@ pub trait BrokerFactory : JuizObject {
 
 pub struct BrokerFactoryImpl {
     core: ObjectCore,
-    core_broker: Arc<Mutex<dyn BrokerProxy>>,
-    create_function: fn(core_broker: Arc<Mutex<dyn BrokerProxy>>, Value)->JuizResult<Arc<Mutex<dyn Broker>>>,
+    core_broker: CoreBrokerPtr,
+    create_function: fn(core_broker: CoreBrokerPtr, Value)->JuizResult<Arc<Mutex<dyn Broker>>>,
 }
 
 impl BrokerFactoryImpl {
-    pub fn new(core_broker: Arc<Mutex<dyn BrokerProxy>>, manifest: Value, create_function: fn(core_broker: Arc<Mutex<dyn BrokerProxy>>, Value)->JuizResult<Arc<Mutex<dyn Broker>>>) -> JuizResult<Arc<Mutex<BrokerFactoryImpl>>> {
+    pub fn new(core_broker: CoreBrokerPtr, manifest: Value, create_function: fn(core_broker: CoreBrokerPtr, Value)->JuizResult<Arc<Mutex<dyn Broker>>>) -> JuizResult<Arc<Mutex<BrokerFactoryImpl>>> {
         let class_name = "BrokerFactoryImpl";
         let type_name = obj_get_str(&manifest, "type_name")?;
         
@@ -49,7 +50,7 @@ impl BrokerFactory for BrokerFactoryImpl {
     }
 }
 
-pub fn create_broker_factory_impl(core_broker: Arc<Mutex<dyn BrokerProxy>>, manifest: Value, create_broker_function: fn(core_broker: Arc<Mutex<dyn BrokerProxy>>, Value)->JuizResult<Arc<Mutex<dyn Broker>>>) -> JuizResult<Arc<Mutex<dyn BrokerFactory>>>{
+pub fn create_broker_factory_impl(core_broker: CoreBrokerPtr, manifest: Value, create_broker_function: fn(core_broker: CoreBrokerPtr, Value)->JuizResult<Arc<Mutex<dyn Broker>>>) -> JuizResult<Arc<Mutex<dyn BrokerFactory>>>{
     Ok(BrokerFactoryImpl::new(core_broker, manifest, create_broker_function)?)
 }
 

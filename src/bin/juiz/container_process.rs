@@ -8,27 +8,29 @@ use juiz_core::log;
 
 use clap::Subcommand;
 
+use crate::Args;
 
-#[derive(Debug, Subcommand)]
+
+#[derive(Debug, Subcommand, Clone)]
 pub(crate) enum ContProcSubCommands {
     /// get logs
     #[clap(arg_required_else_help = false)]
     List {
-        #[arg(short = 's', default_value = "localhost:8080", help = "Host of server (ex., localhost:8080)")]
-        server: String,
-        
         #[arg(short = 'f', default_value = "./juiz.conf", help = "Input system definition file path")]
         filepath: String,
     }
 }
 
-pub(crate) fn on_container_process(_manifest: Value, working_dir: &Path, subcommand: ContProcSubCommands) -> JuizResult<()> {
+pub(crate) fn on_container_process(_manifest: Value, working_dir: &Path, subcommand: ContProcSubCommands, args: Args) -> JuizResult<()> {
     match subcommand {
-        ContProcSubCommands::List { server, filepath} => {
+        ContProcSubCommands::List { filepath} => {
             log::trace!("container-process list command is selected.");
             let manifest2 = yaml_conf_load(filepath.clone())?;
+            let server = args.server;
             System::new(manifest2)?
             .set_working_dir(working_dir)
+            .start_http_broker(args.start_http_broker)
+            .setup()?
             .run_and_do_once( |system| { on_container_process_list(system, server) }) 
         }
     }

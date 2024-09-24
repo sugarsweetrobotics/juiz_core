@@ -8,14 +8,13 @@ use juiz_core::log;
 use juiz_core::prelude::*;
 use clap::Subcommand;
 
-#[derive(Debug, Subcommand)]
+use crate::Args;
+
+#[derive(Debug, Subcommand, Clone)]
 pub(crate) enum EcSubCommands {
     /// get logs
     #[clap(arg_required_else_help = false)]
     List {
-        #[arg(short = 's', default_value = "localhost:8080", help = "Host of server (ex., localhost:8080)")]
-        server: String,
-        
         #[arg(short = 'f', default_value = "./juiz.conf", help = "Input system definition file path")]
         filepath: String,
     },
@@ -25,9 +24,6 @@ pub(crate) enum EcSubCommands {
         #[arg(help = "ID of Execution context")]
         identifier: String,
 
-        #[arg(short = 's', default_value = "localhost:8080", help = "Host of server (ex., localhost:8080)")]
-        server: String,
-        
         #[arg(short = 'f', default_value = "./juiz.conf", help = "Input system definition file path")]
         filepath: String,
     },
@@ -35,22 +31,24 @@ pub(crate) enum EcSubCommands {
 
 
 
-pub(crate) fn on_execution_context(manifest: Value, working_dir: &Path, subcommand: EcSubCommands) -> JuizResult<()> {
-    match on_ec_inner(manifest, working_dir, subcommand) {
+pub(crate) fn on_execution_context(manifest: Value, working_dir: &Path, subcommand: EcSubCommands, args: Args) -> JuizResult<()> {
+    match on_ec_inner(manifest, working_dir, subcommand, args) {
          Ok(_) => return Ok(()),
          Err(e) => println!("Error: {e:?}")
      };
     Ok(())
 }
 
-pub(crate) fn on_ec_inner(_manifest: Value, working_dir: &Path, subcommand: EcSubCommands) -> JuizResult<()> {
+pub(crate) fn on_ec_inner(_manifest: Value, working_dir: &Path, subcommand: EcSubCommands, args: Args) -> JuizResult<()> {
     match subcommand {
-        EcSubCommands::List { server, filepath} => {
+        EcSubCommands::List {filepath} => {
             log::trace!("ec list command is selected.");
             let manifest2 = yaml_conf_load(filepath.clone())?;
-
+            let server = args.server;
             System::new(manifest2)?
                 .set_working_dir(working_dir)
+                .start_http_broker(args.start_http_broker)
+                .setup()?
                 .run_and_do_once( |system| { 
                 
                     on_ec_list(system, server)
@@ -58,11 +56,14 @@ pub(crate) fn on_ec_inner(_manifest: Value, working_dir: &Path, subcommand: EcSu
             }) 
         },
 
-        EcSubCommands::Start { identifier, server, filepath} => {
+        EcSubCommands::Start { identifier, filepath} => {
             log::trace!("ec start command is selected.");
             let manifest2 = yaml_conf_load(filepath.clone())?;
+            let server = args.server;
             System::new(manifest2)?
                 .set_working_dir(working_dir)
+                .start_http_broker(args.start_http_broker)
+                .setup()?
                 .run_and_do_once( |system| { 
                 
                     on_ec_start(system, server, identifier)

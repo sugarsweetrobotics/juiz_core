@@ -17,6 +17,6 @@ pub(super) fn setup_subsystems(system: &System, manifest: &Value) -> JuizResult<
 }
 
 fn setup_subsystem(system: &System, manifest: &Value) -> JuizResult<()> { 
-    let _ = juiz_lock(& system.core_broker())?.system_add_subsystem(manifest.clone())?;
+    let _ = & system.core_broker().lock_mut()?.system_add_subsystem(manifest.clone())?;
     Ok(())
 }

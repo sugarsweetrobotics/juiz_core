@@ -1,11 +1,13 @@
 
 
+use std::ops::{Deref, DerefMut, Sub};
 use std::path::PathBuf;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use anyhow::Context;
 use crate::ecs::execution_context_proxy::ExecutionContextProxy;
 use crate::prelude::*;
+use crate::anyhow::anyhow;
 
 use crate::containers::container_process_impl::container_proc_lock_mut;
 use crate::containers::container_lock;
@@ -50,24 +52,48 @@ use crate::value::obj_get_str;
 
 use crate::value::obj_merge;
 use crate::{connections::connection_builder::connection_builder, core::core_store::CoreStore};
-use super::subsystem_record::SubSystemRecord;
+use super::subsystem_proxy::SubSystemProxy;
+use super::system::SystemStorePtr;
 
 #[allow(unused)]
 pub struct CoreBroker {
     core: ObjectCore,
     manifest: Value,
     core_store: CoreStore,
-    subsystem_records: Vec<SubSystemRecord>,
+    subsystem_proxies: Vec<SubSystemProxy>,
+    system_store: SystemStorePtr,
+}
+
+#[derive(Clone)]
+pub struct CoreBrokerPtr {
+    ptr: Arc<RwLock<CoreBroker>>
+}
+
+unsafe impl Send for CoreBrokerPtr {}
+
+impl CoreBrokerPtr {
+    
+    pub fn new(core_broker: CoreBroker) -> Self {
+        Self{ptr: Arc::new(RwLock::new(core_broker))}
+    }
+    pub fn lock(&self) -> JuizResult<RwLockReadGuard<CoreBroker>> {
+        self.ptr.read().or_else(|_|{ Err(anyhow!(JuizError::ObjectLockError{target:"CoreBrokerPtr".to_owned()})) })
+    }
+
+    pub fn lock_mut(&self) -> JuizResult<RwLockWriteGuard<CoreBroker>> {
+        self.ptr.write().or_else(|_|{ Err(anyhow!(JuizError::ObjectLockError{target:"CoreBrokerPtr".to_owned()})) })
+    }
 }
 
 impl CoreBroker {
 
-    pub fn new(manifest: Value) -> JuizResult<CoreBroker> {
+    pub fn new(manifest: Value, system_store: SystemStorePtr) -> JuizResult<CoreBroker> {
         Ok(CoreBroker{
             core: ObjectCore::create(JuizObjectClass::BrokerProxy("CoreBroker"), "core", "core"),
             manifest: check_corebroker_manifest(manifest)?,
             core_store: CoreStore::new(),
-            subsystem_records: Vec::new(),
+            subsystem_proxies: Vec::new(),
+            system_store
         })
     }
 
@@ -300,7 +326,7 @@ impl CoreBroker {
 
     pub fn container_proxy_from_identifier(&mut self, identifier: &Identifier) -> JuizResult<ContainerPtr> {
         log::info!("CoreBroker::container_proxy_from_identifier({identifier}) called");
-        let id_struct = IdentifierStruct::from(identifier.clone());
+        let id_struct = IdentifierStruct::try_from(identifier.clone())?;
         if id_struct.broker_name == "core" && id_struct.broker_type_name == "core" {
             return self.container_from_id(identifier)
         }
@@ -310,7 +336,7 @@ impl CoreBroker {
 
     pub fn process_proxy_from_identifier(&mut self, identifier: &Identifier) -> JuizResult<ProcessPtr> {
         log::info!("CoreBroker::process_proxy_from_identifier({identifier}) called");
-        let id_struct = IdentifierStruct::from(identifier.clone());
+        let id_struct = IdentifierStruct::try_from(identifier.clone())?;
         if id_struct.broker_name == "core" && id_struct.broker_type_name == "core" {
             return self.process_from_id(identifier)
         }
@@ -320,7 +346,7 @@ impl CoreBroker {
 
     pub fn ec_proxy_from_identifier(&mut self, identifier: &Identifier) -> JuizResult<Arc<Mutex<dyn ExecutionContextFunction>>> {
         log::info!("CoreBroker::ec_proxy_from_identifier({identifier}) called");
-        let id_struct = IdentifierStruct::from(identifier.clone());
+        let id_struct = IdentifierStruct::try_from(identifier.clone())?;
         if id_struct.broker_name == "core" && id_struct.broker_type_name == "core" {
             return self.ec_from_id(identifier)
         }
@@ -333,7 +359,7 @@ impl CoreBroker {
     }
 
     pub fn container_process_proxy_from_identifier(&mut self, identifier: &Identifier) -> JuizResult<ProcessPtr> {
-        let id_struct = IdentifierStruct::from(identifier.clone());
+        let id_struct = IdentifierStruct::try_from(identifier.clone())?;
         if id_struct.broker_name == "core" && id_struct.broker_type_name == "core" {
             return self.container_process_from_id(identifier)
         }
@@ -347,7 +373,7 @@ impl CoreBroker {
 
     pub fn any_process_proxy_from_identifier(&mut self, identifier: &Identifier) -> JuizResult<ProcessPtr> {
         log::trace!("CoreBroker::any_process_proxy_from_identifier({identifier}) called");
-        let mut id_struct = IdentifierStruct::from(identifier.clone());
+        let mut id_struct = IdentifierStruct::try_from(identifier.clone())?;
         let p = self.process_proxy_from_identifier(&id_struct.set_class_name("Process").to_identifier());
         if p.is_ok() {
             return p;
@@ -408,7 +434,9 @@ impl SystemBrokerProxy for CoreBroker {
     
     fn system_add_subsystem(&mut self, profile: Value) -> JuizResult<Value> {
         log::trace!("system_add_subsystem({profile}) called");
-        self.subsystem_records.push(SubSystemRecord::new(profile.clone())?);
+        let bf = self.system_store.create_broker_proxy(&profile)?;
+        self.store_mut().broker_proxies.register(bf.clone())?;
+        self.subsystem_proxies.push(SubSystemProxy::new(bf)?);
         Ok(profile)
     }
 }
@@ -615,8 +643,8 @@ impl ConnectionBrokerProxy for CoreBroker {
 
 fn check_if_both_side_is_on_same_host(source_id: Identifier, destination_id: Identifier) -> JuizResult<(Identifier, Identifier)> {
     log::trace!("check_if_both_side_is_on_same_host({source_id}, {destination_id}) called");
-    let mut source_id_struct = IdentifierStruct::from(source_id);
-    let mut destination_id_struct = IdentifierStruct::from(destination_id);
+    let mut source_id_struct = IdentifierStruct::try_from(source_id)?;
+    let mut destination_id_struct = IdentifierStruct::try_from(destination_id)?;
     if (source_id_struct.broker_name == destination_id_struct.broker_name) &&
         (source_id_struct.broker_type_name == destination_id_struct.broker_type_name) {
         source_id_struct.broker_name = "core".to_owned();

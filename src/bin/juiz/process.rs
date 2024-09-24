@@ -10,15 +10,14 @@ use juiz_core::opencv::imgcodecs::imwrite;
 use juiz_core::opencv::core::{Mat, Vector};
 use clap::Subcommand;
 
-#[derive(Debug, Subcommand)]
+use crate::Args;
+
+#[derive(Debug, Subcommand, Clone)]
 pub(crate) enum ProcSubCommands {
 
     /// get logs
     #[clap(arg_required_else_help = false)]
     List {
-        #[arg(short = 's', default_value = "localhost:8080", help = "Host of server (ex., localhost:8080)")]
-        server: String,
-
         #[arg(short = 'a', help = "Any process includes")]
         any_process: bool,
         
@@ -50,21 +49,24 @@ pub(crate) enum ProcSubCommands {
 }
 
 
-pub(crate) fn on_process(manifest: Value, working_dir: &Path, subcommand: ProcSubCommands) -> JuizResult<()> {
-    match on_process_inner(manifest, working_dir, subcommand) {
+pub(crate) fn on_process(manifest: Value, working_dir: &Path, subcommand: ProcSubCommands, args: Args) -> JuizResult<()> {
+    match on_process_inner(manifest, working_dir, subcommand, args) {
         Ok(_) => return Ok(()),
         Err(e) => println!("Error: {e:?}")
     };
     Ok(())
 }
-pub(crate) fn on_process_inner(manifest: Value, working_dir: &Path, subcommand: ProcSubCommands) -> JuizResult<()> {
+pub(crate) fn on_process_inner(manifest: Value, working_dir: &Path, subcommand: ProcSubCommands, args: Args) -> JuizResult<()> {
     match subcommand {
-        ProcSubCommands::List { server, any_process, filepath} => {
-            log::trace!("process list command is selected.");
+        ProcSubCommands::List { any_process, filepath} => {
+            log::trace!("process list command is selected. args={args:?}");
             let manifest2 = yaml_conf_load(filepath.clone())?;
-
+            let server = args.server;
             System::new(manifest2)?
                 .set_working_dir(working_dir)
+                .start_http_broker(args.start_http_broker)
+                .setup()?
+                .add_subsystem_by_id(server.clone())?
                 .run_and_do_once( |system| { 
                 if any_process {
                     on_any_process_list(system, server)
@@ -76,6 +78,8 @@ pub(crate) fn on_process_inner(manifest: Value, working_dir: &Path, subcommand: 
         ProcSubCommands::Info { identifier } => {
             System::new(manifest)?
                 .set_working_dir(working_dir)
+                .start_http_broker(args.start_http_broker)
+                .setup()?
                 .run_and_do_once( |system| { 
                 on_process_info(system, identifier)
             }) 
@@ -83,6 +87,8 @@ pub(crate) fn on_process_inner(manifest: Value, working_dir: &Path, subcommand: 
         ProcSubCommands::Call { identifier, argument , fileout} => {
             System::new(manifest)?
                 .set_working_dir(working_dir)
+                .start_http_broker(args.start_http_broker)
+                .setup()?
                 .run_and_do_once( |system| { 
                 on_process_call(system, identifier, argument, fileout)
             }) 

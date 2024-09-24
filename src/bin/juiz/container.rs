@@ -9,15 +9,14 @@ use juiz_core::{containers::container_lock, log};
 
 use clap::Subcommand;
 
+use crate::Args;
 
-#[derive(Debug, Subcommand)]
+
+#[derive(Debug, Subcommand, Clone)]
 pub(crate) enum ContSubCommands {
     /// get logs
     #[clap(arg_required_else_help = false)]
     List {
-        #[arg(short = 's', default_value = "localhost:8080", help = "Host of server (ex., localhost:8080)")]
-        server: String,
-
         #[arg(short = 'f', default_value = "./juiz.conf", help = "Input system definition file path")]
         filepath: String,
     },
@@ -30,27 +29,31 @@ pub(crate) enum ContSubCommands {
     },
 }
 
-pub(crate) fn on_container(manifest: Value, working_dir: &Path, subcommand: ContSubCommands) -> JuizResult<()> {
-    match on_container_inner(manifest, working_dir, subcommand) {
+pub(crate) fn on_container(manifest: Value, working_dir: &Path, subcommand: ContSubCommands, args: Args) -> JuizResult<()> {
+    match on_container_inner(manifest, working_dir, subcommand, args) {
         Ok(_) => return Ok(()),
         Err(e) => println!("Error: {e:?}")
     };
     Ok(())
 }
 
-pub(crate) fn on_container_inner(manifest: Value, working_dir: &Path, subcommand: ContSubCommands) -> JuizResult<()> {
+pub(crate) fn on_container_inner(manifest: Value, working_dir: &Path, subcommand: ContSubCommands, args: Args ) -> JuizResult<()> {
     match subcommand {
-        ContSubCommands::List { server, filepath } => {
+        ContSubCommands::List { filepath } => {
             log::trace!("container list command is selected.");
             let manifest2 = yaml_conf_load(filepath.clone())?;
-
+            let server = args.server;
             System::new(manifest2)?
             .set_working_dir(working_dir)
+            .start_http_broker(args.start_http_broker)
+            .setup()?
             .run_and_do_once( |system| { on_container_list(system, server) }) 
         },
         ContSubCommands::Info { identifier } => {
             System::new(manifest)?
             .set_working_dir(working_dir)
+            .start_http_broker(args.start_http_broker)
+            .setup()?
             .run_and_do_once( |system| { 
                 on_container_info(system, identifier)
             }) 

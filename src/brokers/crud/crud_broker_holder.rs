@@ -3,10 +3,11 @@
 use std::sync::{Arc, Mutex};
 use futures::Future;
 
+use crate::core::core_broker::CoreBrokerPtr;
 use crate::object::JuizObject;
 use crate::prelude::*;
 use crate::{object::{ObjectCore, JuizObjectClass, JuizObjectCoreHolder}, value::obj_get_str};
-use crate::brokers::{Broker, BrokerProxy, CRUDBroker};
+use crate::brokers::{Broker, CRUDBroker};
 
 use tokio::runtime;
 
@@ -20,7 +21,7 @@ pub struct CRUDBrokerHolder<F, Fut> where F: Fn(Value, Arc<Mutex<CRUDBroker>>) -
 }
 
 impl<F, Fut> CRUDBrokerHolder<F, Fut> where F: Fn(Value, Arc<Mutex<CRUDBroker>>) -> Fut + Send + Sync + Copy + 'static, Fut: Future<Output=()>+ Send + 'static {
-    pub fn new(impl_class_name: &'static str, type_name: &'static str, core_broker: Arc<Mutex<dyn BrokerProxy>>, on_start_function: F, manifest: Value) -> JuizResult<Arc<Mutex<dyn Broker>>> {
+    pub fn new(impl_class_name: &'static str, type_name: &'static str, core_broker: CoreBrokerPtr, on_start_function: F, manifest: Value) -> JuizResult<Arc<Mutex<dyn Broker>>> {
         let object_name = obj_get_str(&manifest, "name")?;
         Ok(Arc::new(Mutex::new(CRUDBrokerHolder{
             core: ObjectCore::create(JuizObjectClass::Broker(impl_class_name), type_name, object_name), 

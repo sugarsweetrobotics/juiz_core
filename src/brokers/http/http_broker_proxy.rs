@@ -40,6 +40,7 @@ struct HTTPBrokerProxy {
 impl HTTPBrokerProxy {
 
     pub fn new(manifest: &Value) -> JuizResult<HTTPBrokerProxy> {
+        log::trace!("new({manifest:}) called");
         let name = obj_get_str(manifest, "name")?.to_string();
         let (addr, port) = name_to_host_and_port(&name)?;
         Ok(HTTPBrokerProxy{
@@ -50,7 +51,7 @@ impl HTTPBrokerProxy {
 
 fn construct_param(key: &String, value: &String) -> String {
     if key == "identifier" {
-        let mut id_struct = IdentifierStruct::from(value.clone());
+        let mut id_struct = IdentifierStruct::try_from(value.clone()).unwrap();
         id_struct.broker_type_name = "core".to_owned();
         id_struct.broker_name = "core".to_owned();
         let new_id: String = id_struct.into();

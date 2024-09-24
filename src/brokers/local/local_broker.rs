@@ -1,7 +1,7 @@
 use std::{sync::{Arc, Mutex, mpsc}, time::Duration, ops::Deref};
 
 
-use crate::{core::core_broker::CoreBroker, prelude::*};
+use crate::{core::core_broker::{CoreBroker, CoreBrokerPtr}, prelude::*};
 use crate::{brokers::create_messenger_broker_factory, value::{Capsule, CapsuleMap}, utils::juiz_lock};
 use crate::brokers::{BrokerFactory, MessengerBroker, MessengerBrokerCore, MessengerBrokerCoreFactory};
 
@@ -87,7 +87,7 @@ impl MessengerBrokerCoreFactory for LocalBrokerCoreFactory {
 }
 
 
-pub fn create_local_broker_factory(core_broker: Arc<Mutex<CoreBroker>>, sender_receiver: Arc<Mutex<BrokerSideSenderReceiverPair>>, byte_sender_receiver: Arc<Mutex<ByteSenderReceiverPair>>) -> JuizResult<Arc<Mutex<dyn BrokerFactory>>> {
+pub fn create_local_broker_factory(core_broker: CoreBrokerPtr, sender_receiver: Arc<Mutex<BrokerSideSenderReceiverPair>>, byte_sender_receiver: Arc<Mutex<ByteSenderReceiverPair>>) -> JuizResult<Arc<Mutex<dyn BrokerFactory>>> {
     log::trace!("create_local_broker_factory called");
     create_messenger_broker_factory("LocalBrokerProxyFactory", "local", core_broker, LocalBrokerCoreFactory::new(sender_receiver, byte_sender_receiver))
 }

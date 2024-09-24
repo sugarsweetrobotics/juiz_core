@@ -173,6 +173,8 @@ pub enum JuizError {
     ValueTypeError { message: String },
     #[error("Value is invalid value ({message})")]
     InvalidValueError{ message: String},
+    #[error("Idnetifier is invalid value ({message})")]
+    InvalidIdentifierError{ message: String},
     #[error("Data Conversion Error {message}")]
     DataConversionError { message: String },
     #[error("Value merge Error {message}")]

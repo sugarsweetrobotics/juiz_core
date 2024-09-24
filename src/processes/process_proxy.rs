@@ -17,7 +17,7 @@ impl ProcessProxy {
 
     pub fn new(class_name: JuizObjectClass, identifier: &Identifier, broker_proxy: Arc<Mutex<dyn BrokerProxy>>) -> JuizResult<ProcessPtr> {
         log::trace!("ProcessProxy::new({class_name:?}, {identifier}, broker_proxy) called");
-        let id_struct = IdentifierStruct::from(identifier.clone());
+        let id_struct = IdentifierStruct::try_from(identifier.clone())?;
         let class_name_str = match class_name {
             JuizObjectClass::Process(_) => Ok("process"),
             JuizObjectClass::ContainerProcess(_) => Ok("container_process"),

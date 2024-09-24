@@ -18,6 +18,7 @@ pub mod manifests;
 pub mod result;
 pub mod prelude;
 
+pub use core::{SystemStore, SystemStorePtr};
 
 //pub use object::JuizObject;
 //pub use value::{Value, jvalue, load_str, Capsule, CapsulePtr, CapsuleMap};

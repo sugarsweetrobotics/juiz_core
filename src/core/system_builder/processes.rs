@@ -41,7 +41,7 @@ pub(super) fn setup_processes(system: &System, manifest: &Value) -> JuizResult<(
         let p_name = obj_get_str(p, "name")?;
         let p_type_name = obj_get_str(p, "type_name")?;
         log::debug!("Process ({:}:{:}) Creating...", p_name, p_type_name);
-        juiz_lock(system.core_broker())?.create_process_ref(p.clone())?;
+        system.core_broker().lock_mut()?.create_process_ref(p.clone())?;
         log::info!("Process ({:}:{:}) Created", p_name, p_type_name);
     } 
     log::trace!("setup_processes() exit");
@@ -50,7 +50,7 @@ pub(super) fn setup_processes(system: &System, manifest: &Value) -> JuizResult<(
 
 pub(super) fn cleanup_processes(system: &mut System) -> JuizResult<()> {
     log::trace!("cleanup_processes() called");
-    let r = juiz_try_lock(system.core_broker()).and_then(|mut cb|{
+    let r = system.core_broker().lock_mut().and_then(|mut cb|{
         cb.store_mut().clear()
     });
     log::trace!("cleanup_processes() exit");
@@ -61,7 +61,7 @@ pub(super) fn cleanup_processes(system: &mut System) -> JuizResult<()> {
 pub(super) fn register_process_factory(system: &System, plugin: JuizObjectPlugin, symbol_name: &str) -> JuizResult<ProcessFactoryPtr> {
     log::trace!("register_process_factory() called");
     let pf = plugin.load_process_factory(system.get_working_dir(), symbol_name)?;
-    let result =system.core_broker().lock().unwrap().store_mut().processes.register_factory(ProcessFactoryWrapper::new(plugin, pf)?);
+    let result =system.core_broker().lock_mut()?.store_mut().processes.register_factory(ProcessFactoryWrapper::new(plugin, pf)?);
     log::trace!("register_process_factory() exit");
     result
 }

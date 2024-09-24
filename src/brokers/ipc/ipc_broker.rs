@@ -1,7 +1,7 @@
 use std::{sync::{Arc, Mutex}, thread::sleep, time::Duration};
 
 
-use crate::prelude::*;
+use crate::{core::core_broker::CoreBrokerPtr, prelude::*};
 use crate::{brokers::{broker_factory::create_broker_factory_impl, BrokerFactory, CRUDBrokerHolder}, value::capsule_to_value, utils::juiz_lock, value::{obj_get_i64, obj_get_str}};
 use crate::brokers::{Broker, BrokerProxy, CRUDBroker};
 use interprocess::local_socket::{prelude::*, traits::Stream, GenericFilePath, GenericNamespaced, ListenerOptions};
@@ -249,10 +249,10 @@ async fn on_start_inner(broker_manifest: Value, crud_broker: Arc<Mutex<CRUDBroke
     Ok(())
 }
 
-pub fn create_ipc_broker_factory(core_broker: Arc<Mutex<dyn BrokerProxy>>) -> JuizResult<Arc<Mutex<dyn BrokerFactory>>> {
+pub fn create_ipc_broker_factory(core_broker: CoreBrokerPtr) -> JuizResult<Arc<Mutex<dyn BrokerFactory>>> {
     //env_logger::init();
 
-    fn create_broker_function(core_broker: Arc<Mutex<dyn BrokerProxy>>, manifest: Value) -> JuizResult<Arc<Mutex<dyn Broker>>> {
+    fn create_broker_function(core_broker: CoreBrokerPtr, manifest: Value) -> JuizResult<Arc<Mutex<dyn Broker>>> {
         CRUDBrokerHolder::new("IPCBroker", "ipc", core_broker, &on_start, manifest.clone())
     }
 

@@ -21,8 +21,8 @@ pub(crate) fn setup_objects(system: &mut System, manifest: &Value) -> JuizResult
         let options = get_options(manifest);
         if is_http_broker_start(options) {
             let port_number: i64 = get_http_port(options);
-            let opt = options.unwrap().clone();
-            setup_http_broker(system, port_number, opt).context("system_builder::setup_http_broker in System::setup() failed.")?;
+            //let opt = options.unwrap().clone();
+            setup_http_broker(system, port_number, options).context("system_builder::setup_http_broker in System::setup() failed.")?;
         }
     }
 

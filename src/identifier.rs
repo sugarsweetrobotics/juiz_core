@@ -1,4 +1,5 @@
 use crate::prelude::*;
+use crate::anyhow::anyhow;
 use crate::value::obj_get_str;
 
 pub type Identifier = String;
@@ -82,9 +83,19 @@ pub struct IdentifierStruct {
     pub broker_type_name: String,
 }
 
+/*
 impl From<Identifier> for IdentifierStruct {
     fn from(identifier: Identifier) -> Self {
-        digest_identifier(&identifier)
+        digest_identifier(&identifier).unwrap()
+    }
+}
+    */
+
+impl TryFrom<Identifier> for IdentifierStruct {
+    type Error = anyhow::Error;
+    
+    fn try_from(value: Identifier) -> Result<Self, Self::Error> {
+        digest_identifier(&value)
     }
 }
 
@@ -107,28 +118,88 @@ impl IdentifierStruct {
                 self.object_name.as_str())
     }
 
+    pub fn to_broker_manifest(&self) -> Value {
+        return jvalue!({
+            "type_name": self.broker_type_name,
+            "name": self.broker_name
+        });
+    }
+
+    pub fn to_manifest(&self) -> Value {
+        return jvalue!({
+            "broker_type_name": self.broker_type_name,
+            "broker_name": self.broker_name,
+            "type_name": self.type_name,
+            "name": self.object_name
+        });
+    }
+
     pub fn set_class_name<'a>(&'a mut self, class_name: &str) -> &'a IdentifierStruct{
         self.class_name = class_name.to_string();
         self
     }
+
+    pub fn new_broker_id(id: Identifier) -> JuizResult<Self> {
+        match regex::Regex::new(r"^(.+?)://(.+?)$") {
+            Ok(re) => {
+                match re.captures(&id) {
+                    Some(caps) => {
+                        let class_name = "".to_owned();
+                        let type_name = "".to_owned();
+                        let object_name = "".to_owned();
+                        let broker_name = caps[2].to_owned();
+                        let broker_type_name = caps[1].to_owned();
+                        Ok(IdentifierStruct{ 
+                            identifier: id.clone(), 
+                            class_name, 
+                            type_name, 
+                            object_name, 
+                            broker_name, 
+                            broker_type_name})
+                    },
+                    None => {
+                        log::error!("new_broker_id error. Invalid Identifier ({id}).");
+                        return Err(anyhow!(JuizError::InvalidIdentifierError{message: id.to_owned()}))
+                    },
+                }
+            }
+            Err(e) => {
+                log::error!("new_broker_id error. Invalid Identifier ({id}).");
+                Err(anyhow!(e))
+            }
+        }    
+    }
 }
 
 
+
+
 ///
 ///
-fn digest_identifier(identifier: &Identifier) -> IdentifierStruct {
-    let re = regex::Regex::new(r"^(.+?)://(.+?)/(.+?)/(.+?)::(.+?)$").unwrap();
-    let caps = re.captures(identifier).unwrap();
-    let class_name = caps[3].to_owned();
-    let type_name = caps[5].to_owned();
-    let object_name = caps[4].to_owned();
-    let broker_name = caps[2].to_owned();
-    let broker_type_name = caps[1].to_owned();
-    IdentifierStruct{ 
-        identifier: identifier.clone(), 
-        class_name, 
-        type_name, 
-        object_name, 
-        broker_name, 
-        broker_type_name}
+fn digest_identifier(identifier: &Identifier) -> JuizResult<IdentifierStruct> {
+    match regex::Regex::new(r"^(.+?)://(.+?)/(.+?)/(.+?)::(.+?)$") {
+        Ok(re) => {
+            match re.captures(identifier) {
+                Some(caps) => {
+                    let class_name = caps[3].to_owned();
+                    let type_name = caps[5].to_owned();
+                    let object_name = caps[4].to_owned();
+                    let broker_name = caps[2].to_owned();
+                    let broker_type_name = caps[1].to_owned();
+                    Ok(IdentifierStruct{ 
+                        identifier: identifier.clone(), 
+                        class_name, 
+                        type_name, 
+                        object_name, 
+                        broker_name, 
+                        broker_type_name})
+                },
+                None => {
+                    log::error!("digest_identifier error. Invalid Identifier ({identifier}).");
+                    return Err(anyhow!(JuizError::InvalidIdentifierError{message: identifier.to_owned()}))
+                },
+            }
+        }
+        Err(e) => Err(anyhow!(e))
+    }    
 }

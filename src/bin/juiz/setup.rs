@@ -5,9 +5,9 @@ use std::fs::{create_dir, remove_dir, remove_file, rename, File};
 
 use clap::Subcommand;
 
-use crate::default_juiz_conf::default_conf;
+use crate::{Args, default_juiz_conf::default_conf};
 
-#[derive(Debug, Subcommand)]
+#[derive(Debug, Subcommand, Clone)]
 pub(crate) enum SetupSubCommands {
     /// get logs
     #[clap(arg_required_else_help = false)]
@@ -21,7 +21,7 @@ pub(crate) enum SetupSubCommands {
     },
 }
 
-pub(crate) fn on_setup(_manifest: Value, subcommand: SetupSubCommands ) -> JuizResult<()> {
+pub(crate) fn on_setup(_manifest: Value, subcommand: SetupSubCommands, args: Args) -> JuizResult<()> {
     match subcommand {
         SetupSubCommands::Home {} => {  
             on_setup_home()

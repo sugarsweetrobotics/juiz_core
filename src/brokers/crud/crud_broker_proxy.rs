@@ -28,7 +28,7 @@ fn param(param_map: &[(&str, &str)]) -> HashMap<String, String> {
 }
 
 fn modify_id(id: &str) -> String {
-    let mut id_struct = IdentifierStruct::from(id.to_owned());
+    let mut id_struct = IdentifierStruct::try_from(id.to_owned()).unwrap();
     id_struct.broker_name = "core".to_owned();
     id_struct.broker_type_name = "core".to_owned();
     id.into()
@@ -49,7 +49,7 @@ impl CRUDBrokerProxyHolder {
         let mut ids: Vec<String> = Vec::new();
         for vid in get_array(id_array)?.iter() {
             let id = vid.as_str().ok_or(anyhow::Error::from(JuizError::ValueIsNotStringError{}))?.to_owned();
-            let mut id_struct = IdentifierStruct::from(id);
+            let mut id_struct = IdentifierStruct::try_from(id)?;
             id_struct.broker_type_name = self.type_name().to_owned();
             id_struct.broker_name = self.name().to_owned();
             ids.push(id_struct.into());
@@ -63,7 +63,7 @@ impl CRUDBrokerProxyHolder {
             let map = get_hashmap_mut(v).unwrap();
             if map.contains_key(&key_id) {
                 let id = map.get(&key_id).unwrap().as_str().unwrap().to_owned();
-                let mut id_struct = IdentifierStruct::from(id);
+                let mut id_struct = IdentifierStruct::try_from(id).unwrap();
                 id_struct.broker_name = self.name().to_owned();
                 id_struct.broker_type_name = self.type_name().to_owned();
                 let new_id: Identifier = id_struct.into();

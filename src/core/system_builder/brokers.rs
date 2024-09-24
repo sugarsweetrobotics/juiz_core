@@ -4,7 +4,7 @@ use std::sync::{Arc, Mutex};
 
 use anyhow::Context;
 
-use crate::{brokers::broker_factories_wrapper::BrokerFactoriesWrapper, plugin::{concat_dirname, plugin_name_to_file_name, RustPlugin}, prelude::*, utils::{get_array, get_hashmap, sync_util::juiz_try_lock}, value::obj_get_str};
+use crate::{brokers::broker_factories_wrapper::BrokerFactoriesWrapper, core::core_broker::CoreBrokerPtr, plugin::{concat_dirname, plugin_name_to_file_name, RustPlugin}, prelude::*, utils::{get_array, get_hashmap, sync_util::juiz_try_lock}, value::obj_get_str};
 
 pub(super) fn setup_broker_factories(system: &mut System, manifest: &Value) -> JuizResult<()> {
     log::trace!("system_builder::setup_broker_factories() called");
@@ -23,7 +23,7 @@ fn setup_broker_factory(system: &mut System, manifest: &Value, name: &String, v:
     let bf;
     let bpf;
     unsafe {
-        type BrokerFactorySymbolType<'a> = libloading::Symbol<'a, unsafe extern "Rust" fn(Arc<Mutex<dyn BrokerProxy>>) -> JuizResult<Arc<Mutex<dyn BrokerFactory>>>>;
+        type BrokerFactorySymbolType<'a> = libloading::Symbol<'a, unsafe extern "Rust" fn(CoreBrokerPtr) -> JuizResult<Arc<Mutex<dyn BrokerFactory>>>>;
         type BrokerProxyFactorySymbolType<'a> = libloading::Symbol<'a, unsafe extern "Rust" fn() -> JuizResult<Arc<Mutex<dyn BrokerProxyFactory>>>>;
         let plugin: RustPlugin = RustPlugin::load(plugin_filename)?;
         {
@@ -68,7 +68,7 @@ pub fn setup_broker_proxies(system: &mut System, manifest: &Value) -> JuizResult
 
 pub fn cleanup_brokers(system: &mut System) -> JuizResult<()> {
     log::trace!("system_builder::cleanup_brokers() called");
-    let r = juiz_try_lock(system.core_broker()).and_then(|mut cb|{
+    let r = system.core_broker().lock_mut().and_then(|mut cb|{
         cb.store_mut().clear()
     });
     system.cleanup_brokers()?;

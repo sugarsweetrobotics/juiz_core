@@ -49,6 +49,7 @@ pub use crate::{
     core:: {
         system::System,
         core_broker::CoreBroker,
+        CoreBrokerPtr,
     },
     result:: {
         JuizResult,
