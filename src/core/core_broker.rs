@@ -308,6 +308,7 @@ impl CoreBroker {
             Err(_) => {}
         };
         
+        log::warn!("broker_proxy({broker_type_name}, {broker_name}) can not find broker_proxy. creating....");
         let manifest = jvalue!({
             "type_name": type_name,
             "name": broker_name
@@ -477,14 +478,18 @@ impl ProcessBrokerProxy for CoreBroker {
         if idstruct.broker_type_name == "core" {
             proc_lock(&self.store().processes.get(id)?)?.call(args)
         } else {
-            log::error!("broker_type_name is not core. id={}", id);
-            Err(anyhow!(JuizError::ObjectCanNotFoundByIdError { id: id.to_string() }))
+            proc_lock(&self.process_proxy_from_identifier(id)?)?.call(args)
         }
     }
 
     fn process_execute(&self, id: &Identifier) -> JuizResult<CapsulePtr> {
         log::trace!("CoreBroker::process_execute({id:}) called");
-        proc_lock(&self.store().processes.get(id)?).with_context(||format!("locking process(id={id:}) in CoreBroker::execute_process() function"))?.execute()
+        let idstruct = IdentifierStruct::try_from(id.clone())?;
+        if idstruct.broker_type_name == "core" {
+            proc_lock(&self.store().processes.get(id)?).with_context(||format!("locking process(id={id:}) in CoreBroker::execute_process() function"))?.execute()
+        } else {
+            proc_lock(&self.process_proxy_from_identifier(id)?)?.execute()
+        }
     }
 
     fn process_profile_full(&self, id: &Identifier) -> JuizResult<Value> {
@@ -581,8 +586,6 @@ impl ContainerProcessBrokerProxy for CoreBroker {
     }
 
     fn container_process_list(&self, recursive: bool) -> JuizResult<Value> {
-        // Ok(self.store().container_processes.list_ids()?.into())
-
         let mut ids = self.store().container_processes.list_ids()?;
         let ids_arr = ids.as_array_mut().unwrap();
         if recursive {
@@ -599,21 +602,21 @@ impl ContainerProcessBrokerProxy for CoreBroker {
 
     fn container_process_call(&self, id: &Identifier, args: CapsuleMap) -> JuizResult<CapsulePtr> {
         log::trace!("CoreBroker::container_process_call(id={id:}, args) called");
-        // proc_lock(&self.store().container_processes.get(id)?).with_context(||format!("locking container_procss(id={id:}) in CoreBroker::container_process_call() function"))?.call(args)
-    
         let idstruct = IdentifierStruct::try_from(id.clone())?;
         if idstruct.broker_type_name == "core" {
             proc_lock(&self.store().container_processes.get(id)?)?.call(args)
         } else {
-            //let p = self.process_proxy_from_identifier(id)?;
             proc_lock(&self.process_proxy_from_identifier(id)?)?.call(args)
-            //log::error!("broker_type_name is not core. id={}", id);
-            //Err(anyhow!(JuizError::ObjectCanNotFoundByIdError { id: id.to_string() }))
         }
     }
 
     fn container_process_execute(&self, id: &Identifier) -> JuizResult<CapsulePtr> {
-        proc_lock(&self.store().container_processes.get(id)?).with_context(||format!("locking process(id={id:}) in CoreBroker::execute_process() function"))?.execute()
+        let idstruct = IdentifierStruct::try_from(id.clone())?;
+        if idstruct.broker_type_name == "core" {
+            proc_lock(&self.store().container_processes.get(id)?).with_context(||format!("locking process(id={id:}) in CoreBroker::execute_process() function"))?.execute()
+        } else {
+            proc_lock(&self.process_proxy_from_identifier(id)?)?.execute()
+        }
     }
  
     fn container_process_create(&mut self, container_id: &Identifier, manifest: &Value) -> JuizResult<Value> {
