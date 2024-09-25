@@ -456,7 +456,7 @@ impl SystemBrokerProxy for CoreBroker {
                 return Err(anyhow!(JuizError::ObjectAlreadyRegisteredError{message: format!("system_add_subsystem failed. Subsystem(uuid={uuid}) has already added.")}));
             }
         }
-        let my_uuid = self.system_store.uuid()?;
+        let _my_uuid = self.system_store.uuid()?;
         for subsystem_proxy in self.subsystem_proxies.iter() {
             let ss = subsystem_proxy.subsystems()?;
             log::warn!("WARNING: SUBSYSTEM's SUBSYSTEM mining.... But this is useless...");

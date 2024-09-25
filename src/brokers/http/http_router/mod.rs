@@ -42,6 +42,7 @@ pub struct PathQuery {
     path: Option<String>,
 }
 
+#[allow(unused)]
 #[derive(Deserialize, IntoParams, Debug)]
 pub struct RecursiveQuery {
     recursive: Option<String>,
@@ -60,6 +61,7 @@ pub struct FullQuery {
     recursive: Option<String>,
 }
 
+#[allow(unused)]
 pub fn id_query_to_map(query: &Query<IdentifierQuery>) -> HashMap<String, String> {
     let mut map: HashMap<String, String> = HashMap::new();
     match query.identifier.clone() {
@@ -71,6 +73,7 @@ pub fn id_query_to_map(query: &Query<IdentifierQuery>) -> HashMap<String, String
     map
 }
 
+#[allow(unused)]
 pub fn path_query_to_map(query: &Query<PathQuery>) -> HashMap<String, String> {
     let mut map: HashMap<String, String> = HashMap::new();
     match query.path.clone() {
@@ -83,7 +86,7 @@ pub fn path_query_to_map(query: &Query<PathQuery>) -> HashMap<String, String> {
 }
 
 
-
+#[allow(unused)]
 pub fn id_and_recur_query_to_map(query: &Query<IdAndRecurQuery>) -> HashMap<String, String> {
     let mut map: HashMap<String, String> = HashMap::new();
     match query.identifier.clone() {

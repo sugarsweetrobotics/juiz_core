@@ -6,7 +6,7 @@ use axum::{response::IntoResponse, extract::{Path, Query, State}, routing, Json,
 use crate::{brokers::http::http_router::FullQuery, prelude::*};
 use crate::{brokers::crud_broker::CRUDBroker, value::CapsuleMap, utils::juiz_lock};
 
-use super::{IdentifierQuery, PathQuery, json_output_wrap, full_query_to_map};
+use super::{json_output_wrap, full_query_to_map};
 use utoipa::OpenApi;
 
 #[utoipa::path(
