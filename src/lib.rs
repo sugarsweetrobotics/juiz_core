@@ -13,6 +13,7 @@ mod processes;
 mod connections;
 mod containers;
 mod brokers;
+mod topics;
 mod ecs;
 mod manifests;
 mod result;
