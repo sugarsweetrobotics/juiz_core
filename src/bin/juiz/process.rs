@@ -56,11 +56,13 @@ pub(crate) fn on_process(manifest: Value, working_dir: &Path, subcommand: ProcSu
     Ok(())
 }
 pub(crate) fn on_process_inner(manifest: Value, working_dir: &Path, subcommand: ProcSubCommands, args: Args) -> JuizResult<()> {
+
+    let server = args.server.clone();
+    let recursive = args.recursive;
     match subcommand {
         ProcSubCommands::List { any_process, filepath} => {
             log::trace!("process list command is selected. args={args:?}");
             let manifest2 = yaml_conf_load(filepath.clone())?;
-            let server = args.server;
             System::new(manifest2)?
                 .set_working_dir(working_dir)
                 .start_http_broker(args.start_http_broker)
@@ -68,9 +70,9 @@ pub(crate) fn on_process_inner(manifest: Value, working_dir: &Path, subcommand: 
                 .add_subsystem_by_id(server.clone())?
                 .run_and_do_once( |system| { 
                 if any_process {
-                    on_any_process_list(system, server)
+                    on_any_process_list(system, server, recursive)
                 } else {
-                    on_process_list(system, server)
+                    on_process_list(system, server, recursive)
                 } 
             }) 
         },
@@ -79,6 +81,7 @@ pub(crate) fn on_process_inner(manifest: Value, working_dir: &Path, subcommand: 
                 .set_working_dir(working_dir)
                 .start_http_broker(args.start_http_broker)
                 .setup()?
+                .add_subsystem_by_id(server.clone())?
                 .run_and_do_once( |system| { 
                 on_process_info(system, identifier)
             }) 
@@ -88,6 +91,7 @@ pub(crate) fn on_process_inner(manifest: Value, working_dir: &Path, subcommand: 
                 .set_working_dir(working_dir)
                 .start_http_broker(args.start_http_broker)
                 .setup()?
+                .add_subsystem_by_id(server.clone())?
                 .run_and_do_once( |system| { 
                 on_process_call(system, identifier, argument, fileout)
             }) 
@@ -95,9 +99,9 @@ pub(crate) fn on_process_inner(manifest: Value, working_dir: &Path, subcommand: 
     }
 }
 
-fn on_process_list(system: &mut System, _server: String) -> JuizResult<()> {
+fn on_process_list(system: &mut System, _server: Option<String>, recursive: bool) -> JuizResult<()> {
     log::info!("on_process_list() called");
-    let proc_manifests: Vec<Value> = system.process_list()?;
+    let proc_manifests: Vec<Value> = system.process_list(recursive)?;
     let mut ids: Vec<String> = Vec::new();
     for v in proc_manifests.iter() {
         ids.push(v.as_str().unwrap().to_owned());
@@ -106,8 +110,8 @@ fn on_process_list(system: &mut System, _server: String) -> JuizResult<()> {
     Ok(())
 }
 
-fn on_any_process_list(system: &mut System, _server: String) -> JuizResult<()> {
-    let proc_manifests: Vec<Value> = system.any_process_list()?;
+fn on_any_process_list(system: &mut System, _server: Option<String>, recursive: bool) -> JuizResult<()> {
+    let proc_manifests: Vec<Value> = system.any_process_list(recursive)?;
     let mut ids: Vec<String> = Vec::new();
     for v in proc_manifests.iter() {
         ids.push(v.as_str().unwrap().to_owned());

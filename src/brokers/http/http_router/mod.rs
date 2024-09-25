@@ -35,15 +35,86 @@ pub mod connection;
 #[derive(Deserialize, IntoParams, Debug)]
 pub struct IdentifierQuery {
     identifier: Option<String>,
+}
+
+#[derive(Deserialize, IntoParams, Debug)]
+pub struct PathQuery {
     path: Option<String>,
 }
 
-pub fn query_to_map(query: &Query<IdentifierQuery>) -> HashMap<String, String> {
+#[derive(Deserialize, IntoParams, Debug)]
+pub struct RecursiveQuery {
+    recursive: Option<String>,
+}
+
+#[derive(Deserialize, IntoParams, Debug)]
+pub struct IdAndRecurQuery {
+    identifier: Option<String>,
+    recursive: Option<String>,
+}
+
+#[derive(Deserialize, IntoParams, Debug)]
+pub struct FullQuery {
+    identifier: Option<String>,
+    path: Option<String>,
+    recursive: Option<String>,
+}
+
+pub fn id_query_to_map(query: &Query<IdentifierQuery>) -> HashMap<String, String> {
     let mut map: HashMap<String, String> = HashMap::new();
     match query.identifier.clone() {
         None => {},
         Some(v) => {
             map.insert("identifier".to_owned(), v);
+        }
+    }
+    map
+}
+
+pub fn path_query_to_map(query: &Query<PathQuery>) -> HashMap<String, String> {
+    let mut map: HashMap<String, String> = HashMap::new();
+    match query.path.clone() {
+        None => {},
+        Some(v) => {
+            map.insert("path".to_owned(), v);
+        }
+    }
+    map
+}
+
+
+
+pub fn id_and_recur_query_to_map(query: &Query<IdAndRecurQuery>) -> HashMap<String, String> {
+    let mut map: HashMap<String, String> = HashMap::new();
+    match query.identifier.clone() {
+        None => {},
+        Some(v) => {
+            map.insert("identifier".to_owned(), v);
+        }
+    }
+    match query.recursive.clone() {
+        None => {},
+        Some(v) => {
+            map.insert("recursive".to_owned(), v);
+        }
+    }
+    map
+}
+
+
+
+pub fn full_query_to_map(query: &Query<FullQuery>) -> HashMap<String, String> {
+    let mut map: HashMap<String, String> = HashMap::new();
+    match query.identifier.clone() {
+        None => {},
+        Some(v) => {
+            map.insert("identifier".to_owned(), v);
+        }
+    }
+    match query.recursive.clone() {
+        None => {},
+        Some(v) => {
+            map.insert("recursive".to_owned(), v);
         }
     }
     match query.path.clone() {
@@ -182,9 +253,3 @@ pub fn append_route(api: &mut utoipa::openapi::OpenApi, body_context: Value, des
     api.paths.paths.insert(operation_key.to_owned(), PathItem::new(PathItemType::Patch, operation));
 }
 
-
-#[allow(unused)]
-#[derive(Deserialize, IntoParams, Debug)]
-pub struct PathQuery {
-    path: Option<String>,
-}

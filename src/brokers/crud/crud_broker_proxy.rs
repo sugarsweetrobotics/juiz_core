@@ -92,9 +92,11 @@ impl ContainerProcessBrokerProxy for CRUDBrokerProxyHolder {
         return result;
     }
 
-    fn container_process_list(&self) -> JuizResult<Value> {
-        log::trace!("CRUDBrokerProxyHolder::container_process_list() called");
-        let v = self.broker.read("container_process", "list", HashMap::new())?;
+    fn container_process_list(&self, recursive: bool) -> JuizResult<Value> {
+        log::trace!("CRUDBrokerProxyHolder::container_process_list({recursive}) called");
+        let mut param: HashMap<String, String> = HashMap::new();
+        param.insert("recursive".to_owned(), recursive.to_string());
+        let v = self.broker.read("container_process", "list", param)?;
         log::debug!("CRUDBrokerProxyHolder::container_process_list() = {v:?}");
         v.lock_as_value(|value| {
             self.convert_identifier_name(value)
@@ -125,9 +127,11 @@ impl ContainerBrokerProxy for CRUDBrokerProxyHolder {
         capsule_to_value(self.modify_profile(self.broker.read("container", "profile_full", param(&[("identifier", id)]))?))
     }
 
-    fn container_list(&self) -> JuizResult<Value> {
-        log::trace!("CRUDBrokerProxyHolder::container_list() called");
-        let v = self.broker.read("container", "list", HashMap::new())?;
+    fn container_list(&self, recursive: bool) -> JuizResult<Value> {
+        log::trace!("CRUDBrokerProxyHolder::container_list({recursive}) called");
+        let mut param: HashMap<String, String> = HashMap::new();
+        param.insert("recursive".to_owned(), recursive.to_string());
+        let v = self.broker.read("container", "list", param)?;
         log::debug!("CRUDBrokerProxyHolder::container_list() returns '{v:?}'");
         v.lock_as_value(|value| {
             self.convert_identifier_name(value)
@@ -161,9 +165,11 @@ impl ProcessBrokerProxy for CRUDBrokerProxyHolder {
         self.broker.update("process", "execute", CapsuleMap::new(), param(&[("identifier", id)]))
     }
 
-    fn process_list(&self) -> JuizResult<Value> {
+    fn process_list(&self, recursive:bool) -> JuizResult<Value> {
         log::trace!("CRUDBrokerProxyHolder::process_list() called");
-        let v = self.broker.read("process", "list", HashMap::new())?;
+        let mut param: HashMap<String, String> = HashMap::new();
+        param.insert("recursive".to_owned(), recursive.to_string());
+        let v = self.broker.read("process", "list", param)?;
         log::trace!("CRUDBrokerProxyHolder::process_list() => {v:?}");
         v.lock_as_value(|value| {
             self.convert_identifier_name(value)
@@ -227,11 +233,21 @@ impl SystemBrokerProxy for CRUDBrokerProxyHolder {
         cp.insert("profile".to_owned(), profile.into());
         capsule_to_value(self.broker.update("system", "add_subsystem", cp, HashMap::new())?)
     }
+    
+    fn system_uuid(&self) -> JuizResult<Value> {
+        let v = self.broker.read("system", "uuid", HashMap::new())?;
+        log::trace!("system_uuid() returns {v:?}");
+        return v.lock_as_str(|obj| {
+            jvalue!(obj)
+        })
+    }
 }
 
 impl BrokerBrokerProxy for CRUDBrokerProxyHolder {
-    fn broker_list(&self) -> JuizResult<Value> {
-        capsule_to_value(self.broker.read("broker", "list", HashMap::new())?)
+    fn broker_list(&self, recursive: bool) -> JuizResult<Value> {
+        let mut param: HashMap<String, String> = HashMap::new();
+        param.insert("recursive".to_owned(), recursive.to_string());
+        capsule_to_value(self.broker.read("broker", "list", param)?)
     }
 
     fn broker_profile_full(&self, id: &Identifier) -> JuizResult<Value> {
@@ -240,10 +256,12 @@ impl BrokerBrokerProxy for CRUDBrokerProxyHolder {
 }
 
 impl ExecutionContextBrokerProxy for CRUDBrokerProxyHolder {
-    fn ec_list(&self) -> JuizResult<Value> {
+    fn ec_list(&self, recursive: bool) -> JuizResult<Value> {
 
         log::trace!("CRUDBrokerProxyHolder::container_list() called");
-        let v = self.broker.read("execution_context", "list", HashMap::new())?;
+        let mut param: HashMap<String, String> = HashMap::new();
+        param.insert("recursive".to_owned(), recursive.to_string());
+        let v = self.broker.read("execution_context", "list", param)?;
 
         log::trace!("CRUDBrokerProxyHolder::process_list() => {v:?}");
         v.lock_as_value(|value| {
@@ -277,8 +295,10 @@ impl ExecutionContextBrokerProxy for CRUDBrokerProxyHolder {
 }
 
 impl ConnectionBrokerProxy for CRUDBrokerProxyHolder {
-    fn connection_list(&self) -> JuizResult<Value> {
-        capsule_to_value(self.broker.read("connection", "list", HashMap::new())?)
+    fn connection_list(&self, recursive: bool) -> JuizResult<Value> {
+        let mut param: HashMap<String, String> = HashMap::new();
+        param.insert("recursive".to_owned(), recursive.to_string());
+        capsule_to_value(self.broker.read("connection", "list", param)?)
     }
 
     fn connection_profile_full(&self, id: &Identifier) -> JuizResult<Value> {

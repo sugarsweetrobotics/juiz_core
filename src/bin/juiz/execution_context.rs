@@ -45,13 +45,14 @@ pub(crate) fn on_ec_inner(_manifest: Value, working_dir: &Path, subcommand: EcSu
             log::trace!("ec list command is selected.");
             let manifest2 = yaml_conf_load(filepath.clone())?;
             let server = args.server;
+            let recursive = args.recursive;
             System::new(manifest2)?
                 .set_working_dir(working_dir)
                 .start_http_broker(args.start_http_broker)
                 .setup()?
                 .run_and_do_once( |system| { 
                 
-                    on_ec_list(system, server)
+                    on_ec_list(system, server, recursive)
                 
             }) 
         },
@@ -74,9 +75,9 @@ pub(crate) fn on_ec_inner(_manifest: Value, working_dir: &Path, subcommand: EcSu
 }
 
 
-fn on_ec_list(system: &mut System, _server: String) -> JuizResult<()> {
+fn on_ec_list(system: &mut System, _server: Option<String>, recursive: bool) -> JuizResult<()> {
     log::info!("on_ec_list() called");
-    let ec_manifests: Vec<Value> = system.ec_list()?;
+    let ec_manifests: Vec<Value> = system.ec_list(recursive)?;
     let mut ids: Vec<String> = Vec::new();
     for v in ec_manifests.iter() {
         ids.push(v.as_str().unwrap().to_owned());
@@ -85,7 +86,7 @@ fn on_ec_list(system: &mut System, _server: String) -> JuizResult<()> {
     Ok(())
 }
 
-fn on_ec_start(system: &mut System, _server: String, id: String) -> JuizResult<()> {
+fn on_ec_start(system: &mut System, _server: Option<String>, id: String) -> JuizResult<()> {
     //println!("processes:");
     let e = system.ec_from_id(&id);
     match e {

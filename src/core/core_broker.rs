@@ -4,6 +4,7 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use anyhow::Context;
+use uuid::Uuid;
 use crate::ecs::execution_context_proxy::ExecutionContextProxy;
 use crate::prelude::*;
 use crate::anyhow::anyhow;
@@ -40,7 +41,7 @@ use crate::object::JuizObjectCoreHolder;
 use crate::object::ObjectCore;
 
 use crate::processes::process_proxy::ProcessProxy;
-use crate::utils::check_corebroker_manifest;
+use crate::utils::{check_corebroker_manifest, get_array};
 use crate::utils::juiz_lock;
 use crate::utils::manifest_util::construct_id;
 use crate::utils::manifest_util::id_from_manifest;
@@ -294,7 +295,7 @@ impl CoreBroker {
         self.broker_proxy(type_name, name.as_str())
     }
 
-    pub fn broker_proxy(&mut self, broker_type_name: &str, broker_name: &str) ->JuizResult<Arc<Mutex<dyn BrokerProxy>>> {
+    pub fn broker_proxy(&self, broker_type_name: &str, broker_name: &str) ->JuizResult<Arc<Mutex<dyn BrokerProxy>>> {
         log::trace!("CoreBroker::broker_proxy({broker_type_name}, {broker_name}) called");
         let mut type_name = broker_type_name;
         if type_name == "core" {
@@ -319,7 +320,7 @@ impl CoreBroker {
             log::error!("creating BrokerProxy(type_name={type_name}) failed. Error ({e})");
             Err(e)
         })?;
-        self.store_mut().broker_proxies.register(bp.clone())?;
+        self.store().broker_proxies.register(bp.clone())?;
         Ok(bp)
     }
 
@@ -333,7 +334,7 @@ impl CoreBroker {
         Ok(ContainerProxy::new(JuizObjectClass::Container("ContainerProxy"),identifier, broker_proxy)?)
     }
 
-    pub fn process_proxy_from_identifier(&mut self, identifier: &Identifier) -> JuizResult<ProcessPtr> {
+    pub fn process_proxy_from_identifier(&self, identifier: &Identifier) -> JuizResult<ProcessPtr> {
         log::info!("CoreBroker::process_proxy_from_identifier({identifier}) called");
         let id_struct = IdentifierStruct::try_from(identifier.clone())?;
         if id_struct.broker_name == "core" && id_struct.broker_type_name == "core" {
@@ -387,7 +388,7 @@ impl CoreBroker {
 
 
     pub fn cleanup_ecs(&mut self) -> JuizResult<()> {
-        for ec in self.store_mut().ecs.objects() {
+        for ec in self.store_mut().ecs.objects().values() {
             juiz_lock(&ec)?.stop()?;
         }
         self.store_mut().ecs.cleanup_objects()
@@ -405,8 +406,12 @@ impl JuizObjectCoreHolder for CoreBroker {
 impl JuizObject for CoreBroker {
 
     fn profile_full(&self) -> JuizResult<Value> {
-        Ok(obj_merge(self.core.profile_full()?, &jvalue!({
+        let v = obj_merge(self.core.profile_full()?, &jvalue!({
             "core_store" : self.core_store.profile_full()?,
+        }))?;
+        Ok(obj_merge(v, &jvalue!({
+            "system_store" : self.system_store.profile_full()?,
+            "subsystems": self.subsystem_proxies.iter().map(|p|{p.profile_full().unwrap()}).collect::<Vec<Value>>()
         }))?.into())
     }
 }
@@ -433,10 +438,34 @@ impl SystemBrokerProxy for CoreBroker {
     
     fn system_add_subsystem(&mut self, profile: Value) -> JuizResult<Value> {
         log::trace!("system_add_subsystem({profile}) called");
-        let bf = self.system_store.create_broker_proxy(&profile)?;
-        self.store_mut().broker_proxies.register(bf.clone())?;
-        self.subsystem_proxies.push(SubSystemProxy::new(bf)?);
+        let bp = self.system_store.create_broker_proxy(&profile)?;
+        let uuid_value = bp.lock().or_else(|_e|{Err(anyhow!(JuizError::ObjectLockError { target: "system_store".to_owned() }))})
+            .and_then(|b|{ b.system_uuid() })?;
+        log::trace!("uuid_value: {uuid_value:?}");
+            // 相手のuuid
+        let uuid_str = uuid_value.as_str().unwrap();
+        let uuid: Uuid = Uuid::parse_str(uuid_str).unwrap();
+        // ここですでにuuidが登録されているかを確認する。
+        for subsystem_proxy in self.subsystem_proxies.iter() {
+            if &uuid == subsystem_proxy.uuid() {
+                log::error!("system_add_subsystem failed. Subsystem(uuid={uuid}) has already added.");
+                return Err(anyhow!(JuizError::ObjectAlreadyRegisteredError{message: format!("system_add_subsystem failed. Subsystem(uuid={uuid}) has already added.")}));
+            }
+        }
+        let my_uuid = self.system_store.uuid()?;
+        for subsystem_proxy in self.subsystem_proxies.iter() {
+            let ss = subsystem_proxy.subsystems()?;
+            log::warn!("WARNING: SUBSYSTEM's SUBSYSTEM mining.... But this is useless...");
+            log::warn!("value is {ss:}");
+        }
+        self.store_mut().broker_proxies.register(bp.clone())?;
+        self.subsystem_proxies.push(SubSystemProxy::new(uuid, bp)?);
+        // self.system_store.lock_mut()?
         Ok(profile)
+    }
+    
+    fn system_uuid(&self) -> JuizResult<Value> {
+        Ok(jvalue!(self.system_store.uuid()?.to_string()))
     }
 }
 
@@ -444,7 +473,13 @@ impl SystemBrokerProxy for CoreBroker {
 impl ProcessBrokerProxy for CoreBroker { 
 
     fn process_call(&self, id: &Identifier, args: CapsuleMap) -> JuizResult<CapsulePtr> {
-        proc_lock(&self.store().processes.get(id)?)?.call(args)
+        let idstruct = IdentifierStruct::try_from(id.clone())?;
+        if idstruct.broker_type_name == "core" {
+            proc_lock(&self.store().processes.get(id)?)?.call(args)
+        } else {
+            log::error!("broker_type_name is not core. id={}", id);
+            Err(anyhow!(JuizError::ObjectCanNotFoundByIdError { id: id.to_string() }))
+        }
     }
 
     fn process_execute(&self, id: &Identifier) -> JuizResult<CapsulePtr> {
@@ -452,13 +487,24 @@ impl ProcessBrokerProxy for CoreBroker {
         proc_lock(&self.store().processes.get(id)?).with_context(||format!("locking process(id={id:}) in CoreBroker::execute_process() function"))?.execute()
     }
 
-
     fn process_profile_full(&self, id: &Identifier) -> JuizResult<Value> {
         Ok(proc_lock(&self.store().processes.get(id)?).with_context(||format!("locking process(id={id:}) in CoreBroker::process_profile_full() function"))?.profile_full()?.into())
     }
 
-    fn process_list(&self) -> JuizResult<Value> {
-        Ok(self.store().processes.list_ids()?.into())
+    fn process_list(&self, recursive: bool) -> JuizResult<Value> {
+        log::trace!("process_list({recursive}) called");
+        let mut ids = self.store().processes.list_ids()?;
+        let ids_arr = ids.as_array_mut().unwrap();
+        if recursive {
+            for (_str, proxy) in self.store().broker_proxies.objects().iter() {
+                let plist = juiz_lock(proxy)?.process_list(recursive)?;
+                for v in get_array(&plist)?.iter() {
+                    let id = v.as_str().unwrap();
+                    ids_arr.push(id.into());
+                }
+            }
+        }
+        Ok(ids)
     }
 
     fn process_try_connect_to(&mut self, source_process_id: &Identifier, arg_name: &str, destination_process_id: &Identifier, manifest: Value) -> JuizResult<Value> {
@@ -502,8 +548,20 @@ impl ContainerBrokerProxy for CoreBroker {
         container_lock(&self.store().containers.get(id)?).with_context(||format!("locking container(id={id:}) in CoreBroker::container_profile_full() function"))?.profile_full()
     }
 
-    fn container_list(&self) -> JuizResult<Value> {
-        Ok(self.store().containers.list_ids()?.into())
+    fn container_list(&self, recursive: bool) -> JuizResult<Value> {
+        //Ok(self.store().containers.list_ids()?.into())
+        let mut ids = self.store().containers.list_ids()?;
+        let ids_arr = ids.as_array_mut().unwrap();
+        if recursive {
+            for (_id, proxy) in self.store().broker_proxies.objects().iter() {
+                let plist = juiz_lock(proxy)?.container_list(recursive)?;
+                for v in get_array(&plist)?.iter() {
+                    let id = v.as_str().unwrap();
+                    ids_arr.push(id.into());
+                }
+            }
+        }
+        Ok(ids)
     }
     
     fn container_create(&mut self, manifest: &Value) -> JuizResult<Value> {
@@ -522,19 +580,42 @@ impl ContainerProcessBrokerProxy for CoreBroker {
         proc_lock(&self.store().container_processes.get(id)?).with_context(||format!("locking container_procss(id={id:}) in CoreBroker::container_process_profile_full() function"))?.profile_full()
     }
 
-    fn container_process_list(&self) -> JuizResult<Value> {
-        Ok(self.store().container_processes.list_ids()?.into())
+    fn container_process_list(&self, recursive: bool) -> JuizResult<Value> {
+        // Ok(self.store().container_processes.list_ids()?.into())
+
+        let mut ids = self.store().container_processes.list_ids()?;
+        let ids_arr = ids.as_array_mut().unwrap();
+        if recursive {
+            for (_str, proxy) in self.store().broker_proxies.objects().iter() {
+                let plist = juiz_lock(proxy)?.container_process_list(recursive)?;
+                for v in get_array(&plist)?.iter() {
+                    let id = v.as_str().unwrap();
+                    ids_arr.push(id.into());
+                }
+            }
+        }
+        Ok(ids)
     }
 
     fn container_process_call(&self, id: &Identifier, args: CapsuleMap) -> JuizResult<CapsulePtr> {
         log::trace!("CoreBroker::container_process_call(id={id:}, args) called");
-        proc_lock(&self.store().container_processes.get(id)?).with_context(||format!("locking container_procss(id={id:}) in CoreBroker::container_process_call() function"))?.call(args)
+        // proc_lock(&self.store().container_processes.get(id)?).with_context(||format!("locking container_procss(id={id:}) in CoreBroker::container_process_call() function"))?.call(args)
+    
+        let idstruct = IdentifierStruct::try_from(id.clone())?;
+        if idstruct.broker_type_name == "core" {
+            proc_lock(&self.store().container_processes.get(id)?)?.call(args)
+        } else {
+            //let p = self.process_proxy_from_identifier(id)?;
+            proc_lock(&self.process_proxy_from_identifier(id)?)?.call(args)
+            //log::error!("broker_type_name is not core. id={}", id);
+            //Err(anyhow!(JuizError::ObjectCanNotFoundByIdError { id: id.to_string() }))
+        }
     }
 
     fn container_process_execute(&self, id: &Identifier) -> JuizResult<CapsulePtr> {
         proc_lock(&self.store().container_processes.get(id)?).with_context(||format!("locking process(id={id:}) in CoreBroker::execute_process() function"))?.execute()
     }
-    
+ 
     fn container_process_create(&mut self, container_id: &Identifier, manifest: &Value) -> JuizResult<Value> {
         let container = self.container_from_id(container_id)?;
         let cp = self.create_container_process_ref(container, manifest.clone())?;
@@ -548,8 +629,21 @@ impl ContainerProcessBrokerProxy for CoreBroker {
 }
 
 impl BrokerBrokerProxy for CoreBroker {
-    fn broker_list(&self) -> JuizResult<Value> {
-        self.store().brokers_list_ids()
+    fn broker_list(&self, recursive: bool) -> JuizResult<Value> {
+        // self.store().brokers_list_ids()
+
+        let mut ids = self.store().brokers_list_ids()?;
+        let ids_arr = ids.as_array_mut().unwrap();
+        if recursive {
+            for (_, proxy ) in self.store().broker_proxies.objects().iter() {
+                let plist = juiz_lock(proxy)?.broker_list(recursive)?;
+                for v in get_array(&plist)?.iter() {
+                    let id = v.as_str().unwrap();
+                    ids_arr.push(id.into());
+                }
+            }
+        }
+        Ok(ids)
     }
 
     fn broker_profile_full(&self, id: &Identifier) -> JuizResult<Value> {
@@ -558,8 +652,21 @@ impl BrokerBrokerProxy for CoreBroker {
 }
 
 impl ExecutionContextBrokerProxy for CoreBroker {
-    fn ec_list(&self) -> JuizResult<Value> {
-        Ok(self.store().ecs.list_ids()?.into())
+    fn ec_list(&self, recursive: bool) -> JuizResult<Value> {
+        //Ok(self.store().ecs.list_ids()?.into())
+
+        let mut ids = self.store().ecs.list_ids()?;
+        let ids_arr = ids.as_array_mut().unwrap();
+        if recursive {
+            for (_, proxy) in self.store().broker_proxies.objects().iter() {
+                let plist = juiz_lock(proxy)?.ec_list(recursive)?;
+                for v in get_array(&plist)?.iter() {
+                    let id = v.as_str().unwrap();
+                    ids_arr.push(id.into());
+                }
+            }
+        }
+        Ok(ids)
     }
 
     fn ec_profile_full(&self, id: &Identifier) -> JuizResult<Value> {
@@ -591,9 +698,22 @@ impl ExecutionContextBrokerProxy for CoreBroker {
 
 impl ConnectionBrokerProxy for CoreBroker {
 
-    fn connection_list(&self) -> JuizResult<Value> {
+    fn connection_list(&self, recursive: bool) -> JuizResult<Value> {
         let cons = connection_builder::list_connection_profiles(self)?;
-        Ok(jvalue!(cons.iter().map(|con_prof| { obj_get(con_prof, "identifier").unwrap() }).collect::<Vec<&Value>>()).into())
+        let mut ids_arr = cons.iter().map(|con_prof| { obj_get(con_prof, "identifier").unwrap().clone() }).collect::<Vec<Value>>();
+    
+        // let mut ids = self.store().containers.list_ids()?;
+        // let ids_arr = ids.as_array_mut().unwrap();
+        if recursive {
+            for (_, proxy ) in self.store().broker_proxies.objects().iter() {
+                let plist = juiz_lock(proxy)?.connection_list(recursive)?;
+                for v in get_array(&plist)?.iter() {
+                    let id = v.as_str().unwrap();
+                    ids_arr.push(id.into());
+                }
+            }
+        }
+        Ok(jvalue!(ids_arr))
     }
 
     fn connection_profile_full(&self, id: &Identifier) -> JuizResult<Value> {

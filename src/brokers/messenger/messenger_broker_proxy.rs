@@ -249,6 +249,10 @@ impl SystemBrokerProxy for MessengerBrokerProxy {
         cp.insert("profile".to_owned(), profile.into());
         capsule_to_value(self.update("system", "add_subsystem", cp, &[])?)
     }
+    
+    fn system_uuid(&self) -> JuizResult<Value> {
+        capsule_to_value(self.read("system", "uuid")?)
+    }
 }
 
 impl ProcessBrokerProxy for MessengerBrokerProxy {
@@ -265,8 +269,8 @@ impl ProcessBrokerProxy for MessengerBrokerProxy {
         capsule_to_value(self.read_by_id("process", "profile_full", id)?)
     }
 
-    fn process_list(&self) -> JuizResult<Value> {
-        self.read("process", "list")?.extract_value()
+    fn process_list(&self, recursive: bool) -> JuizResult<Value> {
+        self.read_with_param("process", "list", &[("recursive".to_owned(), recursive.to_string())])?.extract_value()
         //todo!("ここで__value__, __option___を使ってた弊害出てるぞ");
         //capsule_to_value(self.read("process", "list")?)
     }
@@ -324,8 +328,8 @@ impl ContainerBrokerProxy for MessengerBrokerProxy {
         capsule_to_value(capsule)
     }
 
-    fn container_list(&self) -> JuizResult<Value> {
-        capsule_to_value(self.read("container", "list")?)
+    fn container_list(&self, recursive: bool) -> JuizResult<Value> {
+        capsule_to_value(self.read_with_param("container", "list", &[("recursive".to_owned(), recursive.to_string())])?)
     }
     
     fn container_create(&mut self, manifest: &Value) -> JuizResult<Value> {
@@ -342,8 +346,8 @@ impl ContainerProcessBrokerProxy for MessengerBrokerProxy {
         capsule_to_value(self.read_by_id("container_process", "profile_full", id)?)
     }
 
-    fn container_process_list(&self) -> JuizResult<Value> {
-        capsule_to_value(self.read("container_process", "list")?)
+    fn container_process_list(&self, recursive: bool) -> JuizResult<Value> {
+        capsule_to_value(self.read_with_param("container_process", "list", &[("recursive".to_owned(), recursive.to_string())])?)
     }
     
     fn container_process_call(&self, id: &Identifier, args: CapsuleMap) -> JuizResult<CapsulePtr> {       
@@ -369,8 +373,8 @@ impl ExecutionContextBrokerProxy for MessengerBrokerProxy {
         capsule_to_value(self.read_by_id("execution_context", "profile_full", id)?)
     }
 
-    fn ec_list(&self) -> JuizResult<Value> {
-        capsule_to_value(self.read("execution_context", "list")?)
+    fn ec_list(&self, recursive: bool) -> JuizResult<Value> {
+        capsule_to_value(self.read_with_param("execution_context", "list", &[("recursive".to_owned(), recursive.to_string())])?)
     }
 
     fn ec_get_state(&self, id: &Identifier) -> JuizResult<Value> {
@@ -395,8 +399,8 @@ impl ExecutionContextBrokerProxy for MessengerBrokerProxy {
 }
 
 impl BrokerBrokerProxy for MessengerBrokerProxy {
-    fn broker_list(&self) -> JuizResult<Value> {
-        capsule_to_value(self.read("broker", "list")?)
+    fn broker_list(&self, recursive: bool) -> JuizResult<Value> {
+        capsule_to_value(self.read_with_param("broker", "list", &[("recursive".to_owned(), recursive.to_string())])?)
     }
 
     fn broker_profile_full(&self, id: &Identifier) -> JuizResult<Value> {
@@ -405,8 +409,8 @@ impl BrokerBrokerProxy for MessengerBrokerProxy {
 }
 
 impl ConnectionBrokerProxy for MessengerBrokerProxy {
-    fn connection_list(&self) -> JuizResult<Value> {
-        capsule_to_value(self.read("connection", "list")?)
+    fn connection_list(&self, recursive: bool) -> JuizResult<Value> {
+        capsule_to_value(self.read_with_param("connection", "list", &[("recursive".to_owned(), recursive.to_string())])?)
     }
 
     fn connection_profile_full(&self, id: &Identifier) -> JuizResult<Value> {

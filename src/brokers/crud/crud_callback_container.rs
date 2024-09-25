@@ -1,4 +1,4 @@
-use std::{collections::HashMap, path::PathBuf};
+use std::{collections::HashMap, path::PathBuf, str::FromStr};
 
 use crate::{brokers::broker_proxy::{BrokerBrokerProxy, ConnectionBrokerProxy, ContainerBrokerProxy, ContainerProcessBrokerProxy, ExecutionContextBrokerProxy, ProcessBrokerProxy, SystemBrokerProxy}, core::core_broker::CoreBrokerPtr, prelude::*};
 use crate::value::{CapsuleMap, value_to_capsule};
@@ -70,6 +70,10 @@ pub(crate) fn read_callback_container() -> ClassCallbackContainerType {
         log::trace!("system_callbacks['profile_full'] called with args {_args:?}");
         Ok(value_to_capsule(cb.lock()?.system_profile_full()?))
     });
+    system_callbacks.insert("uuid", |cb, _args| {
+        log::trace!("system_callbacks['uuid'] called with args {_args:?}");
+        Ok(value_to_capsule(cb.lock()?.system_uuid()?))
+    });
     system_callbacks.insert("filesystem_list", |cb, _args| {
         log::trace!("system_callbacks['filesystem_list'] called with args {_args:?}");
         let param = _args.get_params();
@@ -92,8 +96,10 @@ pub(crate) fn read_callback_container() -> ClassCallbackContainerType {
         let id = args.get_param("identifier").ok_or_else(||{anyhow::Error::from(JuizError::CRUDBrokerCanNotParameterFunctionError { key_name: "identifier".to_owned() })})?;
         Ok(value_to_capsule(cb.lock()?.broker_profile_full(id)?))
     });
-    broker_cbs.insert("list", |cb, _args| {
-        Ok(value_to_capsule(cb.lock()?.broker_list()?))
+    broker_cbs.insert("list", |cb, args| {
+        let recursive_str = args.get_param("recursive").and_then(|v|{Some(v.clone())}).or_else(||{Some("false".to_owned())}).unwrap();
+        let recursive: bool = FromStr::from_str(recursive_str.as_str())?;
+        Ok(value_to_capsule(cb.lock()?.broker_list(recursive)?))
     });
     read_cb_container.insert("broker", broker_cbs);
 
@@ -103,8 +109,10 @@ pub(crate) fn read_callback_container() -> ClassCallbackContainerType {
         let id = args.get_param("identifier").ok_or_else(||{anyhow::Error::from(JuizError::CRUDBrokerCanNotParameterFunctionError { key_name: "identifier".to_owned() })})?;
         Ok(value_to_capsule(cb.lock()?.process_profile_full(id)?))
     });
-    proc_cbs.insert("list", |cb, _args| {
-        Ok(value_to_capsule(cb.lock()?.process_list()?))
+    proc_cbs.insert("list", |cb, args| {
+        let recursive_str = args.get_param("recursive").and_then(|v|{Some(v.clone())}).or_else(||{Some("false".to_owned())}).unwrap();
+        let recursive: bool = FromStr::from_str(recursive_str.as_str())?;
+        Ok(value_to_capsule(cb.lock()?.process_list(recursive)?))
     });
     read_cb_container.insert("process", proc_cbs);
 
@@ -114,8 +122,10 @@ pub(crate) fn read_callback_container() -> ClassCallbackContainerType {
         let id = args.get_param("identifier").ok_or_else(||{anyhow::Error::from(JuizError::CRUDBrokerCanNotParameterFunctionError { key_name: "identifier".to_owned() })})?;
         Ok(value_to_capsule(cb.lock()?.container_profile_full(id)?))
     });
-    cont_cbs.insert("list", |cb, _args| {
-        Ok(value_to_capsule(cb.lock()?.container_list()?))
+    cont_cbs.insert("list", |cb, args| {
+        let recursive_str = args.get_param("recursive").and_then(|v|{Some(v.clone())}).or_else(||{Some("false".to_owned())}).unwrap();
+        let recursive: bool = FromStr::from_str(recursive_str.as_str())?;
+        Ok(value_to_capsule(cb.lock()?.container_list(recursive)?))
     });
     read_cb_container.insert("container", cont_cbs);
     
@@ -124,8 +134,10 @@ pub(crate) fn read_callback_container() -> ClassCallbackContainerType {
         let id = args.get_param("identifier").ok_or_else(||{anyhow::Error::from(JuizError::CRUDBrokerCanNotParameterFunctionError { key_name: "identifier".to_owned() })})?;
         Ok(value_to_capsule(cb.lock()?.container_process_profile_full(id)?))
     });
-    cpro_cbs.insert("list", |cb, _args| {
-        Ok(value_to_capsule(cb.lock()?.container_process_list()?))
+    cpro_cbs.insert("list", |cb, args| {
+        let recursive_str = args.get_param("recursive").and_then(|v|{Some(v.clone())}).or_else(||{Some("false".to_owned())}).unwrap();
+        let recursive: bool = FromStr::from_str(recursive_str.as_str())?;
+        Ok(value_to_capsule(cb.lock()?.container_process_list(recursive)?))
     });
     read_cb_container.insert("container_process", cpro_cbs);
     
@@ -135,8 +147,10 @@ pub(crate) fn read_callback_container() -> ClassCallbackContainerType {
         let id = args.get_param("identifier").ok_or_else(||{anyhow::Error::from(JuizError::CRUDBrokerCanNotParameterFunctionError { key_name: "identifier".to_owned() })})?;
         Ok(value_to_capsule(cb.lock()?.connection_profile_full(id)?))
     });
-    con_cbs.insert("list", |cb, _args| {
-        Ok(value_to_capsule(cb.lock()?.connection_list()?))
+    con_cbs.insert("list", |cb, args| {
+        let recursive_str = args.get_param("recursive").and_then(|v|{Some(v.clone())}).or_else(||{Some("false".to_owned())}).unwrap();
+        let recursive: bool = FromStr::from_str(recursive_str.as_str())?;
+        Ok(value_to_capsule(cb.lock()?.connection_list(recursive)?))
     });
     read_cb_container.insert("connection", con_cbs);
     
@@ -146,8 +160,10 @@ pub(crate) fn read_callback_container() -> ClassCallbackContainerType {
         let id = args.get_param("identifier").ok_or_else(||{anyhow::Error::from(JuizError::CRUDBrokerCanNotParameterFunctionError { key_name: "identifier".to_owned() })})?;
         Ok(value_to_capsule(cb.lock()?.ec_profile_full(id)?))
     });
-    ec_cbs.insert("list", |cb, _args| {
-        Ok(value_to_capsule(cb.lock()?.ec_list()?))
+    ec_cbs.insert("list", |cb, args| {
+        let recursive_str = args.get_param("recursive").and_then(|v|{Some(v.clone())}).or_else(||{Some("false".to_owned())}).unwrap();
+        let recursive: bool = FromStr::from_str(recursive_str.as_str())?;
+        Ok(value_to_capsule(cb.lock()?.ec_list(recursive)?))
     });
     ec_cbs.insert("get_state", |cb, args| {
         let id = args.get_param("identifier").ok_or_else(||{anyhow::Error::from(JuizError::CRUDBrokerCanNotParameterFunctionError { key_name: "identifier".to_owned() })})?;

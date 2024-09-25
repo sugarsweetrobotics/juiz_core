@@ -16,6 +16,8 @@ pub trait SystemBrokerProxy {
 
     fn system_add_subsystem(&mut self, profile: Value) -> JuizResult<Value>;
 
+    fn system_uuid(&self) -> JuizResult<Value>;
+
 }
 
 pub trait ProcessBrokerProxy {
@@ -28,7 +30,12 @@ pub trait ProcessBrokerProxy {
 
     fn process_destroy(&mut self, identifier: &Identifier) -> JuizResult<Value>;
 
-    fn process_list(&self) -> JuizResult<Value>;
+    /// プロセスリスト取得
+    ///
+    /// Broker支配下のプロセスのIDのリストを取得する
+    /// 
+    /// * `recursive` - サブシステムのプロセスを再起的に読み込む場合はtrue
+    fn process_list(&self, recursive: bool) -> JuizResult<Value>;
 
     fn process_profile_full(&self, id: &Identifier) -> JuizResult<Value>;
 
@@ -49,7 +56,13 @@ pub trait ContainerBrokerProxy {
 
     fn container_destroy(&mut self, identifier: &Identifier) -> JuizResult<Value>;
 
-    fn container_list(&self) -> JuizResult<Value>;
+
+    /// コンテナリスト取得
+    ///
+    /// Broker支配下のプロセスのIDのリストを取得する
+    /// 
+    /// * `recursive` - サブシステムのプロセスを再起的に読み込む場合はtrue
+    fn container_list(&self, recursive: bool) -> JuizResult<Value>;
 
     fn container_profile_full(&self, id: &Identifier) -> JuizResult<Value>;
 }
@@ -60,7 +73,13 @@ pub trait ContainerProcessBrokerProxy {
 
     fn container_process_destroy(&mut self, identifier: &Identifier) -> JuizResult<Value>;
 
-    fn container_process_list(&self) -> JuizResult<Value>;
+
+    /// コンテナプロセスのリスト取得
+    ///
+    /// Broker支配下のプロセスのIDのリストを取得する
+    /// 
+    /// * `recursive` - サブシステムのプロセスを再起的に読み込む場合はtrue
+    fn container_process_list(&self, rucursive: bool) -> JuizResult<Value>;
 
     fn container_process_profile_full(&self, id: &Identifier) -> JuizResult<Value>;
 
@@ -75,7 +94,12 @@ pub trait ExecutionContextBrokerProxy {
 
     fn ec_destroy(&mut self, identifier: &Identifier) -> JuizResult<Value>;
     
-    fn ec_list(&self) -> JuizResult<Value>;
+    /// 実行コンテキストのリスト取得
+    ///
+    /// Broker支配下のプロセスのIDのリストを取得する
+    /// 
+    /// * `recursive` - サブシステムのプロセスを再起的に読み込む場合はtrue
+    fn ec_list(&self, recursive: bool) -> JuizResult<Value>;
 
     fn ec_profile_full(&self, id: &Identifier) -> JuizResult<Value>;
 
@@ -87,14 +111,24 @@ pub trait ExecutionContextBrokerProxy {
 }
 pub trait BrokerBrokerProxy {
     
-    fn broker_list(&self) -> JuizResult<Value>;
+    /// ブローカのリスト取得
+    ///
+    /// Broker支配下のプロセスのIDのリストを取得する
+    /// 
+    /// * `recursive` - サブシステムのプロセスを再起的に読み込む場合はtrue
+    fn broker_list(&self, recursive: bool) -> JuizResult<Value>;
 
     fn broker_profile_full(&self, id: &Identifier) -> JuizResult<Value>;
 }
 
 pub trait ConnectionBrokerProxy {
 
-    fn connection_list(&self) -> JuizResult<Value>;
+    /// Connectionのリスト取得
+    ///
+    /// Broker支配下のプロセスのIDのリストを取得する
+    /// 
+    /// * `recursive` - サブシステムのプロセスを再起的に読み込む場合はtrue
+    fn connection_list(&self, recursive: bool) -> JuizResult<Value>;
 
     fn connection_profile_full(&self, id: &Identifier) -> JuizResult<Value>;
 
@@ -108,9 +142,9 @@ pub trait BrokerProxy : Send + JuizObject + SystemBrokerProxy + ProcessBrokerPro
 
     fn is_in_charge_for_process(&self, _id: &Identifier) -> JuizResult<bool>;
 
-    fn any_process_list(&self) -> JuizResult<Capsule> {
-        let processes = self.process_list()?;
-        let container_processes = self.container_process_list()?;
+    fn any_process_list(&self, recursive: bool) -> JuizResult<Capsule> {
+        let processes = self.process_list(recursive)?;
+        let container_processes = self.container_process_list(recursive)?;
         Ok(value_merge(processes, &container_processes)?.into())
     }
 

@@ -1,6 +1,6 @@
 use utoipa::OpenApi;
 
-use super::IdentifierQuery;
+use super::{IdentifierQuery, RecursiveQuery};
 
 use axum::extract::Query;
 
@@ -80,12 +80,15 @@ pub fn get_state_dummy(
 #[utoipa::path(
     get,
     path = "/api/execution_context/list",
+    params(
+        RecursiveQuery
+    ),
     responses(
         (status = 200, description = "System")
     ),
     tag = "universal.execution_context",
 )]
-pub fn list_dummy() {
+pub fn list_dummy(_query: Query<RecursiveQuery>) {
 }
 
 #[derive(OpenApi)]

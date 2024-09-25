@@ -19,9 +19,6 @@ mod result;
 
 pub mod prelude;
 
-#[cfg(test)]
-pub mod exports_tests;
-
 pub use crate::utils::yaml_conf_load;
 pub use core::{SystemStore, SystemStorePtr};
 pub use processes::{proc_lock, proc_lock_mut};

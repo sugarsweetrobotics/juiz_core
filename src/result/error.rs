@@ -179,6 +179,8 @@ pub enum JuizError {
     DataConversionError { message: String },
     #[error("Value merge Error {message}")]
     ValueMergeError { message: String },
+    #[error("Object is already registered Error. (message={message:})")]
+    ObjectAlreadyRegisteredError{message: String },
     #[error("CppPlugin FunctionCall Error")]
     CppProcessFunctionCallError {  },
     #[error("CppPlugin FunctionCall Failed (function_name={function_name}, return_value={return_value}")]

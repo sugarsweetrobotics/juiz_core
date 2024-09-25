@@ -32,8 +32,14 @@ use clap::{Parser, Subcommand};
 )]
 struct Args {
     /// Name of the person to greet
-    #[arg(short = 'd', help = "Daemonize JUIZ server")]
+    #[arg(short = 'd', help = "Daemonize JUIZ server. This option automatically enables http server (-b option). If you want to suppress, use -q option.")]
     daemonize: bool,
+
+    #[arg(short = 'r', default_value="true", help = "Recursively walk subsystems.")]
+    recursive: bool,
+
+    #[arg(short = 'q', default_value="false", help = "Stop HTTP Broker [false|true]. Default(false). This option is used with -d option only. If you use this with -b option, http server will start.")]
+    stop_http_broker: bool,
 
     #[arg(short = 'b', help = "Start HTTP Broker [false|true]. Default(false)")]
     start_http_broker: bool,
@@ -41,8 +47,8 @@ struct Args {
     #[arg(short = 'f', default_value = "./juiz.conf", help = "Input system definition file path")]
     filepath: String,
 
-    #[arg(short = 's', default_value = "http://localhost:8000", help = "Host of server (ex., http://localhost:8000)")]
-    server: String,
+    #[arg(short = 's', help = "Host of server (ex., http://localhost:8000)")]
+    server: Option<String>,
 
     #[clap(subcommand)]
     subcommand: Option<SubCommands>,
@@ -110,21 +116,26 @@ fn do_once() -> JuizResult<()>{
     log::trace!("main::do_once called");
     let args = Args::parse();
     let manifest = yaml_conf_load(args.filepath.clone())?;
-    let flag_start = args.start_http_broker;
+    let flag_start = if args.daemonize { true } else { args.start_http_broker };
     let manifest_filepath = PathBuf::from(args.filepath.as_str().to_string());
     let working_dir = manifest_filepath.parent().unwrap();
+    let server = args.server.clone();
     if args.subcommand.is_none() {
         if args.daemonize {
-            return System::new(manifest)?
+            let s = System::new(manifest)?
                 .set_working_dir(working_dir)
                 .start_http_broker(flag_start)
-                .setup()?
+                .setup()?;
+            
+            return s
+                .add_subsystem_by_id(server)?
                 .run_and_do(do_task);
         } else {
             return System::new(manifest)?
                 .set_working_dir(working_dir)
                 .start_http_broker(flag_start)
                 .setup()?
+                .add_subsystem_by_id(server)?
                 .run_and_do_once(do_task_once);
         }
     }

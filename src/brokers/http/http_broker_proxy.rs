@@ -34,7 +34,7 @@ fn name_to_host_and_port<'a>(name: &'a String) -> JuizResult<(&'a str, i64)> {
 
 struct HTTPBrokerProxy {
     base_url: String,
-    
+    client: reqwest::blocking::Client,
 }
 
 impl HTTPBrokerProxy {
@@ -44,6 +44,7 @@ impl HTTPBrokerProxy {
         let name = obj_get_str(manifest, "name")?.to_string();
         let (addr, port) = name_to_host_and_port(&name)?;
         Ok(HTTPBrokerProxy{
+            client: reqwest::blocking::Client::new(),
             base_url: "http://".to_string() + addr + ":" + i64::to_string(&port).as_str() + "/api"
         })
     }
@@ -101,10 +102,10 @@ impl CRUDBrokerProxy for HTTPBrokerProxy {
     fn read(&self, class_name: &str, function_name: &str, param: std::collections::HashMap<String, String>) -> JuizResult<CapsulePtr> {
         log::trace!("HTTPBrokerProxy({}).read({class_name:}, {function_name}, {param:?}) called", self.base_url);
         
-        let client = reqwest::blocking::Client::new();
+        // let client = reqwest::blocking::Client::new();
         let url  =construct_url(&self.base_url, class_name, function_name, &param);
         log::trace!("HTTPBrokerProxy({}).read(url={url:})", self.base_url);
-        match client.get(url.clone()).send() {
+        match self.client.get(url.clone()).send() {
             Err(e) => Err(anyhow::Error::from(e)),
             Ok(response) => {
                 if response.status() != 200 {
@@ -113,7 +114,9 @@ impl CRUDBrokerProxy for HTTPBrokerProxy {
                 }
                 let value = response.json::<Value>().map_err(|e| anyhow::Error::from(e))?;
                 log::trace!("HTTPBrokerProxy.read({}) Response = {value:?}", self.base_url);
-                Ok(value.into())
+                let return_value = Ok(value.into());
+                log::trace!("HTTPBrokerProxy.read({}) returns {return_value:?}", self.base_url);
+                return_value
             }
         }
     }

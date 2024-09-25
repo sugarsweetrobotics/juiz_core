@@ -27,18 +27,19 @@ pub(crate) fn on_container_process(_manifest: Value, working_dir: &Path, subcomm
             log::trace!("container-process list command is selected.");
             let manifest2 = yaml_conf_load(filepath.clone())?;
             let server = args.server;
+            let recursive = args.recursive;
             System::new(manifest2)?
             .set_working_dir(working_dir)
             .start_http_broker(args.start_http_broker)
             .setup()?
-            .run_and_do_once( |system| { on_container_process_list(system, server) }) 
+            .run_and_do_once( |system| { on_container_process_list(system, server, recursive) }) 
         }
     }
 }
 
-fn on_container_process_list(system: &mut System, _server: String) -> JuizResult<()> {
+fn on_container_process_list(system: &mut System, _server: Option<String>, recursive: bool) -> JuizResult<()> {
     log::trace!("on_container_process_list() called");
-    let proc_manifests: Vec<Value> = system.container_process_list()?;
+    let proc_manifests: Vec<Value> = system.container_process_list(recursive)?;
     //println!("proc_manifests: {proc_manifests:?}");
     let mut ids: Vec<String> = Vec::new();
     for v in proc_manifests.iter() {

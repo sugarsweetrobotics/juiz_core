@@ -23,6 +23,12 @@ pub mod example_component {
                         }
                     ]
                 }
+            ],
+            "processes": [
+                {
+                    "type_name": "increment_process",
+                    "factory": "increment_process_factory",
+                }
             ]
         }); 
     }
@@ -48,6 +54,22 @@ pub mod example_component {
         ContainerFactoryImpl::create(ExampleComponentContainer::manifest(), create_example_component_container)
     }
 
+    fn increment_process(args: CapsuleMap) -> JuizResult<Capsule> {
+        log::trace!("increment_process({:?}) called", args);
+        let i = args.get_int("arg1")?;
+        return Ok(jvalue!(i+1).into());
+    }
+    
+    #[no_mangle]
+    pub unsafe extern "Rust" fn increment_process_factory() -> JuizResult<ProcessFactoryPtr> {
+        // env_logger::init();
+        let manif = ProcessManifest::new("increment_process")
+            .description("Example(incremnet_process)")
+            .add_int_arg("arg1", "The output will be 'arg1 + 1'.", 1)
+            .into();
+        ProcessFactoryImpl::create(manif, increment_process)
+    }
+    
 
     fn example_component_container_get_function(container: &mut ContainerImpl<ExampleComponentContainer>, _v: CapsuleMap) -> JuizResult<Capsule> {
         Ok(jvalue!(container.value).into())

@@ -15,6 +15,7 @@ pub(crate) fn setup_objects(system: &mut System, manifest: &Value) -> JuizResult
     let _ = when_contains_do(manifest, "containers", |v| {
         setup_containers(system, v).context("system_builder::setup_containers in System::setup() failed")
     })?;
+
     setup_http_broker_factory(system).context("system_builder::setup_http_broker_factory in System::setup() failed.")?;
     
     {
@@ -22,7 +23,10 @@ pub(crate) fn setup_objects(system: &mut System, manifest: &Value) -> JuizResult
         if is_http_broker_start(options) {
             let port_number: i64 = get_http_port(options);
             //let opt = options.unwrap().clone();
+            log::trace!("http_broker is being created. option is {options:?}");
             setup_http_broker(system, port_number, options).context("system_builder::setup_http_broker in System::setup() failed.")?;
+        } else {
+            log::trace!("http_broker was not created. option is {options:?}");
         }
     }
 

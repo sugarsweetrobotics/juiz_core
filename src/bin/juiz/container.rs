@@ -38,6 +38,7 @@ pub(crate) fn on_container(manifest: Value, working_dir: &Path, subcommand: Cont
 }
 
 pub(crate) fn on_container_inner(manifest: Value, working_dir: &Path, subcommand: ContSubCommands, args: Args ) -> JuizResult<()> {
+    let recursive = args.recursive;
     match subcommand {
         ContSubCommands::List { filepath } => {
             log::trace!("container list command is selected.");
@@ -47,7 +48,7 @@ pub(crate) fn on_container_inner(manifest: Value, working_dir: &Path, subcommand
             .set_working_dir(working_dir)
             .start_http_broker(args.start_http_broker)
             .setup()?
-            .run_and_do_once( |system| { on_container_list(system, server) }) 
+            .run_and_do_once( |system| { on_container_list(system, server, recursive) }) 
         },
         ContSubCommands::Info { identifier } => {
             System::new(manifest)?
@@ -61,9 +62,9 @@ pub(crate) fn on_container_inner(manifest: Value, working_dir: &Path, subcommand
     }
 }
 
-fn on_container_list(system: &mut System, _server: String) -> JuizResult<()> {
+fn on_container_list(system: &mut System, _server: Option<String>, recursive: bool) -> JuizResult<()> {
     log::trace!("on_container_list() called");
-    let proc_manifests: Vec<Value> = system.container_list()?;
+    let proc_manifests: Vec<Value> = system.container_list(recursive)?;
     log::debug!("system.container_list() returns '{proc_manifests:?}'");
     let mut ids: Vec<String> = Vec::new();
 

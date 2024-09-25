@@ -1,6 +1,6 @@
 use utoipa::OpenApi;
 
-use super::IdentifierQuery;
+use super::{RecursiveQuery, IdentifierQuery};
 use axum::extract::Query;
 
 
@@ -25,12 +25,15 @@ pub fn profile_handler_dummy(
 #[utoipa::path(
     get,
     path = "/api/container/list",
+    params(
+        RecursiveQuery
+    ),
     responses(
         (status = 200, description = "System")
     ),
     tag = "universal.container",
 )]
-pub fn list_dummy() {
+pub fn list_dummy(_query: Query<RecursiveQuery>,) {
 }
 
 
