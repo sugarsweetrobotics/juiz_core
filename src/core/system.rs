@@ -424,9 +424,9 @@ impl System {
         Ok(())
     }
 
-    pub fn broker_proxy(&self, manifest: &Value) -> JuizResult<Arc<Mutex<dyn BrokerProxy>>> {
+    pub fn broker_proxy(&self, manifest: &Value, create_when_not_found: bool) -> JuizResult<Arc<Mutex<dyn BrokerProxy>>> {
         log::trace!("System::broker_proxy({}) called", manifest);
-        self.core_broker.lock_mut()?.broker_proxy_from_manifest(manifest)
+        self.core_broker.lock_mut()?.broker_proxy_from_manifest(manifest, create_when_not_found)
     }
 
     pub fn register_broker_factories_wrapper(&mut self, bf: Arc<Mutex<BrokerFactoriesWrapper>>) -> JuizResult<Arc<Mutex<BrokerFactoriesWrapper>>> {

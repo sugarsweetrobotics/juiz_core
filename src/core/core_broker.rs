@@ -279,7 +279,7 @@ impl CoreBroker {
         }
     }
 
-    pub fn broker_proxy_from_manifest(&mut self, manifest: &Value) -> JuizResult<Arc<Mutex<dyn BrokerProxy>>> {
+    pub fn broker_proxy_from_manifest(&mut self, manifest: &Value, create_when_not_found: bool) -> JuizResult<Arc<Mutex<dyn BrokerProxy>>> {
         let mut type_name = obj_get_str(manifest, "type_name")?;
         if type_name == "core" {
             type_name = "local";
@@ -292,10 +292,10 @@ impl CoreBroker {
                 type_name.to_string() + counter.to_string().as_str()
             }
         };
-        self.broker_proxy(type_name, name.as_str())
+        self.broker_proxy(type_name, name.as_str(), create_when_not_found)
     }
 
-    pub fn broker_proxy(&self, broker_type_name: &str, broker_name: &str) ->JuizResult<Arc<Mutex<dyn BrokerProxy>>> {
+    pub fn broker_proxy(&self, broker_type_name: &str, broker_name: &str, create_when_not_found: bool) ->JuizResult<Arc<Mutex<dyn BrokerProxy>>> {
         log::trace!("CoreBroker::broker_proxy({broker_type_name}, {broker_name}) called");
         let mut type_name = broker_type_name;
         if type_name == "core" {
@@ -309,6 +309,9 @@ impl CoreBroker {
         };
         
         log::warn!("broker_proxy({broker_type_name}, {broker_name}) can not find broker_proxy. creating....");
+        if !create_when_not_found {
+            return Err(anyhow!(JuizError::ObjectCanNotFoundByIdError { id: format!("{broker_type_name}://{broker_name}") }));
+        }
         let manifest = jvalue!({
             "type_name": type_name,
             "name": broker_name
@@ -331,7 +334,7 @@ impl CoreBroker {
         if id_struct.broker_name == "core" && id_struct.broker_type_name == "core" {
             return self.container_from_id(identifier)
         }
-        let broker_proxy = self.broker_proxy(&id_struct.broker_type_name, &id_struct.broker_name)?;
+        let broker_proxy = self.broker_proxy(&id_struct.broker_type_name, &id_struct.broker_name, false)?;
         Ok(ContainerProxy::new(JuizObjectClass::Container("ContainerProxy"),identifier, broker_proxy)?)
     }
 
@@ -341,7 +344,7 @@ impl CoreBroker {
         if id_struct.broker_name == "core" && id_struct.broker_type_name == "core" {
             return self.process_from_id(identifier)
         }
-        let broker_proxy = self.broker_proxy(&id_struct.broker_type_name, &id_struct.broker_name)?;
+        let broker_proxy = self.broker_proxy(&id_struct.broker_type_name, &id_struct.broker_name, false)?;
         Ok(ProcessProxy::new(JuizObjectClass::Process("ProcessProxy"),identifier, broker_proxy)?)
     }
 
@@ -351,7 +354,7 @@ impl CoreBroker {
         if id_struct.broker_name == "core" && id_struct.broker_type_name == "core" {
             return self.ec_from_id(identifier)
         }
-        let broker_proxy = self.broker_proxy(&id_struct.broker_type_name, &id_struct.broker_name)?;
+        let broker_proxy = self.broker_proxy(&id_struct.broker_type_name, &id_struct.broker_name, false)?;
         Ok(ExecutionContextProxy::new(JuizObjectClass::ExecutionContext("ExecutionContextProxy"),identifier, broker_proxy)?)
     }
 
@@ -364,7 +367,7 @@ impl CoreBroker {
         if id_struct.broker_name == "core" && id_struct.broker_type_name == "core" {
             return self.container_process_from_id(identifier)
         }
-        let broker_proxy = self.broker_proxy(&id_struct.broker_type_name, &id_struct.broker_name)?;
+        let broker_proxy = self.broker_proxy(&id_struct.broker_type_name, &id_struct.broker_name, false)?;
         Ok(ProcessProxy::new(JuizObjectClass::ContainerProcess("ProcessProxy"), identifier, broker_proxy)?)
     }
 
@@ -443,7 +446,7 @@ impl SystemBrokerProxy for CoreBroker {
         let uuid_value = bp.lock().or_else(|_e|{Err(anyhow!(JuizError::ObjectLockError { target: "system_store".to_owned() }))})
             .and_then(|b|{ b.system_uuid() })?;
         log::trace!("uuid_value: {uuid_value:?}");
-            // 相手のuuid
+        // 相手のuuid
         let uuid_str = uuid_value.as_str().unwrap();
         let uuid: Uuid = Uuid::parse_str(uuid_str).unwrap();
         // ここですでにuuidが登録されているかを確認する。

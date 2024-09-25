@@ -1,6 +1,5 @@
 use std::sync::{Arc, Mutex};
 
-use serde_json::Map;
 use uuid::Uuid;
 
 use crate::prelude::*;

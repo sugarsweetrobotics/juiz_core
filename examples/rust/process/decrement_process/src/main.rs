@@ -38,7 +38,7 @@ fn main() -> JuizResult<()>{
 
     Ok(System::new(manifest)?.run_and_do(|system|{
         println!("JuizSystem started!!");
-        let v = system.broker_proxy(&jvalue!({"type_name":"local"}))?.lock().unwrap().system_profile_full()?;
+        let v = system.broker_proxy(&jvalue!({"type_name":"local"}), true)?.lock().unwrap().system_profile_full()?;
         println!("System: {:#}", v);
         Ok(())
     }).expect("Error in System::run_and_do()"))
