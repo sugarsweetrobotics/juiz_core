@@ -28,7 +28,7 @@ use crate::brokers::broker_proxy::{
     ContainerProcessBrokerProxy, 
     ExecutionContextBrokerProxy,
     ProcessBrokerProxy,
-    SystemBrokerProxy
+    SystemBrokerProxy, TopicBrokerProxy
 };
 
 use crate::ecs::execution_context_function::ExecutionContextFunction;
@@ -36,11 +36,10 @@ use crate::ecs::execution_context_function::ExecutionContextFunction;
 use crate::identifier::IdentifierStruct;
 
 use crate::identifier::identifier_from_manifest;
-use crate::object::JuizObjectClass;
-use crate::object::JuizObjectCoreHolder;
-use crate::object::ObjectCore;
+use crate::object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore};
 
 use crate::processes::process_proxy::ProcessProxy;
+use crate::topics::TopicPtr;
 use crate::utils::{check_corebroker_manifest, get_array};
 use crate::utils::juiz_lock;
 use crate::utils::manifest_util::construct_id;
@@ -60,6 +59,7 @@ pub struct CoreBroker {
     core: ObjectCore,
     manifest: Value,
     core_store: CoreStore,
+    master_system_proxy: Option<SubSystemProxy>,
     subsystem_proxies: Vec<SubSystemProxy>,
     system_store: SystemStorePtr,
 }
@@ -92,6 +92,7 @@ impl CoreBroker {
             core: ObjectCore::create(JuizObjectClass::BrokerProxy("CoreBroker"), "core", "core"),
             manifest: check_corebroker_manifest(manifest)?,
             core_store: CoreStore::new(),
+            master_system_proxy: None, 
             subsystem_proxies: Vec::new(),
             system_store
         })
@@ -103,6 +104,14 @@ impl CoreBroker {
 
     pub fn store_mut(&mut self) -> &mut CoreStore {
         &mut self.core_store
+    }
+
+    pub fn system_store(&self) -> &SystemStorePtr { 
+        &self.system_store
+    }
+
+    pub fn system_store_mut(&mut self) -> &mut SystemStorePtr { 
+        &mut self.system_store
     }
 
     fn gen_identifier(&self, mut manifest: Value) -> JuizResult<Value> {
@@ -398,6 +407,77 @@ impl CoreBroker {
         self.store_mut().ecs.cleanup_objects()
     }
 
+    pub fn create_topic(&mut self, topic_name_str: String) -> JuizResult<TopicPtr> {
+        return Ok(if self.store().topics.contains_key(&topic_name_str) {
+            // Topicがすでにある時
+            self.store().topics.get(&topic_name_str).unwrap().clone()
+        } else {
+            // Topicがない時
+            self.do_create_topic(topic_name_str)?
+        })
+    }
+
+    pub fn process_publish_topic(&mut self, process: ProcessPtr, topic_info: &Value) -> JuizResult<()> {
+        log::error!("process_publish_topic({topic_info:}) called");
+        if let Some(topic_name) = topic_info.as_str() {
+            let topic = self.create_topic(topic_name.to_owned())?;
+            //let p = self.process_from_id(&id)?.clone();
+            self.connect_to_topic(process, topic)?;
+        }
+        Ok(())
+    }
+
+    pub fn process_subscribe_topic(&mut self, process: ProcessPtr, arg_name: &String, topic_info: &Value) -> JuizResult<()> {
+        log::error!("process_subscribe_topic({arg_name}, {topic_info:}) called");
+        if let Some(topic_name) = topic_info.as_str() {
+            let topic = self.create_topic(topic_name.to_owned())?;
+            //let p = self.process_from_id(&id)?.clone();
+            self.connect_from_topic(process, arg_name, topic)?;
+        } else {
+            log::error!("")
+        }
+        Ok(())
+    }
+
+    fn connect_to_topic(&mut self, process: Arc<RwLock<dyn Process>>, topic: TopicPtr) -> JuizResult<()> {
+        log::error!("connect_to_topic");
+        let topic_publish_connection_manifest = jvalue!({
+            "type": "push",
+        });
+        let _connection_profile = connection_builder::connect(process, topic.process_ptr(), &"input".to_owned(), topic_publish_connection_manifest)?;
+        Ok(())
+    }
+
+    fn connect_from_topic(&mut self, process: Arc<RwLock<dyn Process>>, arg_name: &String, topic: TopicPtr) -> JuizResult<()> {
+        log::error!("connect_from_topic");
+        let topic_subscribe_connection_manifest = jvalue!({
+            "type": "push",
+        });
+        let _connection_profile = connection_builder::connect(topic.process_ptr(), process, arg_name, topic_subscribe_connection_manifest)?;
+        Ok(())
+    }
+
+    fn do_create_topic(&mut self, topic_name: String) -> JuizResult<TopicPtr> {
+        log::error!("do_create_topic({topic_name}) called");
+        let system_uuid = Uuid::parse_str(self.system_uuid()?.as_str().unwrap())?;
+        self.store_mut().topics.insert(topic_name.clone(), TopicPtr::new(topic_name.as_str(), system_uuid));
+        Ok(self.store().topics.get(&topic_name).unwrap().clone())
+    }
+
+    fn find_subsystem_by_uuid(&self, uuid: Uuid) -> Option<SubSystemProxy> {
+        if self.master_system_proxy.is_some() && self.master_system_proxy.as_ref().unwrap().uuid() == &uuid {
+            Some(self.master_system_proxy.as_ref().unwrap().clone())
+        } else {
+            for ssp in self.subsystem_proxies.iter() {
+                // 呼び出し元のUUIDがサブシステムと一緒でなければ検査
+                if ssp.uuid() == &uuid {
+                    return Some(ssp.clone());
+                }
+            }
+            None
+        }
+    }
+
 }
 
 
@@ -413,8 +493,10 @@ impl JuizObject for CoreBroker {
         let v = obj_merge(self.core.profile_full()?, &jvalue!({
             "core_store" : self.core_store.profile_full()?,
         }))?;
+        let master_profile = if let Some(system) = self.master_system_proxy.as_ref() { system.profile_full()? } else { serde_json::Value::Null };
         Ok(obj_merge(v, &jvalue!({
             "system_store" : self.system_store.profile_full()?,
+            "mastersystem": master_profile,
             "subsystems": self.subsystem_proxies.iter().map(|p|{p.profile_full().unwrap()}).collect::<Vec<Value>>()
         }))?.into())
     }
@@ -440,6 +522,10 @@ impl SystemBrokerProxy for CoreBroker {
         Ok(jvalue!(entries))
     }
     
+    /// サブシステムの追加
+    /// 
+    /// 
+    /// 
     fn system_add_subsystem(&mut self, profile: Value) -> JuizResult<Value> {
         log::trace!("system_add_subsystem({profile}) called");
         let bp = self.system_store.create_broker_proxy(&profile)?;
@@ -456,26 +542,102 @@ impl SystemBrokerProxy for CoreBroker {
                 return Err(anyhow!(JuizError::ObjectAlreadyRegisteredError{message: format!("system_add_subsystem failed. Subsystem(uuid={uuid}) has already added.")}));
             }
         }
-        let _my_uuid = self.system_store.uuid()?;
         for subsystem_proxy in self.subsystem_proxies.iter() {
             let ss = subsystem_proxy.subsystems()?;
             log::warn!("WARNING: SUBSYSTEM's SUBSYSTEM mining.... But this is useless...");
             log::warn!("value is {ss:}");
         }
+
+
+        let my_uuid = self.system_store.uuid()?;
         self.store_mut().broker_proxies.register(bp.clone())?;
-        self.subsystem_proxies.push(SubSystemProxy::new(uuid, bp)?);
-        // self.system_store.lock_mut()?
+        let subsystem_proxy = SubSystemProxy::new(uuid, bp.clone())?;
+        let ssprofile = juiz_lock(&subsystem_proxy.broker_proxy())?.profile_full()?;
+        let accessed_broker_id = match profile.as_object() {
+            Some(obj) => {
+                match obj.get("accessed_broker_id") {
+                    Some(accessed_broker_id) => {
+                        accessed_broker_id.as_str().or_else(||{ Some("") }).unwrap()
+                    }
+                    None => "",
+                }
+            }
+            None => ""
+        };
+        log::info!("Subsystem = {}", ssprofile);
+        log::info!("accessed_broker_id = {}", accessed_broker_id);
+        let broker_type = ssprofile.as_object().unwrap().get("type_name").unwrap().as_str().unwrap();
+        let mut broker_name: Option<String> = None;
+        for (type_name, prof) in self.store().brokers_profile_full()?.as_object().unwrap().iter() {
+            let broker_broker_type = prof.as_object().unwrap().get("type_name").unwrap().as_str().unwrap();
+            if broker_broker_type == broker_type {
+                broker_name = Some(prof.as_object().unwrap().get("name").unwrap().as_str().unwrap().to_owned());
+            }
+        }
+        
+        // 相手にmaster側のproxyのbrokerのタイプや名前を教える
+        let master_profile = jvalue!({
+            "subsystem": {
+                "uuid": my_uuid.to_string(),
+                "broker_type": broker_type,
+                "broker_name": broker_name.unwrap(),
+            }
+        });
+        let _ = subsystem_proxy.broker_proxy().lock().or_else(|_e|{
+            Err(anyhow!(JuizError::ObjectLockError { target: "system_proxy".to_owned() }))
+        }).and_then(|mut bp|{
+            bp.system_add_mastersystem(master_profile)
+        })?;
+        self.subsystem_proxies.push(subsystem_proxy);
         Ok(profile)
     }
     
     fn system_uuid(&self) -> JuizResult<Value> {
         Ok(jvalue!(self.system_store.uuid()?.to_string()))
     }
+    
+    /// マスターシステムの追加
+    fn system_add_mastersystem(&mut self, profile: Value) -> JuizResult<Value> {
+        log::trace!("system_add_mastersystem({profile}) called");
+        let bp = match profile.as_object() {
+            Some(prof_obj) => {
+                match prof_obj.get("subsystem") {
+                    Some(subsystem_value) => {
+                        let broker_name = obj_get_str(subsystem_value, "broker_name")?;
+                        let broker_type = obj_get_str(subsystem_value, "broker_type")?;
+                        let id_str = IdentifierStruct::new_broker(broker_type, broker_name);
+                        self.system_store.create_broker_proxy(&id_str.to_broker_manifest())
+                    },
+                    None => Err(anyhow!(JuizError::InvalidIdentifierError { message: "".to_owned() }))
+                }
+            },
+            None => Err(anyhow!(JuizError::ValueIsNotObjectError { value: profile.clone() }))
+        }?;
+        let uuid_value: Value = match obj_get_obj(&profile, "subsystem")?.get("uuid") {
+            Some(v) => Ok(v.clone()),
+            None => {
+                let my_uuid = self.system_store.uuid()?;
+                juiz_lock(&bp)?.system_add_subsystem(jvalue!({
+                    "mastersystem": {
+                        "uuid": my_uuid.to_string()
+                    }
+                }))?;
+                juiz_lock(&bp)?.system_uuid()
+            },
+        }?;
+        let uuid_str = uuid_value.as_str().unwrap();
+        let uuid: Uuid = Uuid::parse_str(uuid_str).unwrap();
+        
+        self.store_mut().broker_proxies.register(bp.clone())?;
+
+        let subsystem_proxy = SubSystemProxy::new(uuid, bp)?;
+        self.master_system_proxy = Some(subsystem_proxy);
+        Ok(profile)
+    }
 }
 
 
 impl ProcessBrokerProxy for CoreBroker { 
-
     fn process_call(&self, id: &Identifier, args: CapsuleMap) -> JuizResult<CapsulePtr> {
         let idstruct = IdentifierStruct::try_from(id.clone())?;
         if idstruct.broker_type_name == "core" {
@@ -489,7 +651,7 @@ impl ProcessBrokerProxy for CoreBroker {
         log::trace!("CoreBroker::process_execute({id:}) called");
         let idstruct = IdentifierStruct::try_from(id.clone())?;
         if idstruct.broker_type_name == "core" {
-            proc_lock(&self.store().processes.get(id)?).with_context(||format!("locking process(id={id:}) in CoreBroker::execute_process() function"))?.execute()
+            proc_lock(&self.store().processes.get(id)?)?.execute()
         } else {
             proc_lock(&self.process_proxy_from_identifier(id)?)?.execute()
         }
@@ -501,15 +663,23 @@ impl ProcessBrokerProxy for CoreBroker {
 
     fn process_list(&self, recursive: bool) -> JuizResult<Value> {
         log::trace!("process_list({recursive}) called");
+        if !recursive {
+            return self.store().processes.list_ids();
+        } 
+
         let mut ids = self.store().processes.list_ids()?;
-        let ids_arr = ids.as_array_mut().unwrap();
-        if recursive {
-            for (_str, proxy) in self.store().broker_proxies.objects().iter() {
-                let plist = juiz_lock(proxy)?.process_list(recursive)?;
-                for v in get_array(&plist)?.iter() {
-                    let id = v.as_str().unwrap();
-                    ids_arr.push(id.into());
+        match ids.as_array_mut() {
+            Some(ids_arr) => {
+                for ssp in self.subsystem_proxies.iter() {
+                    let plist = juiz_lock(&ssp.broker_proxy())?.process_list(recursive)?;
+                    for v in get_array(&plist)?.iter() {
+                        let id = v.as_str().unwrap();
+                        ids_arr.push(id.into());
+                    }
                 }
+            }
+            None => {
+                return Err(anyhow!(JuizError::ValueIsNotArrayError { value: jvalue!({})}));
             }
         }
         Ok(ids)
@@ -522,7 +692,6 @@ impl ProcessBrokerProxy for CoreBroker {
 
     fn process_notify_connected_from(&mut self, source_process_id: &Identifier, arg_name: &str, destination_process_id: &Identifier, manifest: Value) -> JuizResult<Value> {
         let source_process = self.any_process_proxy_from_identifier(source_process_id)?;//self.store().processes.get(source_process_id)?;
-        // let destination_process = self.any_process_proxy_from_identifier(destination_process_id)?;
         proc_lock_mut(&self.any_process_proxy_from_identifier(destination_process_id)?)?.notify_connected_from(source_process, arg_name, manifest)
      }
      
@@ -561,8 +730,10 @@ impl ContainerBrokerProxy for CoreBroker {
         let mut ids = self.store().containers.list_ids()?;
         let ids_arr = ids.as_array_mut().unwrap();
         if recursive {
-            for (_id, proxy) in self.store().broker_proxies.objects().iter() {
-                let plist = juiz_lock(proxy)?.container_list(recursive)?;
+            //for (_id, proxy) in self.store().broker_proxies.objects().iter() {
+            for ssp in self.subsystem_proxies.iter() {
+                let proxy = ssp.broker_proxy();
+                let plist = juiz_lock(&proxy)?.container_list(recursive)?;
                 for v in get_array(&plist)?.iter() {
                     let id = v.as_str().unwrap();
                     ids_arr.push(id.into());
@@ -592,8 +763,10 @@ impl ContainerProcessBrokerProxy for CoreBroker {
         let mut ids = self.store().container_processes.list_ids()?;
         let ids_arr = ids.as_array_mut().unwrap();
         if recursive {
-            for (_str, proxy) in self.store().broker_proxies.objects().iter() {
-                let plist = juiz_lock(proxy)?.container_process_list(recursive)?;
+            for ssp in self.subsystem_proxies.iter() {
+                let proxy = ssp.broker_proxy();
+            // for (_str, proxy) in self.store().broker_proxies.objects().iter() {
+                let plist = juiz_lock(&proxy)?.container_process_list(recursive)?;
                 for v in get_array(&plist)?.iter() {
                     let id = v.as_str().unwrap();
                     ids_arr.push(id.into());
@@ -636,13 +809,13 @@ impl ContainerProcessBrokerProxy for CoreBroker {
 
 impl BrokerBrokerProxy for CoreBroker {
     fn broker_list(&self, recursive: bool) -> JuizResult<Value> {
-        // self.store().brokers_list_ids()
-
         let mut ids = self.store().brokers_list_ids()?;
         let ids_arr = ids.as_array_mut().unwrap();
         if recursive {
-            for (_, proxy ) in self.store().broker_proxies.objects().iter() {
-                let plist = juiz_lock(proxy)?.broker_list(recursive)?;
+            // for (_, proxy ) in self.store().broker_proxies.objects().iter() {
+            for ssp in self.subsystem_proxies.iter() {
+                let proxy = ssp.broker_proxy();
+                let plist = juiz_lock(&proxy)?.broker_list(recursive)?;
                 for v in get_array(&plist)?.iter() {
                     let id = v.as_str().unwrap();
                     ids_arr.push(id.into());
@@ -657,6 +830,149 @@ impl BrokerBrokerProxy for CoreBroker {
     }
 }
 
+
+impl TopicBrokerProxy for CoreBroker {
+    fn topic_list(&self) -> JuizResult<Value> {
+        let mut ids = self.store().topics_list_ids()?;
+        let ids_arr = ids.as_array_mut().unwrap();
+        if true {
+            //for (_, proxy ) in self.store().broker_proxies.objects().iter() {
+            for ssp in self.subsystem_proxies.iter() {
+                let proxy = ssp.broker_proxy();
+        
+                let plist = juiz_lock(&proxy)?.topic_list()?;
+                for v in get_array(&plist)?.iter() {
+                    let id = v.as_str().unwrap();
+                    ids_arr.push(id.into());
+                }
+            }
+        }
+        Ok(ids)
+    }
+    
+    fn topic_push(&self, name: &str, capsule: CapsulePtr, pushed_system_uuid: Option<Uuid>) -> JuizResult<()> {
+        log::trace!("topic_push(name={name}) called");
+        match self.core_store.topics.get(name) {
+            Some(topic) => {
+                let r = topic.push(capsule, pushed_system_uuid);
+                log::trace!("topic_push(name={name}) exit");
+                r
+            },
+            None => Err(anyhow!(JuizError::ObjectCanNotFoundByIdError { id: name.to_owned() + ":topic" }))
+        }
+    }
+    
+    fn topic_request_subscribe(&mut self, name: &str, opt_system_uuid: Option<Uuid>) -> JuizResult<Value> {
+        log::trace!("topic_request_subscribe(name={name}) called");
+        let mut do_subscribe = false;
+        for (topic_name, topic) in self.core_store.topics.iter() {
+            if topic_name.as_str() == name {
+                if topic.num_local_subscribers()? > 0 {
+                    log::trace!("found subscriber of topic(name={name})");
+                    do_subscribe = true;
+                }
+            }
+        }
+        let my_uuid = Uuid::parse_str(self.system_uuid()?.as_str().unwrap())?;
+        // ここでシステムとマスターシステムに問い合わせて、subscribe要求があれば、自身にTopicを追加して、
+        // Systemに対するProxyを新しく生成したTopicに登録してデータがリレーされるようにする
+        if let Some(msp) = self.master_system_proxy.clone() {
+            // 呼び出し元のUUIDがマスターと一緒でなければマスターを検査
+            if opt_system_uuid.is_some() && (msp.uuid() != &opt_system_uuid.unwrap()) {
+                let result_value = juiz_lock(&msp.broker_proxy())?.topic_request_subscribe(name, Some(my_uuid))?;
+                if obj_get_bool(&result_value, "subscribe")? {
+                    // システムが購読を希望していたら、自分のlocalにTopicPtrを作り、それと相手システムを接続する
+                    log::trace!("found subscriber of topic(name={name}) in master system");
+                    let topic = self.create_topic(name.to_owned())?;
+                    topic.register_subscriber_subsystem(msp.clone())?;
+                    do_subscribe = true;
+                }
+            }
+        }
+        for ssp in self.subsystem_proxies.clone().iter() {
+            // 呼び出し元のUUIDがサブシステムと一緒でなければ検査
+            if opt_system_uuid.is_some() && (ssp.uuid() != &opt_system_uuid.unwrap()) {
+                let result_value = juiz_lock(&ssp.broker_proxy())?.topic_request_subscribe(name, Some(my_uuid))?;
+                if obj_get_bool(&result_value, "subscribe")? {
+                    log::trace!("found subscriber of topic(name={name}) in subsystem");
+                    // システムが購読を希望していたら、自分のlocalにTopicPtrを作り、それと相手システムを接続する
+                    let topic = self.create_topic(name.to_owned())?;
+                    topic.register_subscriber_subsystem(ssp.clone())?;
+                    do_subscribe = true;
+                }
+            }
+        }
+        Ok(jvalue!({"subscribe": do_subscribe}))
+    }
+    
+
+    fn topic_request_publish(&mut self, name: &str, opt_system_uuid: Option<Uuid>) -> JuizResult<Value> {
+        log::trace!("topic_request_publish(name={name}, uuid={opt_system_uuid:?}) called");
+
+        let opt_parent_system = if opt_system_uuid.is_some() {
+            let uuid = opt_system_uuid.unwrap();
+            self.find_subsystem_by_uuid(uuid)
+        } else {
+            // log::trace!("topic_request_publish was NOT requested by subsystem.");
+            None
+        };
+
+        //まず、自分がpublisherならばtrueを返す準備。
+        let mut do_publish = false;
+        for (topic_name, topic) in self.core_store.topics.iter() {
+            if topic_name.as_str() == name {
+                if topic.num_local_publishers()? > 0 { // 該当する名前をもつTopicをPublishするものを持っている。
+                    do_publish = true;
+                    if let Some(parent_system) = opt_parent_system.as_ref() {
+                        topic.register_subscriber_subsystem(parent_system.clone())?;
+                    }
+                }
+            }
+        }
+
+
+        // サブシステムについて確認する。サブシステムがpublisherとしてtrueを返してきたら、
+        // 自分サイドのtopicを
+        let my_uuid = Uuid::parse_str(self.system_uuid()?.as_str().unwrap())?;
+        // ここでシステムとマスターシステムに問い合わせて、subscribe要求があれば、自身にTopicを追加して、
+        // Systemに対するProxyを新しく生成したTopicに登録してデータがリレーされるようにする
+        if let Some(msp) = self.master_system_proxy.clone() {
+            // 呼び出し元のUUIDがマスターと一緒でなければマスターを検査
+            if opt_system_uuid.is_some() && (msp.uuid() != &opt_system_uuid.unwrap()) {
+                let uuid = msp.uuid();
+                let result_value = juiz_lock(&msp.broker_proxy())?.topic_request_publish(name, Some(my_uuid))?;
+                if obj_get_bool(&result_value, "publish")? {
+                    log::trace!("Subsystem({}) publishes topic({})", uuid, name);
+                    // システムが出版を宣言していたら、自分のlocalにTopicPtrを作り、それと相手システムを接続する
+                    let topic = self.create_topic(name.to_owned())?;
+                    if let Some(parent_system) = opt_parent_system.as_ref() {
+                        topic.register_subscriber_subsystem(parent_system.clone())?;
+                    }
+                    do_publish = true;
+                }
+            } 
+        }
+        for ssp in self.subsystem_proxies.clone().iter() {
+            // 呼び出し元のUUIDがサブシステムと一緒でなければ検査
+            if opt_system_uuid.is_some() && (ssp.uuid() != &opt_system_uuid.unwrap()) {
+                let result_value = juiz_lock(&ssp.broker_proxy())?.topic_request_publish(name, Some(my_uuid))?;
+                if obj_get_bool(&result_value, "publish")? {
+                    let uuid = ssp.uuid();
+                    log::trace!("Subsystem({}) publishes topic({})", uuid, name);
+                    // システムが購読を希望していたら、自分のlocalにTopicPtrを作り、それと相手システムを接続する
+                    let topic = self.create_topic(name.to_owned())?;
+                    if let Some(parent_system) = opt_parent_system.as_ref() {
+                        topic.register_subscriber_subsystem(parent_system.clone())?;
+                    }
+                    do_publish = true;
+                }
+            }
+        }
+        Ok(jvalue!({"publish": do_publish}))
+    }
+
+}
+
 impl ExecutionContextBrokerProxy for CoreBroker {
     fn ec_list(&self, recursive: bool) -> JuizResult<Value> {
         //Ok(self.store().ecs.list_ids()?.into())
@@ -664,8 +980,11 @@ impl ExecutionContextBrokerProxy for CoreBroker {
         let mut ids = self.store().ecs.list_ids()?;
         let ids_arr = ids.as_array_mut().unwrap();
         if recursive {
-            for (_, proxy) in self.store().broker_proxies.objects().iter() {
-                let plist = juiz_lock(proxy)?.ec_list(recursive)?;
+            //for (_, proxy) in self.store().broker_proxies.objects().iter() {
+            for ssp in self.subsystem_proxies.iter() {
+                let proxy = ssp.broker_proxy();
+        
+                let plist = juiz_lock(&proxy)?.ec_list(recursive)?;
                 for v in get_array(&plist)?.iter() {
                     let id = v.as_str().unwrap();
                     ids_arr.push(id.into());
@@ -711,8 +1030,11 @@ impl ConnectionBrokerProxy for CoreBroker {
         // let mut ids = self.store().containers.list_ids()?;
         // let ids_arr = ids.as_array_mut().unwrap();
         if recursive {
-            for (_, proxy ) in self.store().broker_proxies.objects().iter() {
-                let plist = juiz_lock(proxy)?.connection_list(recursive)?;
+            //for (_, proxy ) in self.store().broker_proxies.objects().iter() {
+            for ssp in self.subsystem_proxies.iter() {
+                let proxy = ssp.broker_proxy();
+                
+                let plist = juiz_lock(&proxy)?.connection_list(recursive)?;
                 for v in get_array(&plist)?.iter() {
                     let id = v.as_str().unwrap();
                     ids_arr.push(id.into());

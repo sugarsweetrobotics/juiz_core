@@ -1,7 +1,7 @@
 use utoipa::OpenApi;
 
 use axum::{extract::Query, Json};
-use super::{IdentifierQuery, PathQuery, Value};
+use super::{FullQuery, IdentifierQuery, PathQuery, Value};
 
 #[allow(unused)]
 #[utoipa::path(
@@ -64,6 +64,26 @@ _query: Query<IdentifierQuery>,
 Json(_body): Json<Value>) {
 }
 
+
+#[allow(unused)]
+#[utoipa::path(
+    patch,
+    path = "/api/system/add_mastersystem",
+    params(
+        FullQuery
+    ),
+    request_body = Value,
+    responses(
+        (status = 200, description = "System")
+    ),
+    tag = "universal.system",
+)]
+pub fn add_mastersystem_dummy(
+_query: Query<FullQuery>,
+Json(_body): Json<Value>) {
+}
+
+
 #[derive(OpenApi)]
 #[openapi(
     paths(
@@ -71,6 +91,7 @@ Json(_body): Json<Value>) {
         uuid_dummy,
         fslist_handler_dummy,
         add_subsystem_dummy,
+        add_mastersystem_dummy,
     ),
     components(schemas(
     ))

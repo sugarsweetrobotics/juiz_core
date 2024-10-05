@@ -62,6 +62,7 @@ pub use crate::{
         obj_get,
         obj_get_hashmap,
         obj_get_obj,
+        obj_get_array,
         obj_merge,
         obj_merge_mut,
         obj_insert,
@@ -76,12 +77,9 @@ pub use crate::{
         JuizResult,
         JuizError,
     },
-    plugin:: {
+    plugin::
         ProcessFactoryImpl,
-    },
-    connections::{
-        connect,
-    },
+    connections::connect,
     utils::juiz_lock,
     log,
 };

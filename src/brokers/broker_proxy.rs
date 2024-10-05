@@ -1,5 +1,7 @@
 
 
+use uuid::Uuid;
+
 use crate::prelude::*;
 
 use std::path::PathBuf;
@@ -10,12 +12,29 @@ use crate::{identifier::IdentifierStruct, value::{Capsule, CapsuleMap}, value::v
 
 
 pub trait SystemBrokerProxy {
+    /// Systemのプロファイルを取得する
+    /// 
+    /// System登録のプロセスやコンテナの情報を全て列挙したデータを取得する
+    /// 
     fn system_profile_full(&self) -> JuizResult<Value>;
 
+    /// 
+    /// 
+    /// 
     fn system_filesystem_list(&self, path_buf: PathBuf) -> JuizResult<Value>;
 
+    /// サブシステムを追加登録する
+    /// 
     fn system_add_subsystem(&mut self, profile: Value) -> JuizResult<Value>;
 
+    /// マスターシステムを追加登録する
+    /// 
+    /// 
+    fn system_add_mastersystem(&mut self, profile: Value) -> JuizResult<Value>;
+
+    /// SystemのUUIDを取得する
+    /// 
+    /// 
     fn system_uuid(&self) -> JuizResult<Value>;
 
 }
@@ -39,8 +58,16 @@ pub trait ProcessBrokerProxy {
 
     fn process_profile_full(&self, id: &Identifier) -> JuizResult<Value>;
 
+    /// プロセスをCallする
+    /// 
+    /// * id: プロセスのID
+    /// * args: 引数
     fn process_call(&self, id: &Identifier, _args: CapsuleMap) -> JuizResult<CapsulePtr>;
 
+
+    /// プロセスをExecuteする
+    /// 
+    /// * id: プロセスのID
     fn process_execute(&self, id: &Identifier) -> JuizResult<CapsulePtr>;
 
     fn process_try_connect_to(&mut self, source_process_id: &Identifier, arg_name: &str, destination_process_id: &Identifier, manifest: Value) -> JuizResult<Value>;
@@ -138,7 +165,24 @@ pub trait ConnectionBrokerProxy {
 
 }
 
-pub trait BrokerProxy : Send + JuizObject + SystemBrokerProxy + ProcessBrokerProxy + ContainerBrokerProxy + ContainerProcessBrokerProxy + ExecutionContextBrokerProxy + BrokerBrokerProxy + ConnectionBrokerProxy {
+
+
+pub trait TopicBrokerProxy {
+    fn topic_list(&self) -> JuizResult<Value>;
+
+    fn topic_push(&self, name: &str, capsule: CapsulePtr, pushed_system: Option<Uuid>) -> JuizResult<()>;
+
+    /// Topic をSubscribeする必要があるか問い合わせる
+    /// {"subscribe": true/false } が返る
+    fn topic_request_subscribe(&mut self, name: &str, system_uuid: Option<Uuid>) -> JuizResult<Value>;
+
+    /// Topic をPublishする必要があるか問い合わせる
+    /// {"subscribe": true/false } が返る
+    fn topic_request_publish(&mut self, name: &str, system_uuid: Option<Uuid>) -> JuizResult<Value>;
+
+}
+
+pub trait BrokerProxy : Send + JuizObject + SystemBrokerProxy + ProcessBrokerProxy + ContainerBrokerProxy + ContainerProcessBrokerProxy + ExecutionContextBrokerProxy + BrokerBrokerProxy + ConnectionBrokerProxy + TopicBrokerProxy {
 
     fn is_in_charge_for_process(&self, _id: &Identifier) -> JuizResult<bool>;
 

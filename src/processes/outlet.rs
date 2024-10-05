@@ -28,14 +28,6 @@ impl Outlet {
     // pub fn use_memo(&self) -> bool {
     //     self.use_memo
     // }
-
-    pub fn push(&self, output: CapsulePtr) -> JuizResult<CapsulePtr> {
-        for (_name, dc) in self.destination_connections.iter() {
-            let _ = dc.push(output.clone())?;
-        }
-        return Ok(output);
-    }
-
     pub fn profile_full(&self) -> JuizResult<Value> {
         Ok(jvalue!({
             "destination_connections": self.destination_connections.iter().map(| (_name, dc) | -> Value { dc.profile_full().unwrap() }).collect::<Vec<Value>>()
@@ -76,6 +68,7 @@ impl Outlet {
     }
     */
 
+    /// 出力バッファー (memo) にデータを書き込む
     pub(crate) fn set_value(&self, capsule: CapsulePtr) -> CapsulePtr {
         log::trace!("Outlet({})::set_value() called", self.name);
         if self.use_memo {
@@ -86,4 +79,15 @@ impl Outlet {
         }
         self.memo()
     }
+
+    /// 出力を出力接続 (DestinationConnection) に投げる
+    /// 
+    pub fn push(&self, output: CapsulePtr) -> JuizResult<CapsulePtr> {
+        log::trace!("Outlet({})::push() called", self.name);
+        for (_name, dc) in self.destination_connections.iter() {
+            let _ = dc.push(output.clone())?;
+        }
+        return Ok(output);
+    }
+
 }

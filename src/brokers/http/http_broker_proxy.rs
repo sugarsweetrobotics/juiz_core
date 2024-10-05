@@ -123,6 +123,7 @@ impl CRUDBrokerProxy for HTTPBrokerProxy {
 
 
     fn update(&self, class_name: &str, function_name: &str, payload: CapsuleMap, param: std::collections::HashMap<String, String>) -> JuizResult<CapsulePtr>{
+        log::trace!("HTTPBrokerProxy({}).update({class_name:}, {function_name}, {param:?}) called", self.base_url);
         let client = reqwest::blocking::Client::new();
         let v: Value = payload.into();
         match client.patch(construct_url(&self.base_url, class_name, function_name, &param))

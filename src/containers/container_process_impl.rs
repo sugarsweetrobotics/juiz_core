@@ -112,17 +112,8 @@ impl Process for ContainerProcessImpl {
         self.process().context("ContainerProcessImpl::is_updated()")?.is_updated()
     }
 
-    fn is_updated_exclude(& self, caller_id: &str) -> JuizResult<bool> {
-        self.process().context("ContainerProcessImpl::is_updated_exclude()")?.is_updated_exclude(caller_id)
-    }
-
-
     fn invoke<'b>(&self) ->  JuizResult<CapsulePtr> {
         self.process()?.invoke()
-    }
-
-    fn invoke_exclude<'b>(&self, arg_name: &str, value: CapsulePtr) -> JuizResult<CapsulePtr> {
-        self.process()?.invoke_exclude(arg_name, value)
     }
 
     fn execute(&self) -> JuizResult<CapsulePtr> {

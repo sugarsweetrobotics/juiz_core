@@ -1,6 +1,8 @@
 use std::{collections::HashMap, sync::{Mutex, Arc}};
 
-use crate::prelude::*;
+use uuid::Uuid;
+
+use crate::{brokers::broker_proxy::TopicBrokerProxy, prelude::*};
 use crate::{brokers::{broker_proxy::{BrokerBrokerProxy, ConnectionBrokerProxy, ContainerBrokerProxy, ContainerProcessBrokerProxy, ExecutionContextBrokerProxy, ProcessBrokerProxy, SystemBrokerProxy}, BrokerProxy}, identifier::IdentifierStruct, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, value::{CapsuleMap, capsule_to_value}, utils::{get_array, manifest_util::get_hashmap_mut}};
 
 
@@ -22,7 +24,18 @@ fn param(param_map: &[(&str, &str)]) -> HashMap<String, String> {
     for (k, v) in param_map.iter() {
         if *k == "identifier" {
             map.insert((*k).to_owned(), modify_id(*v));
+        } else {
+            map.insert((*k).to_owned(), (*v).to_owned());
         }
+    }
+    map
+}
+
+
+fn topic_param(param_map: &[(&str, &str)]) -> HashMap<String, String> {
+    let mut map: HashMap<String, String> = HashMap::new();
+    for (k, v) in param_map.iter() {
+        map.insert((*k).to_owned(), (*v).to_owned()); 
     }
     map
 }
@@ -241,6 +254,12 @@ impl SystemBrokerProxy for CRUDBrokerProxyHolder {
             jvalue!(obj)
         })
     }
+    
+    fn system_add_mastersystem(&mut self, profile: Value) -> JuizResult<Value> {
+        let mut cp = CapsuleMap::new();
+        cp.insert("profile".to_owned(), profile.into());
+        capsule_to_value(self.broker.update("system", "add_mastersystem", cp, HashMap::new())?)
+    }
 }
 
 impl BrokerBrokerProxy for CRUDBrokerProxyHolder {
@@ -291,6 +310,45 @@ impl ExecutionContextBrokerProxy for CRUDBrokerProxyHolder {
     
     fn ec_destroy(&mut self, identifier: &Identifier) -> JuizResult<Value> {
         capsule_to_value(self.broker.delete("execution_context", "destroy", param(&[("identifier", identifier)]))?)
+    }
+}
+
+impl TopicBrokerProxy for CRUDBrokerProxyHolder {
+    fn topic_list(&self) -> JuizResult<Value> {
+        let mut param: HashMap<String, String> = HashMap::new();
+        param.insert("recursive".to_owned(), true.to_string());
+        capsule_to_value(self.broker.read("topic", "list", param)?)
+    }
+    
+    fn topic_push(&self, name: &str, capsule: CapsulePtr, pushed_system_uuid: Option<Uuid>) -> JuizResult<()> {
+        log::trace!("topic_push({name}) called");
+        let mut args = CapsuleMap::new();
+        args.insert("input".to_owned(), capsule);
+        let param_var = if let Some(system_uuid) = pushed_system_uuid {
+            topic_param(&[("topic_name", name), ("system_uuid", system_uuid.to_string().as_str())])
+        } else {
+            topic_param(&[("topic_name", name)])
+        };
+        //let uuid_str = if let Some(uuid) = pushed_system_uuid { uuid.to_string() } else { "".to_owned() };        
+        self.broker.update("topic", "push", args, param_var).and_then(|_|{Ok(())})
+    }
+    
+    fn topic_request_subscribe(&mut self, name: &str, opt_system_uuid: Option<Uuid>) -> JuizResult<Value> {
+        let param_var = if let Some(system_uuid) = opt_system_uuid {
+            topic_param(&[("topic_name", name), ("system_uuid", system_uuid.to_string().as_str())])
+        } else {
+            topic_param(&[("topic_name", name)])
+        };
+        self.broker.update("topic", "request_subscribe", CapsuleMap::new(), param_var).and_then(|cp| { Ok(cp.lock_as_value(|v|{v.clone()})?) })
+    }
+    
+    fn topic_request_publish(&mut self, name: &str, opt_system_uuid: Option<Uuid>) -> JuizResult<Value> {
+        let param_var = if let Some(system_uuid) = opt_system_uuid {
+            topic_param(&[("topic_name", name), ("system_uuid", system_uuid.to_string().as_str())])
+        } else {
+            topic_param(&[("topic_name", name)])
+        };
+        self.broker.update("topic", "request_publish", CapsuleMap::new(), param_var).and_then(|cp| { Ok(cp.lock_as_value(|v|{v.clone()})?) })
     }
 }
 

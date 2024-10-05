@@ -290,6 +290,7 @@ impl System {
 
         system_builder::setup_objects(&mut self, &manifest_copied)?;
 
+        system_builder::setup_topic_synchronization(&mut self)?;
         log::debug!("System::setup() successfully finished.");
         Ok(self)
     }
@@ -391,7 +392,7 @@ impl System {
 
     pub fn run(&mut self) -> JuizResult<()> {
         log::debug!("System::run() called");
-        log::debug!("Juiz System Now Started.");
+        log::info!("Juiz System({}) Now Started.", self.store.uuid()?);
         // self.setup().context("System::setup() in System::run() failed.")?;
         self.wait_for_singal().context("System::wait_for_signal() in System::run() failed.")?;
         self.stop()?;
@@ -403,7 +404,7 @@ impl System {
     pub fn run_and_do(&mut self,  func: fn(&mut System) -> JuizResult<()>) -> JuizResult<()> {
         log::debug!("System::run_and_do() called");
         // self.setup().context("System::setup() in System::run_and_do() failed.")?;
-        log::debug!("Juiz System Now Started.");
+        log::info!("Juiz System({}) Now Started.", self.store.uuid()?);
         (func)(self).context("User function passed for System::run_and_do() failed.")?;
         self.wait_for_singal().context("System::wait_for_signal() in System::run_and_do() failed.")?;
         log::debug!("System::run_and_do() exit");

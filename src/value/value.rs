@@ -150,6 +150,14 @@ pub fn obj_get_obj<'a>(value: &'a Value, key: &str) -> JuizResult<&'a Map<String
     }
 }
 
+pub fn obj_get_array<'a>(value: &'a Value, key: &str) -> JuizResult<&'a Vec<Value>> {
+    let obj = obj_get(value, key)?;
+    match obj.as_array() {
+        None  => Err(anyhow::Error::from(JuizError::ValueWithKeyIsNotArrayError{value: value.clone(), key: key.to_string()})),
+        Some(s) => return Ok(s)
+    }
+}
+
 pub fn obj_get_hashmap<'a>(value: &'a Value, key: &str) -> JuizResult<HashMap<String, Value>> {
     let map = obj_get_obj(&value, key)?;
     let mut ret_map: HashMap<String, Value> = HashMap::with_capacity(map.len());

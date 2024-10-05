@@ -31,6 +31,8 @@ pub enum JuizError {
     #[error("Value(key={key:}) in Value({value:}) is not bool.")]
     ValueWithKeyIsNotBoolError { value: serde_json::Value, key: String },
 
+    #[error("Value(key={key:}) in Value({value:}) is not array.")]
+    ValueWithKeyIsNotArrayError { value: Value, key: String },
     #[error("Value(key={key:}) in Value({value:}) is not object.")]
     ValueWithKeyIsNotObjectError { value: Value, key: String },
     #[error("Value(key={key:}) in Value({value:}) can not be found.")]

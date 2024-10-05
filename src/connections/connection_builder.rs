@@ -4,7 +4,7 @@ pub mod connection_builder {
 
     use crate::{core::core_broker::CoreBroker, prelude::*};
     use std::{collections::HashMap, sync::Arc};
-    use anyhow::Context;
+    use anyhow::{anyhow, Context};
 
     use crate::{processes::{proc_lock, proc_lock_mut}, utils::{get_str, get_value}};
 
@@ -26,16 +26,28 @@ pub mod connection_builder {
         )
     }
     
-    pub fn connect(source: ProcessPtr, destination: ProcessPtr, arg_name: &String, manifest: Value) -> JuizResult<Value> {
+    pub fn connect(src: ProcessPtr, dst: ProcessPtr, arg_name: &String, manifest: Value) -> JuizResult<Value> {
         log::debug!("connection_builder::connect({manifest}) called");
-        let source_connect_result_manifest;
-        {
-            source_connect_result_manifest = proc_lock_mut(&source)?.try_connect_to(Arc::clone(&destination), arg_name, manifest)?.clone();
-            log::trace!("source_connection, connected!");
+        let src_manifest = match proc_lock_mut(&src)?.try_connect_to(dst.clone(), arg_name, manifest) {
+            Ok(manif) => {
+                log::trace!("source_connection, connected!");
+                Ok(manif)
+            }
+            Err(e) => {
+                log::error!("Process(src).try_connect_to() failed. Error({e})");
+                Err(anyhow!(e))
+            }
+        }?;
+        match proc_lock_mut(&dst)?.notify_connected_from(src, arg_name, src_manifest) {
+            Ok(result) => {
+                log::trace!("destination_connection, connected!");
+                Ok(result)
+            }
+            Err(e) => {
+                log::error!("Process(dist).notify_connected_from() failed. Error({e})");
+                Err(anyhow!(e))
+            }
         }
-        let result = proc_lock_mut(&destination)?.notify_connected_from(source, arg_name, source_connect_result_manifest);
-        log::trace!("destination_connection, connected!");
-        result
     }
 
     pub fn list_connection_profiles(core_broker: &CoreBroker) -> JuizResult<Vec<Value>> {

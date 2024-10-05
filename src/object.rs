@@ -22,6 +22,7 @@ pub enum JuizObjectClass {
     System(&'static str),
 
     ProcessProxy(&'static str),
+    Topic(&'static str),
 }
 
 
@@ -46,6 +47,7 @@ impl JuizObjectClass {
 
             JuizObjectClass::System(_) => "System",
             JuizObjectClass::ProcessProxy(_) => "ProcessProxy",
+            JuizObjectClass::Topic(_) => "Topic", 
         }
     }
 }

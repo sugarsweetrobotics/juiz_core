@@ -3,6 +3,7 @@ use super::buffer_store_worker::BufferStoreWorker;
 use super::rw_store_worker::RwStoreWorker;
 use super::store_worker::StoreWorker;
 
+use crate::topics::TopicPtr;
 use crate::{containers::container_process_impl::ContainerProcessImpl, prelude::*, value::obj_get_str};
 use crate::ecs::{execution_context_function::ExecutionContextFunction, execution_context_holder_factory::ExecutionContextHolderFactory};
 
@@ -13,6 +14,7 @@ use crate::ecs::{execution_context_function::ExecutionContextFunction, execution
 pub struct CoreStore {
     broker_factories_manifests: HashMap<Identifier, Value>,
     brokers_manifests: HashMap<Identifier, Value>,
+    pub topics: HashMap<Identifier, TopicPtr>,
 
     pub processes: Box<RwStoreWorker::<dyn Process, dyn ProcessFactory>>,
     pub containers: Box<RwStoreWorker::<dyn Container, dyn ContainerFactory>>,
@@ -28,7 +30,7 @@ impl CoreStore {
             brokers_manifests: HashMap::new(),
             broker_proxies: BufferStoreWorker::new("broker_proxy"),
             broker_factories_manifests: HashMap::new(),
-            
+            topics: HashMap::new(),
             processes: RwStoreWorker::new("process"), 
             containers: RwStoreWorker::new("container"), 
             container_processes: RwStoreWorker::new("container_process"), 
@@ -107,6 +109,21 @@ impl CoreStore {
         Ok(jvalue!(vec_str))
     }
 
+    pub fn topics_list_ids(&self) -> JuizResult<Value> {
+        let vec_value = self.topics.values().into_iter().map(|topic| {
+            topic.name().to_owned()
+        } ).collect::<Vec<String>>();
+        Ok(jvalue!(vec_value))
+    }
+
+    pub fn topics_profile_full(&self) -> JuizResult<Value> {
+        let mut vec : Vec<Value> = Vec::new();
+        for topic in self.topics.values().into_iter() {
+            vec.push(topic.profile_full()?);
+        } 
+        Ok(jvalue!(vec))
+    }
+
     pub fn profile_full(&self) -> JuizResult<Value> {
         let r = self.broker_proxies.list_ids()?;
         Ok(jvalue!({
@@ -121,6 +138,7 @@ impl CoreStore {
             "broker_proxies": r,
             "ecs": self.ecs.objects_profile_full()?,
             "ec_factories": self.ecs.factories_profile_full()?,
+            "topics": self.topics_profile_full()?,
         }))
     }
 }

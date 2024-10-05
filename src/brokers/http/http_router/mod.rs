@@ -1,12 +1,14 @@
 
 use std::collections::HashMap;
 
+use std::os::unix::net::SocketAddr;
 use std::path::PathBuf;
 use std::sync::{Mutex, Arc};
 // use crate::prelude::*;
 use crate::brokers::CRUDBroker;
 use crate::value::capsule_to_value;
 
+use axum::extract::connect_info::IntoMakeServiceWithConnectInfo;
 use axum::http::HeaderValue;
 use opencv::core::{Vector, VectorToVec};
 use opencv::imgcodecs::imencode;
@@ -24,6 +26,7 @@ use crate::prelude::*;
 pub mod any;
 pub mod system;
 pub mod process;
+pub mod topic;
 pub mod any_process;
 pub mod container;
 pub mod container_process;
@@ -55,10 +58,24 @@ pub struct IdAndRecurQuery {
 }
 
 #[derive(Deserialize, IntoParams, Debug)]
+pub struct IdAndUuidQuery {
+    identifier: Option<String>,
+    system_uuid: Option<String>,
+}
+
+#[derive(Deserialize, IntoParams, Debug)]
+pub struct TopicNameAndUuidQuery {
+    topic_name: Option<String>,
+    system_uuid: Option<String>,
+}
+
+#[derive(Deserialize, IntoParams, Debug)]
 pub struct FullQuery {
     identifier: Option<String>,
     path: Option<String>,
     recursive: Option<String>,
+    system_uuid: Option<String>,
+    topic_name: Option<String>,
 }
 
 #[allow(unused)]
@@ -104,6 +121,24 @@ pub fn id_and_recur_query_to_map(query: &Query<IdAndRecurQuery>) -> HashMap<Stri
     map
 }
 
+#[allow(unused)]
+pub fn id_and_uuid_query_to_map(query: &Query<IdAndUuidQuery>) -> HashMap<String, String> {
+    let mut map: HashMap<String, String> = HashMap::new();
+    match query.identifier.clone() {
+        None => {},
+        Some(v) => {
+            map.insert("identifier".to_owned(), v);
+        }
+    }
+    match query.system_uuid.clone() {
+        None => {},
+        Some(v) => {
+            map.insert("system_uuid".to_owned(), v);
+        }
+    }
+    map
+}
+
 
 
 pub fn full_query_to_map(query: &Query<FullQuery>) -> HashMap<String, String> {
@@ -124,6 +159,18 @@ pub fn full_query_to_map(query: &Query<FullQuery>) -> HashMap<String, String> {
         None => {},
         Some(v) => {
             map.insert("path".to_owned(), v);
+        }
+    }
+    match query.system_uuid.clone() {
+        None => {},
+        Some(v) => {
+            map.insert("system_uuid".to_owned(), v);
+        }
+    }
+    match query.topic_name.clone() {
+        None => {},
+        Some(v) => {
+            map.insert("topic_name".to_owned(), v);
         }
     }
     map
@@ -229,6 +276,7 @@ pub fn app_new(crud_broker: Arc<Mutex<CRUDBroker>>, static_filepaths: Option<Vec
     api.merge(broker::ApiDoc::openapi());
     api.merge(execution_context::ApiDoc::openapi());
     api.merge(connection::ApiDoc::openapi());
+    api.merge(topic::ApiDoc::openapi());
     log::warn!("static_filepaths: {:?}", static_filepaths);
     let mut r = Router::new()
             .merge(SwaggerUi::new("/docs").url("/api-docs/openapi.json", api))

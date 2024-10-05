@@ -45,13 +45,6 @@ impl JuizObject for ProcessProxy {
         let id = self.identifier();
         log::trace!("ProcessProxy({id})::profile_full() called");
         juiz_lock(&self.broker_proxy)?.any_process_profile_full(self.identifier())
-        /*
-        match self.class_name_str.as_str() {
-            "process" => juiz_lock(&self.broker_proxy)?.process_profile_full(self.identifier()),
-            "container_process" => juiz_lock(&self.broker_proxy)?.container_process_profile_full(self.identifier()),
-            _ => { Err(anyhow::Error::from(JuizError::ProcessProxyCanNotAcceptClassError{class_name: self.class_name_str.clone()}))}
-        }
-        */
     }
 }
 
@@ -69,19 +62,11 @@ impl Process for ProcessProxy {
         todo!()
     }
 
-    fn is_updated_exclude(& self, _caller_id: &str) -> JuizResult<bool> {
-        todo!()
-    }
-
     fn manifest(&self) -> &Value {
         todo!()
     }
 
     fn invoke<'b>(&self) -> JuizResult<CapsulePtr> {
-        todo!()
-    }
-
-    fn invoke_exclude<'b>(&self, _arg_name: &str, _value: CapsulePtr) -> JuizResult<CapsulePtr> {
         todo!()
     }
 

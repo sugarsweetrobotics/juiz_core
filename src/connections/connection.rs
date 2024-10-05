@@ -24,7 +24,7 @@ impl ToString for ConnectionType {
 
 pub fn connection_type_from(typ_str_result: JuizResult<&str>) -> JuizResult<ConnectionType> {
     if typ_str_result.is_err() {
-        return Ok(ConnectionType::Pull);
+        return Ok(ConnectionType::Push);
     }
     let typ_str = typ_str_result.unwrap();
     match typ_str {
@@ -57,11 +57,11 @@ impl Clone for ConnectionCore {
     }
 }
 
-fn manifest_to_connection_id<'a>(manifest: &'a Value, source_id: &Identifier, destination_id: &Identifier) -> JuizResult<Identifier> {
+fn manifest_to_connection_id<'a>(manifest: &'a Value, source_id: &Identifier, arg_name: &str, destination_id: &Identifier) -> JuizResult<Identifier> {
     match obj_get_str(manifest, "id") {
         Ok(id) => Ok(id.to_string()),
         Err(_) => {
-            let arg_name = obj_get_str(manifest, "arg_name")?;
+            //let arg_name = obj_get_str(manifest, "arg_name")?;
 
             let id = connection_identifier_new(source_id.to_string(), destination_id.to_string(), arg_name);
             Ok(id)
@@ -75,7 +75,7 @@ impl ConnectionCore {
         //log::trace!("ConnectionCore::new() called");
         let manif = check_connection_manifest(connection_manifest.clone())?;
         let connection_type = connection_type_from(obj_get_str(&manif, "type"))?;
-        let connection_id = manifest_to_connection_id(&manif, &source_process_identifier, &destination_process_identifier)?;
+        let connection_id = manifest_to_connection_id(&manif, &source_process_identifier, arg_name.as_str(),&destination_process_identifier)?;
         log::trace!("ConnectionCore::new(manif={:?}, connection_type={:?}, connection_id={:?}", manif, connection_type, connection_id);
         Ok(ConnectionCore {
             core: ObjectCore::new(connection_id.clone(), JuizObjectClass::Connection(connection_impl_class_name), "Connection", connection_id.as_str(), "core", "core"),

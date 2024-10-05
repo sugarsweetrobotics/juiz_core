@@ -4,6 +4,7 @@
 use anyhow::Context;
 use serde_json::Value;
 
+use crate::connections::connection::ConnectionType;
 use crate::prelude::*;
 use crate::{object::JuizObjectCoreHolder, processes::proc_lock, utils::manifest_checker::check_connection_manifest};
 
@@ -65,13 +66,19 @@ impl Connection for DestinationConnectionImpl {
 impl DestinationConnection for DestinationConnectionImpl {
 
     fn execute_destination(&self) -> JuizResult<CapsulePtr> {
+        log::trace!("DestinationConnectionImpl::execute_destination() called");
         let proc = proc_lock(&self.destination_process).context("DestinationConnectionImpl.execute_destination()")?;
         proc.execute()
     }
 
     fn push(&self, value: CapsulePtr) -> JuizResult<CapsulePtr> {
+        log::trace!("DestinationConnectionImpl::push() called");
         let proc = proc_lock(&self.destination_process).context("DestinationConnectionImpl.push()")?;
-        proc.push_by(self.arg_name(), value)
+        if self.connection_type() == ConnectionType::Push {
+            proc.push_by(self.arg_name(), value)
+        } else {
+            Ok(value)
+        }
     }
 }
 

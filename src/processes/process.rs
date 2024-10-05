@@ -20,7 +20,7 @@ pub trait Process : Send + Sync + JuizObject {
 
     fn is_updated(& self) -> JuizResult<bool>;
 
-    fn is_updated_exclude(& self, inlet_name: &str) -> JuizResult<bool>;
+    //fn is_updated_exclude(& self, inlet_name: &str) -> JuizResult<bool>;
 
     fn manifest(&self) -> &Value;
     
@@ -33,7 +33,7 @@ pub trait Process : Send + Sync + JuizObject {
      */
     fn invoke<'b>(&self) -> JuizResult<CapsulePtr>;
 
-    fn invoke_exclude<'b>(&self, arg_name: &str, value: CapsulePtr) -> JuizResult<CapsulePtr>;
+    //fn invoke_exclude<'b>(&self, arg_name: &str, value: CapsulePtr) -> JuizResult<CapsulePtr>;
 
     /*
      * executeは自信をinvokeしてから、自分の出力側接続先をすべてexecuteする。

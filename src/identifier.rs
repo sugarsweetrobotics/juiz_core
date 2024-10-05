@@ -139,6 +139,19 @@ impl IdentifierStruct {
         self
     }
 
+    pub fn new_broker(broker_type: &str, broker_name: &str) -> Self {
+        let identifier = broker_type.to_owned() + "://" + broker_name;
+        let class_name = "".to_owned();
+        let type_name = "".to_owned();
+        let object_name = "".to_owned();
+        IdentifierStruct{ 
+            identifier, 
+            class_name, 
+            type_name, 
+            object_name, 
+            broker_name: broker_name.to_owned(), 
+            broker_type_name: broker_type.to_owned()}
+    }
     pub fn new_broker_id(id: Identifier) -> JuizResult<Self> {
         match regex::Regex::new(r"^(.+?)://(.+?)$") {
             Ok(re) => {

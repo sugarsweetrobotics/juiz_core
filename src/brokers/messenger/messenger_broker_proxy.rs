@@ -1,6 +1,7 @@
 use std::{sync::{Arc, Mutex}, time::Duration};
 use anyhow::Context;
-use crate::prelude::*;
+use uuid::Uuid;
+use crate::{brokers::broker_proxy::TopicBrokerProxy, prelude::*};
 use crate::{brokers::broker_proxy::{BrokerBrokerProxy, ConnectionBrokerProxy, ContainerBrokerProxy, ContainerProcessBrokerProxy, ExecutionContextBrokerProxy}, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, value::capsule_to_value};
 use super::super::broker_proxy::{SystemBrokerProxy, ProcessBrokerProxy};
 
@@ -147,7 +148,7 @@ impl MessengerBrokerProxy {
             class_name, 
             function_name,
             CapsuleMap::new(), 
-            &[("id".to_owned(), id.clone())],
+            &[("identifier".to_owned(), id.clone())],
             //|value| Ok(obj_get(&value, "return")?.clone()))
             |value| Ok(value))
     }
@@ -169,7 +170,17 @@ impl MessengerBrokerProxy {
             class_name, 
             function_name, 
             args, 
-            &[("id".to_owned(), id.clone())],
+            &[("identifier".to_owned(), id.clone())],
+            |value| Ok(value))
+    }
+
+    pub fn update_output(&self, class_name: &str, function_name: &str, args: CapsuleMap, params: &[(String, String)]) -> JuizResult<CapsulePtr>  {
+        self.send_recv_output_and(
+            "UPDATE",
+            class_name, 
+            function_name, 
+            args, 
+            params,
             |value| Ok(value))
     }
 
@@ -179,7 +190,7 @@ impl MessengerBrokerProxy {
             class_name,  
             function_name, 
             args, 
-            &[("id".to_owned(), id.clone())],
+            &[("identifier".to_owned(), id.clone())],
             |value| Ok(value))
     }
 
@@ -210,7 +221,7 @@ impl MessengerBrokerProxy {
             class_name,  
             function_name, 
             args, 
-            &[("id".to_owned(), id.clone())],
+            &[("identifier".to_owned(), id.clone())],
             |value| Ok(value))
             //|value| Ok(obj_get(&value, "return")?.clone()))
     }
@@ -221,7 +232,7 @@ impl MessengerBrokerProxy {
             class_name,  
             function_name, 
             CapsuleMap::new(),
-            &[("id".to_owned(), id.clone())],
+            &[("identifier".to_owned(), id.clone())],
             |value| Ok(value))
     }
     
@@ -252,6 +263,12 @@ impl SystemBrokerProxy for MessengerBrokerProxy {
     
     fn system_uuid(&self) -> JuizResult<Value> {
         capsule_to_value(self.read("system", "uuid")?)
+    }
+    
+    fn system_add_mastersystem(&mut self, profile: Value) -> JuizResult<Value> {
+        let mut cp = CapsuleMap::new();
+        cp.insert("profile".to_owned(), profile.into());
+        capsule_to_value(self.update("system", "add_mastersystem", cp, &[])?)
     }
 }
 
@@ -407,6 +424,38 @@ impl BrokerBrokerProxy for MessengerBrokerProxy {
         capsule_to_value(self.read_by_id("broker", "profile_full", id)?)
     }
 }
+
+impl TopicBrokerProxy for MessengerBrokerProxy {
+    fn topic_list(&self) -> JuizResult<Value> {
+        capsule_to_value(self.read_with_param("topic", "list", &[("recursive".to_owned(), true.to_string())])?)
+    }
+    
+    fn topic_push(&self, name: &str, capsule: CapsulePtr, pushed_system_uuid: Option<Uuid>) -> JuizResult<()> {
+        let mut argument = CapsuleMap::new();
+        argument.insert("input".to_owned(), capsule);
+        let uuid_str = if let Some(uuid) = pushed_system_uuid { uuid.to_string() } else { "".to_owned() };        
+        self.update_output("topic", "push", argument, 
+            &[
+                ("topic_name".to_owned(), name.to_owned()),
+                ("system_uuid".to_owned(), uuid_str)]
+        ).and_then(|_| { Ok(()) })
+    }
+    
+    fn topic_request_subscribe(&mut self, name: &str, system_uuid: Option<Uuid>) -> JuizResult<Value> {
+        let param = &[
+            ("topic_name".to_owned(), name.to_owned()),
+            ("system_uuid".to_owned(), system_uuid.unwrap().to_string())];
+        capsule_to_value(self.update("topic", "request_subscribe", CapsuleMap::new(), param)?)
+    }
+    
+    fn topic_request_publish(&mut self, name: &str, system_uuid: Option<Uuid>) -> JuizResult<Value> {
+        let param = &[
+            ("topic_name".to_owned(), name.to_owned()),
+            ("system_uuid".to_owned(), system_uuid.unwrap().to_string())];
+        capsule_to_value(self.update("topic", "request_publish", CapsuleMap::new(), param)?)
+    }
+}
+
 
 impl ConnectionBrokerProxy for MessengerBrokerProxy {
     fn connection_list(&self, recursive: bool) -> JuizResult<Value> {

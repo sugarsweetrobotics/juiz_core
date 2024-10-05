@@ -2,7 +2,7 @@
 
 use std::sync::Arc;
 
-use crate::{containers::{container_factory_wrapper::ContainerFactoryWrapper, container_process_factory_wrapper::ContainerProcessFactoryWrapper}, plugin::JuizObjectPlugin, prelude::*, utils::{get_array, get_hashmap, when_contains_do}, value::obj_get_str};
+use crate::{anyhow::anyhow, containers::{container_factory_wrapper::ContainerFactoryWrapper, container_process_factory_wrapper::ContainerProcessFactoryWrapper}, core::system_builder::topics::{setup_publish_topic, setup_subscribe_topic}, plugin::JuizObjectPlugin, prelude::*, utils::{get_array, get_hashmap, when_contains_do}, value::obj_get_str};
 
 
 pub(super) fn setup_container_factories(system: &System, manifest: &Value) -> JuizResult<()> {
@@ -58,27 +58,45 @@ fn setup_container_factory(system: &System, name: &String, container_profile: &V
     result
 }
 
-
+/// コンテナをセットアップする
+/// 
+/// 各コンテナを作成後に対応するコンテナプロセスを作成する。
+/// 
 fn setup_container(system: &System, container_manifest: &Value) -> JuizResult<()> {
     log::trace!("setup_container({container_manifest}) called");
     let name = obj_get_str(container_manifest, "name")?;
     let type_name = obj_get_str(container_manifest, "type_name")?;
     let container = system.core_broker().lock_mut()?.create_container_ref(container_manifest.clone())?;
     log::info!("Container ({:}:{:}) Created", name, type_name);            
-    let _ = when_contains_do(container_manifest, "processes", |v| {
-        for p in get_array(v)?.iter() {
-            let cp_name = obj_get_str(p, "name")?;
-            let cp_type_name = obj_get_str(p, "type_name")?;
+    let _ = when_contains_do(container_manifest, "processes", |container_process_manifests| {
+        for container_process_manifest in get_array(container_process_manifests)?.iter() {
+            let cp_name = obj_get_str(container_process_manifest, "name")?;
+            let cp_type_name = obj_get_str(container_process_manifest, "type_name")?;
             log::debug!(" - ContainerProcess ({:}:{:}) Creating...", cp_name, cp_type_name);
-            system.core_broker().lock_mut()?.create_container_process_ref(Arc::clone(&container), p.clone())?;
-            log::info!(" - ContainerProcess ({:}:{:}) Created", cp_name, cp_type_name);            
+            let cp_ref = system.core_broker().lock_mut()?.create_container_process_ref(Arc::clone(&container), container_process_manifest.clone())?;
+            log::info!(" - ContainerProcess ({:}:{:}) Created", cp_name, cp_type_name);    
+            // Topicをpublishするなら
+            let _reslt = obj_get_array(container_process_manifest, "publish").and_then(|pub_topics| {
+                for pub_topic in pub_topics.iter() {
+                    setup_publish_topic(system, cp_ref.clone(), pub_topic)?
+                };
+                Ok(())
+            });
+
+            let _reslts = obj_get_obj(container_process_manifest, "subscribe").and_then(|sub_topic_map| {
+                for (arg_name, topic_prof) in sub_topic_map.iter() {
+                    setup_subscribe_topic(system, cp_ref.clone(), arg_name, topic_prof)?;
+                };
+                Ok(())
+            });
         }
         Ok(())
     })?;
     log::trace!("setup_container() exit");
     Ok(())
 }
-    
+
+
 pub(super) fn cleanup_containers(system: &mut System) -> JuizResult<()> {
     log::trace!("system_builder::cleanup_containers() called");
     let r = system.core_broker().lock_mut().and_then(|mut cb|{

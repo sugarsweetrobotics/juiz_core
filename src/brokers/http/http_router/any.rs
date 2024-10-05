@@ -1,7 +1,7 @@
 
 
-use std::sync::{Mutex, Arc};
-use axum::{response::IntoResponse, extract::{Path, Query, State}, routing, Json, Router};
+use std::{net::SocketAddr, sync::{Arc, Mutex}};
+use axum::{extract::{ConnectInfo, Host, Path, Query, Request, State}, http::HeaderMap, response::IntoResponse, routing, Json, Router};
 
 use crate::{brokers::http::http_router::FullQuery, prelude::*};
 use crate::{brokers::crud_broker::CRUDBroker, value::CapsuleMap, utils::juiz_lock};
@@ -24,18 +24,15 @@ use utoipa::OpenApi;
 pub async fn object_post_handler(
     Path((class_name, function_name)): Path<(String, String)>,
     query: Query<FullQuery>, //, path_query: Query<PathQuery>,
+    headers: HeaderMap,
+    remote_addr: ConnectInfo<SocketAddr>,
     State(crud_broker): State<Arc<Mutex<CRUDBroker>>>, 
     Json(body): Json<Value>,
 ) -> impl IntoResponse {
     let map = full_query_to_map(&query);
-    log::trace!("HTTPBroker/object_post_handler({class_name}, {function_name}, {body}, {map:?}) called");
-    //json_output_wrap(create_class(&crud_broker, class_name.as_str(), function_name.as_str(), body, map))
-    //json_output_wrap(juiz_lock(&crud_broker).and_then(|cb| {
-    //    cb.create_class(construct_capsule_map(body_to_capsule_map(body)?, "CREATE", class_name.as_str(), function_name.as_str(), query))
-    //}))
-
+    log::trace!("[POST] HTTPBroker/object_post_handler({class_name}, {function_name}, {body}, {map:?}) called");
     let v = tokio::task::spawn_blocking(move ||{
-        juiz_lock(&crud_broker).unwrap().create_class(construct_capsule_map(CapsuleMap::new(), "CREATE", class_name.as_str(), function_name.as_str(), query))
+        juiz_lock(&crud_broker).unwrap().create_class(construct_capsule_map(CapsuleMap::new(), "CREATE", class_name.as_str(), function_name.as_str(), query, headers, remote_addr))
     }).await;
     let r = json_output_wrap(v.unwrap());
     r
@@ -46,7 +43,7 @@ fn body_to_capsule_map(body: Value) -> Result<CapsuleMap, anyhow::Error> {
 }
 
 
-fn construct_capsule_map(mut capsule_map: CapsuleMap, method_name: &str, class_name: &str, function_name: &str, query: Query<FullQuery>) -> CapsuleMap {
+fn construct_capsule_map(mut capsule_map: CapsuleMap, method_name: &str, class_name: &str, function_name: &str, query: Query<FullQuery>, headers: HeaderMap, remote_addr: ConnectInfo<SocketAddr>) -> CapsuleMap {
     capsule_map.set_param("method_name", method_name);
     capsule_map.set_param("class_name", class_name);
     capsule_map.set_param("function_name", function_name);
@@ -68,6 +65,57 @@ fn construct_capsule_map(mut capsule_map: CapsuleMap, method_name: &str, class_n
             capsule_map.set_param("recursive", v.as_str());
         }
     }
+    match query.system_uuid.clone() {
+        None => {},
+        Some(v) => {
+            capsule_map.set_param("system_uuid", v.as_str());
+        }
+    }
+    match query.topic_name.clone() {
+        None => {},
+        Some(v) => {
+            capsule_map.set_param("topic_name", v.as_str());
+        }
+    }
+    // println!("HEADER>>>> {headers:?}");
+    match headers.get("host") {
+        Some(header) => {
+            match header.to_str() {
+                Ok(host) => {
+                    let accessed_broker_id = format!("http://{}", host);
+                    capsule_map.set_param("accessed_broker_id", accessed_broker_id.as_str());
+                }
+                Err(_) => {}
+            }
+        },
+        None => {}
+    }
+    let remote_addr_str = remote_addr.0.to_string().as_str().to_owned();
+    capsule_map.set_param("remote_addr", remote_addr_str.as_str());
+
+    if class_name == "system" && function_name == "add_mastersystem"  {
+        let r = match capsule_map.get("profile") {
+            Ok(capsule_ptr) => {
+                capsule_ptr.lock_modify_as_value(|v|{
+                    match v.as_object_mut().unwrap().get_mut("subsystem").unwrap().as_object_mut() {
+                        Some(obj) => {
+                            let broker_name = obj.get("broker_name").unwrap().as_str().unwrap().to_owned();
+                            let broker_tokens = broker_name.split(":").collect::<Vec<&str>>();
+                            let port_str = broker_tokens.get(1).unwrap();
+                            let remote_tokens = remote_addr_str.split(":").collect::<Vec<&str>>();
+                            let addr_str = (*remote_tokens.get(0).unwrap()).to_owned();
+                            
+                            let new_broker_name = addr_str + ":" + port_str;
+                            obj.insert("broker_name".to_owned(), jvalue!(new_broker_name));
+                        }
+                        None => todo!(),
+                    }
+                })
+            }
+            Err(_) => todo!(),
+        };
+    }
+
     capsule_map
 }
 
@@ -86,32 +134,34 @@ fn construct_capsule_map(mut capsule_map: CapsuleMap, method_name: &str, class_n
 pub async fn object_patch_handler(
     Path((class_name, function_name)): Path<(String, String)>,
     query: Query<FullQuery>,
+    headers: HeaderMap,
+    remote_addr: ConnectInfo<SocketAddr>,
+    // request: axum::extract::Request,
+    forwarded_header: Host,
+    x_forwarded_for: Host,
+    host3: Host,
+    host4: Host,
     State(crud_broker): State<Arc<Mutex<CRUDBroker>>>, 
     Json(body): Json<Value>,
 ) -> impl IntoResponse {
     let map = full_query_to_map(&query);
     log::trace!("[PATCH] ({class_name}, {function_name}, {body}, {map:?}) called");
-
     let v = tokio::task::spawn_blocking(move ||{
-        juiz_lock(&crud_broker).unwrap().update_class(construct_capsule_map(body_to_capsule_map(body)?, "UPDATE", class_name.as_str(), function_name.as_str(), query))
+        juiz_lock(&crud_broker).unwrap().update_class(construct_capsule_map(body_to_capsule_map(body)?, "UPDATE", class_name.as_str(), function_name.as_str(), query, headers, remote_addr))
     }).await;
     let r = json_output_wrap(v.unwrap());
-    //log::trace!("[PATCH] ({class_name}, {function_name}) exit");
     r
-
-    //let r = json_output_wrap(juiz_lock(&crud_broker).and_then(|cb| {
-    //    cb.update_class(construct_capsule_map(body_to_capsule_map(body)?, "UPDATE", class_name.as_str(), function_name.as_str(), query))
-    //}));
-    //log::trace!("[PATCH] ({class_name}, {function_name}) exit");
-    //r
 }
 
 
 #[utoipa::path(
     get,
     path = "/api/{class_name}/{function_name}",
+    //context_path = "{full_path}", 
     params(
-        FullQuery
+        //FullQuery
+        ("query" = FullQuery, Query, deprecated = false, description = ""),
+        ("Host" = String, Header, deprecated = false, description = "")
     ),
     responses(
         (status = 200, description = "Get object parameter", body = [String])
@@ -121,15 +171,18 @@ pub async fn object_patch_handler(
 pub async fn object_get_handler(
     Path((class_name, function_name)): Path<(String, String)>,
     query: Query<FullQuery>,
+    headers: HeaderMap,
+    remote_addr: ConnectInfo<SocketAddr>,
     State(crud_broker): State<Arc<Mutex<CRUDBroker>>>, 
 ) -> impl IntoResponse {
+    //let host = "";
+    let full_path = "";
     let map = full_query_to_map(&query);
-    log::trace!("[GET] ({class_name}, {function_name}, {map:?}) called");
+    log::trace!("[GET] ({class_name}, {function_name}, {map:?}, {full_path:?}, {headers:?}) called");
     let v = tokio::task::spawn_blocking(move ||{
-        juiz_lock(&crud_broker).unwrap().read_class(construct_capsule_map(CapsuleMap::new(), "READ", class_name.as_str(), function_name.as_str(), query))
+        juiz_lock(&crud_broker).unwrap().read_class(construct_capsule_map(CapsuleMap::new(), "READ", class_name.as_str(), function_name.as_str(), query, headers, remote_addr))
     }).await;
     let r = json_output_wrap(v.unwrap());
-   //log::trace!("[GET] ({class_name}, {function_name}) exit");
     r
 }
 
@@ -147,21 +200,16 @@ pub async fn object_get_handler(
 pub async fn object_delete_handler(
     Path((class_name, function_name)): Path<(String, String)>,
     query: Query<FullQuery>,
+    headers: HeaderMap,
+    remote_addr: ConnectInfo<SocketAddr>,
     State(crud_broker): State<Arc<Mutex<CRUDBroker>>>, 
 ) -> impl IntoResponse {
     let map = full_query_to_map(&query);
     log::trace!("HTTPBroker/object_delete_handler({class_name}, {map:?}) called");
-    //json_wrap(delete_class(&crud_broker, class_name.as_str(), function_name.as_str(), map))
-    //let method_name = "DELETE";
-    //json_wrap(delete_class(&crud_broker, construct_capsule_map(CapsuleMap::new(), method_name, class_name.as_str(), function_name.as_str(), query)))
-    //json_output_wrap(juiz_lock(&crud_broker).and_then(|cb| {
-    //    cb.delete_class(construct_capsule_map(CapsuleMap::new(), "DELETE", class_name.as_str(), function_name.as_str(), query))
-    //}))
     let v = tokio::task::spawn_blocking(move ||{
-        juiz_lock(&crud_broker).unwrap().read_class(construct_capsule_map(CapsuleMap::new(), "DELETE", class_name.as_str(), function_name.as_str(), query))
+        juiz_lock(&crud_broker).unwrap().read_class(construct_capsule_map(CapsuleMap::new(), "DELETE", class_name.as_str(), function_name.as_str(), query, headers, remote_addr))
     }).await;
     let r = json_output_wrap(v.unwrap());
-   //log::trace!("[GET] ({class_name}, {function_name}) exit");
     r
 }
 

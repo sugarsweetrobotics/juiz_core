@@ -152,23 +152,18 @@ impl Process for ProcessImpl {
     }
 
     fn is_updated(&self) -> JuizResult<bool> {
-        self.is_updated_exclude("")
-    }
-
-    fn is_updated_exclude(&self, arg_name: &str) -> JuizResult<bool> {
-        log::trace!("ProcessImpl({})::is_updated_exclude(arg_name='{}') called now", self.identifier(), arg_name);
+        log::trace!("ProcessImpl({})::is_updated() called now", self.identifier());
         if self.outlet.memo().is_empty()? {
             log::trace!(" - MEMO is empty. Must be updated.");
             return Ok(true)
         }
         for inlet in self.inlets.iter() {
-            if inlet.name() == arg_name { continue; }
             if inlet.is_updated()? {
                 log::trace!(" - Inlet({}) is updated. Must be updated.", inlet.name());
                 return Ok(true)
             }
         }
-        log::trace!("ProcessImpl({})::is_updated_exclude(arg_name='{}') returned false", self.identifier(), arg_name);
+        log::trace!("ProcessImpl({})::is_updated() returned false", self.identifier());
         Ok(false)
     }
 
@@ -187,26 +182,21 @@ impl Process for ProcessImpl {
     /// 
     /// これは後段のsource_connectionからpushされた場合に使う。
     /// 
-    fn invoke_exclude<'b>(&self, arg_name: &str, value: CapsulePtr) -> JuizResult<CapsulePtr> {
-        log::trace!("Processimpl({})::invoke_exclude(arg_name={}) called", self.identifier(), arg_name);
-        if self.outlet.memo().is_empty()? {
-            log::trace!("Processimpl({})::invoke_exclude() called. memo is empty.", self.identifier());
-            return Ok(self.outlet.set_value(self.call(self.collect_values_exclude(arg_name, value))?));
-        } else if self.is_updated_exclude(arg_name)? {
-            log::trace!("Processimpl({})::invoke_exclude() called. inlet is updated.", self.identifier());
-            return Ok(self.outlet.set_value(self.call(self.collect_values_exclude(arg_name, value))?));
-        } else {
-            log::trace!("Processimpl({})::invoke_exclude() called but memo is not empty and inlet is not updated.", self.identifier());
-        }
-        return Ok(self.outlet.memo().clone());
-    }
+    //fn invoke_exclude<'b>(&self, arg_name: &str, value: CapsulePtr) -> JuizResult<CapsulePtr> {
+    //    log::trace!("Processimpl({})::invoke_exclude(arg_name={}) called", self.identifier(), arg_name);
+    //    // invoke_excludeは後ろからpushされた時にのみ呼ばれるので、必ず引数はupdateされている。なのでcallする。
+    //    return Ok(self.outlet.set_value(self.call(self.collect_values_exclude(arg_name, value))?));
+    //}
+
     fn execute(&self) -> JuizResult<CapsulePtr> {
         log::trace!("Processimpl({})::execute() called", self.identifier());
         self.outlet.push(self.invoke()?)
     }
 
     fn push_by(&self, arg_name: &str, value: CapsulePtr) -> JuizResult<CapsulePtr> {
-        self.outlet.push(self.invoke_exclude(arg_name, value.clone())?)
+        log::trace!("ProcessImpl::push_by({}) called", self.identifier());
+        let v = self.outlet.set_value(self.call(self.collect_values_exclude(arg_name, value))?);
+        self.outlet.push(v)
     }
     
     fn get_output(&self) -> CapsulePtr {
@@ -217,7 +207,13 @@ impl Process for ProcessImpl {
         log::trace!("ProcessImpl(id={:?}).notify_connected_from(source=Process()) called", self.identifier());
         let id = self.identifier().clone();
         self.inlet_mut(connecting_arg)?.insert(
-                    Box::new(SourceConnectionImpl::new(id, source, connection_manifest.clone(), connecting_arg.to_owned())?));
+            Box::new(
+                SourceConnectionImpl::new(
+                    id,
+                    source, connection_manifest.clone(), 
+                    connecting_arg.to_owned()
+                )?
+            ));
         log::trace!("ProcessImpl(id={:?}).notify_connected_from(source=Process()) exit", self.identifier());
         Ok(connection_manifest.into())
     }

@@ -1,4 +1,4 @@
-use std::{path::PathBuf, sync::{Arc, Mutex}};
+use std::{net::SocketAddr, path::PathBuf, sync::{Arc, Mutex}};
 use tokio::net::TcpListener;
 
 use crate::{core::core_broker::CoreBrokerPtr, prelude::*};
@@ -26,7 +26,7 @@ async fn on_start(broker_manifest: Value, crud_broker: Arc<Mutex<CRUDBroker>>) -
     };
     match TcpListener::bind( address ).await {
         Ok(listener) => {
-            axum::serve(listener, app_new(crud_broker, static_filepaths)).await.unwrap();
+            axum::serve(listener, app_new(crud_broker, static_filepaths).into_make_service_with_connect_info::<SocketAddr>()).await.unwrap();
         },
         Err(e) => {
             log::error!("on_start(broker_manifest='{broker_manifest:}') failed. Error({e})");

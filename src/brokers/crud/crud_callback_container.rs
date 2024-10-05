@@ -1,6 +1,8 @@
 use std::{collections::HashMap, path::PathBuf, str::FromStr};
 
-use crate::{brokers::broker_proxy::{BrokerBrokerProxy, ConnectionBrokerProxy, ContainerBrokerProxy, ContainerProcessBrokerProxy, ExecutionContextBrokerProxy, ProcessBrokerProxy, SystemBrokerProxy}, core::core_broker::CoreBrokerPtr, prelude::*};
+use uuid::Uuid;
+
+use crate::{brokers::broker_proxy::{BrokerBrokerProxy, ConnectionBrokerProxy, ContainerBrokerProxy, ContainerProcessBrokerProxy, ExecutionContextBrokerProxy, ProcessBrokerProxy, SystemBrokerProxy, TopicBrokerProxy}, core::core_broker::CoreBrokerPtr, prelude::*};
 use crate::value::{CapsuleMap, value_to_capsule};
 
 
@@ -83,12 +85,6 @@ pub(crate) fn read_callback_container() -> ClassCallbackContainerType {
         }
         Ok(value_to_capsule(cb.lock()?.system_filesystem_list(PathBuf::from(path))?))
     });
-    system_callbacks.insert("add_subsystem", |cb, args| {
-        log::trace!("system_callbacks['add_subsystem'] called with args {args:?}");
-        let manif = args.get("profile")?.extract_value()?;
-        Ok(value_to_capsule(cb.lock_mut()?.system_add_subsystem(manif)?))
-    });
-
     read_cb_container.insert("system", system_callbacks);
 
     let mut broker_cbs = CallbackContainerType::new();
@@ -102,6 +98,14 @@ pub(crate) fn read_callback_container() -> ClassCallbackContainerType {
         Ok(value_to_capsule(cb.lock()?.broker_list(recursive)?))
     });
     read_cb_container.insert("broker", broker_cbs);
+
+    let mut topic_cbs = CallbackContainerType::new();
+    topic_cbs.insert("list", |cb, args| {
+        //let recursive_str = args.get_param("recursive").and_then(|v|{Some(v.clone())}).or_else(||{Some("false".to_owned())}).unwrap();
+        //let recursive: bool = FromStr::from_str(recursive_str.as_str())?;
+        Ok(value_to_capsule(cb.lock()?.topic_list()?))
+    });
+    read_cb_container.insert("topic", topic_cbs);
 
 
     let mut proc_cbs = CallbackContainerType::new();
@@ -179,6 +183,43 @@ pub(crate) fn read_callback_container() -> ClassCallbackContainerType {
 pub(crate) fn update_callback_container() -> ClassCallbackContainerType {
     let mut update_cb_container = ClassCallbackContainerType::new();
 
+    let mut system_callbacks = CallbackContainerType::new();
+    system_callbacks.insert("add_subsystem", |cb, args| {
+        log::trace!("system_callbacks['add_subsystem'] called with args {args:?}");
+        let param = args.get_params();
+        let  mut manif: Value = args.get("profile")?.extract_value()?;
+        match manif.as_object_mut() {
+            Some(obj) => {
+                let accessed_broker_id = if param.contains_key("accessed_broker_id") {
+                    jvalue!(param.get("accessed_broker_id").unwrap().clone())
+                } else {
+                    jvalue!("")
+                };
+                obj.insert("accessed_broker_id".to_owned(), accessed_broker_id);
+            }
+            None => {}
+        }
+        Ok(value_to_capsule(cb.lock_mut()?.system_add_subsystem(manif)?))
+    });
+    system_callbacks.insert("add_mastersystem", |cb, args| {
+        log::trace!("system_callbacks['add_mastersystem'] called with args {args:?}");
+        let param = args.get_params();
+        let  mut manif: Value = args.get("profile")?.extract_value()?;
+        match manif.as_object_mut() {
+            Some(obj) => {
+                let accessed_broker_id = if param.contains_key("accessed_broker_id") {
+                    jvalue!(param.get("accessed_broker_id").unwrap().clone())
+                } else {
+                    jvalue!("")
+                };
+                obj.insert("accessed_broker_id".to_owned(), accessed_broker_id);
+            }
+            None => {}
+        }
+        Ok(value_to_capsule(cb.lock_mut()?.system_add_mastersystem(manif)?))
+    });
+    update_cb_container.insert("system", system_callbacks);
+
     let mut proc_cbs = CallbackContainerType::new();
     proc_cbs.insert("call", |cb, args| {
         log::trace!("update_callback_container()/anonymous func() for 'process/call' called");
@@ -216,6 +257,52 @@ pub(crate) fn update_callback_container() -> ClassCallbackContainerType {
         Ok(value_to_capsule(cb.lock_mut()?.ec_stop(id)?))
     });
     update_cb_container.insert("execution_context", ec_cbs);
+
+
+    let mut topic_cbs = CallbackContainerType::new();
+    topic_cbs.insert("push", |cb, args| {
+        let topic_name = args.get_param("topic_name").ok_or_else(||{anyhow::Error::from(JuizError::CRUDBrokerCanNotParameterFunctionError { key_name: "topic_name".to_owned() })})?;
+        let system_uuid = match args.get_param("system_uuid") {
+            Some(system_uuid_str) => {
+                Some(Uuid::parse_str(system_uuid_str)?)
+            }
+            None => {
+                log::warn!("CRUDBroker Callback (topic_push) can not detect 'system_uuid' parameter.");
+                None
+            }
+        };
+        let input = args.get("input")?;
+        cb.lock()?.topic_push(topic_name.as_str(), input, system_uuid).and(Ok(CapsulePtr::new()))
+    });
+    topic_cbs.insert("request_subscribe", |cb, args| {
+        log::trace!("CRUDBroker Callback (topic_request_subscribe) called (args={args:?}) ");
+        let topic_name = args.get_param("topic_name").ok_or_else(||{anyhow::Error::from(JuizError::CRUDBrokerCanNotParameterFunctionError { key_name: "topic_name".to_owned() })})?;
+        let system_uuid = match args.get_param("system_uuid") {
+            Some(system_uuid_str) => {
+                Some(Uuid::parse_str(system_uuid_str)?)
+            }
+            None => {
+                log::warn!("CRUDBroker Callback (topic_request) can not detect 'system_uuid' parameter.");
+                None
+            }
+        };
+        cb.lock_mut()?.topic_request_subscribe(topic_name.as_str(), system_uuid).and_then(|v| { Ok(v.into())} )
+    });
+    topic_cbs.insert("request_publish", |cb, args| {
+        log::trace!("CRUDBroker Callback (topic_request_publish) called (args={args:?}) ");
+        let topic_name = args.get_param("topic_name").ok_or_else(||{anyhow::Error::from(JuizError::CRUDBrokerCanNotParameterFunctionError { key_name: "topic_name".to_owned() })})?;
+        let system_uuid = match args.get_param("system_uuid") {
+            Some(system_uuid_str) => {
+                Some(Uuid::parse_str(system_uuid_str)?)
+            }
+            None => {
+                log::warn!("CRUDBroker Callback (topic_request) can not detect 'system_uuid' parameter.");
+                None
+            }
+        };
+        cb.lock_mut()?.topic_request_publish(topic_name.as_str(), system_uuid).and_then(|v| { Ok(v.into())} )
+    });
+    update_cb_container.insert("topic", topic_cbs);
 
     update_cb_container
 }

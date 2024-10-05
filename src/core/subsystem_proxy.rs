@@ -5,6 +5,7 @@ use uuid::Uuid;
 use crate::prelude::*;
 
 #[allow(unused)]
+#[derive(Clone)]
 pub struct SubSystemProxy {
     uuid: Uuid, 
     broker_proxy: Arc<Mutex<dyn BrokerProxy>>,
@@ -26,7 +27,11 @@ impl SubSystemProxy {
             profile
         })
     }
-
+    
+    pub fn broker_proxy(&self) -> Arc<Mutex<dyn BrokerProxy>> {
+        self.broker_proxy.clone()
+    }
+    
     #[allow(unused)]
     pub fn uuid(&self) -> &Uuid {
         &self.uuid

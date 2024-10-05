@@ -1,12 +1,12 @@
 
 
-def pyadd(arg1):
-    print('pyadd ', arg1, '>', arg1+1)
-    return arg1 + 1
+def pyprint(arg1):
+    print('print', arg1)
+    return arg1
 
 def manifest():
     return {
-        "type_name": "increment_process_python",
+        "type_name": "print_value_python",
         "arguments" : { 
             "arg1": {
                 "type": "int",
@@ -17,4 +17,4 @@ def manifest():
     }
 
 def process_factory():
-    return pyadd
+    return pyprint
