@@ -1,14 +1,12 @@
 
 use std::collections::HashMap;
 
-use std::os::unix::net::SocketAddr;
 use std::path::PathBuf;
 use std::sync::{Mutex, Arc};
 // use crate::prelude::*;
 use crate::brokers::CRUDBroker;
 use crate::value::capsule_to_value;
 
-use axum::extract::connect_info::IntoMakeServiceWithConnectInfo;
 use axum::http::HeaderValue;
 use opencv::core::{Vector, VectorToVec};
 use opencv::imgcodecs::imencode;
@@ -63,6 +61,7 @@ pub struct IdAndUuidQuery {
     system_uuid: Option<String>,
 }
 
+#[allow(unused)]
 #[derive(Deserialize, IntoParams, Debug)]
 pub struct TopicNameAndUuidQuery {
     topic_name: Option<String>,

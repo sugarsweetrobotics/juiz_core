@@ -41,10 +41,10 @@ pub(crate) fn setup_topic_synchronization(system: &mut System) -> JuizResult<()>
             }
         }
         for topic_name in should_request_subscribe_topic_names.iter() {
-            let result = cb.topic_request_subscribe(topic_name, Some(system_uuid))?;
+            let _result = cb.topic_request_subscribe(topic_name, Some(system_uuid))?;
         }
         for topic_name in should_request_publish_topic_names.iter() {
-            let result = cb.topic_request_publish(topic_name, Some(system_uuid))?;
+            let _result = cb.topic_request_publish(topic_name, Some(system_uuid))?;
         }
 
         log::trace!("setup_topic_synchronization() exit");

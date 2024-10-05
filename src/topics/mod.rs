@@ -1,17 +1,18 @@
-use std::sync::{Arc, RwLock, RwLockReadGuard};
+use std::sync::{Arc, RwLock};
 
-use serde_json::json;
 use uuid::Uuid;
 
-use crate::{anyhow::anyhow, brokers::http::http_router::system, core::SubSystemProxy, object::JuizObjectClass, prelude::*, proc_lock, processes::process_impl::FunctionType};
+use crate::{anyhow::anyhow, core::SubSystemProxy, object::JuizObjectClass, prelude::*, proc_lock};
 pub type TopicName = String;
 
 #[derive(Clone)]
+#[allow(unused)]
 pub struct Topic {
     name: TopicName,
     subsystem_proxies: Vec<SubSystemProxy>,
 }
 
+#[allow(unused)]
 impl Topic {
 
     pub fn new(name: &str) -> Self {
@@ -25,6 +26,7 @@ impl Topic {
 
 
 #[derive(Clone)]
+#[allow(unused)]
 pub struct TopicPtr {
     name: String,
     system_uuid: Uuid,
@@ -32,14 +34,6 @@ pub struct TopicPtr {
     ptr: Arc<RwLock<dyn Process>>,
 }
 
-fn topic_function(arg: CapsuleMap) -> JuizResult<Capsule> {
-    let v = arg.get("input")?;
-    if v.is_value()? {
-        v.lock_as_value(|v| -> Capsule { Capsule::from(v.clone()) } )
-    } else {
-        v.lock_as_mat(|m| -> Capsule { Capsule::from(m.clone()) })
-    }
-}
 
 impl TopicPtr {
 
@@ -78,7 +72,7 @@ impl TopicPtr {
                     for subsystem in t.subsystem_proxies.iter() {
                         log::trace!("- broker_proxy: subsystem={:?}", subsystem.uuid());
                         match juiz_lock(&subsystem.broker_proxy())?.topic_push(my_topic_name.as_str(), v.clone(), Some(my_uuid)) {
-                            Ok(v) => {
+                            Ok(_) => {
                                 log::trace!("SubsystemProxy.topic_push() success");
                                 Ok(())
                             }

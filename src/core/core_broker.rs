@@ -568,7 +568,7 @@ impl SystemBrokerProxy for CoreBroker {
         log::info!("accessed_broker_id = {}", accessed_broker_id);
         let broker_type = ssprofile.as_object().unwrap().get("type_name").unwrap().as_str().unwrap();
         let mut broker_name: Option<String> = None;
-        for (type_name, prof) in self.store().brokers_profile_full()?.as_object().unwrap().iter() {
+        for (_type_name, prof) in self.store().brokers_profile_full()?.as_object().unwrap().iter() {
             let broker_broker_type = prof.as_object().unwrap().get("type_name").unwrap().as_str().unwrap();
             if broker_broker_type == broker_type {
                 broker_name = Some(prof.as_object().unwrap().get("name").unwrap().as_str().unwrap().to_owned());

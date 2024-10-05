@@ -1,8 +1,7 @@
 
-use crate::{brokers::http::http_router::{IdAndUuidQuery, RecursiveQuery, TopicNameAndUuidQuery}, prelude::*};
+use crate::{brokers::http::http_router::{RecursiveQuery, TopicNameAndUuidQuery}, prelude::*};
 use utoipa::OpenApi;
 
-use super::IdentifierQuery;
 use axum::{extract::Query, Json};
 
 // #[allow(unused)]

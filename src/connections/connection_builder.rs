@@ -3,7 +3,7 @@
 pub mod connection_builder {
 
     use crate::{core::core_broker::CoreBroker, prelude::*};
-    use std::{collections::HashMap, sync::Arc};
+    use std::collections::HashMap;
     use anyhow::{anyhow, Context};
 
     use crate::{processes::{proc_lock, proc_lock_mut}, utils::{get_str, get_value}};

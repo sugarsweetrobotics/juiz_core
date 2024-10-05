@@ -100,7 +100,7 @@ pub(crate) fn read_callback_container() -> ClassCallbackContainerType {
     read_cb_container.insert("broker", broker_cbs);
 
     let mut topic_cbs = CallbackContainerType::new();
-    topic_cbs.insert("list", |cb, args| {
+    topic_cbs.insert("list", |cb, _args| {
         //let recursive_str = args.get_param("recursive").and_then(|v|{Some(v.clone())}).or_else(||{Some("false".to_owned())}).unwrap();
         //let recursive: bool = FromStr::from_str(recursive_str.as_str())?;
         Ok(value_to_capsule(cb.lock()?.topic_list()?))

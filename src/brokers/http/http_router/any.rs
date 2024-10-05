@@ -1,7 +1,7 @@
 
 
 use std::{net::SocketAddr, sync::{Arc, Mutex}};
-use axum::{extract::{ConnectInfo, Host, Path, Query, Request, State}, http::HeaderMap, response::IntoResponse, routing, Json, Router};
+use axum::{extract::{ConnectInfo, Path, Query, State}, http::HeaderMap, response::IntoResponse, routing, Json, Router};
 
 use crate::{brokers::http::http_router::FullQuery, prelude::*};
 use crate::{brokers::crud_broker::CRUDBroker, value::CapsuleMap, utils::juiz_lock};
@@ -94,7 +94,7 @@ fn construct_capsule_map(mut capsule_map: CapsuleMap, method_name: &str, class_n
     capsule_map.set_param("remote_addr", remote_addr_str.as_str());
 
     if class_name == "system" && function_name == "add_mastersystem"  {
-        let r = match capsule_map.get("profile") {
+        let _r = match capsule_map.get("profile") {
             Ok(capsule_ptr) => {
                 capsule_ptr.lock_modify_as_value(|v|{
                     match v.as_object_mut().unwrap().get_mut("subsystem").unwrap().as_object_mut() {
@@ -136,11 +136,6 @@ pub async fn object_patch_handler(
     query: Query<FullQuery>,
     headers: HeaderMap,
     remote_addr: ConnectInfo<SocketAddr>,
-    // request: axum::extract::Request,
-    forwarded_header: Host,
-    x_forwarded_for: Host,
-    host3: Host,
-    host4: Host,
     State(crud_broker): State<Arc<Mutex<CRUDBroker>>>, 
     Json(body): Json<Value>,
 ) -> impl IntoResponse {
