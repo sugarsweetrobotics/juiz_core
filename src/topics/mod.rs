@@ -35,6 +35,29 @@ pub struct TopicPtr {
 }
 
 
+#[cfg(feature="opencv4")]
+fn capsule_ptr_to_capsule(v: &CapsulePtr) -> JuizResult<Capsule> {
+    if v.is_value()? {
+        v.lock_as_value(|v| -> Capsule { Capsule::from(v.clone()) } )
+    } else if v.is_mat()? {
+        v.lock_as_mat(|m| -> Capsule { Capsule::from(m.clone()) })
+    } else {
+        Err(anyhow!(JuizError::ArgumentError { message: "CapsulePtr is not available for Topic".to_owned() }))
+    }
+}
+
+#[cfg(not(feature="opencv4"))]
+fn capsule_ptr_to_capsule(v: &CapsulePtr) -> JuizResult<Capsule> {
+    if v.is_value()? {
+        v.lock_as_value(|v| -> Capsule { Capsule::from(v.clone()) } )
+    } else {
+        Err(anyhow!(JuizError::ArgumentError { message: "CapsulePtr is not available for Topic".to_owned() }))
+    }
+    /* else if v.is_image()? {
+        v.lock_as_mat(|m| -> Capsule { Capsule::from(m.clone()) })
+    }; */
+}
+
 impl TopicPtr {
 
     pub fn new(name: &str, system_uuid: Uuid) -> Self {
@@ -60,11 +83,7 @@ impl TopicPtr {
             //println!("Topic {my_topic:?}");
             log::trace!("Topic ({my_topic_name}) / topic_func called");
             let v = arg.get("input")?;
-            let result = if v.is_value()? {
-                v.lock_as_value(|v| -> Capsule { Capsule::from(v.clone()) } )
-            } else {
-                v.lock_as_mat(|m| -> Capsule { Capsule::from(m.clone()) })
-            };
+            let result = capsule_ptr_to_capsule(&v);
             log::trace!("- value is copied");
             match my_topic.read() {
                 Ok(t) => {

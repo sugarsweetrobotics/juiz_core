@@ -4,9 +4,12 @@ use std::{collections::HashMap, io::Read, sync::{Arc, Mutex}};
 use crate::prelude::*;
 use crate::{brokers::{create_broker_proxy_factory_impl, BrokerProxy, BrokerProxyFactory}, identifier::IdentifierStruct, value::CapsuleMap, value::obj_get_str};
 
+//use reqwest::Response;
+use reqwest::blocking::Response;
 use crate::brokers::{CRUDBrokerProxy, CRUDBrokerProxyHolder};
-
 use thiserror::Error;
+
+#[cfg(feature="opencv4")]
 use opencv::imgcodecs::*;
 
 #[derive(Error, Debug, PartialEq)]
@@ -133,9 +136,7 @@ impl CRUDBrokerProxy for HTTPBrokerProxy {
             Ok(mut response) => {
                 let hdr = response.headers();
                 if hdr["content-type"] == "image/png" {
-                    let mut buf: Vec<u8> = Vec::new();
-                    let _result = response.read_to_end(&mut buf)?;
-                    Ok(imdecode(&opencv::core::Vector::<u8>::from_iter(buf), IMREAD_COLOR)?.into())
+                    image_png_response_to_capsule_ptr(response)
                 } else {
                     match response.json::<Value>() {
                         Err(e) => Err(anyhow::Error::from(e)),
@@ -145,6 +146,24 @@ impl CRUDBrokerProxy for HTTPBrokerProxy {
             }
         }
     }
+}
+
+
+#[cfg(feature="opencv4")]
+fn image_png_response_to_capsule_ptr(mut response: Response) -> JuizResult<CapsulePtr> {
+        let mut buf: Vec<u8> = Vec::new();
+        let _result = response.read_to_end(&mut buf)?;
+        Ok(imdecode(&opencv::core::Vector::<u8>::from_iter(buf), IMREAD_COLOR)?.into())
+    
+}
+
+#[cfg(not(feature="opencv4"))]
+fn image_png_response_to_capsule_ptr(mut response: Response) -> JuizResult<CapsulePtr> {
+
+    let mut buf: Vec<u8> = Vec::new();
+    let _result = response.read_to_end(&mut buf)?;
+    let image = image::load_from_memory(buf.as_ref())?;
+    Ok(image.into())
 }
 
 

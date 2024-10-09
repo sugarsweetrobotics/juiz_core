@@ -133,8 +133,8 @@ fn callback(request: Vec<u8>, crud_broker: Arc<Mutex<CRUDBroker>>, remote_addr: 
         })?
     } else if capsule_ptr.is_empty()? {
         Ok(value_to_vecu8(&jvalue!({}))?)
-    } else if capsule_ptr.is_mat()? {
-        todo!()
+    // } else if capsule_ptr.is_mat()? {
+    //     todo!()
     } else {
         log::error!("capsule_ptr is unknown data {capsule_ptr:?}");
         todo!()

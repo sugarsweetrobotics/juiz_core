@@ -3,7 +3,10 @@
 
 use std::{collections::HashMap, sync::{Arc, Mutex}};
 
+use image::DynamicImage;
+#[cfg(feature="opencv4")]
 pub use opencv::core::Mat;
+
 use serde_json::Map;
 
 use crate::prelude::*;
@@ -46,6 +49,7 @@ impl CapsulePtr {
         }
     }
 
+    #[cfg(feature="opencv4")]
     pub fn is_mat(&self) -> JuizResult<bool> {
         match self.value.lock() {
             Ok(c) => {
@@ -54,6 +58,17 @@ impl CapsulePtr {
             Err(_e) => Err(anyhow::Error::from(JuizError::MutexLockFailedError { error: "CapsulePtr.is_empty() lock error.".to_owned() })),
         }
     }
+
+    #[cfg(not(feature="opencv4"))]
+    pub fn is_image(&self) -> JuizResult<bool> {
+        match self.value.lock() {
+            Ok(c) => {
+                Ok(c.is_image())
+            },
+            Err(_e) => Err(anyhow::Error::from(JuizError::MutexLockFailedError { error: "CapsulePtr.is_empty() lock error.".to_owned() })),
+        }
+    }
+
 
     pub fn is_value(&self) -> JuizResult<bool> {
         match self.value.lock() {
@@ -179,10 +194,24 @@ impl CapsulePtr {
         }
     }
 
+    #[cfg(feature="opencv4")]
     pub fn lock_as_mat<T, F>(&self, func: F) -> JuizResult<T> where F: FnOnce(&opencv::prelude::Mat) -> T{
         match self.value.lock() {
             Ok(c) => {
                 match c.as_mat() {
+                    Some(v) => Ok(func(v)),
+                    None => todo!(),
+                }
+            }
+            Err(_e) => Err(anyhow::Error::from(JuizError::MutexLockFailedError { error: "CapsulePtr.lock_as_value() lock error.".to_owned() })),
+        }
+    }
+
+    #[cfg(not(feature="opencv4"))]
+    pub fn lock_as_image<T, F>(&self, func: F) -> JuizResult<T> where F: FnOnce(&DynamicImage) -> T{
+        match self.value.lock() {
+            Ok(c) => {
+                match c.as_image() {
                     Some(v) => Ok(func(v)),
                     None => todo!(),
                 }
@@ -229,8 +258,16 @@ impl From<Value> for CapsulePtr {
     }
 }
 
+#[cfg(feature="opencv4")]
 impl From<Mat> for CapsulePtr {
     fn from(value: Mat) -> Self {
+        Self{value: Arc::new(Mutex::new(value.into()))}
+    }
+}
+
+#[cfg(not(feature="opencv4"))]
+impl From<DynamicImage> for CapsulePtr {
+    fn from(value: DynamicImage) -> Self {
         Self{value: Arc::new(Mutex::new(value.into()))}
     }
 }

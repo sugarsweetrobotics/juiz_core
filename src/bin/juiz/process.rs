@@ -5,8 +5,9 @@ use juiz_core::log;
 
 use juiz_core::prelude::*;
 use juiz_core::proc_lock;
-use juiz_core::opencv::imgcodecs::imwrite;
-use juiz_core::opencv::core::{Mat, Vector};
+
+#[cfg(feature="opencv4")]
+use juiz_core::opencv::{imgcodecs::imwrite, core::{Mat, Vector}};
 use clap::Subcommand;
 
 use crate::Args;
@@ -130,6 +131,93 @@ fn on_process_info(system: &mut System, id: String) -> JuizResult<()> {
     Ok(())
 }
 
+#[cfg(feature="opencv4")]
+fn do_with_capsule_ptr(value: CapsulePtr) -> JuizResult<()> {
+    if value.is_value()? {
+        println!("{:?}", value);
+    } else if value.is_mat()? {
+        let _ = value.lock_as_mat(|mat: &Mat| {
+
+            let params: Vector<i32> = Vector::new();
+            match fileout {
+                Some(filepath) => {
+                    match imwrite(filepath.as_str(), mat, &params) {
+                        Ok(_) => {
+                            //println!("ok");
+                        },
+                        Err(e) => {
+                            println!("error: {e:?}");
+                        }
+                    }
+                },
+                None => {
+                    println!("{:?}", mat);
+                }
+            }
+        } );
+    }
+    Ok(())
+}
+
+#[cfg(not(feature="opencv4"))]
+fn do_with_capsule_ptr(value: CapsulePtr) -> JuizResult<()> {
+    if value.is_value()? {
+        println!("{:?}", value);
+    } else if value.is_image()? {
+        let _ = value.lock_as_image(|image| {
+            todo!()
+            
+            // let params: Vector<i32> = Vector::new();
+            // match fileout {
+            //     Some(filepath) => {
+            //         match imwrite(filepath.as_str(), mat, &params) {
+            //             Ok(_) => {
+            //                 //println!("ok");
+            //             },
+            //             Err(e) => {
+            //                 println!("error: {e:?}");
+            //             }
+            //         }
+            //     },
+            //     None => {
+            //         println!("{:?}", mat);
+            //     }
+            // }
+        } );
+    }
+    Ok(())
+}
+
+#[cfg(feature = "opencv4")]
+fn do_with_capsule_ptr(value: CapsulePtr) -> JuizResult<()> {
+    if value.is_value()? {
+        println!("{:?}", value);
+    } else if value.is_mat()? {
+        let _ = value.lock_as_mat(|mat| {
+            
+            
+            let params: Vector<i32> = Vector::new();
+            match fileout {
+                Some(filepath) => {
+                    match imwrite(filepath.as_str(), mat, &params) {
+                        Ok(_) => {
+                            //println!("ok");
+                        },
+                        Err(e) => {
+                            println!("error: {e:?}");
+                        }
+                    }
+                },
+                None => {
+                    println!("{:?}", mat);
+                }
+            }
+        } );
+    }
+    Ok(())
+}
+
+
 fn on_process_call(system: &mut System, id: String, arg: String, fileout: Option<String>) -> JuizResult<()> {
     //println!("processes:");
     let p = system.any_process_from_id(&id);
@@ -138,29 +226,7 @@ fn on_process_call(system: &mut System, id: String, arg: String, fileout: Option
             let argv = load_str(arg.as_str())?;
             // println!("Value is {argv:?}");
             let value = proc_lock(&ps)?.call(argv.try_into()?)?;
-            if value.is_value()? {
-                println!("{:?}", value);
-            } else if value.is_mat()? {
-                let _ = value.lock_as_mat(|mat: &Mat| {
-
-                    let params: Vector<i32> = Vector::new();
-                    match fileout {
-                        Some(filepath) => {
-                            match imwrite(filepath.as_str(), mat, &params) {
-                                Ok(_) => {
-                                    //println!("ok");
-                                },
-                                Err(e) => {
-                                    println!("error: {e:?}");
-                                }
-                            }
-                        },
-                        None => {
-                            println!("{:?}", mat);
-                        }
-                    }
-                } );
-            }
+            
         },
         Err(e) => println!("Error: {e:?}"),
     }

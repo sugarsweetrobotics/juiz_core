@@ -2,23 +2,33 @@
 
 use std::{collections::HashMap, mem::swap};
 
+#[cfg(feature="opencv4")]
 use opencv::core::Mat;
 
+use image::{DynamicImage};
 use crate::prelude::*;
 
 #[derive(Clone, Debug)]
 pub enum CapsuleValue {
     Empty(()),
     Value(Value),
+
+    #[cfg(feature="opencv4")]    
     Mat(Mat),
+    Image(DynamicImage),
 }
 
 impl From<Value> for CapsuleValue {
     fn from(value: Value) -> Self { Self::Value( value ) }
 }
 
+#[cfg(feature="opencv4")]
 impl From<Mat> for CapsuleValue {
     fn from(value: Mat) -> Self { Self::Mat( value ) }
+}
+
+impl From<DynamicImage> for CapsuleValue {
+    fn from(value: DynamicImage) -> Self { Self::Image( value ) }
 }
 
 impl CapsuleValue {
@@ -60,6 +70,7 @@ impl CapsuleValue {
     }
     
 
+    #[cfg(feature="opencv4")]
     pub fn is_mat(&self) -> bool {
         match self {
             Self::Mat(_) => return true, 
@@ -67,10 +78,25 @@ impl CapsuleValue {
         }
     }
 
+    #[cfg(feature="opencv4")]
     pub fn as_mat(&self) -> Option<&Mat> {
         match self {
             Self::Mat(v) => Some(v),
             _ => None
+        }
+    }
+
+    pub fn is_image(&self) -> bool {
+        match self {
+            Self::Image(_) => return true, 
+            _ => return false
+        }
+    }
+
+    pub fn as_image(&self) -> Option<&DynamicImage> {
+        match self {
+            Self::Image(v) => return Some(v), 
+            _ => return None
         }
     }
     /*
@@ -140,10 +166,20 @@ impl TryFrom<Capsule> for Value {
     }
 }
 
+#[cfg(feature="opencv4")]
 impl From<Mat> for Capsule {
     fn from(mat_value: Mat) -> Self {
         Self{
             value: CapsuleValue::from(mat_value),
+            option: HashMap::new(),
+        }
+    }
+}
+
+impl From<DynamicImage> for Capsule {
+    fn from(img_value: DynamicImage) -> Self {
+        Self{
+            value: CapsuleValue::from(img_value),
             option: HashMap::new(),
         }
     }
@@ -174,10 +210,15 @@ impl Capsule {
 
     pub fn to_value(self) -> Option<Value> { self.value.to_value() }
 
+    #[cfg(feature="opencv4")]
     pub fn is_mat(&self) -> bool { self.value.is_mat() }
 
+    #[cfg(feature="opencv4")]
     pub fn as_mat(&self) -> Option<&opencv::core::Mat> { self.value.as_mat() }
 
+    pub fn is_image(&self) -> bool { self.value.is_image() }
+
+    pub fn as_image(&self) -> Option<&DynamicImage> { self.value.as_image() }
     //pub fn to_mat(&self) -> Option<opencv::core::Mat> { self.value.to_mat() }
 
     pub fn set_option(&mut self, key: &str, value: &str) -> &mut Self {

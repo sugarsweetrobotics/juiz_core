@@ -32,6 +32,11 @@ pub use ecs::{ExecutionContext, ExecutionContextCore, ExecutionContextFactory, e
 pub use log;
 pub use anyhow;
 pub use env_logger;
+
+#[cfg(feature="opencv4")]
 pub use opencv;
+
+pub use image;
+
 pub use tokio;
 pub use futures;

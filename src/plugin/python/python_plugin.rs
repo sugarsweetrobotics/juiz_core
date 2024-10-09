@@ -4,7 +4,10 @@ use pyo3::{prelude::*, types::{PyBytes, PyDict, PyFloat, PyInt, PyList, PyNone, 
 use serde_json::Map;
 
 use crate::{prelude::*, utils::get_array, value::obj_get_str};
+
+#[cfg(feature="opencv4")]
 use crate::opencv::prelude::*;
+
 use crate::anyhow::{self, anyhow};
 use super::python_process_factory_impl::PythonProcessFactoryImpl;
 use super::python_container_process_factory_impl::PythonContainerProcessFactoryImpl;
@@ -13,6 +16,7 @@ pub struct PythonPlugin {
     path: PathBuf,
 }
 
+#[cfg(feature="opencv4")]
 fn pytuple_to_mat(pytuple: &PyTuple) -> JuizResult<Capsule> {
     let shape = pytuple.get_item(0)?.extract::<&PyTuple>()?.into_iter().map(|v|{v.extract::<i32>().unwrap()}).collect::<Vec<i32>>();
     Ok(opencv::core::Mat::new_rows_cols_with_data(
@@ -22,6 +26,8 @@ fn pytuple_to_mat(pytuple: &PyTuple) -> JuizResult<Capsule> {
     )?.reshape(3, shape[0])?.try_clone()?.into())
 }
 
+
+#[cfg(feature="opencv4")]
 pub fn pyany_to_mat(py: Python, object: &PyAny) -> JuizResult<Capsule> {
     let py_app = r#"
 import cv2
@@ -299,12 +305,35 @@ fn capsuleptr_to_pyany(py: Python, value: &CapsulePtr) -> Py<PyAny> {
 //     }
 // }
 
+
+#[cfg(feature="opencv4")]
 pub fn python_process_call(py: Python, entry_point: &Py<PyAny>, pytuple: pyo3::Bound<PyTuple>) -> JuizResult<Capsule> {
     match entry_point.call1(py, pytuple) {
         Ok(v) => {
             let object = v.extract::<&PyAny>(py)?;
             Ok(if check_object_is_ndarray(&py, object) {
                 pyany_to_mat(py, object).unwrap()
+            } else {
+                pyany_to_value(object)?.into()
+            })
+        },
+        Err(e) => {
+            let trace_str = e.traceback_bound(py).and_then(|trace| { Some(format!("{:}", trace.format().unwrap())) }).or(Some("".to_owned())).unwrap();
+            log::error!("Error in Python::with_gil for ContainerProcess.call(). Error({e:}). Traceback: {trace_str:}");
+            Err(anyhow!(e))
+        },
+    }
+
+}
+
+#[cfg(not(feature="opencv4"))]
+pub fn python_process_call(py: Python, entry_point: &Py<PyAny>, pytuple: pyo3::Bound<PyTuple>) -> JuizResult<Capsule> {
+    match entry_point.call1(py, pytuple) {
+        Ok(v) => {
+            let object = v.extract::<&PyAny>(py)?;
+            Ok(if check_object_is_ndarray(&py, object) {
+                //pyany_to_mat(py, object).unwrap()
+                todo!()
             } else {
                 pyany_to_value(object)?.into()
             })
