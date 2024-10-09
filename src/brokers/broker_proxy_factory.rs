@@ -10,7 +10,7 @@ use crate::value::obj_get_str;
 
 pub trait BrokerProxyFactory : JuizObject {
 
-    fn create_broker_proxy(&self, manifest: Value) -> JuizResult<Arc<Mutex<dyn BrokerProxy>>>;
+    fn create_broker_proxy(&self, core_broker: &CoreBroker, manifest: Value) -> JuizResult<Arc<Mutex<dyn BrokerProxy>>>;
 
     fn profile_full(&self) -> JuizResult<Value>;
 
@@ -18,13 +18,13 @@ pub trait BrokerProxyFactory : JuizObject {
 
 pub struct BrokerProxyFactoryImpl {
     core: ObjectCore,
-    create_function: fn(manifest: Value) -> JuizResult<Arc<Mutex<dyn BrokerProxy>>>
+    create_function: fn(&CoreBroker, Value) -> JuizResult<Arc<Mutex<dyn BrokerProxy>>>
 }
 
 
 
 impl BrokerProxyFactoryImpl {
-    pub fn new(manifest: Value, create_function: fn(manifest: Value) -> JuizResult<Arc<Mutex<dyn BrokerProxy>>>) -> JuizResult<Arc<Mutex<dyn BrokerProxyFactory>>> {
+    pub fn new(manifest: Value, create_function: fn(core_broker: &CoreBroker, manifest: Value) -> JuizResult<Arc<Mutex<dyn BrokerProxy>>>) -> JuizResult<Arc<Mutex<dyn BrokerProxyFactory>>> {
         let class_name = "BrokerPRoxyFactoryImpl";
         let type_name = obj_get_str(&manifest, "type_name")?;
         Ok(Arc::new(Mutex::new(BrokerProxyFactoryImpl {
@@ -45,9 +45,9 @@ impl JuizObject for BrokerProxyFactoryImpl {}
 
 impl BrokerProxyFactory for BrokerProxyFactoryImpl {
 
-    fn create_broker_proxy(&self, manifest: Value) -> JuizResult<Arc<Mutex<dyn BrokerProxy>>>{
+    fn create_broker_proxy(&self, core_broker: &CoreBroker, manifest: Value) -> JuizResult<Arc<Mutex<dyn BrokerProxy>>>{
         log::trace!("BrokerProxyFactoryImpl::create_broker_proxy(manifest={}) called", manifest);
-        (self.create_function)(manifest)
+        (self.create_function)(core_broker, manifest)
         /*
         let object_name = obj_get_str(&manifest, "name").context("BrokerProxyFactoryImpll::create_broker_proxy")?;
         let class_name = "BrokerProxy";
@@ -62,6 +62,6 @@ impl BrokerProxyFactory for BrokerProxyFactoryImpl {
     }
 }
 
-pub fn create_broker_proxy_factory_impl(manifest: Value, create_broker_function: fn(Value)->JuizResult<Arc<Mutex<dyn BrokerProxy>>>) -> JuizResult<Arc<Mutex<dyn BrokerProxyFactory>>>{
+pub fn create_broker_proxy_factory_impl(manifest: Value, create_broker_function: fn(&CoreBroker, Value)->JuizResult<Arc<Mutex<dyn BrokerProxy>>>) -> JuizResult<Arc<Mutex<dyn BrokerProxyFactory>>>{
     Ok(BrokerProxyFactoryImpl::new(manifest, create_broker_function)?)
 }

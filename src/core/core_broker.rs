@@ -329,7 +329,7 @@ impl CoreBroker {
             log::error!("creating BrokerProxyFactory(type_name={type_name}) failed. Error ({e})");
             Err(e)
         })?;
-        let bp = juiz_lock(&bf)?.create_broker_proxy(manifest).or_else(|e| {
+        let bp = juiz_lock(&bf)?.create_broker_proxy(self, manifest).or_else(|e| {
             log::error!("creating BrokerProxy(type_name={type_name}) failed. Error ({e})");
             Err(e)
         })?;
@@ -478,6 +478,9 @@ impl CoreBroker {
         }
     }
 
+    pub fn create_broker_proxy(&self, broker_manifest: Value) -> JuizResult<Arc<Mutex<dyn BrokerProxy>>> {
+        self.system_store.create_broker_proxy(self, &broker_manifest)
+    }
 }
 
 
@@ -528,9 +531,12 @@ impl SystemBrokerProxy for CoreBroker {
     /// 
     fn system_add_subsystem(&mut self, profile: Value) -> JuizResult<Value> {
         log::trace!("system_add_subsystem({profile}) called");
-        let bp = self.system_store.create_broker_proxy(&profile)?;
-        let uuid_value = bp.lock().or_else(|_e|{Err(anyhow!(JuizError::ObjectLockError { target: "system_store".to_owned() }))})
-            .and_then(|b|{ b.system_uuid() })?;
+        let bp = self.system_store.create_broker_proxy(self, &profile)?;
+        let uuid_value = bp.lock().or_else(|_e|{
+            Err(anyhow!(JuizError::ObjectLockError { target: "system_store".to_owned() }))
+        }).and_then(|b|{ 
+            b.system_uuid() 
+        })?;
         log::trace!("uuid_value: {uuid_value:?}");
         // 相手のuuid
         let uuid_str = uuid_value.as_str().unwrap();
@@ -552,7 +558,7 @@ impl SystemBrokerProxy for CoreBroker {
         let my_uuid = self.system_store.uuid()?;
         self.store_mut().broker_proxies.register(bp.clone())?;
         let subsystem_proxy = SubSystemProxy::new(uuid, bp.clone())?;
-        let ssprofile = juiz_lock(&subsystem_proxy.broker_proxy())?.profile_full()?;
+        let ssprofile = juiz_lock(&subsystem_proxy.broker_proxy())?.profile_full().context("subsystem_proxy.broker_proxy().profile_full() in system_add_subsystem")?;
         let accessed_broker_id = match profile.as_object() {
             Some(obj) => {
                 match obj.get("accessed_broker_id") {
@@ -565,7 +571,7 @@ impl SystemBrokerProxy for CoreBroker {
             None => ""
         };
         log::info!("Subsystem = {}", ssprofile);
-        log::info!("accessed_broker_id = {}", accessed_broker_id);
+        //log::info!("accessed_broker_id = {}", accessed_broker_id);
         let broker_type = ssprofile.as_object().unwrap().get("type_name").unwrap().as_str().unwrap();
         let mut broker_name: Option<String> = None;
         for (_type_name, prof) in self.store().brokers_profile_full()?.as_object().unwrap().iter() {
@@ -583,10 +589,14 @@ impl SystemBrokerProxy for CoreBroker {
                 "broker_name": broker_name.unwrap(),
             }
         });
+        log::info!("master_profile: {master_profile:}");
         let _ = subsystem_proxy.broker_proxy().lock().or_else(|_e|{
             Err(anyhow!(JuizError::ObjectLockError { target: "system_proxy".to_owned() }))
         }).and_then(|mut bp|{
             bp.system_add_mastersystem(master_profile)
+        }).or_else(|e|{
+            log::error!("subsystem_proxy.broker_proxy().system_add_mastersystem() failed. Error: {e:?}");
+            Err(e)
         })?;
         self.subsystem_proxies.push(subsystem_proxy);
         Ok(profile)
@@ -606,7 +616,7 @@ impl SystemBrokerProxy for CoreBroker {
                         let broker_name = obj_get_str(subsystem_value, "broker_name")?;
                         let broker_type = obj_get_str(subsystem_value, "broker_type")?;
                         let id_str = IdentifierStruct::new_broker(broker_type, broker_name);
-                        self.system_store.create_broker_proxy(&id_str.to_broker_manifest())
+                        self.system_store.create_broker_proxy(self, &id_str.to_broker_manifest())
                     },
                     None => Err(anyhow!(JuizError::InvalidIdentifierError { message: "".to_owned() }))
                 }

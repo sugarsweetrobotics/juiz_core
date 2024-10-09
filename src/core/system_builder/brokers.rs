@@ -23,10 +23,10 @@ fn setup_broker_factory(system: &mut System, manifest: &Value, name: &String, v:
     let bf;
     let bpf;
     unsafe {
-        type BrokerFactorySymbolType<'a> = libloading::Symbol<'a, unsafe extern "Rust" fn(CoreBrokerPtr) -> JuizResult<Arc<Mutex<dyn BrokerFactory>>>>;
-        type BrokerProxyFactorySymbolType<'a> = libloading::Symbol<'a, unsafe extern "Rust" fn() -> JuizResult<Arc<Mutex<dyn BrokerProxyFactory>>>>;
         let plugin: RustPlugin = RustPlugin::load(plugin_filename)?;
         {
+            type BrokerFactorySymbolType<'a> = libloading::Symbol<'a, unsafe extern "Rust" fn(CoreBrokerPtr) -> JuizResult<Arc<Mutex<dyn BrokerFactory>>>>;
+            type BrokerProxyFactorySymbolType<'a> = libloading::Symbol<'a, unsafe extern "Rust" fn() -> JuizResult<Arc<Mutex<dyn BrokerProxyFactory>>>>;
             let symbol_bf = plugin.load_symbol::<BrokerFactorySymbolType>(b"broker_factory")?;
             bf = (symbol_bf)(system.core_broker().clone()).with_context(||format!("calling symbol 'broker_factory'. arg is {manifest:}"))?;
             log::trace!("BrokerFactory (type_name={:?}) created.", juiz_lock(&bf)?.type_name());

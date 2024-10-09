@@ -8,10 +8,17 @@ use crate::prelude::ProcessFactoryPtr;
 use crate::plugin::Plugin;
 // use super::plugin::Plugin;
 
+pub trait PluginManager {
+
+}
+
+#[allow(unused)]
 pub struct RustPlugin {
     path: PathBuf,
+    plugin_manager: Option<Arc<Mutex<dyn PluginManager>>>,
     lib: Option<Library>,
 }
+
 
 impl RustPlugin {
 
@@ -20,8 +27,20 @@ impl RustPlugin {
         unsafe {
             match libloading::Library::new(path.clone()) {
                 Ok(lib) => {
+                    type FunctionType = libloading::Symbol<'static, unsafe extern "Rust" fn() -> Arc<Mutex<dyn PluginManager>> >;
+                    let symbol_name = "plugin_manager";
+                    let plugin_manager = match lib.get::<FunctionType>(symbol_name.as_bytes()) {
+                        Ok(func) => {
+                            log::info!("PluginManager is loaded.");
+                            Some(func())
+                        },
+                        Err(_) => None
+                    };
+                
                     log::debug!("RustPlugin::load({:?}) loaded", path);
-                    Ok(RustPlugin{lib:Some(lib), path})
+                    Ok(RustPlugin{lib:Some(lib), 
+                        plugin_manager,
+                        path})
                 },
                 Err(_) => {
                     log::error!("RustPlugin::load({:?}) failed.", path);
@@ -58,6 +77,23 @@ impl RustPlugin {
         Ok(unsafe {
              (symbol)()//.with_context(||format!("calling symbol 'container_factory'. arg is {manifest:}"))?;
         })
+    }
+
+    pub fn load_broker_factory(&self, system: &mut System, ) -> JuizResult<Arc<Mutex<dyn BrokerFactory>>> {
+        //log::trace!("BrokerFactory (type_name={:?}) created.", juiz_lock(&bf)?.type_name());
+        type BrokerFactorySymbolType<'a> = libloading::Symbol<'a, unsafe extern "Rust" fn(CoreBrokerPtr) -> JuizResult<Arc<Mutex<dyn BrokerFactory>>>>;
+        let symbol_bf = self.load_symbol::<BrokerFactorySymbolType>(b"broker_factory")?;
+        unsafe {
+            (symbol_bf)(system.core_broker().clone())
+        }
+    }
+
+    pub fn load_broker_proxy_factory(&self, _system: &mut System,) -> JuizResult<Arc<Mutex<dyn BrokerProxyFactory>>> {
+        type BrokerProxyFactorySymbolType<'a> = libloading::Symbol<'a, unsafe extern "Rust" fn() -> JuizResult<Arc<Mutex<dyn BrokerProxyFactory>>>>;
+        let symbol_bpf = self.load_symbol::<BrokerProxyFactorySymbolType>(b"broker_proxy_factory")?;
+        unsafe {
+            (symbol_bpf)()
+        }
     }
     
 }

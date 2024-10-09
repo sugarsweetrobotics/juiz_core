@@ -13,7 +13,7 @@ pub(crate) fn vecu8_to_value(mut vecu8: Vec<u8>) -> anyhow::Result<Value> {
     rmp_serde::from_slice::<serde_json::Value>(&mut vecu8.as_mut_slice()[..] ).or_else(|e|{Err(anyhow!(e))})
 }
 
-pub(crate) fn payload_to_request_value(class_name: &str, function_name: &str, method_name: &str, payload: Value, mut param: std::collections::HashMap<String, String>) -> Value {
+pub(crate) fn value_to_request_value(class_name: &str, function_name: &str, method_name: &str, payload: Value, mut param: std::collections::HashMap<String, String>) -> Value {
     param.insert("class_name".to_owned(), class_name.into());
     param.insert("function_name".to_owned(), function_name.into());
     param.insert("method_name".to_owned(), method_name.into());
@@ -22,6 +22,18 @@ pub(crate) fn payload_to_request_value(class_name: &str, function_name: &str, me
         "param": param
     })
 }
+
+pub(crate) fn payload_to_request_value(class_name: &str, function_name: &str, method_name: &str, mut payload: CapsuleMap, mut param: std::collections::HashMap<String, String>) -> Value {
+    payload.set_param("class_name", class_name.into());
+    payload.set_param("function_name", function_name.into());
+    payload.set_param("method_name", method_name.into());
+    for (k, p) in param.iter() {
+
+        payload.set_param(k.as_str(), p.as_str());
+    }
+    payload.try_into().unwrap()
+}
+
 
 pub(crate) fn to_request_value(class_name: &str, function_name: &str, method_name: &str, mut param: std::collections::HashMap<String, String>) -> Value {
     param.insert("class_name".to_owned(), class_name.into());
@@ -32,6 +44,8 @@ pub(crate) fn to_request_value(class_name: &str, function_name: &str, method_nam
         "param": param
     })
 }
+
+
 
 pub(crate) fn to_request(value: Value) -> anyhow::Result<CapsuleMap> {
     value.try_into()

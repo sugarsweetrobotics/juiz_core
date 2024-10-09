@@ -79,12 +79,12 @@ impl SystemStorePtr {
         self.ptr.write().or_else(|_|{ Err(anyhow!(JuizError::ObjectLockError{target:"SystemStorePtr".to_owned()})) })
     }
 
-    pub fn create_broker_proxy(&self, manifest: &Value) -> JuizResult<Arc<Mutex<dyn BrokerProxy>>> {
+    pub fn create_broker_proxy(&self, core_broker: &CoreBroker, manifest: &Value) -> JuizResult<Arc<Mutex<dyn BrokerProxy>>> {
         log::trace!("create_broker_proxy({manifest:}) called");
         let type_name = obj_get_str(manifest, "type_name")?;
         match self.lock()?.broker_factories.get(type_name) {
             Some(bf) => {
-                juiz_lock(bf)?.create_broker_proxy(&manifest).or_else(|e| {
+                juiz_lock(bf)?.create_broker_proxy(core_broker, &manifest).or_else(|e| {
                     log::error!("creating BrokerProxy(type_name={type_name}) failed. Error ({e})");
                     Err(e)
                 })
@@ -471,7 +471,9 @@ impl System {
 
     pub fn create_broker_proxy(&mut self, manifest: &Value) -> JuizResult<Arc<Mutex<dyn BrokerProxy>>> {
         log::trace!("System::create_broker_proxy({manifest:}) called");
-        self.register_broker_proxy(self.store.create_broker_proxy(manifest)?)
+        //self.core_broker().lock_mut().cre
+        let bp = self.core_broker().lock()?.create_broker_proxy(manifest.clone())?;
+        self.register_broker_proxy(bp)
     }
     
     pub(crate) fn register_broker_proxy(&mut self, broker_proxy: Arc<Mutex<dyn BrokerProxy>>) -> JuizResult<Arc<Mutex<dyn BrokerProxy>>> {

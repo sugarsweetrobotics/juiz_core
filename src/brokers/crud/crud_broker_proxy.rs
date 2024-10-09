@@ -256,6 +256,7 @@ impl SystemBrokerProxy for CRUDBrokerProxyHolder {
     }
     
     fn system_add_mastersystem(&mut self, profile: Value) -> JuizResult<Value> {
+        log::trace!("CRUDBroker::system_add_mastersystem(profile='{profile:}') called");
         let mut cp = CapsuleMap::new();
         cp.insert("profile".to_owned(), profile.into());
         capsule_to_value(self.broker.update("system", "add_mastersystem", cp, HashMap::new())?)

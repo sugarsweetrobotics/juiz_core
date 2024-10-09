@@ -110,7 +110,7 @@ impl TryFrom<Value> for CapsuleMap {
 
 impl From<CapsuleMap> for Value {
     fn from(capsule_map: CapsuleMap) -> Self {
-        log::trace!("Value From CapusleMap ({capsule_map:?}) called");
+        // log::trace!("Value From CapusleMap ({capsule_map:?}) called");
         let mut v1 = jvalue!({});
         let map = v1.as_object_mut().unwrap();
         for (key, value) in capsule_map.map.iter() {

@@ -148,7 +148,7 @@ impl CRUDBrokerProxy for HTTPBrokerProxy {
 }
 
 
-fn create_broker_proxy_function(manifest: Value) -> JuizResult<Arc<Mutex<dyn BrokerProxy>>> {
+fn create_broker_proxy_function(core_broker: &CoreBroker, manifest: Value) -> JuizResult<Arc<Mutex<dyn BrokerProxy>>> {
     let name = obj_get_str(&manifest, "name")?;
     Ok(CRUDBrokerProxyHolder::new("HTTPBrokerProxy", "http", name, Box::new(HTTPBrokerProxy::new(&manifest)?))?)
 }

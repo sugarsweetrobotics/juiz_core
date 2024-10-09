@@ -1,20 +1,23 @@
-use std::{net::SocketAddr, sync::{Arc, Mutex}};
+use std::{net::SocketAddr, sync::{Arc, Mutex}, time::Duration};
 
-use juiz_core::{anyhow::{self, anyhow}, CRUDBrokerProxy, CRUDBrokerProxyHolder, futures, prelude::*, tokio};
-use quinn::{crypto::rustls::QuicClientConfig, ClientConfig, Connection, Endpoint};
+use juiz_core::{anyhow::{self, anyhow}, futures, prelude::*, tokio::{self, time::sleep}, CRUDBrokerProxy, CRUDBrokerProxyHolder};
+use quinn::{crypto::rustls::QuicClientConfig, ClientConfig, Connection, Endpoint, TransportConfig, VarInt};
 use rustls::{crypto::ring::default_provider, pki_types::{CertificateDer, ServerName, UnixTime}};
 
-use crate::{payload_to_request_value, to_request_value, value_to_vecu8, vecu8_to_value};
+use crate::{payload_to_request_value, to_request_value, value_to_request_value, value_to_vecu8, vecu8_to_value};
 
-pub(crate) fn create_broker_proxy_function(manifest: Value) -> JuizResult<Arc<Mutex<dyn BrokerProxy>>> {
+pub(crate) fn create_broker_proxy_function(core_broker: &CoreBroker, manifest: Value) -> JuizResult<Arc<Mutex<dyn BrokerProxy>>> {
+    log::trace!("create_broker_proxy_function({manifest:}) called");
     let name = obj_get_str(&manifest, "name")?;
     Ok(CRUDBrokerProxyHolder::new("QuicBrokerProxy", "qmp", name, Box::new(QuicBrokerProxy::new(&manifest)?))?)
 }
 
+//use juiz_core::futures;
+
 #[allow(unused)]
 struct QuicBrokerProxy {
     //base_url: String,
-    rt:  tokio::runtime::Runtime,
+    rt:  Arc<tokio::runtime::Runtime>,
     endpoint: Endpoint, 
     connection: Connection,
 }
@@ -44,10 +47,12 @@ fn name_to_host_and_port(name: &str) -> JuizResult<(&str, i64)> {
     let mut tokens = name.split(':');
     let host =  tokens.next();
     if host.is_none() {
+        log::error!("name_to_host_and_port(name={name:}) failed.");
         return Err(anyhow!(JuizError::BrokerNameCanNotResolveToURLError{given_name: name.to_owned()}));
     }
     let port = tokens.next();
     if port.is_none() {
+        log::error!("name_to_host_and_port(name={name:}) failed.");
         return Ok((host.unwrap(), 8080))
     }
     Ok((host.unwrap(), port.unwrap().parse()?))
@@ -56,38 +61,60 @@ fn name_to_host_and_port(name: &str) -> JuizResult<(&str, i64)> {
 impl QuicBrokerProxy {
 
     pub fn new(manifest: &Value) -> JuizResult<Self> {
-        log::trace!("QuicBrokerProxy::new('{manifest:?}') called");
-        let (name, host, port) = manifest_to_host_and_port(manifest)?;
+        log::trace!("QuicBrokerProxy::new('{manifest:}') called");
+        let rt = Arc::new(tokio::runtime::Runtime::new().unwrap());
+        let (name, host, port) = manifest_to_host_and_port(manifest).or_else(|e| {
+            log::error!("manifest_to_host_and_port({manifest:}) failed.");
+            Err(e)
+        })?;
+        let idle_timeout = obj_get_i64( &manifest, "idle_timeout").and_then(|v|{ Ok(Some(v as u64)) }).or::<Option<u64>>(Ok(None)).unwrap();
+    
         let address = format!("{:}:{:}", host, port);
         log::trace!(" - address='{address}'");
-
         let _ = default_provider().install_default();
-        let rt = tokio::runtime::Runtime::new().unwrap();
+        //let rt = tokio::runtime::Handle::try_current()?;
+        //let (endpoint, connection) = rt.block_on(make_endpoint_and_connection(name)).or_else(|e|{
+        let name_str = name.to_owned();
+        let rt2 = rt.clone();
+        let handle = std::thread::spawn(move ||{
+            rt2.block_on(make_endpoint_and_connection(name_str.as_str(), idle_timeout))
+        });
+        // let (endpoint, connection) = ??;//?.or_else(|e|{
+        let (endpoint, connection) = match handle.join() {
+            Ok(r) => {
+                r
+            },
+            Err(_) => todo!(),
+        }?;
+        // let (endpoint, connection) = ??;//?.or_else(|e|{
+        //let (endpoint, connection) = futures::executor::block_on(make_endpoint_and_connection(name)).or_else(|e|{
+        //let (endpoint, connection) = rt.block_on(make_endpoint_and_connection(name)).or_else(|e|{
+        //        log::error!("make_endpoint_and_connection() failed. Error: {e:?}");
+        //    Err(e)
+        //})?;
         
-        let (endpoint, connection) = rt.block_on(make_endpoint_and_connection(name))?;
-
         println!("[client] connected: addr={}", connection.remote_address());
+        // let rt2 = tokio::runtime::Runtime::new().unwrap();
+
         Ok(QuicBrokerProxy{
-            rt,
+            rt: rt.clone(),
             endpoint,
             connection,
-            //base_url: "http://".to_string() + address.as_str() + ":" + i64::to_string(&port).as_str() + "/api"
         })
     }
 }
 
-async fn make_endpoint_and_connection(name: &str) -> JuizResult<(Endpoint, Connection)> {
-
-    let endpoint = make_client_endpoint().or_else(|e| {
+async fn make_endpoint_and_connection(name: &str, idle_timeout: Option<u64>) -> JuizResult<(Endpoint, Connection)> {
+    let endpoint = make_client_endpoint(idle_timeout).or_else(|e| {
         log::error!("making client endpoint. Error({e})");
         Err(e)
     })?;
-    
     let connection = connect(&endpoint, name.parse()?).await?;
-    return Ok((endpoint, connection))
+    Ok((endpoint, connection))
 }
 
 async fn write_and_then<T, F: Fn(Vec<u8>)->anyhow::Result<T>>(connection: &Connection, request: Vec<u8>, callback: F) -> anyhow::Result<T> {
+    log::trace!("write_and_then() called");
     let (mut send, mut recv) = connection.open_bi().await.or_else(|e| {
         log::error!("connection.open_bi failed. {e:?}");
         Err(anyhow!(e))
@@ -113,9 +140,7 @@ fn response_to_capsule_ptr(response: Value) -> JuizResult<CapsulePtr> {
 
 
 async fn write_and_then_value<T, F: Fn(serde_json::Value)->anyhow::Result<T>>(connection: &Connection, request: serde_json::Value, callback: F) -> anyhow::Result<T> {
-    //let vec: Vec<u8> = rmp_serde::to_vec(&request).unwrap();
     write_and_then(connection, value_to_vecu8(&request)?, |response| {
-        //let msg = rmp_serde::from_slice::<serde_json::Value>(&mut &response.as_mut_slice()[..] )?;
         callback(vecu8_to_value(response)?)
     }).await
 }
@@ -123,13 +148,15 @@ async fn write_and_then_value<T, F: Fn(serde_json::Value)->anyhow::Result<T>>(co
 
 impl CRUDBrokerProxy for QuicBrokerProxy {
     fn create(&self, class_name: &str, function_name: &str, payload: Value, param: std::collections::HashMap<String, String>) -> JuizResult<CapsulePtr> {
-        let request = payload_to_request_value(class_name, function_name, "create", payload, param);
+        log::trace!("QuicBrokerProxy::create({class_name},{function_name},{payload:?},{param:?}) called");
+        let request = value_to_request_value(class_name, function_name, "create", payload, param);
         futures::executor::block_on(write_and_then_value(&self.connection, request, |response| {
             response_to_capsule_ptr(response)
         }))
     }
 
     fn delete(&self, class_name: &str, function_name: &str, param: std::collections::HashMap<String, String>) -> JuizResult<CapsulePtr> {
+        log::trace!("QuicBrokerProxy::delete({class_name},{function_name},{param:?}) called");
         let request = to_request_value(class_name, function_name, "delete", param);
         futures::executor::block_on(write_and_then_value(&self.connection, request, |response| {
             response_to_capsule_ptr(response)
@@ -137,6 +164,7 @@ impl CRUDBrokerProxy for QuicBrokerProxy {
     }
 
     fn read(&self, class_name: &str, function_name: &str, param: std::collections::HashMap<String, String>) -> JuizResult<CapsulePtr> {
+        log::trace!("QuicBrokerProxy::read({class_name},{function_name},{param:?}) called");
         let request = to_request_value(class_name, function_name, "read", param);
         futures::executor::block_on(write_and_then_value(&self.connection, request, |response| {
             response_to_capsule_ptr(response)
@@ -144,7 +172,8 @@ impl CRUDBrokerProxy for QuicBrokerProxy {
     }
 
     fn update(&self, class_name: &str, function_name: &str, payload: CapsuleMap, param: std::collections::HashMap<String, String>) -> JuizResult<CapsulePtr> {
-        let request = payload_to_request_value(class_name, function_name, "update", payload.into(), param);
+        log::trace!("QuicBrokerProxy::update({class_name},{function_name},{payload:?},{param:?}) called");
+        let request = payload_to_request_value(class_name, function_name, "update", payload, param);
         futures::executor::block_on(write_and_then_value(&self.connection, request, |response| {
             response_to_capsule_ptr(response)
         }))
@@ -153,20 +182,29 @@ impl CRUDBrokerProxy for QuicBrokerProxy {
 
 
 
-fn make_client_endpoint() -> anyhow::Result<Endpoint> {
+fn make_client_endpoint(idle_timeout: Option<u64>) -> anyhow::Result<Endpoint> {
     let mut endpoint = Endpoint::client("127.0.0.1:0".parse().unwrap()).or_else(|e| { 
         log::error!("Endpoint::client() error. Error({e})");
         Err(anyhow!(e)) 
     })?;
-    endpoint.set_default_client_config(ClientConfig::new(Arc::new(QuicClientConfig::try_from(
+    let mut transport_config = TransportConfig::default();
+    if idle_timeout.is_none() {
+        transport_config.max_idle_timeout(None);
+    } else {
+        transport_config.max_idle_timeout(Some(Duration::from_secs(idle_timeout.unwrap()).try_into()?));
+    }
+    
+    let mut client_config = ClientConfig::new(Arc::new(QuicClientConfig::try_from(
         rustls::ClientConfig::builder()
             .dangerous()
             .with_custom_certificate_verifier(SkipServerVerification::new())
-            .with_no_client_auth(),
-    ).or_else(|e|{ 
-        log::error!("configuring endpoint error. Error({e})");
-        Err(anyhow!(e)) 
-    })?)));
+            .with_no_client_auth()).or_else(|e|{ 
+                log::error!("configuring endpoint error. Error({e})");
+                Err(anyhow!(e)) 
+            })?));
+    client_config.transport_config(Arc::new(transport_config));
+    // let transport_config = TransportConfig::
+    endpoint.set_default_client_config(client_config);
     Ok(endpoint)
 }
 

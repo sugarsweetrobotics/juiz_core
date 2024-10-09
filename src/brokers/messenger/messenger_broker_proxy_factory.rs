@@ -42,7 +42,7 @@ impl JuizObject for MessengerBrokerProxyFactory {}
 
 impl BrokerProxyFactory for MessengerBrokerProxyFactory {
 
-    fn create_broker_proxy(&self, manifest: Value) -> JuizResult<Arc<Mutex<dyn BrokerProxy>>>{
+    fn create_broker_proxy(&self, _core_broker: &CoreBroker, manifest: Value) -> JuizResult<Arc<Mutex<dyn BrokerProxy>>>{
         log::trace!("MessengerBrokerProxyFactory::create_broker_proxy(manifest={}) called", manifest);
         let object_name = obj_get_str(&manifest, "name").context("LocalBrokerProxyFactory::create_broker_proxy")?;
         let class_name = "BrokerProxy";

@@ -44,8 +44,9 @@ impl BrokerFactoriesWrapper {
         juiz_lock(&self.broker_factory)?.create_broker(manifest.clone())
     }
 
-    pub fn create_broker_proxy(&self, manifest: &Value) -> JuizResult<Arc<Mutex<dyn BrokerProxy>>> {
-        juiz_lock(&self.broker_proxy_factory)?.create_broker_proxy(manifest.clone())
+    pub fn create_broker_proxy(&self, core_broker: &CoreBroker, manifest: &Value) -> JuizResult<Arc<Mutex<dyn BrokerProxy>>> {
+        log::trace!("create_broker_proxy(manifest='{manifest:}') called");
+        juiz_lock(&self.broker_proxy_factory)?.create_broker_proxy(core_broker, manifest.clone())
     }
 }
 
