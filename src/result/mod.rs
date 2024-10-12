@@ -1,7 +1,7 @@
 
 
-pub mod error;
-pub mod result;
+mod error;
+mod result;
 
 pub use error::JuizError;
 pub use result::JuizResult;
