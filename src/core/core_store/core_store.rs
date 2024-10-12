@@ -1,7 +1,7 @@
 use std::collections::HashMap;
-use super::buffer_store_worker::BufferStoreWorker;
-use super::rw_store_worker::RwStoreWorker;
-use super::store_worker::StoreWorker;
+use super::buffer_object_collection::BufferObjectCollection;
+use super::rw_object_collection::RwObjectCollection;
+use super::object_collection::ObjectCollection;
 
 use crate::topics::TopicPtr;
 use crate::{containers::ContainerProcessImpl, prelude::*, value::obj_get_str};
@@ -16,11 +16,11 @@ pub struct CoreStore {
     brokers_manifests: HashMap<Identifier, Value>,
     pub topics: HashMap<Identifier, TopicPtr>,
 
-    pub processes: Box<RwStoreWorker::<dyn Process, dyn ProcessFactory>>,
-    pub containers: Box<RwStoreWorker::<dyn Container, dyn ContainerFactory>>,
-    pub container_processes: Box<RwStoreWorker::<ContainerProcessImpl, dyn ContainerProcessFactory>>,
-    pub ecs: Box<StoreWorker::<dyn ExecutionContextFunction, ExecutionContextHolderFactory>>,
-    pub broker_proxies: Box<BufferStoreWorker::<dyn BrokerProxy, dyn BrokerProxyFactory>>,
+    pub processes: Box<RwObjectCollection::<dyn Process, dyn ProcessFactory>>,
+    pub containers: Box<RwObjectCollection::<dyn Container, dyn ContainerFactory>>,
+    pub container_processes: Box<RwObjectCollection::<ContainerProcessImpl, dyn ContainerProcessFactory>>,
+    pub ecs: Box<ObjectCollection::<dyn ExecutionContextFunction, ExecutionContextHolderFactory>>,
+    pub broker_proxies: Box<BufferObjectCollection::<dyn BrokerProxy, dyn BrokerProxyFactory>>,
 }
 
 
@@ -28,13 +28,13 @@ impl CoreStore {
     pub fn new() -> CoreStore {
         CoreStore{
             brokers_manifests: HashMap::new(),
-            broker_proxies: BufferStoreWorker::new("broker_proxy"),
+            broker_proxies: BufferObjectCollection::new("broker_proxy"),
             broker_factories_manifests: HashMap::new(),
             topics: HashMap::new(),
-            processes: RwStoreWorker::new("process"), 
-            containers: RwStoreWorker::new("container"), 
-            container_processes: RwStoreWorker::new("container_process"), 
-            ecs: StoreWorker::new("ecs"),
+            processes: RwObjectCollection::new("process"), 
+            containers: RwObjectCollection::new("container"), 
+            container_processes: RwObjectCollection::new("container_process"), 
+            ecs: ObjectCollection::new("ecs"),
         }
     }
 

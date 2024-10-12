@@ -69,7 +69,7 @@ pub fn setup_broker_proxies(system: &mut System, manifest: &Value) -> JuizResult
 pub fn cleanup_brokers(system: &mut System) -> JuizResult<()> {
     log::trace!("system_builder::cleanup_brokers() called");
     let r = system.core_broker().lock_mut().and_then(|mut cb|{
-        cb.store_mut().clear()
+        cb.worker_mut().store_mut().clear()
     });
     system.cleanup_brokers()?;
     log::trace!("system_builder::cleanup_brokers() exit");

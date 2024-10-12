@@ -2,17 +2,14 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::{
     atomic::{AtomicBool, Ordering}, 
-    Arc, Mutex, RwLock, 
-    RwLockReadGuard, RwLockWriteGuard};
+    Arc, Mutex};
 use std::time::{self, Duration};
 use home::home_dir;
-use uuid::Uuid;
 
 use anyhow::{anyhow, Context};
 
 use crate::prelude::*;
 use crate::{
-    ecs::execution_context_function::ExecutionContextFunction,
     object::{JuizObject, ObjectCore, JuizObjectCoreHolder, JuizObjectClass},
     brokers::{
         broker_proxy::SystemBrokerProxy,
@@ -21,85 +18,14 @@ use crate::{
     utils::{
         yaml_conf_load::yaml_conf_load_with,
         get_array,
-        manifest_util::{construct_id, id_from_manifest, manifest_merge, when_contains_do_mut},
+        manifest_util::{manifest_merge, when_contains_do_mut},
     }
 };
 
 use super::system_builder;
-
+use super::system_store::{SystemStore, SystemStorePtr};
 
 type SpinCallbackFunctionType = dyn Fn() -> JuizResult<()>;
-#[allow(unused)]
-pub struct SystemStore {
-    broker_factories: HashMap<String, Arc<Mutex<BrokerFactoriesWrapper>>>,
-    brokers: HashMap<String, Arc<Mutex<dyn Broker>>>,
-    broker_proxies: HashMap<String, Arc<Mutex<dyn BrokerProxy>>>,
-    uuid: Uuid,
-}
-
-impl SystemStore {
-    pub fn new() -> Self {
-        Self {
-            uuid:  Uuid::new_v4(),
-            broker_factories: HashMap::new(),
-            brokers: HashMap::new(),
-            broker_proxies: HashMap::new(),
-        }
-    }
-
-    pub fn profile_full(&self) -> JuizResult<Value> {
-        Ok(jvalue!({
-            "uuid": self.uuid.to_string(),
-            "broker_factories": self.broker_factories.keys().collect::<Vec<&String>>(),
-            "brokers": self.brokers.keys().collect::<Vec<&String>>(),
-            "broker_proxies": self.broker_proxies.keys().collect::<Vec<&String>>()
-        }))
-    }
-}
-
-#[derive(Clone)]
-pub struct SystemStorePtr {
-    ptr: Arc<RwLock<SystemStore>>,
-}
-
-impl SystemStorePtr {
-    pub fn new(store: SystemStore) -> Self {
-        Self{ptr: Arc::new(RwLock::new(store))}
-    }
-
-    pub fn profile_full(&self) -> JuizResult<Value> {
-        return self.lock()?.profile_full()
-    }
-
-    pub fn lock(&self) -> JuizResult<RwLockReadGuard<SystemStore>> {
-        self.ptr.read().or_else(|_|{ Err(anyhow!(JuizError::ObjectLockError{target:"SystemStorePtr".to_owned()})) })
-    }
-
-    pub fn lock_mut(&self) -> JuizResult<RwLockWriteGuard<SystemStore>> {
-        self.ptr.write().or_else(|_|{ Err(anyhow!(JuizError::ObjectLockError{target:"SystemStorePtr".to_owned()})) })
-    }
-
-    pub fn create_broker_proxy(&self, core_broker: &CoreBroker, manifest: &Value) -> JuizResult<Arc<Mutex<dyn BrokerProxy>>> {
-        log::trace!("create_broker_proxy({manifest:}) called");
-        let type_name = obj_get_str(manifest, "type_name")?;
-        match self.lock()?.broker_factories.get(type_name) {
-            Some(bf) => {
-                juiz_lock(bf)?.create_broker_proxy(core_broker, &manifest).or_else(|e| {
-                    log::error!("creating BrokerProxy(type_name={type_name}) failed. Error ({e})");
-                    Err(e)
-                })
-            },
-            None => {
-                
-                Err(anyhow!(JuizError::FactoryCanNotFoundError { type_name: type_name.to_owned() }))
-            },
-        }
-    }
-
-    pub fn uuid(&self) -> JuizResult<Uuid> {
-        Ok(self.lock()?.uuid.clone())
-    }
-}
 
 #[allow(dead_code)]
 pub struct System {
@@ -139,7 +65,6 @@ impl JuizObject for System {
 impl System {
 
     pub fn new(manifest: Value) -> JuizResult<System> {
-        //env_logger::init();
         let checked_manifest = check_system_manifest(manifest)?;
         let updated_manifest:Value = merge_home_manifest(checked_manifest)?;
         let store = SystemStorePtr::new(SystemStore::new());
@@ -164,7 +89,7 @@ impl System {
         self.sleep_time = duration;
     }
 
-    pub(crate) fn core_broker(&self) -> &CoreBrokerPtr {
+    pub fn core_broker(&self) -> &CoreBrokerPtr {
         &self.core_broker
     }
 
@@ -177,109 +102,26 @@ impl System {
         self.working_dir.clone()
     }
 
-    ///
-    pub fn process_from_id(&self, id: &Identifier) -> JuizResult<ProcessPtr> {
-        log::trace!("System::process_from_id(id={id:}) called");
-        let s = IdentifierStruct::try_from(id.clone())?;
-        if s.broker_type_name == "core" {
-            return self.core_broker.lock()?.store().processes.get(id);
-        }
-        self.process_proxy(id)
-    }
 
-    pub fn process_from_typename_and_name(&self, type_name: &str, name: &str) -> JuizResult<ProcessPtr> {
-        let id = construct_id("Process", type_name, name, "core", "core");
-        self.core_broker.lock()?.store().processes.get(&id)
-    }
-    
-    
-    pub fn container_from_id(&self, id: &Identifier) -> JuizResult<ContainerPtr> {
-        log::trace!("System::container_from_id({id}) called");
-        let s = IdentifierStruct::try_from(id.clone())?;
-        if s.broker_type_name == "core" {
-            return self.core_broker.lock()?.store().containers.get(id);
-        }
-        self.container_proxy(id)
-    }
+    // pub fn any_process_from_typename_and_name(&self, type_name: &str, name: &str) -> JuizResult<ProcessPtr> {
+    //     let result = self.process_from_typename_and_name(type_name, name);
+    //     if result.is_ok() {
+    //         return result;
+    //     }
+    //     self.container_process_from_typename_and_name(type_name, name)
+    // }
 
-    pub fn container_from_typename_and_name(&self, type_name: &str, name: &str) -> JuizResult<ContainerPtr> {
-        let id = construct_id("Container", type_name, name, "core", "core");
-        self.core_broker.lock()?.store().containers.get(&id)
-    }
+    // pub fn process_proxy(&self, id: &Identifier) -> JuizResult<ProcessPtr> {
+    //     self.core_broker.lock_mut()?.process_proxy_from_identifier(id)
+    // }
 
-    pub fn container_process_from_id(&self, id: &Identifier) -> JuizResult<ProcessPtr> {
-        log::trace!("System::container_process_from_id(id={id:}) called");
-        let cp = self.core_broker.lock()?.store().container_processes.get(id)?;
-        log::trace!("cps  OK");
-        return Ok(cp);
-    }
+    // pub fn container_process_proxy(&self, id: &Identifier) -> JuizResult<ProcessPtr> {
+    //     self.core_broker.lock_mut()?.container_process_proxy_from_identifier(id)
+    // }
 
-    pub fn any_process_from_id(&self, id: &Identifier) -> JuizResult<ProcessPtr> {
-        log::trace!("System::any_process_from_id(id={id:}) called");
-        let result = self.process_from_id(id);
-        if result.is_ok() {
-            return result;
-        }
-        log::trace!("System::any_process_from_id(id={id:}) failed. No process is found. Now searching container_process...");
-        self.container_process_from_id(id)
-    }
-
-    pub fn container_process_from_typename_and_name(&self, type_name: &str, name: &str) -> JuizResult<ProcessPtr> {
-        let id = construct_id("ContainerProcess", type_name, name, "core", "core");
-        Ok(self.core_broker.lock()?.store().container_processes.get(&id)?)
-    }
-
-    pub fn any_process_from_typename_and_name(&self, type_name: &str, name: &str) -> JuizResult<ProcessPtr> {
-        let result = self.process_from_typename_and_name(type_name, name);
-        if result.is_ok() {
-            return result;
-        }
-        self.container_process_from_typename_and_name(type_name, name)
-    }
-
-    pub fn process_from_manifest(&self, manifest: &Value) -> JuizResult<ProcessPtr> {
-        let id = id_from_manifest(manifest)?.to_string();
-        self.process_from_id(&id)
-    }
-
-    pub fn container_from_manifest(&self, manifest: &Value) -> JuizResult<ContainerPtr> {
-        let id = id_from_manifest(manifest)?.to_string();
-        self.container_from_id(&id)
-    }
-
-    pub fn container_process_from_manifest(&self, manifest: &Value) -> JuizResult<ProcessPtr> {
-        let id = id_from_manifest(manifest)?.to_string();
-        self.container_process_from_id(&id)
-    }
-
-    pub fn any_process_from_manifest(&self, manifest: &Value) -> JuizResult<ProcessPtr> {
-        
-        let id_result = id_from_manifest(manifest);
-        if id_result.is_ok() {
-            return self.any_process_from_id(&id_result.unwrap().to_string());
-        }
-
-        let type_name = obj_get_str(manifest, "type_name")?;
-        let name = obj_get_str(manifest, "name")?;
-        self.any_process_from_typename_and_name(type_name, name)
-    }
-
-    pub fn container_proxy(&self, id: &Identifier) -> JuizResult<ContainerPtr> {
-        self.core_broker.lock_mut()?.container_proxy_from_identifier(id)
-    }
-
-
-    pub fn process_proxy(&self, id: &Identifier) -> JuizResult<ProcessPtr> {
-        self.core_broker.lock_mut()?.process_proxy_from_identifier(id)
-    }
-
-    pub fn container_process_proxy(&self, id: &Identifier) -> JuizResult<ProcessPtr> {
-        self.core_broker.lock_mut()?.container_process_proxy_from_identifier(id)
-    }
-
-    pub fn ec_proxy(&self, id: &Identifier) -> JuizResult<Arc<Mutex<dyn ExecutionContextFunction>>> {
-        self.core_broker.lock_mut()?.ec_proxy_from_identifier(id)
-    }
+    // pub fn ec_proxy(&self, id: &Identifier) -> JuizResult<Arc<Mutex<dyn ExecutionContextFunction>>> {
+    //     self.core_broker.lock_mut()?.ec_proxy_from_identifier(id)
+    // }
 
     pub fn setup(mut self) -> JuizResult<Self> {
         log::trace!("System::setup() called");
@@ -425,10 +267,10 @@ impl System {
         Ok(())
     }
 
-    pub fn broker_proxy(&self, manifest: &Value, create_when_not_found: bool) -> JuizResult<Arc<Mutex<dyn BrokerProxy>>> {
-        log::trace!("System::broker_proxy({}) called", manifest);
-        self.core_broker.lock_mut()?.broker_proxy_from_manifest(manifest, create_when_not_found)
-    }
+    // pub fn broker_proxy(&self, manifest: &Value, create_when_not_found: bool) -> JuizResult<Arc<Mutex<dyn BrokerProxy>>> {
+    //     log::trace!("System::broker_proxy({}) called", manifest);
+    //     self.core_broker.lock_mut()?.broker_proxy_from_manifest(manifest, create_when_not_found)
+    // }
 
     pub fn register_broker_factories_wrapper(&mut self, bf: Arc<Mutex<BrokerFactoriesWrapper>>) -> JuizResult<Arc<Mutex<BrokerFactoriesWrapper>>> {
         let type_name = juiz_lock(&bf)?.type_name().to_string();
@@ -438,8 +280,8 @@ impl System {
             return Err(anyhow::Error::from(JuizError::BrokerFactoryOfSameTypeNameAlreadyExistsError{type_name: type_name}));
         }
         self.store.lock_mut()?.broker_factories.insert(type_name.clone(), Arc::clone(&bf));
-        self.core_broker().lock_mut()?.store_mut().register_broker_factory_manifest(type_name.as_str(), juiz_lock(&bf)?.profile_full()?.try_into()?)?;
-        self.core_broker().lock_mut()?.store_mut().broker_proxies.register_factory(juiz_lock(&bf)?.broker_proxy_factory.clone())?;
+        self.core_broker().lock_mut()?.worker_mut().store_mut().register_broker_factory_manifest(type_name.as_str(), juiz_lock(&bf)?.profile_full()?.try_into()?)?;
+        self.core_broker().lock_mut()?.worker_mut().store_mut().broker_proxies.register_factory(juiz_lock(&bf)?.broker_proxy_factory.clone())?;
         log::trace!("System::register_broker_factories_wrapper(BrokerFactory(type_name={:?})) exit", type_name);
         Ok(bf)
     }
@@ -464,7 +306,7 @@ impl System {
         log::trace!("System::register_broker(type_name={type_name:}) called");
         self.store.lock_mut()?.brokers.insert(type_name.clone(), Arc::clone(&broker));
         let p: Value  =juiz_lock(&broker).context("Locking passed broker failed.")?.profile_full().context("Broker::profile_full")?.try_into()?;
-        self.core_broker().lock_mut()?.store_mut().register_broker_manifest(type_name.as_str(), p)?;
+        self.core_broker().lock_mut()?.worker_mut().store_mut().register_broker_manifest(type_name.as_str(), p)?;
         
         Ok(broker)
     }
@@ -479,7 +321,7 @@ impl System {
     pub(crate) fn register_broker_proxy(&mut self, broker_proxy: Arc<Mutex<dyn BrokerProxy>>) -> JuizResult<Arc<Mutex<dyn BrokerProxy>>> {
         let type_name =juiz_lock(&broker_proxy).context("Locking broker to get type_name failed.")?.type_name().to_string();
         log::trace!("System::register_broker(type_name={type_name:}) called");
-        self.core_broker().lock_mut()?.store_mut().broker_proxies.register(broker_proxy.clone())?;
+        self.core_broker().lock_mut()?.worker_mut().store_mut().broker_proxies.register(broker_proxy.clone())?;
         //self.broker_proxies.insert(type_name.clone(), Arc::clone(&broker_proxy));
         //let p: Value  =juiz_lock(&broker_proxy).context("Locking passed broker_proxy failed.")?.profile_full().context("BrokerProxy::profile_full")?.try_into()?;
         //juiz_lock(&self.core_broker()).context("Blocking CoreBroker failed.")?.store_mut().register_broker_proxy_manifest(type_name.as_str(), p)?;
@@ -488,9 +330,9 @@ impl System {
 
     pub fn process_list(&self, recursive: bool) -> JuizResult<Vec<Value>> {
         log::trace!("System::process_list() called");
-        let mut local_processes = self.core_broker().lock()?.store().processes.list_manifests()?;
+        let mut local_processes = self.core_broker().lock()?.worker().store().processes.list_manifests()?;
         if recursive {
-            for (_, proxy) in self.core_broker().lock()?.store().broker_proxies.objects().iter() {
+            for (_, proxy) in self.core_broker().lock()?.worker().store().broker_proxies.objects().iter() {
                 log::trace!("process_list for proxy ()");
                 for v in get_array(&juiz_lock(proxy)?.process_list(recursive)?)?.iter() {
                     local_processes.push(v.clone());
@@ -503,10 +345,10 @@ impl System {
 
     pub fn container_list(&self, recursive: bool) -> JuizResult<Vec<Value>> {
         log::trace!("System::container_list() called");
-        let mut local_containers = self.core_broker().lock()?.store().containers.list_manifests()?;
+        let mut local_containers = self.core_broker().lock()?.worker().store().containers.list_manifests()?;
 
         if recursive {
-            for (_, proxy) in self.core_broker().lock()?.store().broker_proxies.objects().iter() {
+            for (_, proxy) in self.core_broker().lock()?.worker().store().broker_proxies.objects().iter() {
                 match juiz_lock(proxy) {
                     Err(e) => return Err(e),
                     Ok(p) => {
@@ -530,9 +372,9 @@ impl System {
 
     pub fn container_process_list(&self, recursive: bool) -> JuizResult<Vec<Value>> {
         log::trace!("System::container_process_list() called");
-        let mut local_processes = self.core_broker().lock()?.store().container_processes.list_manifests()?;
+        let mut local_processes = self.core_broker().lock()?.worker().store().container_processes.list_manifests()?;
         if recursive {
-            for (_, proxy) in self.core_broker().lock()?.store().broker_proxies.objects().iter() {
+            for (_, proxy) in self.core_broker().lock()?.worker().store().broker_proxies.objects().iter() {
                 for v in get_array(&juiz_lock(proxy)?.container_process_list(recursive)?)?.iter() {
                     local_processes.push(v.clone());
                 }
@@ -552,9 +394,9 @@ impl System {
 
     pub fn ec_list(&self, recursive: bool) -> JuizResult<Vec<Value>> {
         log::trace!("System::ec_list() called");
-        let mut local_ecs = self.core_broker().lock()?.store().ecs.list_manifests()?;
+        let mut local_ecs = self.core_broker().lock()?.worker().store().ecs.list_manifests()?;
         if recursive {
-            for (_, proxy) in self.core_broker().lock()?.store().broker_proxies.objects().iter() {
+            for (_, proxy) in self.core_broker().lock()?.worker().store().broker_proxies.objects().iter() {
                 log::trace!("ec_list for proxy ()");
                 for v in get_array(&juiz_lock(proxy)?.ec_list(recursive)?)?.iter() {
                     local_ecs.push(v.clone());
@@ -565,15 +407,15 @@ impl System {
         return Ok(local_ecs);
     }
 
-    ///
-    pub fn ec_from_id(&self, id: &Identifier) -> JuizResult<Arc<Mutex<dyn ExecutionContextFunction>>> {
-        log::trace!("System::ec_from_id(id={id:}) called");
-        let s = IdentifierStruct::try_from(id.clone()).unwrap();
-        if s.broker_type_name == "core" {
-            return self.core_broker().lock()?.store().ecs.get(id);
-        }
-        self.ec_proxy(id)
-    }
+    //
+    // pub fn ec_from_id(&self, id: &Identifier) -> JuizResult<Arc<Mutex<dyn ExecutionContextFunction>>> {
+    //     log::trace!("System::ec_from_id(id={id:}) called");
+    //     let s = IdentifierStruct::try_from(id.clone()).unwrap();
+    //     if s.broker_type_name == "core" {
+    //         return self.core_broker().lock()?.worker().store().ecs.get(id);
+    //     }
+    //     self.ec_proxy(id)
+    // }
     
 }
 

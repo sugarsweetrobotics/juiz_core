@@ -11,23 +11,22 @@ use rustls::pki_types::CertificateDer;
 use rustls::crypto::ring::default_provider;
 use quinn::ServerConfig;
 use rustls::pki_types::PrivatePkcs8KeyDer;
-use tracing::{info_span, Instrument, Span};
 
 use crate::{to_request, value_to_vecu8, vecu8_to_value};
 
 
 
-fn make_span(conn: &Connection) -> Span {
-    info_span!(
-        "connection",
-        remote = %conn.remote_address(),
-        protocol = %conn
-            .handshake_data().unwrap()
-            .downcast::<quinn::crypto::rustls::HandshakeData>().unwrap()
-            .protocol
-            .map_or_else(|| "<none>".into(), |x| String::from_utf8_lossy(&x).into_owned())
-    )
-}
+// fn make_span(conn: &Connection) -> Span {
+//     info_span!(
+//         "connection",
+//         remote = %conn.remote_address(),
+//         protocol = %conn
+//             .handshake_data().unwrap()
+//             .downcast::<quinn::crypto::rustls::HandshakeData>().unwrap()
+//             .protocol
+//             .map_or_else(|| "<none>".into(), |x| String::from_utf8_lossy(&x).into_owned())
+//     )
+// }
 
 #[allow(unused)]
 pub fn make_server_endpoint(

@@ -1,6 +1,6 @@
 
 use std::{collections::HashMap, fs, path::PathBuf, sync::{Arc, Mutex}};
-use pyo3::{prelude::*, types::{PyBytes, PyDict, PyFloat, PyInt, PyList, PyNone, PySet, PyString, PyTuple}};
+use pyo3::{prelude::*, types::{PyDict, PyFloat, PyInt, PyList, PyNone, PySet, PyString, PyTuple}};
 use serde_json::Map;
 
 use crate::{prelude::*, utils::get_array, value::obj_get_str};

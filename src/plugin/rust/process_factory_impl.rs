@@ -5,8 +5,8 @@ use crate::object::JuizObjectClass;
 use crate::prelude::*;
 use crate::utils::check_process_factory_manifest;
 use crate::value::obj_get_str;
-use crate::{object::{JuizObjectCoreHolder, ObjectCore}, processes::{process_ptr}};
-use crate::processes::FunctionType;
+use crate::object::{JuizObjectCoreHolder, ObjectCore};
+use crate::processes::{process_new, FunctionType};
 
 #[repr(C)]
 pub struct ProcessFactoryImpl {
@@ -61,7 +61,7 @@ impl ProcessFactory for ProcessFactoryImpl {
     fn create_process(&self, manifest: Value) -> JuizResult<ProcessPtr> {
         log::trace!("ProcessFactoryImpl::create_process(manifest={}) called", manifest);
         Ok(process_ptr(
-            ProcessImpl::new(
+            process_new(
                 self.apply_default_manifest(manifest)?, 
                 self.function)?
         ))

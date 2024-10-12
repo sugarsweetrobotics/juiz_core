@@ -3,6 +3,7 @@ use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use anyhow::Context;
 
 use crate::prelude::*;
+use crate::processes::process_from_clousure_new_with_class_name;
 use crate::{containers::{container_lock, container_lock_mut}, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, value::{Capsule, CapsuleMap}, utils::check_process_manifest, value::{obj_get_str, obj_merge}};
 
 use super::container_impl::ContainerImpl;
@@ -20,7 +21,7 @@ pub type ContainerProcessPtr=Arc<RwLock<ContainerProcessImpl>>;
 #[allow(dead_code)]
 pub struct ContainerProcessImpl {
     core: ObjectCore,
-    pub process: Option<ProcessImpl>,
+    pub process: Box<dyn Process>,
     pub container: Option<ContainerPtr>,
     container_identifier: Identifier,
     //function: ContainerFunctionType<T>,
@@ -35,7 +36,7 @@ impl ContainerProcessImpl {
         let container_clone = Arc::clone(&container);
         let container_identifier = container_lock(&container)?.identifier().clone();
         //let f  = function.clone();
-        let proc = ProcessImpl::clousure_new_with_class_name(JuizObjectClass::ContainerProcess("ProcessImpl"), manifest.clone(), Box::new(move |args| {
+        let proc = process_from_clousure_new_with_class_name(JuizObjectClass::ContainerProcess("ProcessImpl"), manifest.clone(), Box::new(move |args| {
             let mut locked_container = container_lock_mut(&container)?;
             match locked_container.downcast_mut::<ContainerImpl<T>>() {
                 None => Err(anyhow::Error::from(JuizError::ContainerDowncastingError{identifier: locked_container.identifier().clone()})),
@@ -55,28 +56,30 @@ impl ContainerProcessImpl {
                         type_name, object_name),
                     container_identifier,
                     container: Some(container_clone),
-                    process: Some(proc),
+                    process: Box::new(proc),
                 }
             )()
         )
     }
 
-    fn process(&self) -> JuizResult<&ProcessImpl> {
-        match &self.process {
-            Some(p) => Ok(p),
-            None => {
-                log::error!("ContainerProcessImpl({})::process() failed. Process is None.", self.identifier());
-                Err(anyhow::Error::from(JuizError::ObjectCanNotFoundByIdError { id: format!("ContainerProcessImpl({})::process() failed", self.identifier()) }))
-            }
-        }
+    fn process(&self) -> JuizResult<&Box<dyn Process>> {
+        // match &self.process {
+        //     Some(p) => Ok(p),
+        //     None => {
+        //         log::error!("ContainerProcessImpl({})::process() failed. Process is None.", self.identifier());
+        //         Err(anyhow::Error::from(JuizError::ObjectCanNotFoundByIdError { id: format!("ContainerProcessImpl({})::process() failed", self.identifier()) }))
+        //     }
+        // }
+        Ok(&self.process)
     }
 
-    fn process_mut(&mut self) -> JuizResult<&mut ProcessImpl> {
-        if self.process.is_none() {
-            log::error!("ContainerProcessImpl({})::process_mut() failed. Process is None.", self.identifier());
-            return Err(anyhow::Error::from(JuizError::ObjectCanNotFoundByIdError { id: format!("ContainerProcessImpl({})::process_mut() failed", self.identifier())  }))
-        }
-        return Ok(self.process.as_mut().unwrap());
+    fn process_mut(&mut self) -> JuizResult<&mut Box<dyn Process>> {
+        // if self.process.is_none() {
+        //     log::error!("ContainerProcessImpl({})::process_mut() failed. Process is None.", self.identifier());
+        //     return Err(anyhow::Error::from(JuizError::ObjectCanNotFoundByIdError { id: format!("ContainerProcessImpl({})::process_mut() failed", self.identifier())  }))
+        // }
+        // return Ok(self.process.as_mut().unwrap());
+        Ok(&mut self.process)
     }
     
 }

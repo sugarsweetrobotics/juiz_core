@@ -23,7 +23,7 @@ pub(crate) fn value_to_request_value(class_name: &str, function_name: &str, meth
     })
 }
 
-pub(crate) fn payload_to_request_value(class_name: &str, function_name: &str, method_name: &str, mut payload: CapsuleMap, mut param: std::collections::HashMap<String, String>) -> Value {
+pub(crate) fn payload_to_request_value(class_name: &str, function_name: &str, method_name: &str, mut payload: CapsuleMap, param: std::collections::HashMap<String, String>) -> Value {
     payload.set_param("class_name", class_name.into());
     payload.set_param("function_name", function_name.into());
     payload.set_param("method_name", method_name.into());

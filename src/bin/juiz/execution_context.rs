@@ -88,7 +88,7 @@ fn on_ec_list(system: &mut System, _server: Option<String>, recursive: bool) -> 
 
 fn on_ec_start(system: &mut System, _server: Option<String>, id: String) -> JuizResult<()> {
     //println!("processes:");
-    let e = system.ec_from_id(&id);
+    let e = system.core_broker().lock_mut()?.worker_mut().ec_from_id(&id);
     match e {
         Ok(ec) => {
             juiz_lock(&ec)?.start()?;

@@ -17,7 +17,7 @@ pub fn add_function(v: CapsuleMap) -> JuizResult<Capsule> {
 }
 
 #[allow(dead_code)]
-pub fn new_add_process<'a> (name: &str) -> ProcessImpl {
+pub fn new_add_process<'a> (name: &str) -> impl Process {
     let manifest = serde_json::json!({
         "name": name,
         "type_name": "add",
@@ -32,7 +32,7 @@ pub fn new_add_process<'a> (name: &str) -> ProcessImpl {
             }, 
         }, 
     });
-    let p = ProcessImpl::new(manifest, add_function);
+    let p = process_new(manifest, add_function);
     assert!(p.is_ok(), "ProcessImpl::new() failed. Error is '{:?}'", p.err());
     p.unwrap()
 }
@@ -50,7 +50,7 @@ pub fn increment_function(v: CapsuleMap) -> JuizResult<Capsule> {
 }
 
 #[allow(dead_code)]
-pub fn new_increment_process<'a> (name: &str) -> ProcessImpl {
+pub fn new_increment_process<'a> (name: &str) -> impl Process {
     let manifest = serde_json::json!({
         "name": name,
         "type_name": "increment",
@@ -61,7 +61,7 @@ pub fn new_increment_process<'a> (name: &str) -> ProcessImpl {
             }, 
         }, 
     });
-    let p = ProcessImpl::new(manifest, increment_function);
+    let p = process_new(manifest, increment_function);
     assert!(p.is_ok(), "ProcessImpl::new() failed. Error is '{:?}'", p.err());
     p.unwrap()
 }
@@ -80,7 +80,7 @@ pub fn execution_function(_v: CapsuleMap) -> JuizResult<Capsule> {
 }
 
 #[allow(dead_code)]
-pub fn new_execution_process<'a> (name: &str) -> ProcessImpl {
+pub fn new_execution_process<'a> (name: &str) -> impl Process {
     let manifest = serde_json::json!({
         "name": "test_function",
         "type_name": name,
@@ -91,7 +91,7 @@ pub fn new_execution_process<'a> (name: &str) -> ProcessImpl {
             }, 
         }, 
     });
-    let p = ProcessImpl::new(manifest, execution_function);
+    let p = process_new(manifest, execution_function);
     assert!(p.is_ok(), "ProcessImpl::new() failed. Error is {:?}", p.err());
     p.unwrap()
 }

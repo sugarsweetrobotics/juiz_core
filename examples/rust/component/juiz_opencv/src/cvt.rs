@@ -1,7 +1,7 @@
 
 
 
-use juiz_core::{anyhow, prelude::*};
+use juiz_core::prelude::*;
 
 
 fn cvt_color_function(args: CapsuleMap) -> JuizResult<Capsule> {

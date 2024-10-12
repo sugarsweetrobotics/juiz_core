@@ -66,14 +66,14 @@ fn setup_container(system: &System, container_manifest: &Value) -> JuizResult<()
     log::trace!("setup_container({container_manifest}) called");
     let name = obj_get_str(container_manifest, "name")?;
     let type_name = obj_get_str(container_manifest, "type_name")?;
-    let container = system.core_broker().lock_mut()?.create_container_ref(container_manifest.clone())?;
+    let container = system.core_broker().lock_mut()?.worker_mut().create_container_ref(container_manifest.clone())?;
     log::info!("Container ({:}:{:}) Created", name, type_name);            
     let _ = when_contains_do(container_manifest, "processes", |container_process_manifests| {
         for container_process_manifest in get_array(container_process_manifests)?.iter() {
             let cp_name = obj_get_str(container_process_manifest, "name")?;
             let cp_type_name = obj_get_str(container_process_manifest, "type_name")?;
             log::debug!(" - ContainerProcess ({:}:{:}) Creating...", cp_name, cp_type_name);
-            let cp_ref = system.core_broker().lock_mut()?.create_container_process_ref(Arc::clone(&container), container_process_manifest.clone())?;
+            let cp_ref = system.core_broker().lock_mut()?.worker_mut().create_container_process_ref(Arc::clone(&container), container_process_manifest.clone())?;
             log::info!(" - ContainerProcess ({:}:{:}) Created", cp_name, cp_type_name);    
             // Topicをpublishするなら
             let _reslt = obj_get_array(container_process_manifest, "publish").and_then(|pub_topics| {
@@ -100,7 +100,7 @@ fn setup_container(system: &System, container_manifest: &Value) -> JuizResult<()
 pub(super) fn cleanup_containers(system: &mut System) -> JuizResult<()> {
     log::trace!("system_builder::cleanup_containers() called");
     let r = system.core_broker().lock_mut().and_then(|mut cb|{
-        cb.store_mut().clear()
+        cb.worker_mut().store_mut().clear()
     });
     log::trace!("system_builder::cleanup_containers() exit");
     r
@@ -111,7 +111,7 @@ pub(super) fn cleanup_containers(system: &mut System) -> JuizResult<()> {
 pub(super) fn register_container_factory(system: &System, plugin: JuizObjectPlugin, symbol_name: &str, profile: Value) -> JuizResult<ContainerFactoryPtr> {
     log::trace!("register_container_factory(symbol_name={symbol_name}, profile={profile}) called");
     let pf = plugin.load_container_factory(system.get_working_dir(), symbol_name, profile)?;
-    let result = system.core_broker().lock_mut()?.store_mut().containers.register_factory(ContainerFactoryWrapper::new(plugin, pf)?);
+    let result = system.core_broker().lock_mut()?.worker_mut().store_mut().containers.register_factory(ContainerFactoryWrapper::new(plugin, pf)?);
     log::trace!("register_container_factory() exit");
     result
 }
@@ -120,7 +120,7 @@ pub(super) fn register_container_factory(system: &System, plugin: JuizObjectPlug
 pub(super) fn register_container_process_factory(system: &System, plugin: JuizObjectPlugin, symbol_name: &str, profile: &Value) -> JuizResult<ContainerProcessFactoryPtr> {
     log::trace!("register_container_process_factory(symbol_name={symbol_name}, profile={profile:}) called");
     let cpf = plugin.load_container_process_factory(system.get_working_dir(), symbol_name, profile)?;
-    let result = system.core_broker().lock_mut()?.store_mut().container_processes.register_factory(ContainerProcessFactoryWrapper::new(plugin, cpf)?);
+    let result = system.core_broker().lock_mut()?.worker_mut().store_mut().container_processes.register_factory(ContainerProcessFactoryWrapper::new(plugin, cpf)?);
     log::trace!("register_container_process_factory() exit");
     result
 }

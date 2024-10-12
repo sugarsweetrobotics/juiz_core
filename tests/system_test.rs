@@ -64,11 +64,11 @@ fn main() -> JuizResult<()>{
     Ok(System::new(manifest)?.run_and_do(|system|{
         println!("JuizSystem started!!");
         let create_when_not_found = false;
-        let v = system.broker_proxy(&jvalue!({"type_name":"local"}), create_when_not_found)?.lock().unwrap().system_profile_full()?;
+        let v = system.core_broker().lock_mut()?.worker_mut().broker_proxy("local", "local", create_when_not_found)?.lock().unwrap().system_profile_full()?;
         println!("System: {:#}", v);
 
         let id = "http://localhost:3000/ContainerProcess/increment_a::example_container_increment";
-        let p1 = system.container_process_proxy(&id.to_string())?;
+        let p1 = system.core_broker().lock_mut()?.worker_mut().container_process_proxy_from_identifier(&id.to_string())?;
         let prof = p1.read().unwrap().profile_full()?;
         println!("Process: {:#}", prof);
 

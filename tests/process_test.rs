@@ -18,7 +18,7 @@ fn no_name_manifest_process_test() {
             }, 
         }, 
     });
-    let p = ProcessImpl::new(manifest, common::increment_function);
+    let p = process_new(manifest, common::increment_function);
     assert!(p.is_err());
     // assert!(p.err() == Some(JuizError::ManifestNameMissingError{}));
 }
@@ -29,7 +29,7 @@ fn no_arguments_manifest_process_test() {
         "name": "hoge",
         "type_name": "increment",
     });
-    let p = ProcessImpl::new(manifest, common::increment_function);
+    let p = process_new(manifest, common::increment_function);
     assert!(p.is_err());
     // assert!(p.err() == Some(JuizError::ManifestArgumentsMissingError{}));
 }
@@ -46,7 +46,7 @@ fn no_default_manifest_process_test() {
             }, 
         }
     });
-    let p = ProcessImpl::new(manifest, common::increment_function);
+    let p = process_new(manifest, common::increment_function);
     assert!(p.is_err());
     let _e = p.err();
     // assert!(e == Some(JuizError::ManifestArgumentDefaultValueMissingError{}), "Error is {:?})", e);

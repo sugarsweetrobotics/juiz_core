@@ -30,7 +30,7 @@ pub(crate) fn setup_topic_synchronization(system: &mut System) -> JuizResult<()>
     let mut should_request_publish_topic_names : Vec<String> = Vec::new();
     system.core_broker().lock_mut().and_then(|mut cb| {
         let system_uuid = Uuid::parse_str(cb.system_uuid()?.as_str().unwrap())?;
-        for (topic_name, topic) in cb.store_mut().topics.iter() {
+        for (topic_name, topic) in cb.worker_mut().store_mut().topics.iter() {
             if topic.num_local_publishers().unwrap() > 0 {
                 should_request_subscribe_topic_names.push(topic_name.to_owned());
 

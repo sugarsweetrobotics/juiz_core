@@ -20,7 +20,7 @@ pub(super) fn setup_execution_context_factories(system: &System, manifest: &serd
                 cpf = (symbol)().with_context(||format!("calling symbol 'execution_context_factory'. arg is {manifest:}"))?;
                 let _ccpf = juiz_lock(&cpf)?;
             }
-            system.core_broker().lock_mut()?.store_mut().ecs.register_factory(ExecutionContextHolderFactory::new(plugin, cpf)?)?;
+            system.core_broker().lock_mut()?.worker_mut().store_mut().ecs.register_factory(ExecutionContextHolderFactory::new(plugin, cpf)?)?;
         }
         log::info!("ExecutionContextFactory (name={name:}) Loaded");
     }
@@ -34,7 +34,7 @@ pub(super) fn setup_ecs(system: &mut System, manifest: &Value) -> JuizResult<()>
         let name = obj_get_str(p, "name")?;
         let type_name = obj_get_str(p, "type_name")?;
         log::debug!("ExecutionContext ({:}:{:}) Creating...", name, type_name);
-        let ec = system.core_broker().lock_mut()?.create_ec_ref(p.clone())?;
+        let ec = system.core_broker().lock_mut()?.worker_mut().create_ec_ref(p.clone())?;
         log::info!("ExecutionContext ({:}:{:}) Created", name, type_name);
         juiz_lock(&ec)?.on_load(system);
         match obj_get(p, "bind") {
@@ -66,13 +66,13 @@ pub(super) fn setup_ecs(system: &mut System, manifest: &Value) -> JuizResult<()>
 
 pub(super) fn cleanup_ecs(system: &System) -> JuizResult<()> {
     log::trace!("system_builder::cleanup_ecs() called");
-    system.core_broker().lock_mut()?.cleanup_ecs()
+    system.core_broker().lock_mut()?.worker_mut().cleanup_ecs()
 }
 
 fn setup_ec_bind(system: &System, ec: Arc<Mutex<dyn ExecutionContextFunction>>, bind_info: &Value) -> JuizResult<()> {
     let ec_id = juiz_lock(&ec)?.identifier().clone();
     log::trace!("system_builder::setup_ec_bind(ec={:}) called", ec_id);
-    let target_process = system.any_process_from_manifest(bind_info)?;
+    let target_process = system.core_broker().lock_mut()?.worker_mut().any_process_from_manifest(bind_info)?;
     let proc_id = proc_lock(&target_process)?.identifier().clone();
     log::trace!("EC({:}) -> Process({:})", ec_id, proc_id);
     let ret = juiz_lock(&ec)?.bind(target_process);

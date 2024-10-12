@@ -13,11 +13,11 @@ pub mod connection_builder {
         
         log::trace!("connection_builder::create_connections(manifest={:?}) called", manifest);
         connect(
-            system.any_process_from_manifest(
+            system.core_broker().lock_mut()?.worker_mut().any_process_from_manifest(
                 get_value(manifest, "source")
                     .context("When loading 'source' value but not found in connection_builder::create_connectin()")?)
                 .context("System::process_from_manifest(source) failed in connection_builder::create_connection()")?,
-            system.any_process_from_manifest(
+            system.core_broker().lock_mut()?.worker_mut().any_process_from_manifest(
                 get_value(manifest, "destination")
                     .context("When loading 'destination' value but not found in connection_builder::create_connectin()")?)
                 .context("System::process_from_manifest(destination) failed in connection_builder::create_connection()")?,
@@ -52,7 +52,7 @@ pub mod connection_builder {
 
     pub fn list_connection_profiles(core_broker: &CoreBroker) -> JuizResult<Vec<Value>> {
         let mut value_map: HashMap<String, Value> = HashMap::new();
-        for p in core_broker.store().processes.objects().into_iter() {
+        for p in core_broker.worker().store().processes.objects().into_iter() {
             for sc in proc_lock(p)?.source_connections()? {
                 value_map.insert(sc.identifier().clone(), sc.profile_full()?.try_into()?);
             }

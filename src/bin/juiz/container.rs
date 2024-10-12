@@ -76,7 +76,7 @@ fn on_container_list(system: &mut System, _server: Option<String>, recursive: bo
 }
 
 fn on_container_info(system: &mut System, id: String) -> JuizResult<()> {
-    let p = system.container_from_id(&id);
+    let p = system.core_broker().lock_mut()?.worker_mut().container_from_identifier(&id);
     match p {
         Ok(ps) => println!("{:}", container_lock(&ps)?.profile_full()?),
         Err(e) => println!("Error: {e:?}"),

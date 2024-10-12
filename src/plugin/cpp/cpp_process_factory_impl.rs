@@ -1,6 +1,7 @@
 
 
 use crate::prelude::*;
+use crate::processes::process_from_clousure_new_with_class_name;
 use crate::{object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, processes::process_ptr, utils::check_process_factory_manifest, value::obj_get_str};
 
 //pub type CppFunctionType = Symbol<'static, extern "C" fn(*mut CapsuleMap, *mut Capsule) -> i64>;
@@ -66,7 +67,7 @@ impl ProcessFactory for CppProcessFactoryImpl {
             return Ok(func_result);
         });
 
-        let proc = ProcessImpl::clousure_new_with_class_name(
+        let proc = process_from_clousure_new_with_class_name(
             JuizObjectClass::Process("ProcessImpl"), 
             self.apply_default_manifest(manifest.clone())?, 
             cppfunc,

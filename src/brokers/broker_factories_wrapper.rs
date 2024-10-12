@@ -1,7 +1,7 @@
 
 
 
-use crate::prelude::*;
+use crate::{core::CoreWorker, prelude::*};
 use crate::utils::juiz_lock;
 use std::sync::{Arc, Mutex};
 use crate::{plugin::RustPlugin, brokers::{Broker, BrokerProxy, BrokerFactory, BrokerProxyFactory}};
@@ -44,7 +44,7 @@ impl BrokerFactoriesWrapper {
         juiz_lock(&self.broker_factory)?.create_broker(manifest.clone())
     }
 
-    pub fn create_broker_proxy(&self, core_broker: &CoreBroker, manifest: &Value) -> JuizResult<Arc<Mutex<dyn BrokerProxy>>> {
+    pub fn create_broker_proxy(&self, core_broker: &CoreWorker, manifest: &Value) -> JuizResult<Arc<Mutex<dyn BrokerProxy>>> {
         log::trace!("create_broker_proxy(manifest='{manifest:}') called");
         juiz_lock(&self.broker_proxy_factory)?.create_broker_proxy(core_broker, manifest.clone())
     }

@@ -7,7 +7,7 @@ use std::sync::Arc;
 
 mod common;
 
-fn new_increment_process<'a> () -> ProcessImpl  {
+fn new_increment_process<'a> () -> impl Process  {
     let manifest = serde_json::json!({
         "name": "test_function",
         "type_name": "increment",
@@ -19,7 +19,7 @@ fn new_increment_process<'a> () -> ProcessImpl  {
             }, 
         }, 
     });
-    let p = ProcessImpl::new(manifest, common::increment_function);
+    let p = process_new(manifest, common::increment_function);
     assert!(p.is_ok() , "ProcessImpl::new() failed. Error is {:?}", p.err());
     p.unwrap()
 }
@@ -49,7 +49,7 @@ fn core_broker_test() {
     let p = new_increment_process();
     let id = p.identifier().clone();
 
-    let result = cb.store_mut().processes.register(Arc::new(RwLock::new(p)));
+    let result = cb.worker_mut().store_mut().processes.register(Arc::new(RwLock::new(p)));
 
     assert!(result.is_ok());
 

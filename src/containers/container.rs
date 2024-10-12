@@ -22,15 +22,6 @@ mopafy!(Container);
 
 pub type ContainerPtr = Arc<RwLock<dyn Container>>;
 
-
-// pub fn container_ptr<T>(c: T) -> ContainerPtr where T: Container + 'static {
-//     Arc::new(RwLock::new(c))
-// }
-
-// pub fn container_ptr_clone(ptr: &ContainerPtr) -> ContainerPtr {
-//     Arc::clone(ptr)
-// }
-
 pub fn container_lock<'a>(obj: &'a ContainerPtr) -> JuizResult<RwLockReadGuard<'a, dyn Container>> {
     match obj.read() {
         Err(e) => {

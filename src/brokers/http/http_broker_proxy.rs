@@ -1,7 +1,7 @@
 use std::{collections::HashMap, io::Read, sync::{Arc, Mutex}};
 
 
-use crate::prelude::*;
+use crate::{core::CoreWorker, prelude::*};
 use crate::{brokers::{create_broker_proxy_factory_impl, BrokerProxy, BrokerProxyFactory}, identifier::IdentifierStruct, value::CapsuleMap, value::obj_get_str};
 
 //use reqwest::Response;
@@ -133,7 +133,7 @@ impl CRUDBrokerProxy for HTTPBrokerProxy {
             .json(&v)
             .send() {
             Err(e) => Err(anyhow::Error::from(e)),
-            Ok(mut response) => {
+            Ok(response) => {
                 let hdr = response.headers();
                 if hdr["content-type"] == "image/png" {
                     image_png_response_to_capsule_ptr(response)
@@ -167,7 +167,7 @@ fn image_png_response_to_capsule_ptr(mut response: Response) -> JuizResult<Capsu
 }
 
 
-fn create_broker_proxy_function(core_broker: &CoreBroker, manifest: Value) -> JuizResult<Arc<Mutex<dyn BrokerProxy>>> {
+fn create_broker_proxy_function(_core_broker: &CoreWorker, manifest: Value) -> JuizResult<Arc<Mutex<dyn BrokerProxy>>> {
     let name = obj_get_str(&manifest, "name")?;
     Ok(CRUDBrokerProxyHolder::new("HTTPBrokerProxy", "http", name, Box::new(HTTPBrokerProxy::new(&manifest)?))?)
 }

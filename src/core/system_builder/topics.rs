@@ -12,7 +12,7 @@ pub(super) fn setup_subscribe_topic(system: &System, process: ProcessPtr, arg_na
             let _id = process.read()
             .and_then(|p|{ Ok(p.identifier().clone()) })
             .or_else(|_e|{Err(anyhow!(JuizError::ObjectLockError{target: "Process".to_owned()}))})?;
-            cb.process_subscribe_topic(process, arg_name, sub_topic_info)
+            cb.worker_mut().process_subscribe_topic(process, arg_name, sub_topic_info)
         } );
         r
     } else {
@@ -28,7 +28,7 @@ pub(super) fn setup_publish_topic(system: &System, process: ProcessPtr, pub_topi
             let _id = process.read()
             .and_then(|p|{ Ok(p.identifier().clone()) })
             .or_else(|_e|{Err(anyhow!(JuizError::ObjectLockError{target: "Process".to_owned()}))})?;
-            cb.process_publish_topic(process, pub_topic_info)
+            cb.worker_mut().process_publish_topic(process, pub_topic_info)
         } );
         r
     } else {

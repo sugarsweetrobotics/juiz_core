@@ -5,7 +5,7 @@ use std::{collections::HashMap, mem::swap};
 #[cfg(feature="opencv4")]
 use opencv::core::Mat;
 
-use image::{DynamicImage};
+use image::DynamicImage;
 use crate::prelude::*;
 
 #[derive(Clone, Debug)]

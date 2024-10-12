@@ -9,17 +9,17 @@ use crate::{prelude::*, utils::{manifest_util::{get_array_mut, get_hashmap_mut},
 
 
 
-pub struct StoreWorker<T, TF> where T: JuizObject + ?Sized, TF: JuizObject + ?Sized {
+pub struct ObjectCollection<T, TF> where T: JuizObject + ?Sized, TF: JuizObject + ?Sized {
     name: String,
     factories: HashMap<String, Arc<Mutex<TF>>>,
     objects: HashMap<Identifier, Arc<Mutex<T>>>,
     //objects: Rc<RefCell<HashMap<Identifier, Arc<Mutex<T>>>>>,
 }
 
-impl<T, TF> StoreWorker<T, TF> where T: JuizObject + ?Sized, TF: JuizObject + ?Sized {
+impl<T, TF> ObjectCollection<T, TF> where T: JuizObject + ?Sized, TF: JuizObject + ?Sized {
 
-    pub fn new(name: &str) -> Box<StoreWorker<T, TF>> {
-        Box::new(StoreWorker { name: name.to_string(), 
+    pub fn new(name: &str) -> Box<ObjectCollection<T, TF>> {
+        Box::new(ObjectCollection { name: name.to_string(), 
             factories: HashMap::new(), 
             objects: HashMap::new() })
     }

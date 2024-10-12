@@ -21,9 +21,8 @@ use crate::connections::{SourceConnection, SourceConnectionImpl, DestinationConn
 use crate::value::{Capsule, CapsuleMap};
 use super::inlet::Inlet;
 use super::outlet::Outlet;
+use crate::processes::{FunctionTrait, FunctionType};
 
-pub type FunctionType = fn(CapsuleMap) -> JuizResult<Capsule>;
-pub type FunctionTrait = dyn Fn(CapsuleMap) -> JuizResult<Capsule>;
 
 pub struct ProcessImpl {
     core: ObjectCore,
@@ -38,6 +37,15 @@ pub struct ProcessImpl {
 pub fn argument_manifest(process_manifest: &Value) -> JuizResult<&Map<String, Value>>{
     obj_get_obj(process_manifest, "arguments")
 }
+
+pub fn process_from_clousure_new_with_class_name(class_name: JuizObjectClass, manif: Value, func: Box<FunctionTrait>) -> JuizResult<impl Process> {
+    ProcessImpl::clousure_new_with_class_name(class_name, manif, func)
+}
+     
+pub fn process_new(manif: Value, func: FunctionType) -> JuizResult<impl Process> {
+    ProcessImpl::new(manif, func)
+}
+    
 
 impl ProcessImpl {
 

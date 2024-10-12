@@ -1,6 +1,6 @@
 
 
-use juiz_core::{image::{DynamicImage, RgbImage}, prelude::*};
+use juiz_core::prelude::*;
 use opencv::{core::Mat, videoio::VideoCaptureTrait};
 use crate::video_capture::CvVideoCapture;
 

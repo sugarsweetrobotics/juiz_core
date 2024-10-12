@@ -12,6 +12,8 @@ use crate::connections::{DestinationConnection, SourceConnection};
 pub type ProcessPtr = Arc<RwLock<dyn Process>>;
 
 
+pub type FunctionType = fn(CapsuleMap) -> JuizResult<Capsule>;
+pub type FunctionTrait = dyn Fn(CapsuleMap) -> JuizResult<Capsule>;
 ///
 /// 
 pub trait Process : Send + Sync + JuizObject {

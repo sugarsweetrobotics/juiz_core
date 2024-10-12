@@ -19,9 +19,9 @@ pub use crate::{
         ProcessFactory, 
         ProcessFactoryPtr, 
         ProcessPtr,
-        ProcessImpl,
         process_ptr,
         ProcessProxy,
+        process_new,
     },
     containers::{
         Container,
@@ -70,6 +70,7 @@ pub use crate::{
         System,
         CoreBroker,
         CoreBrokerPtr,
+        CoreWorker,
     },
     result:: {
         JuizResult,

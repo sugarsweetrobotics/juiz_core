@@ -15,7 +15,7 @@ fn new_process_factory(cb: &mut CoreBroker) -> Arc<Mutex<dyn ProcessFactory>> {
             }, 
         }, 
     });
-    let result_pf = cb.store_mut().processes.register_factory(
+    let result_pf = cb.worker_mut().store_mut().processes.register_factory(
         Arc::new(Mutex::new(ProcessFactoryImpl::new(manifest, common::increment_function).unwrap())));
     assert!(result_pf.is_ok(), "register_process_factory failed. Error is {:?}", result_pf.err());
     Arc::clone(&result_pf.ok().unwrap())
@@ -44,7 +44,7 @@ fn core_broker_process_factory_integration_test() {
 
     //let mut id = "".to_string();
 
-    let p_result = cb.create_process_ref(jvalue!({
+    let p_result = cb.worker_mut().create_process_ref(jvalue!({
         "name": "test_function",
         "type_name": "increment",
     }));
@@ -84,7 +84,7 @@ fn core_broker_process_factory_integration_connection_test() {
     let mut cb = new_core_broker();
     let _pf = new_process_factory(&mut cb);
     
-    let p1_result = cb.create_process_ref(jvalue!({
+    let p1_result = cb.worker_mut().create_process_ref(jvalue!({
         "name": "test_function1",
         "type_name": "increment",
     }));
@@ -94,7 +94,7 @@ fn core_broker_process_factory_integration_connection_test() {
     
     let id1 = arc_p1.read().unwrap().identifier().clone();
 
-    let p2_result = cb.create_process_ref(jvalue!({
+    let p2_result = cb.worker_mut().create_process_ref(jvalue!({
         "name": "test_function2",
         "type_name": "increment",
     }));
@@ -131,7 +131,7 @@ fn core_broker_process_factory_integration_connection_test() {
             print!("Return value is {:?}", ev);
         }
     }
-    let p2_result2 = cb.store().processes.get(&id2);
+    let p2_result2 = cb.worker().store().processes.get(&id2);
     assert!(p2_result2.is_ok(), "Process 2 can not acquire. Error is {:?}", p2_result2.err());
     
     let arc_out = p2_result2.ok().unwrap().read().unwrap().get_output();

@@ -1,12 +1,12 @@
 use std::{net::SocketAddr, sync::{Arc, Mutex}, time::Duration};
 
-use juiz_core::{anyhow::{self, anyhow}, futures, prelude::*, tokio::{self, time::sleep}, CRUDBrokerProxy, CRUDBrokerProxyHolder};
-use quinn::{crypto::rustls::QuicClientConfig, ClientConfig, Connection, Endpoint, TransportConfig, VarInt};
+use juiz_core::{anyhow::{self, anyhow}, futures, prelude::*, tokio::{self}, CRUDBrokerProxy, CRUDBrokerProxyHolder};
+use quinn::{crypto::rustls::QuicClientConfig, ClientConfig, Connection, Endpoint, TransportConfig};
 use rustls::{crypto::ring::default_provider, pki_types::{CertificateDer, ServerName, UnixTime}};
 
 use crate::{payload_to_request_value, to_request_value, value_to_request_value, value_to_vecu8, vecu8_to_value};
 
-pub(crate) fn create_broker_proxy_function(core_broker: &CoreBroker, manifest: Value) -> JuizResult<Arc<Mutex<dyn BrokerProxy>>> {
+pub(crate) fn create_broker_proxy_function(_core_broker: &CoreWorker, manifest: Value) -> JuizResult<Arc<Mutex<dyn BrokerProxy>>> {
     log::trace!("create_broker_proxy_function({manifest:}) called");
     let name = obj_get_str(&manifest, "name")?;
     Ok(CRUDBrokerProxyHolder::new("QuicBrokerProxy", "qmp", name, Box::new(QuicBrokerProxy::new(&manifest)?))?)
