@@ -30,7 +30,8 @@ fn simple_connection_invoke_test() {
     let (rp1, rp2) = setup();
 
     let manifeset =jvalue!({
-        "id": "con1"
+        "id": "con1",
+        "type": "pull",
     });
     // rp1 -> rp2
     let result1 = rp2.write().unwrap().notify_connected_from(Arc::clone(&rp1), &"arg1".to_string(), manifeset.clone());
@@ -42,6 +43,30 @@ fn simple_connection_invoke_test() {
 
     let iv = result.lock_as_value(|value| { value.as_i64().unwrap() }).unwrap();
     assert_eq!(iv, 3);
+}
+
+
+#[cfg(test)]
+#[test]
+fn simple_connection_push_invoke_test() {
+    
+
+    let (rp1, rp2) = setup();
+
+    let manifeset =jvalue!({
+        "id": "con1",
+        "type": "push",
+    });
+    // rp1 -> rp2
+    let result1 = rp2.write().unwrap().notify_connected_from(Arc::clone(&rp1), &"arg1".to_string(), manifeset.clone());
+    assert!(result1.is_ok(), "Failed to connected_from function. Error is {:?}", result1.err());
+    let result2 = rp1.write().unwrap().try_connect_to(Arc::clone(&rp2), &"arg1".to_string(), manifeset.clone());
+    assert!(result2.is_ok(), "Failed to connect_to function. Error is {:?}", result2.err());
+
+    let result = rp2.read().unwrap().invoke().unwrap();
+
+    let iv = result.lock_as_value(|value| { value.as_i64().unwrap() }).unwrap();
+    assert_eq!(iv, 2);
 }
 
 #[test]
@@ -87,7 +112,8 @@ fn simple_connection_builder_invoke_test() {
     let (rp1, rp2) = setup();
 
     let manifest =jvalue!({
-        "id": "con1"
+        "id": "con1",
+        "type": "pull",
     });
 
     let result1 = connect(Arc::clone(&rp1), Arc::clone(&rp2), &"arg1".to_string(), manifest);

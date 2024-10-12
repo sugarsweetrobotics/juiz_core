@@ -3,7 +3,7 @@
 use std::sync::{Arc, Mutex};
 use futures::Future;
 
-use crate::core::core_broker::CoreBrokerPtr;
+use crate::core::CoreBrokerPtr;
 use crate::object::JuizObject;
 use crate::prelude::*;
 use crate::{object::{ObjectCore, JuizObjectClass, JuizObjectCoreHolder}, value::obj_get_str};

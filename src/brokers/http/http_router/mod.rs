@@ -225,6 +225,7 @@ pub fn json_output_wrap(result: JuizResult<CapsulePtr>) -> impl IntoResponse {
 
 #[cfg(not(feature= "opencv4"))]
 fn capsule_ptr_to_response(v: CapsulePtr) -> axum::http::Response<Body> {
+    use image::{EncodableLayout, ImageFormat};
     use reqwest::header;
 
     if v.is_value().unwrap() {
@@ -235,11 +236,20 @@ fn capsule_ptr_to_response(v: CapsulePtr) -> axum::http::Response<Body> {
             r
         }).unwrap()
     } else if v.is_image().unwrap() {
+
+        use std::io::{BufWriter, Cursor};
+        // log::trace!("Detect Image Response v={v:?}");
         v.lock_as_image(|image| {
-            (
-                axum::response::AppendHeaders([(header::CONTENT_TYPE, "image/png")]),
-                image.clone().into_bytes()
-            ).into_response()
+
+            let mut buffer = BufWriter::new(Cursor::new(Vec::new()));
+            image.write_to(&mut buffer, ImageFormat::Png).unwrap();
+
+            //let bytes = buffer.into_inner().unwrap().into_inner().as_bytes();
+            Response::builder()
+                        .extension("png")
+                        .header("Content-Type", "image/png")
+                        .status(StatusCode::OK)
+                        .body(Body::from(buffer.into_inner().unwrap().into_inner())).unwrap().into_response()
         }).unwrap()
     } else {
         Json(jvalue!({})).into_response()

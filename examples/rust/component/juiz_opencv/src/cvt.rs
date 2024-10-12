@@ -1,23 +1,24 @@
 
 
 
-use juiz_core::{anyhow, opencv::{imgproc::{cvt_color, COLOR_BGR2RGB}, prelude::*}, prelude::*};
+use juiz_core::{anyhow, prelude::*};
 
 
 fn cvt_color_function(args: CapsuleMap) -> JuizResult<Capsule> {
     println!("cvt_color_function called");
     let _mode_str = args.get("code")?;
-    let mut out_img = Mat::default();
-    args.get("src")?.lock_as_mat(|img| {
-        match cvt_color(img, &mut out_img, COLOR_BGR2RGB, 0) {
-            Ok(()) => {
-                Ok(out_img.into())
-            },
-            Err(e) => {
-                Err(anyhow::Error::from(e))
-            }
-        }
-    })?
+    todo!()
+    // let mut out_img = Mat::default();
+    // args.get("src")?.lock_as_mat(|img| {
+    //     match cvt_color(img, &mut out_img, COLOR_BGR2RGB, 0) {
+    //         Ok(()) => {
+    //             Ok(out_img.into())
+    //         },
+    //         Err(e) => {
+    //             Err(anyhow::Error::from(e))
+    //         }
+    //     }
+    // })?
 }
 
 fn manifest() -> Value{

@@ -1,12 +1,14 @@
 
 
-use juiz_core::{prelude::*, opencv::{core::Mat, prelude::*}};
+use juiz_core::{image::{DynamicImage, RgbImage}, prelude::*};
+use opencv::{core::Mat, videoio::VideoCaptureTrait};
 use crate::video_capture::CvVideoCapture;
 
 fn cv_video_capture_read_function(container: &mut ContainerImpl<CvVideoCapture>, _v: CapsuleMap) -> JuizResult<Capsule> {
-    let mut frame: Mat = Mat::default();
+    let mut frame : Mat = container.image.take().unwrap();
     container.camera.read(&mut frame)?;
-    return Ok(frame.into());
+    container.image = Some(frame);
+    return Ok(jvalue!(true).into());
 }
 
 fn manifest() -> Value {

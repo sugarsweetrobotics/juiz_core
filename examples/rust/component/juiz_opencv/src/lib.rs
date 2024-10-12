@@ -2,6 +2,8 @@
 
 mod video_capture;
 mod video_capture_read;
+mod video_capture_get;
+mod video_capture_readandget;
 mod cvt;
 mod window;
 mod imshow;
@@ -25,7 +27,16 @@ pub mod cv_camera_capture {
                     "processes": [ {
                         "type_name": "cv_video_capture_read",
                         "factory": "cv_video_capture_read_factory"
-                    }]
+                    },
+                    {
+                        "type_name": "cv_video_capture_readandget",
+                        "factory": "cv_video_capture_readandget_factory"
+                    },
+                    {
+                        "type_name": "cv_video_capture_get",
+                        "factory": "cv_video_capture_get_factory"
+                    }
+                    ]
                 },
                 {
                     "type_name": "cv_window",

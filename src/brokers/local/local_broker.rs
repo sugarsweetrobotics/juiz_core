@@ -1,7 +1,7 @@
 use std::{ops::Deref, sync::{mpsc::{self, Sender}, Arc, Mutex}, time::Duration};
 
 
-use crate::{core::core_broker::CoreBrokerPtr, prelude::*};
+use crate::{core::CoreBrokerPtr, prelude::*};
 use crate::{brokers::create_messenger_broker_factory, value::{Capsule, CapsuleMap}, utils::juiz_lock};
 use crate::brokers::{BrokerFactory, MessengerBrokerCore, MessengerBrokerCoreFactory};
 

@@ -1,6 +1,6 @@
 
 
-use juiz_core::{prelude::*, anyhow, opencv::{core::Vector, imgcodecs::*}};
+use juiz_core::{prelude::*, anyhow};
 
 use crate::filesystem::CvFilesystem;
 
@@ -10,18 +10,19 @@ fn imwrite_function(_container: &mut ContainerImpl<CvFilesystem>, args: CapsuleM
     })?;
     println!("imwrite_function(file_name={file_name:})");
 
-    args.get("src")?.lock_as_mat(|img| {
-        let params: Vector<i32> = Vector::new();
-        match imwrite(file_name.as_str(), img, &params) {
-            Ok(_) => {
-                println!("ok");
-                Ok(Capsule::empty())
-            },
-            Err(e) => {
-                println!("error: {e:?}");
-                Err(anyhow::Error::from(e))
-            }
-        }
+    args.get("src")?.lock_as_image(|img| {
+        todo!()
+        // let params: Vector<i32> = Vector::new();
+        // match imwrite(file_name.as_str(), img, &params) {
+        //     Ok(_) => {
+        //         println!("ok");
+        //         Ok(Capsule::empty())
+        //     },
+        //     Err(e) => {
+        //         println!("error: {e:?}");
+        //         Err(anyhow::Error::from(e))
+        //     }
+        // }
     })?
 }
 

@@ -1,6 +1,7 @@
 
 
-use juiz_core::{prelude::*, opencv::highgui::*};
+use juiz_core::prelude::*;
+use opencv::highgui::named_window;
 
 #[allow(dead_code)]
 #[repr(Rust)]
