@@ -5,8 +5,8 @@ use crate::object::JuizObjectClass;
 use crate::prelude::*;
 use crate::utils::check_process_factory_manifest;
 use crate::value::obj_get_str;
-use crate::{object::{JuizObjectCoreHolder, ObjectCore}, processes::{process_impl::ProcessImpl, process_ptr}};
-use crate::processes::process_impl::FunctionType;
+use crate::{object::{JuizObjectCoreHolder, ObjectCore}, processes::{process_ptr}};
+use crate::processes::FunctionType;
 
 #[repr(C)]
 pub struct ProcessFactoryImpl {

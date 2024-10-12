@@ -18,10 +18,10 @@ pub use crate::{
         Process,
         ProcessFactory, 
         ProcessFactoryPtr, 
-        // ProcessFactoryImpl, 
-        process::ProcessPtr,
-        process_impl::ProcessImpl,
-        
+        ProcessPtr,
+        ProcessImpl,
+        process_ptr,
+        ProcessProxy,
     },
     containers::{
         Container,

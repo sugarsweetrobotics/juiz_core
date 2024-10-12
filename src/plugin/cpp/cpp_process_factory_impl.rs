@@ -1,7 +1,7 @@
 
 
 use crate::prelude::*;
-use crate::{object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, processes::{process_impl::ProcessImpl, process_ptr}, utils::check_process_factory_manifest, value::obj_get_str};
+use crate::{object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, processes::process_ptr, utils::check_process_factory_manifest, value::obj_get_str};
 
 //pub type CppFunctionType = Symbol<'static, extern "C" fn(*mut CapsuleMap, *mut Capsule) -> i64>;
 //pub type PythonFunctionType = dyn Fn(CapsuleMap)->JuizResult<Capsule>;

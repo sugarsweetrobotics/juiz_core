@@ -34,7 +34,7 @@ use crate::identifier::IdentifierStruct;
 use crate::identifier::identifier_from_manifest;
 use crate::object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore};
 
-use crate::processes::process_proxy::ProcessProxy;
+use crate::processes::ProcessProxy;
 use crate::topics::TopicPtr;
 use crate::utils::{check_corebroker_manifest, get_array};
 use crate::utils::juiz_lock;

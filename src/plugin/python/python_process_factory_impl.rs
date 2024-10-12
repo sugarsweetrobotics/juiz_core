@@ -6,7 +6,7 @@ use super::python_plugin::{capsulemap_to_pytuple, get_entry_point, get_python_fu
 use crate::prelude::*;
 use crate::{
     object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore},
-    processes::{process_impl::ProcessImpl, process_ptr}, 
+    processes::process_ptr, 
     utils::check_process_factory_manifest, value::obj_get_str};
 
 //pub type PythonFunctionType = dyn Fn(CapsuleMap)->JuizResult<Capsule>;
