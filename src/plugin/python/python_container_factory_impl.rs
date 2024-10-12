@@ -3,7 +3,7 @@ use std::{fs, path::PathBuf};
 use pyo3::{prelude::*, types::PyTuple};
 
 use crate::prelude::*;
-use crate::containers::container_impl::ContainerImpl;
+use crate::containers::ContainerImpl;
 use crate::plugin::python::python_plugin::value_to_pytuple;
 use crate::{containers::container_lock, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, utils::check_process_factory_manifest, value::obj_get_str};
 

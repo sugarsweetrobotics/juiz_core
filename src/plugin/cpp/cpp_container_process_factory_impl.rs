@@ -3,7 +3,7 @@ use std::sync::{Arc, RwLock};
 
 
 use crate::prelude::*;
-use crate::{containers::container_process_impl::{container_proc_lock, ContainerProcessImpl}, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, utils::check_process_factory_manifest, value::obj_get_str};
+use crate::{containers::{container_proc_lock, ContainerProcessImpl}, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, utils::check_process_factory_manifest, value::obj_get_str};
 
 use super::cpp_container_factory_impl::CppContainerStruct;
 #[repr(C)]

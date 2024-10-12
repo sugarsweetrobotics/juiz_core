@@ -28,12 +28,10 @@ pub use crate::{
         ContainerImpl,
         ContainerFactory,
         ContainerFactoryPtr,
-        ContainerFactoryImpl,
         ContainerProcessFactory,
         ContainerProcessFactoryPtr,
-        ContainerProcessFactoryImpl,
         ContainerProcessPtr,
-        container::ContainerPtr,
+        ContainerPtr,
     },
     brokers::{
         Broker,
@@ -77,8 +75,11 @@ pub use crate::{
         JuizResult,
         JuizError,
     },
-    plugin::
+    plugin:: {
         ProcessFactoryImpl,
+        ContainerProcessFactoryImpl,
+        ContainerFactoryImpl,
+    },
     connections::connect,
     utils::juiz_lock,
     log,

@@ -4,9 +4,9 @@ use anyhow::anyhow;
 use pyo3::{prelude::*, types::PyTuple};
 
 use crate::prelude::*;
-use crate::containers::{container_impl::ContainerImpl, container_process_impl::ContainerProcessPtr};
+use crate::containers::{ContainerImpl, ContainerProcessPtr};
 use super::python_container_factory_impl::PythonContainerStruct;
-use crate::{containers::container_process_impl::{container_proc_lock, ContainerProcessImpl}, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, utils::check_process_factory_manifest, value::obj_get_str};
+use crate::{containers::{container_proc_lock, ContainerProcessImpl}, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, utils::check_process_factory_manifest, value::obj_get_str};
 use super::python_plugin::{capsulemap_to_pytuple, get_entry_point, get_python_function_signature, python_process_call};
 
 #[repr(C)]

@@ -20,7 +20,7 @@ pub type ContainerProcessPtr=Arc<RwLock<ContainerProcessImpl>>;
 #[allow(dead_code)]
 pub struct ContainerProcessImpl {
     core: ObjectCore,
-    pub(super) process: Option<ProcessImpl>,
+    pub process: Option<ProcessImpl>,
     pub container: Option<ContainerPtr>,
     container_identifier: Identifier,
     //function: ContainerFunctionType<T>,

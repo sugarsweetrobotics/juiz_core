@@ -7,15 +7,10 @@ use anyhow::Context;
 use uuid::Uuid;
 use crate::prelude::*;
 use crate::ecs::execution_context_proxy::ExecutionContextProxy;
-use crate::prelude::*;
 use crate::anyhow::anyhow;
 
-use crate::containers::container_process_impl::container_proc_lock_mut;
-use crate::containers::container_lock;
-use crate::containers::container_lock_mut;
-use crate::containers::container_process_impl::container_proc_lock;
+use crate::containers::{ContainerProxy, container_proc_lock_mut, container_lock, container_lock_mut, container_proc_lock};
 
-use crate::containers::container_proxy::ContainerProxy;
 use crate::identifier::connection_identifier_split;
 
 use crate::processes::proc_lock;
