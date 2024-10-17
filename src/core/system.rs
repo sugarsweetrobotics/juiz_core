@@ -345,7 +345,7 @@ impl System {
 
     pub fn container_list(&self, recursive: bool) -> JuizResult<Vec<Value>> {
         log::trace!("System::container_list() called");
-        let mut local_containers = self.core_broker().lock()?.worker().store().containers.list_manifests()?;
+        let mut local_containers = self.core_broker().lock()?.worker().store().containers_profile_full()?.as_object().unwrap().values().into_iter().map(|v|{v.clone()}).collect::<Vec<Value>>();
 
         if recursive {
             for (_, proxy) in self.core_broker().lock()?.worker().store().broker_proxies.objects().iter() {

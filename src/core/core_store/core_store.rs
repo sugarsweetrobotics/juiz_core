@@ -1,14 +1,16 @@
 use std::collections::HashMap;
+use std::sync::{Arc, Mutex, RwLock};
 use super::buffer_object_collection::BufferObjectCollection;
 use super::rw_object_collection::RwObjectCollection;
 use super::object_collection::ObjectCollection;
+use super::mutex_object_collection::MutexObjectCollection;
 
 use crate::topics::TopicPtr;
 use crate::{containers::ContainerProcessImpl, prelude::*, value::obj_get_str};
 use crate::ecs::{execution_context_function::ExecutionContextFunction, execution_context_holder_factory::ExecutionContextHolderFactory};
 
 
-
+use anyhow::anyhow;
 
 
 pub struct CoreStore {
@@ -17,9 +19,10 @@ pub struct CoreStore {
     pub topics: HashMap<Identifier, TopicPtr>,
 
     pub processes: Box<RwObjectCollection::<dyn Process, dyn ProcessFactory>>,
-    pub containers: Box<RwObjectCollection::<dyn Container, dyn ContainerFactory>>,
+    //pub containers: Box<RwObjectCollection::<dyn Container, dyn ContainerFactory>>,
+    pub containers: Box<ObjectCollection::<ContainerPtr, Arc<Mutex<dyn ContainerFactory>>>>,
     pub container_processes: Box<RwObjectCollection::<ContainerProcessImpl, dyn ContainerProcessFactory>>,
-    pub ecs: Box<ObjectCollection::<dyn ExecutionContextFunction, ExecutionContextHolderFactory>>,
+    pub ecs: Box<MutexObjectCollection::<dyn ExecutionContextFunction, ExecutionContextHolderFactory>>,
     pub broker_proxies: Box<BufferObjectCollection::<dyn BrokerProxy, dyn BrokerProxyFactory>>,
 }
 
@@ -32,9 +35,10 @@ impl CoreStore {
             broker_factories_manifests: HashMap::new(),
             topics: HashMap::new(),
             processes: RwObjectCollection::new("process"), 
-            containers: RwObjectCollection::new("container"), 
+            //containers: RwObjectCollection::new("container"), 
+            containers: ObjectCollection::new("container"), 
             container_processes: RwObjectCollection::new("container_process"), 
-            ecs: ObjectCollection::new("ecs"),
+            ecs: MutexObjectCollection::new("ecs"),
         }
     }
 
@@ -124,14 +128,36 @@ impl CoreStore {
         Ok(jvalue!(vec))
     }
 
+    pub fn containers_profile_full(&self) -> JuizResult<Value> {
+       self.containers.objects().iter().map(|(k, c)| {
+        c.lock()
+            .and_then(|co| { 
+                let id = co.identifier().clone();
+                Ok((id, co.profile_full()?))
+            })
+        } ).collect()
+    }
+
+    pub fn containers_id(&self) -> JuizResult<Value> {
+        self.containers.objects().iter().map(|(k, c)| {
+         c.lock().and_then(|co| { Ok(co.identifier().clone()) })
+         } ).collect()
+     }
+
+    pub fn container_factories_profile_full(&self) -> JuizResult<Value> {
+        self.containers.factories().iter().map(|(k, c)| {
+         c.lock().or_else(|e|{Err(anyhow!(JuizError::ObjectLockError{target:e.to_string()}))}).and_then(|co| { co.profile_full() })
+         } ).collect()
+     }
+
     pub fn profile_full(&self) -> JuizResult<Value> {
         let r = self.broker_proxies.list_ids()?;
         Ok(jvalue!({
             "process_factories": self.processes.factories_profile_full()?,
-            "container_factories": self.containers.factories_profile_full()?,
+            "container_factories": self.container_factories_profile_full()?,
             "container_process_factories": self.container_processes.factories_profile_full()?,
             "processes": self.processes.objects_profile_full()?,
-            "containers": self.containers.objects_profile_full()?,
+            "containers": self.containers_profile_full()?,
             "container_processes": self.container_processes.objects_profile_full()?,
             "brokers": self.brokers_profile_full()?,
             "broker_factories": self.broker_factories_profile_full()?,

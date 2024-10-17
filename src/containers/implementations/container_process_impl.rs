@@ -4,7 +4,7 @@ use anyhow::Context;
 
 use crate::prelude::*;
 use crate::processes::process_from_clousure_new_with_class_name;
-use crate::{containers::{container_lock, container_lock_mut}, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, value::{Capsule, CapsuleMap}, utils::check_process_manifest, value::{obj_get_str, obj_merge}};
+use crate::{object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, value::{Capsule, CapsuleMap}, utils::check_process_manifest, value::{obj_get_str, obj_merge}};
 
 use super::container_impl::ContainerImpl;
 //use crate::containers::container_process_impl::JuizObjectClass::ContainerProcess;
@@ -33,18 +33,22 @@ impl ContainerProcessImpl {
         log::trace!("ContainerProcessImpl::new(manifest={}) called", manif);
         //let identifier = create_identifier_from_manifest("ContainerProcess", &manif)?;
         let manifest = check_process_manifest(manif)?;
-        let container_clone = Arc::clone(&container);
-        let container_identifier = container_lock(&container)?.identifier().clone();
+        let container_clone = container.clone();
+        let container_identifier = container.lock()?.identifier().clone();
         //let f  = function.clone();
-        let proc = process_from_clousure_new_with_class_name(JuizObjectClass::ContainerProcess("ProcessImpl"), manifest.clone(), Box::new(move |args| {
-            let mut locked_container = container_lock_mut(&container)?;
-            match locked_container.downcast_mut::<ContainerImpl<T>>() {
-                None => Err(anyhow::Error::from(JuizError::ContainerDowncastingError{identifier: locked_container.identifier().clone()})),
-                Some(container_impl) => {
-                    Ok((function)(container_impl, args)?)
+        let proc = process_from_clousure_new_with_class_name(
+            JuizObjectClass::ContainerProcess("ProcessImpl"), 
+            manifest.clone(), 
+            Box::new(move |args| {
+                let mut locked_container = container.lock_mut()?;
+                match locked_container.downcast_mut::<ContainerImpl<T>>() {
+                    None => Err(anyhow::Error::from(JuizError::ContainerDowncastingError{identifier: locked_container.identifier().clone()})),
+                    Some(container_impl) => {
+                        Ok((function)(container_impl, args)?)
+                    }
                 }
-            }
-        }))?;
+            })
+        )?;
         
         let type_name = obj_get_str(&manifest, "type_name")?;
         let object_name = obj_get_str(&manifest, "name")?;

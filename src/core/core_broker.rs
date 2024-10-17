@@ -5,10 +5,9 @@ use std::sync::{Arc, Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use anyhow::Context;
 use uuid::Uuid;
+use crate::containers::container_proc_lock;
 use crate::prelude::*;
 use crate::anyhow::anyhow;
-
-use crate::containers::{container_lock, container_proc_lock};
 
 use crate::identifier::connection_identifier_split;
 
@@ -370,12 +369,12 @@ impl ProcessBrokerProxy for CoreBroker {
 
 impl ContainerBrokerProxy for CoreBroker {
     fn container_profile_full(&self, id: &Identifier) -> JuizResult<Value> {
-        container_lock(&self.worker().store().containers.get(id)?).with_context(||format!("locking container(id={id:}) in CoreBroker::container_profile_full() function"))?.profile_full()
+        self.worker().store().containers.get(id)?.clone().lock()?.profile_full()
     }
 
     fn container_list(&self, recursive: bool) -> JuizResult<Value> {
         //Ok(self.store().containers.list_ids()?.into())
-        let mut ids = self.worker().store().containers.list_ids()?;
+        let mut ids = self.worker().store().containers_id()?;
         let ids_arr = ids.as_array_mut().unwrap();
         if recursive {
             //for (_id, proxy) in self.store().broker_proxies.objects().iter() {
@@ -392,8 +391,7 @@ impl ContainerBrokerProxy for CoreBroker {
     }
     
     fn container_create(&mut self, manifest: &Value) -> JuizResult<Value> {
-        let cont = self.worker_mut().create_container_ref(manifest.clone())?;
-        container_lock(&cont.clone())?.profile_full()
+        self.worker_mut().create_container_ref(manifest.clone())?.lock()?.profile_full()
     }
     
     fn container_destroy(&mut self, identifier: &Identifier) -> JuizResult<Value> {

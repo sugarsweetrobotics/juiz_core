@@ -5,7 +5,7 @@ use pyo3::{prelude::*, types::PyTuple};
 use crate::prelude::*;
 use crate::containers::ContainerImpl;
 use crate::plugin::python::python_plugin::value_to_pytuple;
-use crate::{containers::container_lock, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, utils::check_process_factory_manifest, value::obj_get_str};
+use crate::{object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, utils::check_process_factory_manifest, value::obj_get_str};
 
 pub struct PythonContainerStruct {
     pub pyobj: Py<PyAny>
@@ -55,7 +55,7 @@ impl JuizObject for PythonContainerFactoryImpl {}
 
 impl ContainerFactory for PythonContainerFactoryImpl {
 
-    fn create_container(&self, manifest: Value) -> JuizResult<ContainerPtr>{
+    fn create_container(&self, core_worker: &mut CoreWorker, manifest: Value) -> JuizResult<ContainerPtr>{
         let type_name = self.type_name().to_owned();
         let full_path = self.fullpath.clone();
         
@@ -67,17 +67,17 @@ impl ContainerFactory for PythonContainerFactoryImpl {
             app_func.call1(py, PyTuple::new_bound(py, value_to_pytuple(py, &manifest)))
         })?;
 
-        Ok(ContainerImpl::new(
+        Ok(ContainerPtr::new(ContainerImpl::new(
                 self.apply_default_manifest(manifest.clone())?,
                 Box::new(PythonContainerStruct {
                     pyobj
                 })
-            )?)
+            )?))
     }
     
     fn destroy_container(&mut self, c: ContainerPtr) -> JuizResult<Value> {
         log::warn!("PythonContainerFactoryImpl::destroy_container() called");
-        container_lock(&c)?.profile_full()
+        c.lock()?.profile_full()
     }
     
 }

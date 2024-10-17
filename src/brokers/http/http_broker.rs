@@ -8,7 +8,7 @@ use crate::brokers::{Broker, CRUDBroker};
 use super::http_router::app_new;
 
 async fn on_start(broker_manifest: Value, crud_broker: Arc<Mutex<CRUDBroker>>) -> () {
-    log::trace!("http_broker::on_start(broker_manifest={broker_manifest:}) called");
+    // log::trace!("http_broker::on_start(broker_manifest={broker_manifest:}) called");
     let host = obj_get_str(&broker_manifest, "host").or::<&str>(Ok("0.0.0.0") ).unwrap();
     let port  = obj_get_i64(&broker_manifest, "port").or::<i64>( Ok(8080)).unwrap();
     let address = format!("{:}:{:}", host, port);

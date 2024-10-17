@@ -14,7 +14,6 @@ pub fn connection_identifier_new(source_id: Identifier, destination_id: Identifi
     "connection://".to_string() + source_id.as_str() + "|" + arg_name + "|" + destination_id.as_str()
 }
 
-
 pub fn connection_identifier_split(connection_id: Identifier) -> JuizResult<(String, String, String)> {
     //todo!("not implemented connection_identifier_split");
     let tokens = connection_id[13..].split('|').collect::<Vec<&str>>();

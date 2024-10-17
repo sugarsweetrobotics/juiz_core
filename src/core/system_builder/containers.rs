@@ -1,7 +1,7 @@
 
 
 use std::sync::Arc;
-
+use anyhow::anyhow;
 use crate::{containers::{ContainerFactoryWrapper, ContainerProcessFactoryWrapper}, core::system_builder::topics::{setup_publish_topic, setup_subscribe_topic}, plugin::JuizObjectPlugin, prelude::*, utils::{get_array, get_hashmap, when_contains_do}, value::obj_get_str};
 
 
@@ -73,7 +73,7 @@ fn setup_container(system: &System, container_manifest: &Value) -> JuizResult<()
             let cp_name = obj_get_str(container_process_manifest, "name")?;
             let cp_type_name = obj_get_str(container_process_manifest, "type_name")?;
             log::debug!(" - ContainerProcess ({:}:{:}) Creating...", cp_name, cp_type_name);
-            let cp_ref = system.core_broker().lock_mut()?.worker_mut().create_container_process_ref(Arc::clone(&container), container_process_manifest.clone())?;
+            let cp_ref = system.core_broker().lock_mut()?.worker_mut().create_container_process_ref(container.clone(), container_process_manifest.clone())?;
             log::info!(" - ContainerProcess ({:}:{:}) Created", cp_name, cp_type_name);    
             // Topicをpublishするなら
             let _reslt = obj_get_array(container_process_manifest, "publish").and_then(|pub_topics| {
@@ -111,9 +111,11 @@ pub(super) fn cleanup_containers(system: &mut System) -> JuizResult<()> {
 pub(super) fn register_container_factory(system: &System, plugin: JuizObjectPlugin, symbol_name: &str, profile: Value) -> JuizResult<ContainerFactoryPtr> {
     log::trace!("register_container_factory(symbol_name={symbol_name}, profile={profile}) called");
     let pf = plugin.load_container_factory(system.get_working_dir(), symbol_name, profile)?;
-    let result = system.core_broker().lock_mut()?.worker_mut().store_mut().containers.register_factory(ContainerFactoryWrapper::new(plugin, pf)?);
+    let type_name = pf.lock().or_else(|e|{ Err(anyhow!(JuizError::ObjectLockError{target:e.to_string()}) ) })?.type_name().to_owned();
+    let wrapper = ContainerFactoryWrapper::new(plugin, pf)?;
+    let _result = system.core_broker().lock_mut()?.worker_mut().store_mut().containers.register_factory(type_name.as_str(), wrapper.clone());
     log::trace!("register_container_factory() exit");
-    result
+    Ok(wrapper)
 }
 
 

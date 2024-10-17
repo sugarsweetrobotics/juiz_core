@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex, RwLock};
 
 use uuid::Uuid;
 
-use crate::{connections::connection_builder::connection_builder, container_lock, container_lock_mut, containers::{container_proc_lock, container_proc_lock_mut, ContainerProxy}, ecs::{execution_context_function::ExecutionContextFunction, execution_context_proxy::ExecutionContextProxy}, identifier::identifier_from_manifest, object::JuizObjectClass, prelude::*, proc_lock, topics::TopicPtr, utils::manifest_util::{construct_id, id_from_manifest, id_from_manifest_and_class_name, type_name}};
+use crate::{connections::connection_builder::connection_builder, containers::{container_proc_lock, container_proc_lock_mut, ContainerProxy}, ecs::{execution_context_function::ExecutionContextFunction, execution_context_proxy::ExecutionContextProxy}, identifier::identifier_from_manifest, object::JuizObjectClass, prelude::*, proc_lock, topics::TopicPtr, utils::manifest_util::{construct_id, id_from_manifest, id_from_manifest_and_class_name, type_name}};
 
 use super::core_store::CoreStore;
 use crate::anyhow::anyhow;
@@ -125,16 +125,17 @@ impl CoreWorker {
 
     pub fn create_container_ref(&mut self, manifest: Value) -> JuizResult<ContainerPtr> {
         log::trace!("CoreBroker::create_container(manifest={}) called", manifest);
-        let arc_pf = self.store().containers.factory(type_name(&manifest)?)?;
-        let p = juiz_lock(arc_pf)?.create_container(precreate_check(manifest)?)?;
-        self.store_mut().containers.register(p)
+        let arc_pf = self.store().containers.factory(type_name(&manifest)?)?.clone();
+        let p = juiz_lock(&arc_pf)?.create_container(self, precreate_check(manifest)?)?;
+        let id = p.lock()?.identifier().clone();
+        Ok(self.store_mut().containers.register(&id, p)?.clone())
     }
 
     pub fn destroy_container_ref(&mut self, identifier: &Identifier) -> JuizResult<Value> {
         log::trace!("CoreBroker::destroy_container_ref(identifier={}) called", identifier);
-        let cont = self.store().containers.get(identifier)?;
-        let tn = container_lock(&cont)?.type_name().to_owned();
-        let ids = container_lock_mut(&mut cont.clone())?.processes().iter().map(|cp|{
+        let cont = self.store().containers.get(identifier)?.clone();
+        let tn = cont.lock()?.type_name().to_owned();
+        let ids = cont.lock_mut()?.processes().iter().map(|cp|{
             proc_lock(cp).unwrap().identifier().clone()
         }).collect::<Vec<Identifier>>();
         for pid in ids.iter() {
@@ -144,15 +145,15 @@ impl CoreWorker {
         self.store_mut().containers.deregister_by_id(identifier)?;
         let f = self.store().containers.factory(tn.as_str())?;
         log::trace!("container_destroy({}) exit", identifier);
-        juiz_lock(f)?.destroy_container(cont)
+        juiz_lock(f)?.destroy_container(cont.clone())
     }
 
     pub fn create_container_process_ref(&mut self, container: ContainerPtr, manifest: Value) -> JuizResult<ProcessPtr> {
         log::trace!("CoreBroker::create_container_process_ref(manifest={}) called", manifest);
         let typ_name = type_name(&manifest)?;
         let arc_pf = self.store().container_processes.factory(typ_name)?;
-        let p = juiz_lock(arc_pf)?.create_container_process(Arc::clone(&container), precreate_check(manifest)?)?;
-        container_lock_mut(&container)?.register_process(p.clone())?;
+        let p = juiz_lock(arc_pf)?.create_container_process(container.clone(), precreate_check(manifest)?)?;
+        container.lock_mut()?.register_process(p.clone())?;
         Ok(self.store_mut().container_processes.register(p)?)
     }
 
@@ -160,9 +161,9 @@ impl CoreWorker {
         log::trace!("CoreBroker::destroy_container_process_ref(identifier={}) called", identifier);
         let process = self.store_mut().container_processes.deregister_by_id(identifier)?;
         let tn = container_proc_lock(&process)?.type_name().to_owned();
-        let con_id  = container_lock(container_proc_lock(&process)?.container.as_ref().unwrap())?.identifier().clone();
+        let con_id  = container_proc_lock(&process)?.container.as_ref().unwrap().lock()?.identifier().clone();
         let c = self.store().containers.get(&con_id)?;
-        container_lock_mut(&c)?.purge_process(identifier)?;
+        c.lock_mut()?.purge_process(identifier)?;
         container_proc_lock_mut(&process)?.purge()?;
         let f = self.store().container_processes.factory(tn.as_str())?;
         let v = juiz_lock(f)?.destroy_container_process(process);
@@ -174,14 +175,14 @@ impl CoreWorker {
     pub fn container_from_identifier(&mut self, id: &Identifier) -> JuizResult<ContainerPtr> {
         let s = IdentifierStruct::try_from(id.clone())?;
         if s.broker_type_name == "core" {
-            return self.store().containers.get(id)
+            return Ok(self.store().containers.get(id)?.clone())
         }
         self.container_proxy_from_identifier(id)
        
     }
 
     pub fn container_from_typename_and_name(&self, type_name: &str, name: &str) -> JuizResult<ContainerPtr> {
-        self.store().containers.get(&construct_id("Container", type_name, name, "core", "core"))
+        Ok(self.store().containers.get(&construct_id("Container", type_name, name, "core", "core"))?.clone())
     }
 
     pub fn container_from_manifest(&mut self, manifest: &Value) -> JuizResult<ContainerPtr> {
@@ -203,7 +204,7 @@ impl CoreWorker {
             return self.container_from_identifier(identifier)
         }
         let broker_proxy = self.broker_proxy(&id_struct.broker_type_name, &id_struct.broker_name, false)?;
-        Ok(ContainerProxy::new(JuizObjectClass::Container("ContainerProxy"),identifier, broker_proxy)?)
+        Ok(ContainerPtr::new(ContainerProxy::new(JuizObjectClass::Container("ContainerProxy"),identifier, broker_proxy)?))
     }
     
     pub fn container_processes_by_container(&self, _container: ContainerPtr) -> JuizResult<Vec<ProcessPtr>> {
@@ -217,8 +218,6 @@ impl CoreWorker {
     pub fn container_process_from_manifest(&self, manifest: &Value) -> JuizResult<ProcessPtr> {
         self.container_process_from_id(&id_from_manifest_and_class_name(manifest, "ContainerProcess")?)
     }
-
-
 
     pub fn any_process_from_identifier(&self, id: &Identifier) -> JuizResult<ProcessPtr> {
         self.process_from_identifier(id).or_else(|_| { self.container_process_from_id(id) })

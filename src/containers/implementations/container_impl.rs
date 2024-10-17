@@ -7,11 +7,12 @@ use crate::{object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, value::
 
 
 
-pub struct ContainerImpl<S> where S: 'static {
+pub struct ContainerImpl<S: 'static> {
     core: ObjectCore,
     manifest: Value,
     pub t: Box<S>,
     processes: HashMap<String, ProcessPtr>,
+    parent_container: Option<ContainerPtr>,
 }
 
 fn _identifier_from_manifest(manifest: &Value) -> Identifier {
@@ -22,15 +23,28 @@ fn _identifier_from_manifest(manifest: &Value) -> Identifier {
 }
 
 impl<S: 'static> ContainerImpl<S> {
-    pub fn new(manifest: Value, t: Box<S>) -> JuizResult<ContainerPtr> {
+    pub fn new(manifest: Value, t: Box<S>) -> JuizResult<Self> {
         let type_name = obj_get_str(&manifest, "type_name")?;
         let object_name = obj_get_str(&manifest, "name")?;
-        Ok(Arc::new(RwLock::new(ContainerImpl{
+        Ok(ContainerImpl{
             core: ObjectCore::create(JuizObjectClass::Container("ContainerImpl"), type_name, object_name),
             manifest, 
             t,
             processes: HashMap::new(),
-        })))
+            parent_container: None,
+        })
+    }
+
+    pub fn new_with_parent(manifest: Value, t: Box<S>, parent_container: ContainerPtr) -> JuizResult<Self> {
+        let type_name = obj_get_str(&manifest, "type_name")?;
+        let object_name = obj_get_str(&manifest, "name")?;
+        Ok(ContainerImpl{
+            core: ObjectCore::create(JuizObjectClass::Container("ContainerImpl"), type_name, object_name),
+            manifest, 
+            t,
+            processes: HashMap::new(),
+            parent_container: Some(parent_container),
+        })
     }
 }
 

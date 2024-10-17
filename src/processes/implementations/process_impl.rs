@@ -18,7 +18,7 @@ use crate::prelude::*;
 use crate::utils::{check_manifest_before_call, check_process_manifest};
 use crate::connections::{SourceConnection, SourceConnectionImpl, DestinationConnection, DestinationConnectionImpl};
 
-use crate::value::{Capsule, CapsuleMap};
+use crate::value::CapsuleMap;
 use super::inlet::Inlet;
 use super::outlet::Outlet;
 use crate::processes::{FunctionTrait, FunctionType};

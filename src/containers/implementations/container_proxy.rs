@@ -30,16 +30,16 @@ pub struct ContainerProxy {
 
 impl ContainerProxy {
 
-    pub fn new(class_name: JuizObjectClass, identifier: &Identifier, broker_proxy: Arc<Mutex<dyn BrokerProxy>>) -> JuizResult<ContainerPtr> {
+    pub fn new(class_name: JuizObjectClass, identifier: &Identifier, broker_proxy: Arc<Mutex<dyn BrokerProxy>>) -> JuizResult<Self> {
         log::trace!("ContainerProxy::new({class_name:?}, {identifier}, broker_proxy) called");
         let id_struct = IdentifierStruct::try_from(identifier.clone())?;
         let class_name_str = "container";
-        Ok(Arc::new(RwLock::new(ContainerProxy{
+        Ok(ContainerProxy{
             core: ObjectCore::new(identifier.clone(), class_name, id_struct.type_name.as_str(), id_struct.object_name.as_str(), id_struct.broker_name.as_str(), id_struct.broker_type_name.as_str()),
             broker_proxy,
             identifier: identifier.clone(),
             class_name_str: class_name_str.to_owned(),
-        })))
+        })
     }
 }
 

@@ -3,7 +3,7 @@ use std::ffi::c_void;
 
 
 use crate::prelude::*;
-use crate::{containers::container_lock, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, utils::check_process_factory_manifest, value::obj_get_str};
+use crate::{object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, utils::check_process_factory_manifest, value::obj_get_str};
 
 pub struct CppContainerStruct {
     pub cobj: *mut std::ffi::c_void
@@ -52,7 +52,7 @@ impl JuizObject for CppContainerFactoryImpl {}
 
 impl ContainerFactory for CppContainerFactoryImpl {
 
-    fn create_container(&self, mut manifest: Value) -> JuizResult<ContainerPtr>{
+    fn create_container(&self, core_worker: &mut CoreWorker, mut manifest: Value) -> JuizResult<ContainerPtr>{
         log::trace!("ContainerFactoryImpl({})::create_container(manifest={}) called", self.manifest, manifest);
         let mut pobj: *mut c_void = std::ptr::null_mut();
         unsafe {
@@ -63,17 +63,17 @@ impl ContainerFactory for CppContainerFactoryImpl {
             }
         }
         
-        Ok(ContainerImpl::new(
+        Ok(ContainerPtr::new(ContainerImpl::new(
             self.apply_default_manifest(manifest.clone())?,
             Box::new(CppContainerStruct {
                 cobj: pobj,
             })
-        )?)
+        )?))
     }
     
     fn destroy_container(&mut self, c: ContainerPtr) -> JuizResult<Value> {
         log::warn!("CppContainerFactoryImpl::destroy_container() called");
-        let prof = container_lock(&c)?.profile_full()?;
+        let prof = c.lock()?.profile_full()?;
         Ok(prof)
     }
     

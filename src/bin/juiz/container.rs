@@ -4,7 +4,7 @@ use std::path::Path;
 
 use juiz_core::prelude::*;
 use juiz_core::yaml_conf_load;
-use juiz_core::{container_lock, log};
+use juiz_core::log;
 
 
 use clap::Subcommand;
@@ -78,7 +78,7 @@ fn on_container_list(system: &mut System, _server: Option<String>, recursive: bo
 fn on_container_info(system: &mut System, id: String) -> JuizResult<()> {
     let p = system.core_broker().lock_mut()?.worker_mut().container_from_identifier(&id);
     match p {
-        Ok(ps) => println!("{:}", container_lock(&ps)?.profile_full()?),
+        Ok(ps) => println!("{:}",  ps.lock()?.profile_full()?),
         Err(e) => println!("Error: {e:?}"),
     }
     Ok(())

@@ -80,6 +80,7 @@ pub use crate::{
         ProcessFactoryImpl,
         ContainerProcessFactoryImpl,
         ContainerFactoryImpl,
+        ContainerStackFactoryImpl,
     },
     connections::connect,
     utils::juiz_lock,

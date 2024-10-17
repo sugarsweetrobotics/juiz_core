@@ -7,6 +7,7 @@ use super::manifest_description::Description;
 pub struct ContainerManifest {
     pub type_name: String,
     pub description: Description,
+    pub parent_type_name: Option<String>,
 }
 
 impl ContainerManifest {
@@ -14,6 +15,7 @@ impl ContainerManifest {
         ContainerManifest {
             type_name: type_name.to_owned(),
             description: "".into(), 
+            parent_type_name: None,
         }
     }
 
@@ -22,15 +24,30 @@ impl ContainerManifest {
         self
     }
 
+    pub fn parent(mut self, parent_type_name: &str) -> Self {
+        self.parent_type_name = Some(parent_type_name.to_owned());
+        self
+    }
 
 }
 
 
 impl Into<Value> for ContainerManifest {
     fn into(self) -> Value {
-        jvalue!({
-            "type_name": self.type_name,
-            "description": self.description.to_str(),
-        })
+        match self.parent_type_name {
+            Some(ptn) => {
+                jvalue!({
+                    "type_name": self.type_name,
+                    "description": self.description.to_str(),
+                    "parent_type_name": ptn.as_str(),
+                })
+            }
+            None => {
+                jvalue!({
+                    "type_name": self.type_name,
+                    "description": self.description.to_str(),
+                })
+            }
+        }        
     }
 }

@@ -65,7 +65,7 @@ impl<T: 'static> ContainerProcessFactory for ContainerProcessFactoryImpl<T> {
         Ok(Arc::new(RwLock::new(
             ContainerProcessImpl::new(
                 self.apply_default_manifest(manifest)?, 
-                Arc::clone(&container), 
+                container, 
                 self.function.clone()
                 //Box::new(|c, v|{ self.function(c, v) }),
             )?

@@ -68,7 +68,7 @@ impl ContainerProcessFactory for CppContainerProcessFactoryImpl {
         Ok(Arc::new(RwLock::new(
             ContainerProcessImpl::new(
                 self.apply_default_manifest(manifest)?, 
-                Arc::clone(&container), 
+                container, 
                 function)?
         )))
         
