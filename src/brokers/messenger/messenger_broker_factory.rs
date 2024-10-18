@@ -2,6 +2,7 @@
 use std::sync::{Mutex, Arc};
 use anyhow::Context;
 
+use crate::brokers::broker_ptr::BrokerPtr;
 use crate::core::CoreBrokerPtr;
 use crate::object::{ObjectCore, JuizObjectClass, JuizObjectCoreHolder};
 
@@ -42,16 +43,16 @@ impl JuizObject for MessengerBrokerFactory {}
 
 impl BrokerFactory for MessengerBrokerFactory {
 
-    fn create_broker(&self, manifest: Value) -> JuizResult<Arc<Mutex<dyn Broker>>> {
+    fn create_broker(&self, manifest: Value) -> JuizResult<BrokerPtr> {
         log::trace!("MessengerBrokerFactory::create_broker(manifest={manifest}) called");
         let object_name = obj_get_str(&manifest, "name").context("Failed when getting 'name' property from manifest in MessngerBrokerFactory::create_broker()")?;
-        Ok(MessengerBroker::new(
+        Ok(BrokerPtr::new(MessengerBroker::new(
                    self.broker_impl_class_name,
                     self.type_name(),
                     object_name,
                     self.core_broker.clone(),
                     self.core_factory.create(&manifest).context("MessengerCoreFactory::create() failed in MessngerBrokerFactory::create_broker()")?)?,
-        )
+        ))
     }
     
 }

@@ -111,24 +111,21 @@ impl CoreStore {
     }
 
     pub fn brokers_list_ids(&self) -> JuizResult<Value> {
-        let vec_value = self.brokers_manifests.values().collect::<Vec<&Value>>();
-        let vec_str = vec_value.iter().map(|pv| { obj_get_str(*pv, "identifier").unwrap().to_string() }).collect::<Vec<String>>();
-        Ok(jvalue!(vec_str))
+        self.brokers_manifests.values().into_iter().map(|pv| {
+            obj_get_str(pv, "identifier")
+        }).collect()
     }
 
     pub fn topics_list_ids(&self) -> JuizResult<Value> {
-        let vec_value = self.topics.values().into_iter().map(|topic| {
-            topic.name().to_owned()
-        } ).collect::<Vec<String>>();
-        Ok(jvalue!(vec_value))
+        Ok(self.topics.values().into_iter().map(|topic| {
+            topic.name()
+        }).collect())
     }
 
     pub fn topics_profile_full(&self) -> JuizResult<Value> {
-        let mut vec : Vec<Value> = Vec::new();
-        for topic in self.topics.values().into_iter() {
-            vec.push(topic.profile_full()?);
-        } 
-        Ok(jvalue!(vec))
+        self.topics.values().into_iter().map(|t| {
+            t.profile_full()
+        }).collect()
     }
 
     pub fn processes_profile_full(&self) -> JuizResult<Value> {

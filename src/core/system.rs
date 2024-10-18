@@ -8,6 +8,7 @@ use home::home_dir;
 
 use anyhow::{anyhow, Context};
 
+use crate::brokers::broker_ptr::BrokerPtr;
 use crate::prelude::*;
 use crate::{
     object::{JuizObject, ObjectCore, JuizObjectCoreHolder, JuizObjectClass},
@@ -160,10 +161,10 @@ impl System {
     }
 
     pub fn start_brokers(&self) -> JuizResult<()> {
-        for (type_name, broker) in self.store.lock()?.brokers.iter() {
+        self.store.lock()?.brokers.iter().map(|(type_name, broker)| {
             log::info!("starting Broker({type_name:})");
-            let _ = juiz_lock(&broker)?.start().context("Broker(type_name={type_name:}).start() in System::setup() failed.")?;
-        }
+            broker.lock_mut()?.start()
+        }).collect::<JuizResult<Vec<()>>>()?;
         Ok(())
     }
 
@@ -216,7 +217,7 @@ impl System {
 
         for (type_name, broker) in self.store.lock()?.brokers.iter() {
             log::info!("stopping Broker({type_name:})");
-            let _ = juiz_lock(&broker)?.stop()?;
+            let _ = broker.lock_mut()?.stop()?;
         }
 
         Ok(())
@@ -293,7 +294,7 @@ impl System {
         }
     }
 
-    pub fn create_broker(&mut self, manifest: &Value) -> JuizResult<Arc<Mutex<dyn Broker>>> {
+    pub fn create_broker(&mut self, manifest: &Value) -> JuizResult<BrokerPtr> {
         log::trace!("System::create_broker({manifest:}) called");
         let type_name = obj_get_str(manifest, "type_name")?;
         let bf = self.broker_factories_wrapper(type_name)?;
@@ -301,13 +302,12 @@ impl System {
         self.register_broker(b)
     }
 
-    pub(crate) fn register_broker(&mut self, broker: Arc<Mutex<dyn Broker>>) -> JuizResult<Arc<Mutex<dyn Broker>>> {
-        let type_name = juiz_lock(&broker).context("Locking broker to get type_name failed.")?.type_name().to_owned();
+    pub(crate) fn register_broker(&mut self, broker: BrokerPtr) -> JuizResult<BrokerPtr> {
+        let type_name = broker.lock()?.type_name().to_owned();
         log::trace!("System::register_broker(type_name={type_name:}) called");
-        self.store.lock_mut()?.brokers.insert(type_name.clone(), Arc::clone(&broker));
-        let p: Value  =juiz_lock(&broker).context("Locking passed broker failed.")?.profile_full().context("Broker::profile_full")?.try_into()?;
+        self.store.lock_mut()?.brokers.insert(type_name.clone(), broker.clone());
+        let p: Value  = broker.lock()?.profile_full()?.try_into()?;
         self.core_broker().lock_mut()?.worker_mut().store_mut().register_broker_manifest(type_name.as_str(), p)?;
-        
         Ok(broker)
     }
 
@@ -322,9 +322,6 @@ impl System {
         let type_name =juiz_lock(&broker_proxy).context("Locking broker to get type_name failed.")?.type_name().to_string();
         log::trace!("System::register_broker(type_name={type_name:}) called");
         self.core_broker().lock_mut()?.worker_mut().store_mut().broker_proxies.register(broker_proxy.clone())?;
-        //self.broker_proxies.insert(type_name.clone(), Arc::clone(&broker_proxy));
-        //let p: Value  =juiz_lock(&broker_proxy).context("Locking passed broker_proxy failed.")?.profile_full().context("BrokerProxy::profile_full")?.try_into()?;
-        //juiz_lock(&self.core_broker()).context("Blocking CoreBroker failed.")?.store_mut().register_broker_proxy_manifest(type_name.as_str(), p)?;
         Ok(broker_proxy)
     }
 

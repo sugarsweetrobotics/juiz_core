@@ -6,6 +6,7 @@ use uuid::Uuid;
 
 use anyhow::anyhow;
 
+use crate::brokers::broker_ptr::BrokerPtr;
 use crate::prelude::*;
 use crate::
     brokers::broker_factories_wrapper::BrokerFactoriesWrapper
@@ -17,7 +18,7 @@ use super::CoreWorker;
 #[allow(unused)]
 pub struct SystemStore {
     pub broker_factories: HashMap<String, Arc<Mutex<BrokerFactoriesWrapper>>>,
-    pub brokers: HashMap<String, Arc<Mutex<dyn Broker>>>,
+    pub brokers: HashMap<String, BrokerPtr>,
     pub broker_proxies: HashMap<String, Arc<Mutex<dyn BrokerProxy>>>,
     pub uuid: Uuid,
 }

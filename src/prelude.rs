@@ -34,6 +34,7 @@ pub use crate::{
     },
     brokers::{
         Broker,
+        BrokerPtr,
         BrokerFactory,
         BrokerProxy,
         BrokerProxyFactory,   

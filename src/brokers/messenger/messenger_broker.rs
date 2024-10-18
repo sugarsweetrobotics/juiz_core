@@ -38,9 +38,8 @@ pub trait MessengerBrokerCoreFactory {
 
 impl MessengerBroker {
 
-    pub fn new<'a>(impl_class_name: &'static str, type_name: &'a str, object_name: &'a str, core_broker: CoreBrokerPtr, messenger: Arc<Mutex<dyn MessengerBrokerCore>> ) -> JuizResult<Arc<Mutex<dyn Broker>>>{
-        Ok(Arc::new(Mutex::new(
-            MessengerBroker{
+    pub fn new<'a>(impl_class_name: &'static str, type_name: &'a str, object_name: &'a str, core_broker: CoreBrokerPtr, messenger: Arc<Mutex<dyn MessengerBrokerCore>> ) -> JuizResult<Self>{
+        Ok(MessengerBroker{
                 core: ObjectCore::create(JuizObjectClass::Broker(impl_class_name), type_name, object_name),
                 thread_handle: None,
                 messenger,
@@ -48,7 +47,7 @@ impl MessengerBroker {
                 end_flag: Arc::new(Mutex::new(AtomicBool::from(false))),
                 //tokio_runtime: Some(runtime::Builder::new_multi_thread().enable_all().build().unwrap()),
                 tokio_runtime: Some(tokio::runtime::Builder::new_multi_thread().thread_name("messenger_broker").worker_threads(4).enable_all().build().unwrap()), 
-           })))
+           })
     }
 }
 

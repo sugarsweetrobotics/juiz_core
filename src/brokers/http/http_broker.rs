@@ -1,8 +1,8 @@
 use std::{net::SocketAddr, path::PathBuf, sync::{Arc, Mutex}};
 use tokio::net::TcpListener;
 
-use crate::{core::CoreBrokerPtr, prelude::*};
-use crate::{brokers::{broker_factory::create_broker_factory_impl, BrokerFactory, CRUDBrokerHolder}, value::{obj_get_i64, obj_get_obj, obj_get_str}};
+use crate::{brokers::broker_ptr::BrokerPtr, core::CoreBrokerPtr, prelude::*};
+use crate::{brokers::{broker_factory_impl::create_broker_factory_impl, BrokerFactory, CRUDBrokerHolder}, value::{obj_get_i64, obj_get_obj, obj_get_str}};
 use crate::brokers::{Broker, CRUDBroker};
 
 use super::http_router::app_new;
@@ -39,9 +39,8 @@ async fn on_start(broker_manifest: Value, crud_broker: Arc<Mutex<CRUDBroker>>) -
 
 
 pub fn http_broker_factory(core_broker: CoreBrokerPtr) -> JuizResult<Arc<Mutex<dyn BrokerFactory>>> {
-    fn create_broker_function(core_broker: CoreBrokerPtr, manifest: Value) -> JuizResult<Arc<Mutex<dyn Broker>>> {
-
-        CRUDBrokerHolder::new("HTTPBroker", "http", core_broker, &on_start, manifest.clone())
+    fn create_broker_function(core_broker: CoreBrokerPtr, manifest: Value) -> JuizResult<BrokerPtr> {
+        Ok(BrokerPtr::new(CRUDBrokerHolder::new("HTTPBroker", "http", core_broker, &on_start, manifest.clone())?))
     }
 
     let manifest = jvalue!({

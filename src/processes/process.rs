@@ -1,22 +1,11 @@
 
-/// process.rs
-/// 
-/// 
-/// 
-use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
-use anyhow::anyhow;
 use crate::prelude::*;
 use crate::connections::{DestinationConnection, SourceConnection};
-
 use mopa::mopafy;
-
-// pub type ProcessPtr = Arc<RwLock<dyn Process>>;
-
 
 pub type FunctionType = fn(CapsuleMap) -> JuizResult<Capsule>;
 pub type FunctionTrait = dyn Fn(CapsuleMap) -> JuizResult<Capsule>;
-///
-/// 
+
 pub trait Process : Send + Sync + mopa::Any + JuizObject + 'static {
 
     fn call(&self, _args: CapsuleMap) -> JuizResult<CapsulePtr>;
@@ -66,61 +55,3 @@ pub trait Process : Send + Sync + mopa::Any + JuizObject + 'static {
 
 
 mopafy!(Process);
-
-#[derive(Clone)]
-pub struct ProcessPtr {
-    identifier: Identifier,
-    ptr: Arc<RwLock<dyn Process>>,
-}
-
-impl ProcessPtr {
-
-    pub fn new(proc: impl Process) -> Self {
-        let identifier = proc.identifier().clone();
-        ProcessPtr{
-            identifier,
-            ptr: Arc::new(RwLock::new(proc))
-        }
-    }
-
-    pub fn identifier(&self) -> &Identifier {
-        &self.identifier
-    }
-    
-    pub fn lock(&self) -> JuizResult<RwLockReadGuard<dyn Process>> {
-        self.ptr.read().or_else(|_|{ Err(anyhow!(JuizError::ObjectLockError{target:"ProcessPtr".to_owned()})) })
-    }
-
-    pub fn lock_mut(&self) -> JuizResult<RwLockWriteGuard<dyn Process>> {
-        self.ptr.write().or_else(|_|{ Err(anyhow!(JuizError::ObjectLockError{target:"ProcessPtr".to_owned()})) })
-    }
-}
-
-
-// pub fn process_ptr<T>(proc: T) -> ProcessPtr where T: Process + 'static {
-//     Arc::new(RwLock::new(proc))
-// }
-
-// pub fn process_ptr_clone(ptr: &ProcessPtr) -> ProcessPtr {
-//     Arc::clone(ptr)
-// }
-
-// pub fn proc_lock<'a>(obj: &'a ProcessPtr) -> JuizResult<RwLockReadGuard<'a, dyn Process>> {
-//     match obj.read() {
-//         Err(e) => {
-//             log::error!("juiz_lock() failed. Error is {:?}", e);
-//             Err(anyhow::Error::from(JuizError::MutexLockFailedError{error: e.to_string()}))
-//         },
-//         Ok(v) => Ok(v)
-//     }
-// }
-
-// pub fn proc_lock_mut<'b, T: Process + ?Sized>(obj: &'b Arc<RwLock<T>>) -> JuizResult<RwLockWriteGuard<'b, T>>{
-//     match obj.write() {
-//         Err(e) => {
-//             log::error!("juiz_lock() failed. Error is {:?}", e);
-//             Err(anyhow::Error::from(JuizError::MutexLockFailedError{error: e.to_string()}))
-//         },
-//         Ok(v) => Ok(v)
-//     }
-// }

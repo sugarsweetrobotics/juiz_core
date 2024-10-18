@@ -21,16 +21,16 @@ pub struct CRUDBrokerHolder<F, Fut> where F: Fn(Value, Arc<Mutex<CRUDBroker>>) -
 }
 
 impl<F, Fut> CRUDBrokerHolder<F, Fut> where F: Fn(Value, Arc<Mutex<CRUDBroker>>) -> Fut + Send + Sync + Copy + 'static, Fut: Future<Output=()>+ Send + 'static {
-    pub fn new(impl_class_name: &'static str, type_name: &'static str, core_broker: CoreBrokerPtr, on_start_function: F, manifest: Value) -> JuizResult<Arc<Mutex<dyn Broker>>> {
+    pub fn new(impl_class_name: &'static str, type_name: &'static str, core_broker: CoreBrokerPtr, on_start_function: F, manifest: Value) -> JuizResult<Self> {
         let object_name = obj_get_str(&manifest, "name")?;
-        Ok(Arc::new(Mutex::new(CRUDBrokerHolder{
+        Ok(CRUDBrokerHolder{
             core: ObjectCore::create(JuizObjectClass::Broker(impl_class_name), type_name, object_name), 
             crud_broker: Arc::new(Mutex::new(CRUDBroker::new(core_broker)?)),
             thread_handle: None,
             tokio_runtime: runtime::Builder::new_multi_thread().enable_all().build().unwrap(),
             on_start_function,
             manifest,
-        })))
+        })
     }
 }
 

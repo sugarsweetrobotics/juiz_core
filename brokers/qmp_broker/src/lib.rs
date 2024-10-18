@@ -61,8 +61,8 @@ pub async fn on_start(broker_manifest: Value, crud_broker: Arc<Mutex<CRUDBroker>
 pub unsafe extern "Rust" fn broker_factory(core_broker: CoreBrokerPtr) -> JuizResult<Arc<Mutex<dyn BrokerFactory>>> {
     juiz_core::env_logger::init();
 
-    fn create_broker_function(core_broker: CoreBrokerPtr, manifest: Value) -> JuizResult<Arc<Mutex<dyn Broker>>> {
-        CRUDBrokerHolder::new("QuinnBroker", "qmp", core_broker, &on_start, manifest.clone())
+    fn create_broker_function(core_broker: CoreBrokerPtr, manifest: Value) -> JuizResult<BrokerPtr> {
+        Ok(BrokerPtr::new(CRUDBrokerHolder::new("QuinnBroker", "qmp", core_broker, &on_start, manifest.clone())?))
     }
 
     let manifest = jvalue!({

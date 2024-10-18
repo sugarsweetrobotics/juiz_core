@@ -6,6 +6,8 @@ use crate::utils::juiz_lock;
 use std::sync::{Arc, Mutex};
 use crate::{plugin::RustPlugin, brokers::{Broker, BrokerProxy, BrokerFactory, BrokerProxyFactory}};
 
+use super::broker_ptr::BrokerPtr;
+
 #[allow(dead_code)]
 pub struct BrokerFactoriesWrapper {
     type_name: String,
@@ -40,7 +42,7 @@ impl BrokerFactoriesWrapper {
         &self.type_name.as_str()
     }
 
-    pub fn create_broker(&self, manifest: &Value) -> JuizResult<Arc<Mutex<dyn Broker>>> {
+    pub fn create_broker(&self, manifest: &Value) -> JuizResult<BrokerPtr> {
         juiz_lock(&self.broker_factory)?.create_broker(manifest.clone())
     }
 
