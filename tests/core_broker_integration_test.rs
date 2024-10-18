@@ -15,10 +15,12 @@ fn new_process_factory(cb: &mut CoreBroker) -> Arc<Mutex<dyn ProcessFactory>> {
             }, 
         }, 
     });
+    let type_name = "increment";
+    let pf = Arc::new(Mutex::new(ProcessFactoryImpl::new(manifest, common::increment_function).unwrap()));
     let result_pf = cb.worker_mut().store_mut().processes.register_factory(
-        Arc::new(Mutex::new(ProcessFactoryImpl::new(manifest, common::increment_function).unwrap())));
+        &type_name.to_owned(), pf.clone());
     assert!(result_pf.is_ok(), "register_process_factory failed. Error is {:?}", result_pf.err());
-    Arc::clone(&result_pf.ok().unwrap())
+    pf
 }
 
 fn new_core_broker() -> CoreBroker {
@@ -36,7 +38,7 @@ fn new_core_broker() -> CoreBroker {
 //#[cfg(test)]
 //#[test]
 #[allow(dead_code)]
-fn core_broker_process_factory_integration_test() {
+fn core_broker_process_factory_integration_test() -> JuizResult<()> {
     //use juiz_core::ProcessBrokerProxy;
 
     let mut cb = new_core_broker();
@@ -51,7 +53,7 @@ fn core_broker_process_factory_integration_test() {
     assert!(p_result.is_ok(), "process_create failed. Error is {:?}", p_result.err());
 
     let arc_p = p_result.ok().unwrap();
-    let p = arc_p.read().unwrap();
+    let p = arc_p.lock()?;
     
     let id = p.identifier().clone();
     
@@ -71,14 +73,14 @@ fn core_broker_process_factory_integration_test() {
             print!("Return value is {:?}", ev);
         }
     }
-
+    Ok(())
 }
 
 
 
 #[cfg(test)]
 #[test]
-fn core_broker_process_factory_integration_connection_test() {
+fn core_broker_process_factory_integration_connection_test() -> JuizResult<()> {
     //use juiz_core::brokers::broker_proxy::{ConnectionBrokerProxy, ProcessBrokerProxy};
 
     let mut cb = new_core_broker();
@@ -92,7 +94,7 @@ fn core_broker_process_factory_integration_connection_test() {
 
     let arc_p1 = p1_result.ok().unwrap();
     
-    let id1 = arc_p1.read().unwrap().identifier().clone();
+    let id1 = arc_p1.lock()?.identifier().clone();
 
     let p2_result = cb.worker_mut().create_process_ref(jvalue!({
         "name": "test_function2",
@@ -101,7 +103,7 @@ fn core_broker_process_factory_integration_connection_test() {
     assert!(p2_result.is_ok(), "process_create failed. Error is {:?}", p2_result.err());
 
     let arc_p2 = p2_result.ok().unwrap();
-    let id2 = arc_p2.read().unwrap().identifier().clone();
+    let id2 = arc_p2.lock()?.identifier().clone();
     
     //assert!(cb.is_in_charge_for_process(&id1));
     //assert!(cb.is_in_charge_for_process(&id2));
@@ -134,7 +136,7 @@ fn core_broker_process_factory_integration_connection_test() {
     let p2_result2 = cb.worker().store().processes.get(&id2);
     assert!(p2_result2.is_ok(), "Process 2 can not acquire. Error is {:?}", p2_result2.err());
     
-    let arc_out = p2_result2.ok().unwrap().read().unwrap().get_output();
+    let arc_out = p2_result2.ok().unwrap().lock()?.get_output();
     //let output = juiz_lock(&arc_out).unwrap();
     assert!(!arc_out.is_empty().unwrap(), "Error. Process2 Output is None.");
 
@@ -143,5 +145,5 @@ fn core_broker_process_factory_integration_connection_test() {
 
     let iv = arc_out.lock_as_value(|value| { value.as_i64().unwrap() }).unwrap();
     assert_eq!(iv, 3, "Error. Execution output of Process 2 is wrong.");
-
+    Ok(())
 }
