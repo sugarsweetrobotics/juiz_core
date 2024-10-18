@@ -19,7 +19,6 @@ pub use crate::{
         ProcessFactory, 
         ProcessFactoryPtr, 
         ProcessPtr,
-        process_ptr,
         ProcessProxy,
         process_new,
     },

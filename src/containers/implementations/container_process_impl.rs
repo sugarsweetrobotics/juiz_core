@@ -1,6 +1,6 @@
 use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
-use anyhow::Context;
+use anyhow::{anyhow, Context};
 
 use crate::prelude::*;
 use crate::processes::process_from_clousure_new_with_class_name;
@@ -16,7 +16,7 @@ pub type ContainerFunctionTrait<T>=dyn Fn(&mut ContainerImpl<T>, CapsuleMap) -> 
 //pub type ContainerFunctionType<T>=fn (&mut ContainerImpl<T>, CapsuleMap) -> JuizResult<Capsule>;
 pub type ContainerFunctionType<T>= Arc<ContainerFunctionTrait<T>>;
 
-pub type ContainerProcessPtr=Arc<RwLock<ContainerProcessImpl>>;
+///pub type ContainerProcessPtr=Arc<RwLock<ContainerProcessImpl>>;
 
 #[allow(dead_code)]
 pub struct ContainerProcessImpl {
@@ -25,6 +25,26 @@ pub struct ContainerProcessImpl {
     pub container: Option<ContainerPtr>,
     container_identifier: Identifier,
     //function: ContainerFunctionType<T>,
+}
+
+pub struct ContainerProcessPtr {
+    ptr: Arc<RwLock<ContainerProcessImpl>>,
+}
+
+impl ContainerProcessPtr { 
+    pub fn new(proc: ContainerProcessImpl) -> Self {
+        Self{
+            ptr: Arc::new(RwLock::new(proc))
+        }
+    }
+    
+    pub fn lock(&self) -> JuizResult<RwLockReadGuard<ContainerProcessImpl>> {
+        self.ptr.read().or_else(|_|{ Err(anyhow!(JuizError::ObjectLockError{target:"ProcessPtr".to_owned()})) })
+    }
+
+    pub fn lock_mut(&self) -> JuizResult<RwLockWriteGuard<ContainerProcessImpl>> {
+        self.ptr.write().or_else(|_|{ Err(anyhow!(JuizError::ObjectLockError{target:"ProcessPtr".to_owned()})) })
+    }
 }
 
 impl ContainerProcessImpl {
@@ -168,29 +188,29 @@ unsafe impl Send for ContainerProcessImpl {
 unsafe impl Sync for ContainerProcessImpl {
 }
 
-impl Drop for ContainerProcessImpl{
-    fn drop(&mut self) {
-        log::info!("ContainerProcessImpl({})::drop() called", self.identifier());
-        log::trace!("ContainerProcessImpl({})::drop()e exit", self.identifier());
-    }
-}
+// impl Drop for ContainerProcessImpl{
+//     fn drop(&mut self) {
+//         log::info!("ContainerProcessImpl({})::drop() called", self.identifier());
+//         log::trace!("ContainerProcessImpl({})::drop()e exit", self.identifier());
+//     }
+// }
 
-pub fn container_proc_lock<'a>(obj: &'a ContainerProcessPtr) -> JuizResult<RwLockReadGuard<'a, ContainerProcessImpl>> {
-    match obj.read() {
-        Err(e) => {
-            log::error!("juiz_lock() failed. Error is {:?}", e);
-            Err(anyhow::Error::from(JuizError::MutexLockFailedError{error: e.to_string()}))
-        },
-        Ok(v) => Ok(v)
-    }
-}
+// pub fn container_proc_lock<'a>(obj: &'a ContainerProcessPtr) -> JuizResult<RwLockReadGuard<'a, ContainerProcessImpl>> {
+//     match obj.read() {
+//         Err(e) => {
+//             log::error!("juiz_lock() failed. Error is {:?}", e);
+//             Err(anyhow::Error::from(JuizError::MutexLockFailedError{error: e.to_string()}))
+//         },
+//         Ok(v) => Ok(v)
+//     }
+// }
 
-pub fn container_proc_lock_mut(obj: &Arc<RwLock<ContainerProcessImpl>>) -> JuizResult<RwLockWriteGuard<ContainerProcessImpl>>{
-    match obj.write() {
-        Err(e) => {
-            log::error!("juiz_lock() failed. Error is {:?}", e);
-            Err(anyhow::Error::from(JuizError::MutexLockFailedError{error: e.to_string()}))
-        },
-        Ok(v) => Ok(v)
-    }
-}
+// pub fn container_proc_lock_mut(obj: &Arc<RwLock<ContainerProcessImpl>>) -> JuizResult<RwLockWriteGuard<ContainerProcessImpl>>{
+//     match obj.write() {
+//         Err(e) => {
+//             log::error!("juiz_lock() failed. Error is {:?}", e);
+//             Err(anyhow::Error::from(JuizError::MutexLockFailedError{error: e.to_string()}))
+//         },
+//         Ok(v) => Ok(v)
+//     }
+// }

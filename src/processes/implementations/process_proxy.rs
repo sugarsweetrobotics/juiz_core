@@ -3,7 +3,7 @@
 use std::sync::{Arc, Mutex, RwLock};
 
 use crate::prelude::*;
-use crate::{identifier::*, object::*, brokers::BrokerProxy, utils::juiz_lock, value::*, processes::proc_lock};
+use crate::{identifier::*, object::*, brokers::BrokerProxy, utils::juiz_lock, value::*};
 
 #[allow(unused)]
 pub struct ProcessProxy {
@@ -24,12 +24,12 @@ impl ProcessProxy {
             _ => {Err(anyhow::Error::from(JuizError::ProcessProxyCanNotAcceptClassError{class_name: class_name.as_str().to_string()}))}
         }?;
         log::trace!("id_struct: {id_struct:?}");
-        Ok(Arc::new(RwLock::new(ProcessProxy{
+        Ok(ProcessPtr::new(ProcessProxy{
             core: ObjectCore::new(identifier.clone(), class_name, id_struct.type_name.as_str(), id_struct.object_name.as_str(), id_struct.broker_name.as_str(), id_struct.broker_type_name.as_str()),
             broker_proxy,
             identifier: identifier.clone(),
             class_name_str: class_name_str.to_string(),
-        })))
+        }))
     }
 }
 
@@ -84,16 +84,12 @@ impl Process for ProcessProxy {
 
     fn notify_connected_from<'b>(&'b mut self, source: ProcessPtr, arg_name: &str, manifest: Value) -> JuizResult<Value> {
         log::trace!("ProcessProxy::notify_connected_from() called");
-        let source_process_id = proc_lock(&source)?.identifier().clone();
-        let destination_process_id = self.identifier();
-        juiz_lock(&self.broker_proxy)?.process_notify_connected_from(&source_process_id, arg_name, destination_process_id, manifest)
+        juiz_lock(&self.broker_proxy)?.process_notify_connected_from(source.identifier(), arg_name, self.identifier(), manifest)
     }
 
     fn try_connect_to(&mut self, destination: ProcessPtr, arg_name: &str,manifest: Value) -> JuizResult<Value> {
         log::trace!("ProcessProxy::try_connect_to() called");
-        let source_process_id = self.identifier();
-        let destination_process_id = proc_lock(&destination)?.identifier().clone();
-        juiz_lock(&self.broker_proxy)?.process_try_connect_to(source_process_id, arg_name, &destination_process_id, manifest)
+        juiz_lock(&self.broker_proxy)?.process_try_connect_to(self.identifier(), arg_name, destination.identifier(), manifest)
     }
 
     fn source_connections(&self) -> JuizResult<Vec<&Box<dyn crate::connections::SourceConnection>>> {

@@ -5,7 +5,6 @@ use std::sync::{Mutex, Arc, atomic::AtomicI64};
 
 
 use crate::prelude::*;
-use crate::processes::proc_lock;
 
 
 pub enum ExecutionContextState {
@@ -65,7 +64,7 @@ impl ExecutionContextCore {
     pub fn unbind(&mut self, target_process_id: Identifier) -> JuizResult<()> {
         let mut remove_index: Option<usize> = None;
         for (i, p) in self.target_processes.iter().enumerate() {
-            if target_process_id == *proc_lock(p)?.identifier() {
+            if target_process_id == *p.identifier() {
                 remove_index = Some(i);
             }
         }
@@ -84,20 +83,14 @@ impl ExecutionContextCore {
     /// 実行コンテキストの周期処理のコア部分。この中でターゲットプロセスすべてのexecuteを呼ぶ。
     pub fn svc(&self) -> JuizResult<Value> {
         for tp in self.target_processes.iter() {
-            let _ = proc_lock(tp)?.execute()?;
+            let _ = tp.lock()?.execute()?;
         }
         Ok(jvalue!({}))
     }
 
     pub fn profile(&self) -> JuizResult<Value> {
-        let id_list = self.target_processes.iter().map(|tp| -> Identifier {
-            match proc_lock(tp) {
-                Ok(p) => p.identifier().clone(),
-                Err(_e) => "Error {e:?}".to_owned()
-            }
-        });
         Ok(jvalue!({
-            "targets": id_list.collect::<Vec<String>>(),
+            "targets": self.target_processes.iter().map(|tp| { Ok(tp.identifier().clone()) }).collect::<JuizResult<Vec<String>>>()?,
             "state": ExecutionContextState::from(self.state.load(std::sync::atomic::Ordering::SeqCst)).to_string()
         }))
     }

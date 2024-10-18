@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use anyhow::Context;
 
-use crate::{ecs::{execution_context_function::ExecutionContextFunction, execution_context_holder_factory::ExecutionContextHolderFactory, ExecutionContextFactory}, plugin::{concat_dirname, plugin_name_to_file_name, RustPlugin}, prelude::*, processes::proc_lock, utils::{get_array, get_hashmap}, value::{obj_get, obj_get_str}};
+use crate::{ecs::{execution_context_function::ExecutionContextFunction, execution_context_holder_factory::ExecutionContextHolderFactory, ExecutionContextFactory}, plugin::{concat_dirname, plugin_name_to_file_name, RustPlugin}, prelude::*, utils::{get_array, get_hashmap}, value::{obj_get, obj_get_str}};
 
 pub(super) fn setup_execution_context_factories(system: &System, manifest: &serde_json::Value) -> JuizResult<()> {
     log::trace!("system_builder::setup_execution_context_factories() called");
@@ -73,7 +73,7 @@ fn setup_ec_bind(system: &System, ec: Arc<Mutex<dyn ExecutionContextFunction>>, 
     let ec_id = juiz_lock(&ec)?.identifier().clone();
     log::trace!("system_builder::setup_ec_bind(ec={:}) called", ec_id);
     let target_process = system.core_broker().lock_mut()?.worker_mut().any_process_from_manifest(bind_info)?;
-    let proc_id = proc_lock(&target_process)?.identifier().clone();
+    let proc_id = target_process.identifier().clone();
     log::trace!("EC({:}) -> Process({:})", ec_id, proc_id);
     let ret = juiz_lock(&ec)?.bind(target_process);
     log::info!("EC({:}) -> Process({:}) Bound", ec_id, proc_id);

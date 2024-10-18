@@ -6,7 +6,7 @@ pub mod connection_builder {
     use std::collections::HashMap;
     use anyhow::{anyhow, Context};
 
-    use crate::{processes::{proc_lock, proc_lock_mut}, utils::{get_str, get_value}};
+    use crate::{utils::{get_str, get_value}};
 
     ///
     pub fn create_connection(system: &System, manifest: &Value) -> JuizResult<Value> {
@@ -28,7 +28,7 @@ pub mod connection_builder {
     
     pub fn connect(src: ProcessPtr, dst: ProcessPtr, arg_name: &String, manifest: Value) -> JuizResult<Value> {
         log::debug!("connection_builder::connect({manifest}) called");
-        let src_manifest = match proc_lock_mut(&src)?.try_connect_to(dst.clone(), arg_name, manifest) {
+        let src_manifest = match src.lock_mut()?.try_connect_to(dst.clone(), arg_name, manifest) {
             Ok(manif) => {
                 log::trace!("source_connection, connected!");
                 Ok(manif)
@@ -38,7 +38,7 @@ pub mod connection_builder {
                 Err(anyhow!(e))
             }
         }?;
-        match proc_lock_mut(&dst)?.notify_connected_from(src, arg_name, src_manifest) {
+        match dst.lock_mut()?.notify_connected_from(src, arg_name, src_manifest) {
             Ok(result) => {
                 log::trace!("destination_connection, connected!");
                 Ok(result)
@@ -52,11 +52,11 @@ pub mod connection_builder {
 
     pub fn list_connection_profiles(core_broker: &CoreBroker) -> JuizResult<Vec<Value>> {
         let mut value_map: HashMap<String, Value> = HashMap::new();
-        for p in core_broker.worker().store().processes.objects().into_iter() {
-            for sc in proc_lock(p)?.source_connections()? {
+        for (k, p) in core_broker.worker().store().processes.objects().into_iter() {
+            for sc in p.lock()?.source_connections()? {
                 value_map.insert(sc.identifier().clone(), sc.profile_full()?.try_into()?);
             }
-            for dc in proc_lock(p)?.destination_connections()? {
+            for dc in p.lock()?.destination_connections()? {
                 value_map.insert(dc.identifier().clone(), dc.profile_full()?.try_into()?);
             }
         }

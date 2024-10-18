@@ -10,7 +10,6 @@ use serde_json::Map;
 use crate::identifier::{identifier_from_manifest, create_identifier_from_manifest};
 use crate::object::{JuizObjectCoreHolder, ObjectCore, JuizObjectClass};
 
-use crate::processes::proc_lock;
 use crate::value::{obj_get_bool, obj_get_obj, obj_get_str, obj_merge_mut};
 
 use crate::prelude::*;
@@ -228,7 +227,7 @@ impl Process for ProcessImpl {
 
     fn try_connect_to(&mut self, destination: ProcessPtr, arg_name: &str, connection_manifest: Value) -> JuizResult<Value> {
         log::trace!("ProcessImpl(id={:?}).try_connect_to(destination=Process()) called", self.identifier());
-        let destination_id = proc_lock(&destination).context("ProcessImpl::try_connect_to()")?.identifier().clone();
+        let destination_id = destination.identifier().clone();
         self.outlet.insert(
             arg_name.to_owned(), 
             Box::new(DestinationConnectionImpl::new(

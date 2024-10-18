@@ -77,7 +77,9 @@ pub(super) fn cleanup_processes(system: &mut System) -> JuizResult<()> {
 pub(super) fn register_process_factory(system: &System, plugin: JuizObjectPlugin, symbol_name: &str) -> JuizResult<ProcessFactoryPtr> {
     log::trace!("register_process_factory() called");
     let pf = plugin.load_process_factory(system.get_working_dir(), symbol_name)?;
-    let result =system.core_broker().lock_mut()?.worker_mut().store_mut().processes.register_factory(ProcessFactoryWrapper::new(plugin, pf)?);
+    let type_name = pf.lock().or_else(|e| { Err(JuizError::ObjectLockError { target: e.to_string() })})?.type_name().to_owned();
+    let pfw = ProcessFactoryWrapper::new(plugin, pf)?;
+    system.core_broker().lock_mut()?.worker_mut().store_mut().processes.register_factory(type_name.as_str(), pfw.clone())?;
     log::trace!("register_process_factory() exit");
-    result
+    Ok(pfw)
 }

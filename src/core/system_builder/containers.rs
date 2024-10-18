@@ -1,6 +1,6 @@
 
 
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use anyhow::anyhow;
 use crate::{containers::{ContainerFactoryWrapper, ContainerProcessFactoryWrapper}, core::system_builder::topics::{setup_publish_topic, setup_subscribe_topic}, plugin::JuizObjectPlugin, prelude::*, utils::{get_array, get_hashmap, when_contains_do}, value::obj_get_str};
 
@@ -122,9 +122,11 @@ pub(super) fn register_container_factory(system: &System, plugin: JuizObjectPlug
 pub(super) fn register_container_process_factory(system: &System, plugin: JuizObjectPlugin, symbol_name: &str, profile: &Value) -> JuizResult<ContainerProcessFactoryPtr> {
     log::trace!("register_container_process_factory(symbol_name={symbol_name}, profile={profile:}) called");
     let cpf = plugin.load_container_process_factory(system.get_working_dir(), symbol_name, profile)?;
-    let result = system.core_broker().lock_mut()?.worker_mut().store_mut().container_processes.register_factory(ContainerProcessFactoryWrapper::new(plugin, cpf)?);
+    let type_name = cpf.lock().or_else(|e| { Err(anyhow!(JuizError::ObjectLockError { target: e.to_string() }))})?.type_name().to_owned();
+    let pfw = ContainerProcessFactoryWrapper::new(plugin, cpf )?;
+    system.core_broker().lock_mut()?.worker_mut().store_mut().container_processes.register_factory(type_name.as_str(), pfw.clone())?;
     log::trace!("register_container_process_factory() exit");
-    result
+    Ok(pfw)
 }
 
 

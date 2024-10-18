@@ -55,8 +55,8 @@ impl ProcessFactory for ProcessFactoryWrapper {
     fn create_process(&self, manifest: Value) -> JuizResult<ProcessPtr> {
         log::trace!("ProcessFactoryWrapper::create_process(manifest={}) called", manifest);
         let p = juiz_lock(&self.process_factory).with_context(||format!("ProcessFactoryWrapper::create_process(manifest:{manifest:}) failed."))?.create_process(manifest)?;
-        self.processes.borrow_mut().push(Arc::clone(&p));
-        Ok(Arc::clone(&p))
+        self.processes.borrow_mut().push(p.clone());
+        Ok(p)
     }
 
 

@@ -2,7 +2,7 @@ use std::sync::{Arc, RwLock};
 
 use uuid::Uuid;
 
-use crate::{anyhow::anyhow, core::SubSystemProxy, object::JuizObjectClass, prelude::*, proc_lock, processes::process_from_clousure_new_with_class_name};
+use crate::{anyhow::anyhow, core::SubSystemProxy, object::JuizObjectClass, prelude::*, processes::process_from_clousure_new_with_class_name};
 pub type TopicName = String;
 
 #[derive(Clone)]
@@ -31,7 +31,7 @@ pub struct TopicPtr {
     name: String,
     system_uuid: Uuid,
     topic: Arc<RwLock<Topic>>,
-    ptr: Arc<RwLock<dyn Process>>,
+    ptr: ProcessPtr,
 }
 
 
@@ -114,9 +114,9 @@ impl TopicPtr {
             name: name.to_owned(),
             system_uuid,
             topic,
-            ptr: Arc::new(RwLock::new(
+            ptr: ProcessPtr::new(
                 //ProcessImpl::clousure_new_with_class_name(JuizObjectClass::Topic("Topic"), manifest, Box::new(topic_func)).unwrap()))
-                process_from_clousure_new_with_class_name(JuizObjectClass::Topic("Topic"), manifest, Box::new(topic_func)).unwrap()))
+                process_from_clousure_new_with_class_name(JuizObjectClass::Topic("Topic"), manifest, Box::new(topic_func)).unwrap())
  
         }
     }
@@ -130,23 +130,22 @@ impl TopicPtr {
     }
 
     pub fn profile_full(&self) -> JuizResult<Value> {
-        self.ptr.read().or_else(|_|{Err(anyhow!(JuizError::ObjectLockError { target: "TopicPtr".to_owned() }))})
-            .and_then(|p| { p.profile_full() })
+        self.ptr.lock()?.profile_full()
     }
 
     pub fn push(&self, capsule: CapsulePtr, pushed_system_uuid: Option<Uuid>) -> JuizResult<()> {
         log::trace!("push(uuid={pushed_system_uuid:?}) called");
-        let r = proc_lock(&self.ptr)?.push_by("input", capsule).and_then(|_|{Ok(())});
+        let r = self.ptr.lock()?.push_by("input", capsule).and_then(|_|{Ok(())});
         log::trace!("push(uuid={pushed_system_uuid:?}) exit");
         r
     }
 
     pub fn num_local_publishers(&self) -> JuizResult<usize> {
-        Ok(proc_lock(&self.ptr)?.source_connections()?.len())
+        Ok(self.ptr.lock()?.source_connections()?.len())
     }
 
     pub fn num_local_subscribers(&self) -> JuizResult<usize> {
-        Ok(proc_lock(&self.ptr)?.destination_connections()?.len())
+        Ok(self.ptr.lock()?.destination_connections()?.len())
     }
 
     pub fn register_subscriber_subsystem(&self, subsystem_proxy: SubSystemProxy) -> JuizResult<()> {

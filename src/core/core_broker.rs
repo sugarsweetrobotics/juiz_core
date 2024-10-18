@@ -5,14 +5,10 @@ use std::sync::{Arc, Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use anyhow::Context;
 use uuid::Uuid;
-use crate::containers::container_proc_lock;
 use crate::prelude::*;
 use crate::anyhow::anyhow;
 
 use crate::identifier::connection_identifier_split;
-
-use crate::processes::proc_lock;
-use crate::processes::proc_lock_mut;
 
 use crate::brokers::BrokerProxy;
 use crate::brokers::broker_proxy::{
@@ -288,9 +284,9 @@ impl ProcessBrokerProxy for CoreBroker {
     fn process_call(&self, id: &Identifier, args: CapsuleMap) -> JuizResult<CapsulePtr> {
         let idstruct = IdentifierStruct::try_from(id.clone())?;
         if idstruct.broker_type_name == "core" {
-            proc_lock(&self.worker().store().processes.get(id)?)?.call(args)
+            self.worker().store().processes.get(id)?.lock()?.call(args)
         } else {
-            proc_lock(&self.worker().process_proxy_from_identifier(id)?)?.call(args)
+            self.worker().process_proxy_from_identifier(id)?.lock()?.call(args)
         }
     }
 
@@ -298,23 +294,23 @@ impl ProcessBrokerProxy for CoreBroker {
         log::trace!("CoreBroker::process_execute({id:}) called");
         let idstruct = IdentifierStruct::try_from(id.clone())?;
         if idstruct.broker_type_name == "core" {
-            proc_lock(&self.worker().store().processes.get(id)?)?.execute()
+            self.worker().store().processes.get(id)?.lock()?.execute()
         } else {
-            proc_lock(&self.worker().process_proxy_from_identifier(id)?)?.execute()
+            self.worker().process_proxy_from_identifier(id)?.lock()?.execute()
         }
     }
 
     fn process_profile_full(&self, id: &Identifier) -> JuizResult<Value> {
-        Ok(proc_lock(&self.worker().store().processes.get(id)?).with_context(||format!("locking process(id={id:}) in CoreBroker::process_profile_full() function"))?.profile_full()?.into())
+        Ok(self.worker().store().processes.get(id)?.lock()?.profile_full()?.into())
     }
 
     fn process_list(&self, recursive: bool) -> JuizResult<Value> {
         log::trace!("process_list({recursive}) called");
         if !recursive {
-            return self.worker().store().processes.list_ids();
+            return self.worker().store().processes_id();
         } 
 
-        let mut ids = self.worker().store().processes.list_ids()?;
+        let mut ids = self.worker().store().processes_id()?;
         match ids.as_array_mut() {
             Some(ids_arr) => {
                 for ssp in self.subsystem_proxies.iter() {
@@ -334,27 +330,25 @@ impl ProcessBrokerProxy for CoreBroker {
 
     fn process_try_connect_to(&mut self, source_process_id: &Identifier, arg_name: &str, destination_process_id: &Identifier, manifest: Value) -> JuizResult<Value> {
         let destination_process = self.worker_mut().any_process_proxy_from_identifier(destination_process_id)?;
-        proc_lock_mut(&self.worker_mut().any_process_proxy_from_identifier(source_process_id)?)?.try_connect_to(destination_process, arg_name, manifest)
+        self.worker_mut().any_process_proxy_from_identifier(source_process_id)?.lock_mut()?.try_connect_to(destination_process, arg_name, manifest)
     }
 
     fn process_notify_connected_from(&mut self, source_process_id: &Identifier, arg_name: &str, destination_process_id: &Identifier, manifest: Value) -> JuizResult<Value> {
         let source_process = self.worker_mut().any_process_proxy_from_identifier(source_process_id)?;//self.store().processes.get(source_process_id)?;
-        proc_lock_mut(&self.worker_mut().any_process_proxy_from_identifier(destination_process_id)?)?.notify_connected_from(source_process, arg_name, manifest)
+        self.worker_mut().any_process_proxy_from_identifier(destination_process_id)?.lock_mut()?.notify_connected_from(source_process, arg_name, manifest)
      }
      
     fn process_bind(&mut self, id: &Identifier, arg_name: &str, value: CapsulePtr) -> JuizResult<CapsulePtr> {
-        Ok(proc_lock_mut(&self.worker().store().processes.get(id)?).with_context(||format!("locking process(id={id:}) in CoreBroker::bind() function"))?.bind(arg_name, value)?.into())
+        Ok(self.worker().store().processes.get(id)?.lock_mut()?.bind(arg_name, value)?.into())
     }
     
     fn process_create(&mut self, manifest: &Value) -> JuizResult<Value> {
-        let proc = self.worker_mut().create_process_ref(manifest.clone())?;
-        proc_lock(&proc.clone())?.profile_full()
+        self.worker_mut().create_process_ref(manifest.clone())?.lock()?.profile_full()
     }
     
     fn process_destroy(&mut self, identifier: &Identifier) -> JuizResult<Value> {
         log::trace!("process_destroy({}) called", identifier);
-        let proc = self.worker_mut().destroy_process_ref(identifier)?;
-        match proc_lock_mut(&proc.clone()) {
+        match self.worker_mut().destroy_process_ref(identifier)?.lock_mut() {
             Ok(mut p) => {
                 let prof = p.profile_full()?;
                 p.purge()?;
@@ -402,11 +396,11 @@ impl ContainerBrokerProxy for CoreBroker {
 
 impl ContainerProcessBrokerProxy for CoreBroker {
     fn container_process_profile_full(&self, id: &Identifier) -> JuizResult<Value> {
-        proc_lock(&self.worker().store().container_processes.get(id)?).with_context(||format!("locking container_procss(id={id:}) in CoreBroker::container_process_profile_full() function"))?.profile_full()
+        self.worker().store().container_processes.get(id)?.lock().with_context(||format!("locking container_procss(id={id:}) in CoreBroker::container_process_profile_full() function"))?.profile_full()
     }
 
     fn container_process_list(&self, recursive: bool) -> JuizResult<Value> {
-        let mut ids = self.worker().store().container_processes.list_ids()?;
+        let mut ids = self.worker().store().container_processes_id()?;
         let ids_arr = ids.as_array_mut().unwrap();
         if recursive {
             for ssp in self.subsystem_proxies.iter() {
@@ -426,25 +420,24 @@ impl ContainerProcessBrokerProxy for CoreBroker {
         log::trace!("CoreBroker::container_process_call(id={id:}, args) called");
         let idstruct = IdentifierStruct::try_from(id.clone())?;
         if idstruct.broker_type_name == "core" {
-            proc_lock(&self.worker().store().container_processes.get(id)?)?.call(args)
+            self.worker().store().container_processes.get(id)?.lock()?.call(args)
         } else {
-            proc_lock(&self.worker().process_proxy_from_identifier(id)?)?.call(args)
+            self.worker().process_proxy_from_identifier(id)?.lock()?.call(args)
         }
     }
 
     fn container_process_execute(&self, id: &Identifier) -> JuizResult<CapsulePtr> {
         let idstruct = IdentifierStruct::try_from(id.clone())?;
         if idstruct.broker_type_name == "core" {
-            proc_lock(&self.worker().store().container_processes.get(id)?).with_context(||format!("locking process(id={id:}) in CoreBroker::execute_process() function"))?.execute()
+            self.worker().store().container_processes.get(id)?.lock().with_context(||format!("locking process(id={id:}) in CoreBroker::execute_process() function"))?.execute()
         } else {
-            proc_lock(&self.worker().process_proxy_from_identifier(id)?)?.execute()
+            self.worker().process_proxy_from_identifier(id)?.lock()?.execute()
         }
     }
  
     fn container_process_create(&mut self, container_id: &Identifier, manifest: &Value) -> JuizResult<Value> {
         let container = self.worker_mut().container_from_identifier(container_id)?;
-        let cp = self.worker_mut().create_container_process_ref(container, manifest.clone())?;
-        proc_lock(&cp.clone())?.profile_full()
+        self.worker_mut().create_container_process_ref(container, manifest.clone())?.lock()?.profile_full()
     }
     
     fn container_process_destroy(&mut self, identifier: &Identifier) -> JuizResult<Value> {
@@ -696,7 +689,7 @@ impl ConnectionBrokerProxy for CoreBroker {
         // println!("source_id: {:}", source_id);
         let result_src_proc = self.worker().store().processes.get(&source_id);
         if result_src_proc.is_ok() {
-            for src_con in proc_lock(&(result_src_proc.unwrap()))?.source_connections()?.into_iter() {
+            for src_con in result_src_proc.unwrap().lock()?.source_connections()?.into_iter() {
                 if src_con.identifier().eq(id) {
                     return src_con.profile_full()
                 }
@@ -707,7 +700,7 @@ impl ConnectionBrokerProxy for CoreBroker {
         let result_src_con_proc = self.worker().store().container_processes.get(&source_id);
         if result_src_con_proc.is_ok() {
             //let destination_proc = juiz_lock(&self.store().processes.get(&destination_id)?).with_context(||format!("locking process(id={id:}) in CoreBroker::process_profile_full() function"))?;
-            for dst_con in container_proc_lock(&(result_src_con_proc.unwrap()))?.destination_connections()?.into_iter() {
+            for dst_con in result_src_con_proc.unwrap().lock()?.destination_connections()?.into_iter() {
                 // println!("con: {:}", dst_con.identifier());
                 if dst_con.identifier().eq(id) {
                     return dst_con.profile_full()

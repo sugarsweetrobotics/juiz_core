@@ -25,15 +25,22 @@ mopafy!(Container);
 
 #[derive(Clone)]
 pub struct ContainerPtr {
+    identifier: Identifier,
     ptr: Arc<RwLock<dyn Container>>,
 }
 
 impl ContainerPtr {
 
     pub fn new(container: impl Container) -> Self {
+        let identifier = container.identifier().clone();
         ContainerPtr{
+            identifier,
             ptr: Arc::new(RwLock::new(container))
         }
+    }
+
+    pub fn identifier(&self) -> &Identifier {
+        &self.identifier
     }
     
     pub fn lock(&self) -> JuizResult<RwLockReadGuard<dyn Container>> {

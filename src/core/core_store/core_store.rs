@@ -18,10 +18,12 @@ pub struct CoreStore {
     brokers_manifests: HashMap<Identifier, Value>,
     pub topics: HashMap<Identifier, TopicPtr>,
 
-    pub processes: Box<RwObjectCollection::<dyn Process, dyn ProcessFactory>>,
+    //pub processes: Box<RwObjectCollection::<dyn Process, dyn ProcessFactory>>,
+    pub processes: Box<ObjectCollection::<ProcessPtr, Arc<Mutex<dyn ProcessFactory>>>>,
     //pub containers: Box<RwObjectCollection::<dyn Container, dyn ContainerFactory>>,
     pub containers: Box<ObjectCollection::<ContainerPtr, Arc<Mutex<dyn ContainerFactory>>>>,
-    pub container_processes: Box<RwObjectCollection::<ContainerProcessImpl, dyn ContainerProcessFactory>>,
+    //pub container_processes: Box<RwObjectCollection::<ContainerProcessImpl, dyn ContainerProcessFactory>>,
+    pub container_processes: Box<ObjectCollection::<ProcessPtr, Arc<Mutex<dyn ContainerProcessFactory>>>>,
     pub ecs: Box<MutexObjectCollection::<dyn ExecutionContextFunction, ExecutionContextHolderFactory>>,
     pub broker_proxies: Box<BufferObjectCollection::<dyn BrokerProxy, dyn BrokerProxyFactory>>,
 }
@@ -34,10 +36,12 @@ impl CoreStore {
             broker_proxies: BufferObjectCollection::new("broker_proxy"),
             broker_factories_manifests: HashMap::new(),
             topics: HashMap::new(),
-            processes: RwObjectCollection::new("process"), 
+            //processes: RwObjectCollection::new("process"), 
+            processes: ObjectCollection::new("process"), 
             //containers: RwObjectCollection::new("container"), 
             containers: ObjectCollection::new("container"), 
-            container_processes: RwObjectCollection::new("container_process"), 
+            //container_processes: RwObjectCollection::new("container_process"), 
+            container_processes: ObjectCollection::new("container_process"), 
             ecs: MutexObjectCollection::new("ecs"),
         }
     }
@@ -128,37 +132,81 @@ impl CoreStore {
         Ok(jvalue!(vec))
     }
 
+    pub fn processes_profile_full(&self) -> JuizResult<Value> {
+        self.processes.objects().iter().map(|(k, c)| {
+            c.lock()
+                .and_then(|co| { 
+                    let id = co.identifier().clone();
+                    Ok((id, co.profile_full()?))
+                })
+            } ).collect()
+     }
+
     pub fn containers_profile_full(&self) -> JuizResult<Value> {
        self.containers.objects().iter().map(|(k, c)| {
-        c.lock()
-            .and_then(|co| { 
-                let id = co.identifier().clone();
-                Ok((id, co.profile_full()?))
-            })
-        } ).collect()
+            c.lock()
+                .and_then(|co| { 
+                    let id = co.identifier().clone();
+                    Ok((id, co.profile_full()?))
+                })
+            } ).collect()
+    }
+
+    pub fn container_processes_profile_full(&self) -> JuizResult<Value> {
+        self.container_processes.objects().iter().map(|(k, c)| {
+            c.lock()
+                .and_then(|co| { 
+                    let id = co.identifier().clone();
+                    Ok((id, co.profile_full()?))
+                })
+            } ).collect()
+    }
+
+    pub fn processes_id(&self) -> JuizResult<Value> {
+        self.processes.objects().iter().map(|(k, c)| {
+         c.lock().and_then(|co| { Ok(co.identifier().clone()) })
+         } ).collect()
     }
 
     pub fn containers_id(&self) -> JuizResult<Value> {
         self.containers.objects().iter().map(|(k, c)| {
          c.lock().and_then(|co| { Ok(co.identifier().clone()) })
          } ).collect()
-     }
+    }
+
+    pub fn container_processes_id(&self) -> JuizResult<Value> {
+        self.container_processes.objects().iter().map(|(k, c)| {
+         c.lock().and_then(|co| { Ok(co.identifier().clone()) })
+         } ).collect()
+    }
+
+    pub fn process_factories_profile_full(&self) -> JuizResult<Value> {
+        self.processes.factories().iter().map(|(k, c)| {
+         c.lock().or_else(|e|{Err(anyhow!(JuizError::ObjectLockError{target:e.to_string()}))}).and_then(|co| { co.profile_full() })
+         } ).collect()
+    }
 
     pub fn container_factories_profile_full(&self) -> JuizResult<Value> {
         self.containers.factories().iter().map(|(k, c)| {
          c.lock().or_else(|e|{Err(anyhow!(JuizError::ObjectLockError{target:e.to_string()}))}).and_then(|co| { co.profile_full() })
          } ).collect()
-     }
+    }
+
+    pub fn container_process_factories_profile_full(&self) -> JuizResult<Value> {
+        self.container_processes.factories().iter().map(|(k, c)| {
+         c.lock().or_else(|e|{Err(anyhow!(JuizError::ObjectLockError{target:e.to_string()}))}).and_then(|co| { co.profile_full() })
+         } ).collect()
+    }
 
     pub fn profile_full(&self) -> JuizResult<Value> {
         let r = self.broker_proxies.list_ids()?;
         Ok(jvalue!({
-            "process_factories": self.processes.factories_profile_full()?,
+            "process_factories": self.process_factories_profile_full()?,
             "container_factories": self.container_factories_profile_full()?,
-            "container_process_factories": self.container_processes.factories_profile_full()?,
-            "processes": self.processes.objects_profile_full()?,
+            "container_process_factories": self.container_process_factories_profile_full()?,
+            "processes": self.processes_profile_full()?,
             "containers": self.containers_profile_full()?,
-            "container_processes": self.container_processes.objects_profile_full()?,
+            "container_processes": self.container_processes_profile_full()?,
             "brokers": self.brokers_profile_full()?,
             "broker_factories": self.broker_factories_profile_full()?,
             "broker_proxies": r,

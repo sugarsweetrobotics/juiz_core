@@ -60,7 +60,7 @@ impl ProcessFactory for ProcessFactoryImpl {
 
     fn create_process(&self, manifest: Value) -> JuizResult<ProcessPtr> {
         log::trace!("ProcessFactoryImpl::create_process(manifest={}) called", manifest);
-        Ok(process_ptr(
+        Ok(ProcessPtr::new(
             process_new(
                 self.apply_default_manifest(manifest)?, 
                 self.function)?

@@ -9,9 +9,9 @@ pub trait ContainerProcessFactory : JuizObject {
 
     /// ContainerProcessを生成
     /// 
-    fn create_container_process(&self, container: ContainerPtr, manifest: Value) -> JuizResult<ContainerProcessPtr>;
+    fn create_container_process(&self, container: ContainerPtr, manifest: Value) -> JuizResult<ProcessPtr>;
 
-    fn destroy_container_process(&mut self, p: ContainerProcessPtr) -> JuizResult<Value>;
+    fn destroy_container_process(&mut self, p: ProcessPtr) -> JuizResult<Value>;
 }
 
 pub type ContainerProcessFactoryPtr = Arc<Mutex<dyn ContainerProcessFactory>>;

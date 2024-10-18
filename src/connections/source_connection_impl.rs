@@ -4,7 +4,7 @@
 use anyhow::Context;
 
 use crate::prelude::*;
-use crate::{object::{JuizObjectCoreHolder, ObjectCore}, processes::proc_lock};
+use crate::{object::{JuizObjectCoreHolder, ObjectCore}};
 
 use core::fmt::Debug;
 use std::clone::Clone;
@@ -18,7 +18,7 @@ pub struct SourceConnectionImpl {
 
 impl SourceConnectionImpl {
     pub fn new(owner_identifier: Identifier, source_process: ProcessPtr, manifest: Value, arg_name: String) -> JuizResult<Self> {
-        let source_process_identifier = proc_lock(&source_process)?.identifier().clone();
+        let source_process_identifier = source_process.identifier().clone();
         log::trace!("SourceConnectionImpl::new(owner={:}, src={:}, manifest={:}, arg_name={:}) called", owner_identifier, source_process_identifier, manifest, arg_name);
         Ok(SourceConnectionImpl{
             core: ConnectionCore::new("SourceConnection", 
@@ -57,25 +57,22 @@ impl Connection for SourceConnectionImpl {
 impl SourceConnection for SourceConnectionImpl {
 
     fn is_source_updated(&self) -> JuizResult<bool> {
-        let proc = proc_lock(&self.source_process).context("in SourceConnectionImpl.is_source_updated()")?;
-        proc.is_updated()
+        self.source_process.lock()?.is_updated()
     }
 
     fn invoke_source(&mut self) -> JuizResult<CapsulePtr> {
-        let proc = proc_lock(&self.source_process).context("in SourceConnectionImpl.invoke_source()")?;
-        proc.invoke()
+        self.source_process.lock()?.invoke()
     }
  
     fn pull(&self) -> JuizResult<CapsulePtr> {
         log::trace!("SourceConnectionImpl({}).pull() called", self.identifier());
-        proc_lock(&self.source_process).context("SourceConnectionImpl.pull()")?.invoke()
+        self.source_process.lock()?.invoke()
     }
 }
 
 impl<'a> Debug for SourceConnectionImpl {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let p = proc_lock(&self.source_process);
-        f.debug_struct("SourceConnection").field("source_process", p.unwrap().identifier()).field("owner_id", &self.owner_identifier()).finish()
+        f.debug_struct("SourceConnection").field("source_process", self.source_process.identifier()).field("owner_id", &self.owner_identifier()).finish()
     }
 }
 

@@ -4,7 +4,6 @@ use juiz_core::yaml_conf_load;
 use juiz_core::log;
 
 use juiz_core::prelude::*;
-use juiz_core::proc_lock;
 
 #[cfg(feature="opencv4")]
 use juiz_core::opencv::{imgcodecs::imwrite, core::{Mat, Vector}};
@@ -125,7 +124,7 @@ fn on_process_info(system: &mut System, id: String) -> JuizResult<()> {
     //println!("processes:");
     let p = system.core_broker().lock_mut()?.worker_mut().any_process_from_identifier(&id);
     match p {
-        Ok(ps) => println!("{:}", proc_lock(&ps)?.profile_full()?),
+        Ok(ps) => println!("{:}", ps.lock()?.profile_full()?),
         Err(e) => println!("Error: {e:?}"),
     }
     Ok(())
@@ -225,7 +224,7 @@ fn on_process_call(system: &mut System, id: String, arg: String, _fileout: Optio
         Ok(ps) => {
             let argv = load_str(arg.as_str())?;
             // println!("Value is {argv:?}");
-            let _value = proc_lock(&ps)?.call(argv.try_into()?)?;
+            let _value = ps.lock()?.call(argv.try_into()?)?;
             
         },
         Err(e) => println!("Error: {e:?}"),

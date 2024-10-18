@@ -9,9 +9,7 @@ pub(super) fn setup_subscribe_topic(system: &System, process: ProcessPtr, arg_na
     log::trace!("setup_subscrie_topic(process, {arg_name}, {sub_topic_info:}) called");
     if let Some(_topic_name) = sub_topic_info.as_str() {
         let r = system.core_broker().lock_mut().and_then(|mut cb| {
-            let _id = process.read()
-            .and_then(|p|{ Ok(p.identifier().clone()) })
-            .or_else(|_e|{Err(anyhow!(JuizError::ObjectLockError{target: "Process".to_owned()}))})?;
+            let _id = process.identifier();
             cb.worker_mut().process_subscribe_topic(process, arg_name, sub_topic_info)
         } );
         r
@@ -25,9 +23,7 @@ pub(super) fn setup_publish_topic(system: &System, process: ProcessPtr, pub_topi
     log::trace!("setup_publish_topic(process, {pub_topic_info:}) called");
     if let Some(_topic_name) = pub_topic_info.as_str() {
         let r = system.core_broker().lock_mut().and_then(|mut cb| {
-            let _id = process.read()
-            .and_then(|p|{ Ok(p.identifier().clone()) })
-            .or_else(|_e|{Err(anyhow!(JuizError::ObjectLockError{target: "Process".to_owned()}))})?;
+            let id = process.identifier();
             cb.worker_mut().process_publish_topic(process, pub_topic_info)
         } );
         r

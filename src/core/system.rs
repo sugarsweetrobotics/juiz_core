@@ -330,7 +330,7 @@ impl System {
 
     pub fn process_list(&self, recursive: bool) -> JuizResult<Vec<Value>> {
         log::trace!("System::process_list() called");
-        let mut local_processes = self.core_broker().lock()?.worker().store().processes.list_manifests()?;
+        let mut local_processes = self.core_broker().lock()?.worker().store().processes_profile_full()?.as_object().unwrap().values().into_iter().map(|v|{v.clone()}).collect::<Vec<Value>>();
         if recursive {
             for (_, proxy) in self.core_broker().lock()?.worker().store().broker_proxies.objects().iter() {
                 log::trace!("process_list for proxy ()");
@@ -372,7 +372,7 @@ impl System {
 
     pub fn container_process_list(&self, recursive: bool) -> JuizResult<Vec<Value>> {
         log::trace!("System::container_process_list() called");
-        let mut local_processes = self.core_broker().lock()?.worker().store().container_processes.list_manifests()?;
+        let mut local_processes = self.core_broker().lock()?.worker().store().container_processes_profile_full()?.as_object().unwrap().values().into_iter().map(|v|{v.clone()}).collect::<Vec<Value>>();
         if recursive {
             for (_, proxy) in self.core_broker().lock()?.worker().store().broker_proxies.objects().iter() {
                 for v in get_array(&juiz_lock(proxy)?.container_process_list(recursive)?)?.iter() {

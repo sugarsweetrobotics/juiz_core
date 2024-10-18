@@ -6,7 +6,7 @@ use pyo3::{prelude::*, types::PyTuple};
 use crate::prelude::*;
 use crate::containers::{ContainerImpl, ContainerProcessPtr};
 use super::python_container_factory_impl::PythonContainerStruct;
-use crate::{containers::{container_proc_lock, ContainerProcessImpl}, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, utils::check_process_factory_manifest, value::obj_get_str};
+use crate::{containers::ContainerProcessImpl, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, utils::check_process_factory_manifest, value::obj_get_str};
 use super::python_plugin::{capsulemap_to_pytuple, get_entry_point, get_python_function_signature, python_process_call};
 
 #[repr(C)]
@@ -63,7 +63,7 @@ pub fn arg_to_pyargs<'a>(c: &'a mut ContainerImpl<PythonContainerStruct>, arg: &
 
 
 impl ContainerProcessFactory for PythonContainerProcessFactoryImpl {
-    fn create_container_process(&self, container: ContainerPtr, manifest: Value) -> JuizResult<ContainerProcessPtr> {
+    fn create_container_process(&self, container: ContainerPtr, manifest: Value) -> JuizResult<ProcessPtr> {
         log::trace!("ContainerProcessFactoryImpl::create_container_process(container, manifest={}) called", manifest);
     
         let type_name = self.type_name().to_owned();
@@ -80,17 +80,17 @@ impl ContainerProcessFactory for PythonContainerProcessFactoryImpl {
             }).or_else(|e| { Err(anyhow!(e)) })
         });
 
-        Ok(Arc::new(RwLock::new(
+        Ok(ProcessPtr::new(
             ContainerProcessImpl::new(
                 self.apply_default_manifest(manifest)?, 
                 container, 
                 pyfunc)?
-        )))
+        ))
         
     }
     
-    fn destroy_container_process(&mut self, p: ContainerProcessPtr) -> JuizResult<Value> {
+    fn destroy_container_process(&mut self, p: ProcessPtr) -> JuizResult<Value> {
         log::warn!("PythonContainerFactoryImpl::destroy_container_process() called");
-        container_proc_lock(&p)?.profile_full()
+        p.lock()?.profile_full()
     }
 }

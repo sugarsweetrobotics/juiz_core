@@ -7,7 +7,6 @@ use crate::prelude::*;
 use crate::processes::process_from_clousure_new_with_class_name;
 use crate::{
     object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore},
-    processes::process_ptr, 
     utils::check_process_factory_manifest, value::obj_get_str};
 
 //pub type PythonFunctionType = dyn Fn(CapsuleMap)->JuizResult<Capsule>;
@@ -67,11 +66,10 @@ impl ProcessFactory for PythonProcessFactoryImpl {
                 python_process_call(py, &entry_point, PyTuple::new_bound(py, capsulemap_to_pytuple(py, &argument, &signature, 0)?))
             }).or_else(|e| { Err(anyhow!(e)) })
         });
-        let proc = process_from_clousure_new_with_class_name(
+        Ok(ProcessPtr::new(process_from_clousure_new_with_class_name(
             JuizObjectClass::Process("ProcessImpl"), 
             self.apply_default_manifest(manifest.clone())?, 
             pyfunc,
-        )?;
-        Ok(process_ptr(proc))
+        )?))
     }    
 }

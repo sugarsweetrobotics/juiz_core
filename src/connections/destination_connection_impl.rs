@@ -6,7 +6,7 @@ use serde_json::Value;
 
 use crate::connections::connection::ConnectionType;
 use crate::prelude::*;
-use crate::{object::JuizObjectCoreHolder, processes::proc_lock, utils::manifest_checker::check_connection_manifest};
+use crate::{object::JuizObjectCoreHolder, utils::manifest_checker::check_connection_manifest};
 
 
 use core::fmt::Debug;
@@ -67,13 +67,12 @@ impl DestinationConnection for DestinationConnectionImpl {
 
     fn execute_destination(&self) -> JuizResult<CapsulePtr> {
         log::trace!("DestinationConnectionImpl::execute_destination() called");
-        let proc = proc_lock(&self.destination_process).context("DestinationConnectionImpl.execute_destination()")?;
-        proc.execute()
+        self.destination_process.lock()?.execute()
     }
 
     fn push(&self, value: CapsulePtr) -> JuizResult<CapsulePtr> {
         log::trace!("DestinationConnectionImpl::push() called");
-        let proc = proc_lock(&self.destination_process).context("DestinationConnectionImpl.push()")?;
+        let proc = self.destination_process.lock()?;
         if self.connection_type() == ConnectionType::Push {
             proc.push_by(self.arg_name(), value)
         } else {
@@ -84,7 +83,7 @@ impl DestinationConnection for DestinationConnectionImpl {
 
 impl<'a> Debug for DestinationConnectionImpl {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("SourceConnection").field("source_process", &self.destination_process.read().unwrap().identifier()).field("owner_id", &self.owner_identifier()).finish()
+        f.debug_struct("SourceConnection").field("source_process", &self.destination_process.identifier()).field("owner_id", &self.owner_identifier()).finish()
     }
 }
 
