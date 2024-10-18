@@ -55,7 +55,7 @@ impl JuizObject for PythonContainerFactoryImpl {}
 
 impl ContainerFactory for PythonContainerFactoryImpl {
 
-    fn create_container(&self, core_worker: &mut CoreWorker, manifest: Value) -> JuizResult<ContainerPtr>{
+    fn create_container(&self, _core_worker: &mut CoreWorker, manifest: Value) -> JuizResult<ContainerPtr>{
         let type_name = self.type_name().to_owned();
         let full_path = self.fullpath.clone();
         

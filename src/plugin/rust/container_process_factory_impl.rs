@@ -1,7 +1,7 @@
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::{Arc, Mutex};
 
 use crate::prelude::*;
-use crate::containers::{ContainerImpl, ContainerFunctionType, ContainerProcessImpl, ContainerProcessPtr};
+use crate::containers::{ContainerImpl, ContainerFunctionType, ContainerProcessImpl};
 use crate::{object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, value::obj_get_str};
 use anyhow::anyhow;
 pub struct ContainerProcessFactoryImpl<T> where T: 'static {
@@ -75,7 +75,7 @@ impl<T: 'static> ContainerProcessFactory for ContainerProcessFactoryImpl<T> {
     fn destroy_container_process(&mut self, proc: ProcessPtr) -> JuizResult<Value> {
         log::trace!("ContainerProcessFactoryImpl({})::destroy_container_process() called", self.type_name());
         match proc.lock_mut()?.downcast_mut::<ContainerProcessImpl>() {
-            Some(mut p) => {
+            Some(p) => {
                 let prof = p.profile_full()?;
                 p.container.take();
                 //p.process.take();

@@ -52,7 +52,7 @@ impl JuizObject for CppContainerFactoryImpl {}
 
 impl ContainerFactory for CppContainerFactoryImpl {
 
-    fn create_container(&self, core_worker: &mut CoreWorker, mut manifest: Value) -> JuizResult<ContainerPtr>{
+    fn create_container(&self, _core_worker: &mut CoreWorker, mut manifest: Value) -> JuizResult<ContainerPtr>{
         log::trace!("ContainerFactoryImpl({})::create_container(manifest={}) called", self.manifest, manifest);
         let mut pobj: *mut c_void = std::ptr::null_mut();
         unsafe {

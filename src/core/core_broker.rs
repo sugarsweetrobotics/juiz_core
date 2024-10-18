@@ -307,10 +307,10 @@ impl ProcessBrokerProxy for CoreBroker {
     fn process_list(&self, recursive: bool) -> JuizResult<Value> {
         log::trace!("process_list({recursive}) called");
         if !recursive {
-            return self.worker().store().processes_id();
+            return Ok(self.worker().store().processes_id());
         } 
 
-        let mut ids = self.worker().store().processes_id()?;
+        let mut ids = self.worker().store().processes_id();
         match ids.as_array_mut() {
             Some(ids_arr) => {
                 for ssp in self.subsystem_proxies.iter() {
@@ -368,7 +368,7 @@ impl ContainerBrokerProxy for CoreBroker {
 
     fn container_list(&self, recursive: bool) -> JuizResult<Value> {
         //Ok(self.store().containers.list_ids()?.into())
-        let mut ids = self.worker().store().containers_id()?;
+        let mut ids = self.worker().store().containers_id();
         let ids_arr = ids.as_array_mut().unwrap();
         if recursive {
             //for (_id, proxy) in self.store().broker_proxies.objects().iter() {
@@ -400,7 +400,7 @@ impl ContainerProcessBrokerProxy for CoreBroker {
     }
 
     fn container_process_list(&self, recursive: bool) -> JuizResult<Value> {
-        let mut ids = self.worker().store().container_processes_id()?;
+        let mut ids = self.worker().store().container_processes_id();
         let ids_arr = ids.as_array_mut().unwrap();
         if recursive {
             for ssp in self.subsystem_proxies.iter() {

@@ -1,9 +1,9 @@
 
-use std::{collections::HashMap, sync::{Arc, Mutex}};
+use std::collections::HashMap;
 
 
 
-use crate::{prelude::*, utils::{manifest_util::{get_array_mut, get_hashmap_mut}, sync_util::juiz_try_lock}};
+use crate::prelude::*;
 
 
 
@@ -43,7 +43,7 @@ impl<T, TF> ObjectCollection<T, TF> {
         if self.factories.contains_key(type_name) {
             return Err(anyhow::Error::from(JuizError::FactoryOfSameTypeNameAlreadyExistsError{type_name: type_name.to_owned()}));
         }
-        let opt_ref = self.factories.insert(type_name.to_owned(), pf);
+        let _opt_ref = self.factories.insert(type_name.to_owned(), pf);
         Ok(())
     }
 

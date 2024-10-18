@@ -1,5 +1,5 @@
 
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::{Arc, Mutex};
 
 use uuid::Uuid;
 

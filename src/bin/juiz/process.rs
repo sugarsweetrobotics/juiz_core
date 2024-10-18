@@ -159,6 +159,7 @@ fn do_with_capsule_ptr(value: CapsulePtr) -> JuizResult<()> {
 }
 
 #[cfg(not(feature="opencv4"))]
+#[allow(unused)]
 fn do_with_capsule_ptr(value: CapsulePtr) -> JuizResult<()> {
     if value.is_value()? {
         println!("{:?}", value);

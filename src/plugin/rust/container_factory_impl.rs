@@ -47,7 +47,7 @@ impl<T: 'static> JuizObject for ContainerFactoryImpl<T> {}
 
 impl<T: 'static> ContainerFactory for ContainerFactoryImpl<T> {
 
-    fn create_container(&self, core_worker: &mut CoreWorker, manifest: Value) -> JuizResult<ContainerPtr>{
+    fn create_container(&self, _core_worker: &mut CoreWorker, manifest: Value) -> JuizResult<ContainerPtr>{
         log::trace!("ContainerFactoryImpl::create_container(manifest={}) called", manifest);
         Ok(ContainerPtr::new(ContainerImpl::new(
                 self.apply_default_manifest(manifest.clone())?,

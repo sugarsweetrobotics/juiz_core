@@ -6,7 +6,7 @@ pub mod connection_builder {
     use std::collections::HashMap;
     use anyhow::{anyhow, Context};
 
-    use crate::{utils::{get_str, get_value}};
+    use crate::utils::{get_str, get_value};
 
     ///
     pub fn create_connection(system: &System, manifest: &Value) -> JuizResult<Value> {
@@ -52,7 +52,7 @@ pub mod connection_builder {
 
     pub fn list_connection_profiles(core_broker: &CoreBroker) -> JuizResult<Vec<Value>> {
         let mut value_map: HashMap<String, Value> = HashMap::new();
-        for (k, p) in core_broker.worker().store().processes.objects().into_iter() {
+        for (_k, p) in core_broker.worker().store().processes.objects().into_iter() {
             for sc in p.lock()?.source_connections()? {
                 value_map.insert(sc.identifier().clone(), sc.profile_full()?.try_into()?);
             }

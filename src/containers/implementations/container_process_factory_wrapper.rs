@@ -5,7 +5,6 @@ use anyhow::Context;
 use crate::prelude::*;
 use crate::{object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, plugin::{JuizObjectPlugin, Plugin}, utils::juiz_lock, value::{obj_get_str, obj_merge}};
 
-use super::container_process_impl::ContainerProcessPtr;
 
 #[allow(dead_code)]
 pub struct ContainerProcessFactoryWrapper {

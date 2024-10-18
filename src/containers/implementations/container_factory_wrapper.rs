@@ -2,7 +2,7 @@ use std::{cell::RefCell, sync::{Arc, Mutex}};
 
 use anyhow::Context;
 use crate::prelude::*;
-use crate::{value::obj_get_str};
+use crate::value::obj_get_str;
 use crate::{plugin::{JuizObjectPlugin, Plugin}, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, utils::juiz_lock, value::obj_merge};
 
 #[allow(dead_code)]

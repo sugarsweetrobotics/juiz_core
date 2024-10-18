@@ -30,22 +30,22 @@ impl Inlet {
         &self.name
     }
 
-    pub fn source_connection_by_identifier(&mut self, identifier: &Identifier) -> Option<&Box<dyn SourceConnection>> {
-        for c in self.source_connections.iter() {
-            if c.identifier() == identifier {
-                return Some(c)
-            }
-        }
-        return None
-    }
+    // pub fn source_connection_by_identifier(&mut self, identifier: &Identifier) -> Option<&Box<dyn SourceConnection>> {
+    //     for c in self.source_connections.iter() {
+    //         if c.identifier() == identifier {
+    //             return Some(c)
+    //         }
+    //     }
+    //     return None
+    // }
 
     pub fn source_connections(&self) -> &Vec<Box<dyn SourceConnection>> {
         return &self.source_connections
     }
 
-    pub fn source_connections_mut(&mut self) -> &mut Vec<Box<dyn SourceConnection>> {
-        return &mut self.source_connections
-    }
+    // pub fn source_connections_mut(&mut self) -> &mut Vec<Box<dyn SourceConnection>> {
+    //     return &mut self.source_connections
+    // }
 
     pub fn profile_full(&self) -> JuizResult<Value> {
         Ok(jvalue!({

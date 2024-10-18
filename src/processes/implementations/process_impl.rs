@@ -4,7 +4,6 @@
 
 
 
-use anyhow::Context;
 use serde_json::Map;
 
 use crate::identifier::{identifier_from_manifest, create_identifier_from_manifest};
@@ -76,6 +75,7 @@ impl ProcessImpl {
         }).collect::<Vec<Inlet>>())
     }
 
+    #[allow(unused)]
     pub fn inlet(&self, name: &str) -> JuizResult<&Inlet> {
         self.inlets.iter().find(|inlet| { (*inlet).name() == name }).ok_or_else(|| { anyhow::Error::from(JuizError::CanNotFindError { target: format!("Process::Inlet({name})") }) } )
     }

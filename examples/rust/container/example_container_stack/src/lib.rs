@@ -1,4 +1,4 @@
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::{Arc, Mutex};
 
 use juiz_core::{anyhow::anyhow, env_logger, prelude::*};
 pub use example_container::ExampleContainer;

@@ -1,12 +1,11 @@
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::{Arc, Mutex};
 use super::buffer_object_collection::BufferObjectCollection;
-use super::rw_object_collection::RwObjectCollection;
 use super::object_collection::ObjectCollection;
 use super::mutex_object_collection::MutexObjectCollection;
 
 use crate::topics::TopicPtr;
-use crate::{containers::ContainerProcessImpl, prelude::*, value::obj_get_str};
+use crate::{prelude::*, value::obj_get_str};
 use crate::ecs::{execution_context_function::ExecutionContextFunction, execution_context_holder_factory::ExecutionContextHolderFactory};
 
 
@@ -133,7 +132,7 @@ impl CoreStore {
     }
 
     pub fn processes_profile_full(&self) -> JuizResult<Value> {
-        self.processes.objects().iter().map(|(k, c)| {
+        self.processes.objects().iter().map(|(_k, c)| {
             c.lock()
                 .and_then(|co| { 
                     let id = co.identifier().clone();
@@ -143,7 +142,7 @@ impl CoreStore {
      }
 
     pub fn containers_profile_full(&self) -> JuizResult<Value> {
-       self.containers.objects().iter().map(|(k, c)| {
+       self.containers.objects().iter().map(|(_k, c)| {
             c.lock()
                 .and_then(|co| { 
                     let id = co.identifier().clone();
@@ -153,7 +152,7 @@ impl CoreStore {
     }
 
     pub fn container_processes_profile_full(&self) -> JuizResult<Value> {
-        self.container_processes.objects().iter().map(|(k, c)| {
+        self.container_processes.objects().iter().map(|(_k, c)| {
             c.lock()
                 .and_then(|co| { 
                     let id = co.identifier().clone();
@@ -162,38 +161,38 @@ impl CoreStore {
             } ).collect()
     }
 
-    pub fn processes_id(&self) -> JuizResult<Value> {
-        self.processes.objects().iter().map(|(k, c)| {
-         c.lock().and_then(|co| { Ok(co.identifier().clone()) })
+    pub fn processes_id(&self) -> Value {
+        self.processes.objects().iter().map(|(_k, c)| {
+         c.identifier().clone()
          } ).collect()
     }
 
-    pub fn containers_id(&self) -> JuizResult<Value> {
-        self.containers.objects().iter().map(|(k, c)| {
-         c.lock().and_then(|co| { Ok(co.identifier().clone()) })
+    pub fn containers_id(&self) -> Value {
+        self.containers.objects().iter().map(|(_k, c)| {
+         c.identifier().clone()
          } ).collect()
     }
 
-    pub fn container_processes_id(&self) -> JuizResult<Value> {
-        self.container_processes.objects().iter().map(|(k, c)| {
-         c.lock().and_then(|co| { Ok(co.identifier().clone()) })
+    pub fn container_processes_id(&self) -> Value {
+        self.container_processes.objects().iter().map(|(_k, c)| {
+         c.identifier().clone()
          } ).collect()
     }
 
     pub fn process_factories_profile_full(&self) -> JuizResult<Value> {
-        self.processes.factories().iter().map(|(k, c)| {
+        self.processes.factories().iter().map(|(_k, c)| {
          c.lock().or_else(|e|{Err(anyhow!(JuizError::ObjectLockError{target:e.to_string()}))}).and_then(|co| { co.profile_full() })
          } ).collect()
     }
 
     pub fn container_factories_profile_full(&self) -> JuizResult<Value> {
-        self.containers.factories().iter().map(|(k, c)| {
+        self.containers.factories().iter().map(|(_k, c)| {
          c.lock().or_else(|e|{Err(anyhow!(JuizError::ObjectLockError{target:e.to_string()}))}).and_then(|co| { co.profile_full() })
          } ).collect()
     }
 
     pub fn container_process_factories_profile_full(&self) -> JuizResult<Value> {
-        self.container_processes.factories().iter().map(|(k, c)| {
+        self.container_processes.factories().iter().map(|(_k, c)| {
          c.lock().or_else(|e|{Err(anyhow!(JuizError::ObjectLockError{target:e.to_string()}))}).and_then(|co| { co.profile_full() })
          } ).collect()
     }

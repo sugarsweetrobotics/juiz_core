@@ -1,6 +1,5 @@
 use crate::prelude::*;
 
-use anyhow::anyhow;
 
 
 
@@ -23,7 +22,7 @@ pub(super) fn setup_publish_topic(system: &System, process: ProcessPtr, pub_topi
     log::trace!("setup_publish_topic(process, {pub_topic_info:}) called");
     if let Some(_topic_name) = pub_topic_info.as_str() {
         let r = system.core_broker().lock_mut().and_then(|mut cb| {
-            let id = process.identifier();
+            let _id = process.identifier();
             cb.worker_mut().process_publish_topic(process, pub_topic_info)
         } );
         r
