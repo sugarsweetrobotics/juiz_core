@@ -18,7 +18,7 @@ fn create_example_container(_manifest: Value) -> JuizResult<Box<ExampleContainer
 #[no_mangle]
 pub unsafe extern "Rust" fn container_factory() -> JuizResult<ContainerFactoryPtr> {
     env_logger::init();
-    ContainerFactoryImpl::create(ExampleContainer::manifest(), create_example_container)
+    container_factory_create(ExampleContainer::manifest(), create_example_container)
 }
 
 

@@ -17,7 +17,7 @@ fn manifest() -> Value {
 
 #[no_mangle]
 pub unsafe extern "Rust" fn cv_video_capture_read_factory() -> JuizResult<ContainerProcessFactoryPtr> {
-    ContainerProcessFactoryImpl::create(
+    container_process_factory_create(
         manifest(),
         &cv_video_capture_read_function)
 }

@@ -21,6 +21,7 @@ pub use crate::{
         ProcessPtr,
         ProcessProxy,
         process_new,
+        process_factory_create,
     },
     containers::{
         Container,
@@ -29,8 +30,9 @@ pub use crate::{
         ContainerFactoryPtr,
         ContainerProcessFactory,
         ContainerProcessFactoryPtr,
-        ContainerProcessPtr,
         ContainerPtr,
+        container_factory_create,
+        container_process_factory_create,
     },
     brokers::{
         Broker,
@@ -76,12 +78,7 @@ pub use crate::{
         JuizResult,
         JuizError,
     },
-    plugin:: {
-        ProcessFactoryImpl,
-        ContainerProcessFactoryImpl,
-        ContainerFactoryImpl,
-        ContainerStackFactoryImpl,
-    },
+    plugin::ContainerStackFactoryImpl,
     connections::connect,
     utils::juiz_lock,
     log,

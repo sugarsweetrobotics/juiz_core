@@ -63,7 +63,7 @@ impl RustPlugin {
         }
     }
 
-    pub fn load_process_factory(&self, _working_dir: Option<PathBuf>, symbol_name: &str) -> JuizResult<Arc<Mutex<dyn ProcessFactory>>> {
+    pub fn load_process_factory(&self, _working_dir: Option<PathBuf>, symbol_name: &str) -> JuizResult<ProcessFactoryPtr> {
         type SymbolType = libloading::Symbol<'static, unsafe extern "Rust" fn() -> JuizResult<ProcessFactoryPtr>>;
         unsafe {
             let symbol = self.load_symbol::<SymbolType>(symbol_name.as_bytes())?;
@@ -77,6 +77,14 @@ impl RustPlugin {
         Ok(unsafe {
              (symbol)()//.with_context(||format!("calling symbol 'container_factory'. arg is {manifest:}"))?;
         })
+    }
+
+    pub fn load_container_factory(&self, _working_dir: Option<PathBuf>, symbol_name: &str, _container_profile: Value) -> JuizResult<ContainerFactoryPtr> {
+        type SymbolType = libloading::Symbol<'static, unsafe extern "Rust" fn() -> JuizResult<ContainerFactoryPtr>>;
+        unsafe {
+            let symbol = self.load_symbol::<SymbolType>(symbol_name.as_bytes())?;
+            (symbol)().with_context(||format!("calling symbol '{symbol_name}'"))
+        }
     }
 
     pub fn load_broker_factory(&self, system: &mut System, ) -> JuizResult<Arc<Mutex<dyn BrokerFactory>>> {

@@ -1,5 +1,4 @@
 
-use std::sync::{Mutex, Arc};
 
 use crate::prelude::*;
 use crate::{containers::{ContainerImpl, ContainerConstructFunction}, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, utils::check_process_factory_manifest, value::obj_get_str};
@@ -21,10 +20,6 @@ impl<S: 'static> ContainerFactoryImpl<S> {
                 manifest: check_process_factory_manifest(manifest)?,
                 constructor
         })
-    }
-
-    pub fn create(manifest: Value, constructor: ContainerConstructFunction<S>) -> JuizResult<Arc<Mutex<dyn ContainerFactory>>> {
-        Ok(Arc::new(Mutex::new(Self::new(manifest, constructor)?)))
     }
 
     fn apply_default_manifest(&self, manifest: Value) -> Result<Value, JuizError> {

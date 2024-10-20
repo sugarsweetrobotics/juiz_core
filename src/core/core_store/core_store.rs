@@ -1,11 +1,10 @@
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
 use super::buffer_object_collection::BufferObjectCollection;
 use super::object_collection::ObjectCollection;
 use super::mutex_object_collection::MutexObjectCollection;
 
 use crate::topics::TopicPtr;
-use crate::{prelude::*, value::obj_get_str};
+use crate::prelude::*;
 use crate::ecs::{execution_context_function::ExecutionContextFunction, execution_context_holder_factory::ExecutionContextHolderFactory};
 
 
@@ -17,12 +16,9 @@ pub struct CoreStore {
     brokers_manifests: HashMap<Identifier, Value>,
     pub topics: HashMap<Identifier, TopicPtr>,
 
-    //pub processes: Box<RwObjectCollection::<dyn Process, dyn ProcessFactory>>,
-    pub processes: Box<ObjectCollection::<ProcessPtr, Arc<Mutex<dyn ProcessFactory>>>>,
-    //pub containers: Box<RwObjectCollection::<dyn Container, dyn ContainerFactory>>,
-    pub containers: Box<ObjectCollection::<ContainerPtr, Arc<Mutex<dyn ContainerFactory>>>>,
-    //pub container_processes: Box<RwObjectCollection::<ContainerProcessImpl, dyn ContainerProcessFactory>>,
-    pub container_processes: Box<ObjectCollection::<ProcessPtr, Arc<Mutex<dyn ContainerProcessFactory>>>>,
+    pub processes: Box<ObjectCollection::<ProcessPtr, ProcessFactoryPtr>>,
+    pub containers: Box<ObjectCollection::<ContainerPtr, ContainerFactoryPtr>>,
+    pub container_processes: Box<ObjectCollection::<ProcessPtr, ContainerProcessFactoryPtr>>,
     pub ecs: Box<MutexObjectCollection::<dyn ExecutionContextFunction, ExecutionContextHolderFactory>>,
     pub broker_proxies: Box<BufferObjectCollection::<dyn BrokerProxy, dyn BrokerProxyFactory>>,
 }

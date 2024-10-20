@@ -17,12 +17,24 @@ pub struct PythonProcessFactoryImpl {
     fullpath: PathBuf,
     entry_point_signature: Value,
     entry_point: Rc<Py<PyAny>>,
+    pyfunc: Box<dyn Fn(CapsuleMap)->JuizResult<Capsule>> 
 }
 impl PythonProcessFactoryImpl {
 
     pub fn new(manifest: Value, fullpath: PathBuf, symbol_name: &str) -> JuizResult<Self> {
         let type_name = obj_get_str(&manifest, "type_name")?;
-        let entry_point = get_entry_point(&fullpath, symbol_name)?;
+        let entry_point = Rc::new(get_entry_point(&fullpath, symbol_name)?);
+        let signature = get_python_function_signature(&entry_point)?;
+
+        let entry_point_clone = entry_point.clone();
+        let signature_clone = signature.clone();
+
+        let pyfunc: Box<dyn Fn(CapsuleMap)->JuizResult<Capsule>> = Box::new(move |argument: CapsuleMap| -> JuizResult<Capsule> {
+            Python::with_gil(|py| {
+                python_process_call(py, &entry_point_clone, PyTuple::new_bound(py, capsulemap_to_pytuple(py, &argument, &signature_clone, 0)?))
+            }).or_else(|e| { Err(anyhow!(e)) })
+        });
+
         Ok(
             PythonProcessFactoryImpl{
                 core: ObjectCore::create_factory(JuizObjectClass::ProcessFactory("ProcessFactoryImpl"),
@@ -30,8 +42,9 @@ impl PythonProcessFactoryImpl {
                 ),
                 fullpath,
                 manifest: check_process_factory_manifest(manifest)?, 
-                entry_point_signature: get_python_function_signature(&entry_point)?,
-                entry_point: Rc::new(entry_point),
+                entry_point_signature: signature,
+                entry_point,
+                pyfunc,
             }
         )
     }

@@ -4,7 +4,7 @@ use std::fmt::Display;
 use std::sync::{Arc, Mutex};
 
 use crate::prelude::*;
-use crate::{utils::juiz_lock, identifier::*, brokers::BrokerProxy, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}};
+use crate::object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore};
 
 #[allow(unused)]
 pub struct ContainerProxy {
@@ -41,13 +41,6 @@ impl JuizObject for ContainerProxy {
         let id = self.identifier();
         log::trace!("ContainerProxy({id})::profile_full() called");
         juiz_lock(&self.broker_proxy)?.container_profile_full(self.identifier())
-        /*
-        match self.class_name_str.as_str() {
-            "process" => juiz_lock(&self.broker_proxy)?.process_profile_full(self.identifier()),
-            "container_process" => juiz_lock(&self.broker_proxy)?.container_process_profile_full(self.identifier()),
-            _ => { Err(anyhow::Error::from(JuizError::ProcessProxyCanNotAcceptClassError{class_name: self.class_name_str.clone()}))}
-        }
-        */
     }
 }
 

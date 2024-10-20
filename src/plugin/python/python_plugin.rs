@@ -1,5 +1,5 @@
 
-use std::{collections::HashMap, fs, path::PathBuf, sync::{Arc, Mutex}};
+use std::{collections::HashMap, fs, path::PathBuf};
 use pyo3::{prelude::*, types::{PyDict, PyFloat, PyInt, PyList, PyNone, PySet, PyString, PyTuple}};
 use serde_json::Map;
 
@@ -144,43 +144,43 @@ if not "{parent:}" in sys.path:
     }
 
 
-    pub fn load_container_factory(&self, working_dir: Option<PathBuf>, symbol_name: &str, container_profile: Value) -> JuizResult<Arc<Mutex<dyn ContainerFactory>>> {
+    pub fn load_container_factory(&self, working_dir: Option<PathBuf>, symbol_name: &str, container_profile: Value) -> JuizResult<ContainerFactoryPtr> {
         log::trace!("PythonPlugin({:?})::load_container_factory(symbol_name='{symbol_name}') called", self.path);
         //self.load_container_factory_with_manifest(working_dir.clone(), self.get_manifest(working_dir, symbol_name)?)
         self.load_container_factory_with_manifest(working_dir.clone(), container_profile)
     }
     
-    pub fn load_container_factory_with_manifest(&self, working_dir: Option<PathBuf>, manifest: Value) -> JuizResult<Arc<Mutex<dyn ContainerFactory>>> {
-        Ok(Arc::new(Mutex::new(PythonContainerFactoryImpl::new(
+    pub fn load_container_factory_with_manifest(&self, working_dir: Option<PathBuf>, manifest: Value) -> JuizResult<ContainerFactoryPtr> {
+        Ok(ContainerFactoryPtr::new(PythonContainerFactoryImpl::new(
             manifest,
             working_dir.unwrap_or(env!("CARGO_MANIFEST_DIR").into()).join(self.path.clone())
-        )?)))
+        )?))
     }
 
-    pub fn load_container_process_factory(&self, working_dir: Option<PathBuf>, symbol_name: &str, cp_profile: &Value) -> JuizResult<Arc<Mutex<dyn ContainerProcessFactory>>> {
+    pub fn load_container_process_factory(&self, working_dir: Option<PathBuf>, symbol_name: &str, cp_profile: &Value) -> JuizResult<ContainerProcessFactoryPtr> {
         log::trace!("PythonPlugin({:?})::load_container_process_factory(symbol_name='{symbol_name}', profile='{cp_profile:}') called", self.path);
         self.load_container_process_factory_with_manifest(working_dir.clone(), cp_profile.clone(), symbol_name)
     }
 
-    pub fn load_container_process_factory_with_manifest(&self, working_dir: Option<PathBuf>, manifest: Value, symbol_name: &str) -> JuizResult<Arc<Mutex<dyn ContainerProcessFactory>>> {
-        Ok(Arc::new(Mutex::new(PythonContainerProcessFactoryImpl::new(
+    pub fn load_container_process_factory_with_manifest(&self, working_dir: Option<PathBuf>, manifest: Value, symbol_name: &str) -> JuizResult<ContainerProcessFactoryPtr> {
+        Ok(ContainerProcessFactoryPtr::new(PythonContainerProcessFactoryImpl::new(
             manifest,
             working_dir.unwrap_or(env!("CARGO_MANIFEST_DIR").into()).join(self.path.clone()),
             symbol_name
-        )?)))
+        )?))
     }
 
-    pub fn load_process_factory(&self, working_dir: Option<PathBuf>, symbol_name: &str) -> JuizResult<Arc<Mutex<dyn ProcessFactory>>> {
+    pub fn load_process_factory(&self, working_dir: Option<PathBuf>, symbol_name: &str) -> JuizResult<ProcessFactoryPtr> {
         log::trace!("PythonPlugin({:?})::load_process_factory(symbol_name='{symbol_name}') called", self.path);
         self.load_process_factory_with_manifest(working_dir.clone(), self.get_manifest(working_dir, "manifest")?, symbol_name)
     }
 
-    pub fn load_process_factory_with_manifest(&self, working_dir: Option<PathBuf>, manifest: Value, symbol_name: &str) -> JuizResult<Arc<Mutex<dyn ProcessFactory>>> {
-        Ok(Arc::new(Mutex::new(PythonProcessFactoryImpl::new(
+    pub fn load_process_factory_with_manifest(&self, working_dir: Option<PathBuf>, manifest: Value, symbol_name: &str) -> JuizResult<ProcessFactoryPtr> {
+        Ok(ProcessFactoryPtr::new(PythonProcessFactoryImpl::new(
             manifest,
             working_dir.unwrap_or(env!("CARGO_MANIFEST_DIR").into()).join(self.path.clone()),
             symbol_name,
-        )?)))
+        )?))
     }
 
     pub fn load_component_profile(&self, working_dir: Option<PathBuf>) -> JuizResult<Value> {

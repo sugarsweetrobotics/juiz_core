@@ -1,17 +1,17 @@
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use crate::prelude::*;
-use crate::containers::{ContainerImpl, ContainerFunctionType, ContainerProcessImpl};
+use crate::containers::{ContainerFunctionType, ContainerFunctionTypePtr, ContainerImpl, ContainerProcessImpl};
 use crate::{object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, value::obj_get_str};
-use anyhow::anyhow;
 pub struct ContainerProcessFactoryImpl<T> where T: 'static {
     core: ObjectCore,
     manifest: Value,
-    function: ContainerFunctionType<T>,
+    function: ContainerFunctionTypePtr<T>,
 }
 
+// pub type ContainerProcessConstructorType<T>=&'static dyn Fn(&mut ContainerImpl<T>, CapsuleMap) -> JuizResult<Capsule> ;
 impl<T: 'static> ContainerProcessFactoryImpl<T> {
-    pub fn new(manifest: Value, function: ContainerFunctionType<T>) -> JuizResult<Self> {
+    fn new_t(manifest: Value, function: ContainerFunctionTypePtr<T>) -> JuizResult<Self> {
         let type_name = obj_get_str(&manifest, "type_name")?;
         Ok(ContainerProcessFactoryImpl{
                 core: ObjectCore::create_factory(JuizObjectClass::ContainerProcessFactory("ContainerProcessFactoryImpl"), 
@@ -22,10 +22,10 @@ impl<T: 'static> ContainerProcessFactoryImpl<T> {
         )
     }
 
-    pub fn create(manifest: Value, function: &'static impl Fn(&mut ContainerImpl<T>, CapsuleMap) -> JuizResult<Capsule> ) -> JuizResult<ContainerProcessFactoryPtr> {
+    pub fn new(manifest: Value, function: &'static ContainerFunctionType<T>) -> JuizResult<Self> {
         //let type_name = obj_get_str(&manifest, "type_name")?;
         let f = Arc::new(|c: &mut ContainerImpl<T>, v| { function(c, v) } );
-        Ok(Arc::new(Mutex::new(Self::new(manifest, f)?)))
+        Ok(Self::new_t(manifest, f)?)
         
     }
 
@@ -74,18 +74,11 @@ impl<T: 'static> ContainerProcessFactory for ContainerProcessFactoryImpl<T> {
     
     fn destroy_container_process(&mut self, proc: ProcessPtr) -> JuizResult<Value> {
         log::trace!("ContainerProcessFactoryImpl({})::destroy_container_process() called", self.type_name());
-        match proc.lock_mut()?.downcast_mut::<ContainerProcessImpl>() {
-            Some(p) => {
-                let prof = p.profile_full()?;
-                p.container.take();
-                //p.process.take();
-                log::trace!("ContainerFactoryImpl({})::destroy_container_process() exit", self.type_name());
-                Ok(prof)
-            },
-            None => {
-                log::error!("destroy_container_process() failed. Can not lock container process.");
-                Err(anyhow!(JuizError::ObjectLockError{target:"ContainerProcessImpl downlcasting".to_owned()}))
-            },
-        }
+        proc.downcast_mut_and_then(|p: &mut ContainerProcessImpl| { 
+            let prof = p.profile_full()?;
+            p.container.take();
+            log::trace!("ContainerFactoryImpl({})::destroy_container_process() exit", self.type_name());
+            Ok(prof)
+        })?
     }
 }

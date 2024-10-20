@@ -17,5 +17,5 @@ fn increment_function(container: &mut ContainerImpl<ExampleContainer>, v: Capsul
 #[no_mangle]
 pub unsafe extern "Rust" fn container_process_factory() -> JuizResult<ContainerProcessFactoryPtr> {
     env_logger::init();
-    ContainerProcessFactoryImpl::create(manifest(), &increment_function)
+    container_process_factory_create(manifest(), &increment_function)
 }

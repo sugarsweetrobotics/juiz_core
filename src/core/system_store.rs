@@ -8,9 +8,7 @@ use anyhow::anyhow;
 
 use crate::brokers::broker_ptr::BrokerPtr;
 use crate::prelude::*;
-use crate::
-    brokers::broker_factories_wrapper::BrokerFactoriesWrapper
-;
+use crate::brokers::broker_factories_wrapper::BrokerFactoriesWrapper;
 
 use super::CoreWorker;
 

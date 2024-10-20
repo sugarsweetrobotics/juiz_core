@@ -1,29 +1,26 @@
-use std::{cell::RefCell, sync::{Arc, Mutex}};
+use std::cell::RefCell;
 
-use anyhow::Context;
 use crate::prelude::*;
-use crate::value::obj_get_str;
-use crate::{plugin::{JuizObjectPlugin, Plugin}, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, utils::juiz_lock, value::obj_merge};
+use crate::{plugin::{JuizObjectPlugin, Plugin}, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}};
 
 #[allow(dead_code)]
 pub struct ContainerFactoryWrapper {
     core: ObjectCore,
-    container_factory: Arc<Mutex<dyn ContainerFactory>>,
+    container_factory: ContainerFactoryPtr,
     containers: RefCell<Vec<ContainerPtr>>,
     plugin: JuizObjectPlugin,
 }
 
 impl ContainerFactoryWrapper {
     
-    pub fn new(plugin: JuizObjectPlugin, container_factory: Arc<Mutex<dyn ContainerFactory>>) -> JuizResult<Arc<Mutex<dyn ContainerFactory>>> {
-        let cf = juiz_lock(&container_factory)?;
-        let type_name = cf.type_name();
-        Ok(Arc::new(Mutex::new(ContainerFactoryWrapper{
+    pub fn new(plugin: JuizObjectPlugin, container_factory: ContainerFactoryPtr) -> JuizResult<Self> {
+        let type_name = container_factory.lock()?.type_name().to_owned();
+        Ok(ContainerFactoryWrapper{
             core: ObjectCore::create_factory(JuizObjectClass::ContainerFactory("ContainerFactoryWrapper"), type_name),
             plugin,
-            container_factory: Arc::clone(&container_factory),
+            container_factory,
             containers: RefCell::new(vec![])
-        })))
+        })
     }
 
 }
@@ -46,7 +43,7 @@ impl JuizObject for ContainerFactoryWrapper {
         Ok(obj_merge(self.core.profile_full()?, &jvalue!(
             {
                 "plugin": prof,
-                "container_factory": juiz_lock(&self.container_factory)?.profile_full()?,
+                "container_factory": self.container_factory.lock()?.profile_full()?,
             }
         ))?.into())
     }
@@ -56,7 +53,7 @@ impl ContainerFactory for ContainerFactoryWrapper {
     
     fn create_container(&self, core_worker: &mut CoreWorker, manifest: Value) -> JuizResult<ContainerPtr> {
         log::trace!("ContainerFactoryWrapper::create_container(manifest={}) called", manifest);
-        let p = juiz_lock(&self.container_factory).with_context(||format!("ContainerFactoryWrapper::create_container(manifest:{manifest:}) failed."))?.create_container(core_worker, manifest)?;
+        let p = self.container_factory.lock()?.create_container(core_worker, manifest)?;
         self.containers.borrow_mut().push(p.clone());
         Ok(p)
     }
@@ -68,7 +65,7 @@ impl ContainerFactory for ContainerFactoryWrapper {
         log::trace!("ContainerFactoryWrapper::destroy_container(manifest={}) called", prof);
         let index = self.containers.borrow().iter().enumerate().find(|rc| rc.1.lock().unwrap().identifier() == id).unwrap().0;
         self.containers.borrow_mut().remove(index);
-        juiz_lock(&self.container_factory)?.destroy_container(c)
+        self.container_factory.lock_mut()?.destroy_container(c)
     }
 }
 

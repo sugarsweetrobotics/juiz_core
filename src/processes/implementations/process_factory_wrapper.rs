@@ -1,32 +1,25 @@
-use std::{cell::RefCell, sync::{Arc, Mutex}};
-
-use anyhow::Context;
-
+use std::cell::RefCell;
 use crate::prelude::*;
-use crate::{plugin::JuizObjectPlugin, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, utils::juiz_lock, value::obj_merge};
+use crate::{plugin::JuizObjectPlugin, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}};
 
 #[allow(dead_code)]
 pub struct ProcessFactoryWrapper {
     core: ObjectCore,
-    process_factory: Arc<Mutex<dyn ProcessFactory>>,
+    process_factory: ProcessFactoryPtr,
     processes: RefCell<Vec<ProcessPtr>>,
     plugin: JuizObjectPlugin,
 }
 
 impl ProcessFactoryWrapper {
     
-
-    pub fn new(plugin: JuizObjectPlugin, process_factory: Arc<Mutex<dyn ProcessFactory>>) -> JuizResult<Arc<Mutex<dyn ProcessFactory>>> {
-        let pf = juiz_lock(&process_factory)?;
-        let type_name = pf.type_name();
-        Ok(Arc::new(Mutex::new(ProcessFactoryWrapper{
-            core: ObjectCore::create_factory(JuizObjectClass::ProcessFactory("ProcessFactoryWrapper"), type_name),
+    pub fn new(plugin: JuizObjectPlugin, process_factory: ProcessFactoryPtr) -> JuizResult<Self> {
+        Ok(ProcessFactoryWrapper{
+            core: ObjectCore::create_factory(JuizObjectClass::ProcessFactory("ProcessFactoryWrapper"), process_factory.type_name()),
             plugin,
-            process_factory: Arc::clone(&process_factory),
+            process_factory,
             processes: RefCell::new(vec![])
-        })))
+        })
     }
-
 }
 
 impl JuizObjectCoreHolder for ProcessFactoryWrapper {
@@ -43,7 +36,7 @@ impl JuizObject for ProcessFactoryWrapper {
         let v = self.core.profile_full()?;
         Ok(obj_merge(v, &jvalue!({
             "plugin": prof,
-            "process_factory": juiz_lock(&self.process_factory)?.profile_full()?,
+            "process_factory": self.process_factory.lock()?.profile_full()?,
         }))?.into())
     }
 
@@ -54,7 +47,7 @@ impl ProcessFactory for ProcessFactoryWrapper {
 
     fn create_process(&self, manifest: Value) -> JuizResult<ProcessPtr> {
         log::trace!("ProcessFactoryWrapper::create_process(manifest={}) called", manifest);
-        let p = juiz_lock(&self.process_factory).with_context(||format!("ProcessFactoryWrapper::create_process(manifest:{manifest:}) failed."))?.create_process(manifest)?;
+        let p = self.process_factory.lock()?.create_process(manifest)?;
         self.processes.borrow_mut().push(p.clone());
         Ok(p)
     }

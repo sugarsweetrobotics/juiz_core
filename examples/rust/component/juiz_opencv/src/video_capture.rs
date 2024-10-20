@@ -32,5 +32,5 @@ fn create_cv_capture_container(_manifest: Value) -> JuizResult<Box<CvVideoCaptur
 #[no_mangle]
 pub unsafe extern "Rust" fn cv_video_capture_factory() -> JuizResult<ContainerFactoryPtr> {
     log::trace!("cv_video_capture_factory() called");
-    ContainerFactoryImpl::create(CvVideoCapture::manifest(), create_cv_capture_container)
+    container_factory_create(CvVideoCapture::manifest(), create_cv_capture_container)
 }

@@ -111,7 +111,7 @@ pub(super) fn register_container_factory(system: &System, plugin: JuizObjectPlug
     log::trace!("register_container_factory(symbol_name={symbol_name}, profile={profile}) called");
     let pf = plugin.load_container_factory(system.get_working_dir(), symbol_name, profile)?;
     let type_name = pf.lock().or_else(|e|{ Err(anyhow!(JuizError::ObjectLockError{target:e.to_string()}) ) })?.type_name().to_owned();
-    let wrapper = ContainerFactoryWrapper::new(plugin, pf)?;
+    let wrapper = ContainerFactoryPtr::new(ContainerFactoryWrapper::new(plugin, pf)?);
     let _result = system.core_broker().lock_mut()?.worker_mut().store_mut().containers.register_factory(type_name.as_str(), wrapper.clone());
     log::trace!("register_container_factory() exit");
     Ok(wrapper)
@@ -122,7 +122,7 @@ pub(super) fn register_container_process_factory(system: &System, plugin: JuizOb
     log::trace!("register_container_process_factory(symbol_name={symbol_name}, profile={profile:}) called");
     let cpf = plugin.load_container_process_factory(system.get_working_dir(), symbol_name, profile)?;
     let type_name = cpf.lock().or_else(|e| { Err(anyhow!(JuizError::ObjectLockError { target: e.to_string() }))})?.type_name().to_owned();
-    let pfw = ContainerProcessFactoryWrapper::new(plugin, cpf )?;
+    let pfw = ContainerProcessFactoryPtr::new(ContainerProcessFactoryWrapper::new(plugin, cpf )?);
     system.core_broker().lock_mut()?.worker_mut().store_mut().container_processes.register_factory(type_name.as_str(), pfw.clone())?;
     log::trace!("register_container_process_factory() exit");
     Ok(pfw)

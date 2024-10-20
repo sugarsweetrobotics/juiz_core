@@ -18,5 +18,5 @@ fn get_function(container: &mut ContainerImpl<ExampleContainer>, _v: CapsuleMap)
 #[no_mangle]
 pub unsafe extern "Rust" fn container_process_factory() -> JuizResult<ContainerProcessFactoryPtr> {
     env_logger::init();
-    ContainerProcessFactoryImpl::create(manifest(), &get_function)
+    container_process_factory_create(manifest(), &get_function)
 }

@@ -1,5 +1,4 @@
 
-use std::sync::{Arc, Mutex};
 
 use crate::object::JuizObjectClass;
 use crate::prelude::*;
@@ -20,21 +19,13 @@ pub struct ProcessFactoryImpl {
 impl ProcessFactoryImpl {
 
     pub fn new(manifest: Value, function: FunctionType) -> JuizResult<Self> {
-        let type_name = obj_get_str(&manifest, "type_name")?;
-        Ok(
-            ProcessFactoryImpl{
-                core: ObjectCore::create_factory(JuizObjectClass::ProcessFactory("ProcessFactoryImpl"),
-                    type_name
-                ),
-                manifest: check_process_factory_manifest(manifest)?, 
-                function
-            }
-        )
-    }
-
-    pub fn create(manifest: Value, function: FunctionType) -> JuizResult<ProcessFactoryPtr> {
-       log::trace!("ProcessFactoryImpl::create({:}) called", manifest);
-       Ok(Arc::new(Mutex::new(ProcessFactoryImpl::new(manifest, function)?)))
+        Ok(ProcessFactoryImpl{
+            core: ObjectCore::create_factory(
+                JuizObjectClass::ProcessFactory("ProcessFactoryImpl"),
+                obj_get_str(&manifest, "type_name")?),
+            manifest: check_process_factory_manifest(manifest)?, 
+            function
+        })
     }
 
     fn apply_default_manifest(&self, manifest: Value) -> Result<Value, JuizError> {

@@ -4,7 +4,7 @@
 use crate::{core::CoreWorker, prelude::*};
 use crate::utils::juiz_lock;
 use std::sync::{Arc, Mutex};
-use crate::{plugin::RustPlugin, brokers::{Broker, BrokerProxy, BrokerFactory, BrokerProxyFactory}};
+use crate::{plugin::RustPlugin, brokers::{BrokerProxy, BrokerFactory, BrokerProxyFactory}};
 
 use super::broker_ptr::BrokerPtr;
 

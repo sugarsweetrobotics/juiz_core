@@ -31,7 +31,7 @@ fn manifest() -> Value{
 
 #[no_mangle]
 pub unsafe extern "Rust" fn cv_cvt_color_factory() -> JuizResult<ProcessFactoryPtr> {
-    ProcessFactoryImpl::create(
+    process_factory_create(
         manifest(),
                 cvt_color_function
     )

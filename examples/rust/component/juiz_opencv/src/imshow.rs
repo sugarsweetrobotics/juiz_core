@@ -32,7 +32,7 @@ fn manifest() -> Value {
 
 #[no_mangle]
 pub unsafe extern "Rust" fn imshow_factory() -> JuizResult<ContainerProcessFactoryPtr> {
-    ContainerProcessFactoryImpl::create(
+    container_process_factory_create(
         manifest(),
         &imshow_function)
 }

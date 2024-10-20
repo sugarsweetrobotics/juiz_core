@@ -28,7 +28,7 @@ fn create_cv_window_container(manifest: Value) -> JuizResult<Box<CvWindow>> {
 #[no_mangle]
 pub unsafe extern "Rust" fn cv_window_factory() -> JuizResult<ContainerFactoryPtr> {
     // env_logger::init();
-    ContainerFactoryImpl::create(CvWindow::manifest(), create_cv_window_container)
+    container_factory_create(CvWindow::manifest(), create_cv_window_container)
 }
 
 

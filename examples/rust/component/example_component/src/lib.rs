@@ -51,7 +51,7 @@ pub mod example_component {
 
     #[no_mangle]
     pub unsafe extern "Rust" fn example_component_container_factory() -> JuizResult<ContainerFactoryPtr> {
-        ContainerFactoryImpl::create(ExampleComponentContainer::manifest(), create_example_component_container)
+        container_factory_create(ExampleComponentContainer::manifest(), create_example_component_container)
     }
 
     fn increment_process(args: CapsuleMap) -> JuizResult<Capsule> {
@@ -67,7 +67,7 @@ pub mod example_component {
             .description("Example(incremnet_process)")
             .add_int_arg("arg1", "The output will be 'arg1 + 1'.", 1)
             .into();
-        ProcessFactoryImpl::create(manif, increment_process)
+        process_factory_create(manif, increment_process)
     }
     
 
@@ -77,7 +77,7 @@ pub mod example_component {
     
     #[no_mangle]
     pub unsafe extern "Rust" fn example_component_container_get_factory() -> JuizResult<ContainerProcessFactoryPtr> {
-        ContainerProcessFactoryImpl::create(
+        container_process_factory_create(
             ContainerProcessManifest::new(ExampleComponentContainer::manifest(), "example_component_container_get").into(),
             &example_component_container_get_function)
     }
@@ -90,7 +90,7 @@ pub mod example_component {
     
     #[no_mangle]
     pub unsafe extern "Rust" fn example_component_container_increment_factory() -> JuizResult<ContainerProcessFactoryPtr> {
-        ContainerProcessFactoryImpl::create(
+        container_process_factory_create(
             ContainerProcessManifest::new(ExampleComponentContainer::manifest(), "example_component_container_increment").into(),
             &example_component_container_increment_function)
     }
@@ -103,7 +103,7 @@ pub mod example_component {
     
     #[no_mangle]
     pub unsafe extern "Rust" fn example_component_container_add_factory() -> JuizResult<ContainerProcessFactoryPtr> {
-        ContainerProcessFactoryImpl::create(
+        container_process_factory_create(
             ContainerProcessManifest::new(
                 ExampleComponentContainer::manifest(), 
                 "example_component_container_increment")

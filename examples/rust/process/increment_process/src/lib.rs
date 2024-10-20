@@ -18,5 +18,5 @@ fn increment_process(args: CapsuleMap) -> JuizResult<Capsule> {
 #[no_mangle]
 pub unsafe extern "Rust" fn process_factory() -> JuizResult<ProcessFactoryPtr> {
     env_logger::init();
-    ProcessFactoryImpl::create(manifest(), increment_process)
+    process_factory_create(manifest(), increment_process)
 }

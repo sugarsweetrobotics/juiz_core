@@ -93,11 +93,8 @@ impl JuizObjectPlugin {
         log::trace!("load_container_factory({working_dir:?}, {symbol_name}, {container_profile}) called");
         match self {
             JuizObjectPlugin::Rust(p) => {
-                type SymbolType = libloading::Symbol<'static, unsafe extern "Rust" fn() -> JuizResult<ContainerFactoryPtr>>;
-                unsafe {
-                    let symbol = p.load_symbol::<SymbolType>(symbol_name.as_bytes())?;
-                    (symbol)().with_context(||format!("calling symbol '{symbol_name}'"))
-                }
+                p.load_container_factory(working_dir, symbol_name, container_profile)
+                
             },
             JuizObjectPlugin::Python(p) => {
                 p.load_container_factory(working_dir, symbol_name, container_profile)
