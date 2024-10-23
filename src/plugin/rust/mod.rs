@@ -9,7 +9,7 @@ pub use container_factory_impl::ContainerFactoryImpl;
 pub use container_stack_factory::ContainerStackFactoryImpl;
 pub use container_process_factory_impl::ContainerProcessFactoryImpl;
 
-use crate::{prelude::*, containers::ContainerConstructFunction, prelude::ContainerManifest};
+use crate::{prelude::*, prelude::ContainerManifest};
 
 
 pub fn container_stack_factory_create<S: 'static>(manifest: ContainerManifest, constructor: ContainerStackConstructFunction<S>) -> JuizResult<ContainerFactoryPtr> {

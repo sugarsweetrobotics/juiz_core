@@ -41,18 +41,18 @@ fn extract_method_parameters<'a>(args: &'a CapsuleMap) -> JuizResult<(&'a str, &
 */
 
 
-fn extract_class_name<'a>(args: &'a CapsuleMap) -> JuizResult<String> {
-    // method_name, class_name, function_name, params
-    let err = |name: &str | anyhow::Error::from(JuizError::CapsuleDoesNotIncludeParamError{ name: name.to_owned() });
-    let class_name = args.get_param("class_name").ok_or_else( || err("class_name") )?;
-    Ok(class_name.to_owned())
-}
+// fn extract_class_name<'a>(args: &'a CapsuleMap) -> JuizResult<String> {
+//     // method_name, class_name, function_name, params
+//     let err = |name: &str | anyhow::Error::from(JuizError::CapsuleDoesNotIncludeParamError{ name: name.to_owned() });
+//     let class_name = args.get_param("class_name").ok_or_else( || err("class_name") )?;
+//     Ok(class_name.to_owned())
+// }
 
-fn extract_function_name<'a>(args: &'a CapsuleMap) -> JuizResult<&String> {
-    let err = |name: &str | anyhow::Error::from(JuizError::CapsuleDoesNotIncludeParamError{ name: name.to_owned() });
-    let function_name = args.get_param("function_name").ok_or_else( || err("function_name") )?;
-    Ok(function_name)
-}
+// fn extract_function_name<'a>(args: &'a CapsuleMap) -> JuizResult<&String> {
+//     let err = |name: &str | anyhow::Error::from(JuizError::CapsuleDoesNotIncludeParamError{ name: name.to_owned() });
+//     let function_name = args.get_param("function_name").ok_or_else( || err("function_name") )?;
+//     Ok(function_name)
+// }
 
 impl CRUDBroker {
     pub fn new(core_broker: CoreBrokerPtr) -> JuizResult<CRUDBroker> {

@@ -4,7 +4,7 @@ use std::ffi::c_void;
 
 use crate::containers::ContainerImpl;
 use crate::prelude::*;
-use crate::{object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, utils::check_process_factory_manifest, value::obj_get_str};
+use crate::object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore};
 
 pub struct CppContainerStruct {
     pub cobj: *mut std::ffi::c_void
@@ -53,7 +53,7 @@ impl JuizObject for CppContainerFactoryImpl {}
 
 impl ContainerFactory for CppContainerFactoryImpl {
 
-    fn create_container(&self, _core_worker: &mut CoreWorker, mut manifest: ContainerManifest) -> JuizResult<ContainerPtr>{
+    fn create_container(&self, _core_worker: &mut CoreWorker, manifest: ContainerManifest) -> JuizResult<ContainerPtr>{
         log::trace!("ContainerFactoryImpl({:?})::create_container(manifest={:?}) called", self.manifest, manifest);
         let mut pobj: *mut c_void = std::ptr::null_mut();
         unsafe {

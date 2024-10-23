@@ -1,20 +1,26 @@
 
-use std::{collections::HashMap, fs, path::PathBuf, rc::Rc};
+use std::{collections::HashMap, fs, path::PathBuf};
 use pyo3::{prelude::*, types::{PyDict, PyFloat, PyFunction, PyInt, PyList, PyNone, PySet, PyString, PyTuple}};
 use serde_json::Map;
 
-use crate::{containers::{container_factory_create_with_trait, container_process_factory_create_from_trait}, plugin::python::python_container_factory_impl::PythonContainerStruct, prelude::*, processes::process_factory_create_from_trait, utils::get_array, value::obj_get_str};
+use crate::{containers::{container_factory_create_with_trait, container_process_factory_create_from_trait}, prelude::*, processes::process_factory_create_from_trait, utils::get_array, value::obj_get_str};
 
 #[cfg(feature="opencv4")]
 use crate::opencv::prelude::*;
 
 use crate::anyhow::{self, anyhow};
 /// use super::python_process_factory_impl::PythonProcessFactoryImpl;
-use super::python_container_process_factory_impl::PythonContainerProcessFactoryImpl;
-use super::python_container_factory_impl::PythonContainerFactoryImpl;
+//use super::python_container_process_factory_impl::PythonContainerProcessFactoryImpl;
+//use super::python_container_factory_impl::PythonContainerFactoryImpl;
 pub struct PythonPlugin {
     path: PathBuf,
 }
+
+
+pub struct PythonContainerStruct {
+    pub pyobj: Py<PyAny>
+}
+
 
 #[cfg(feature="opencv4")]
 fn pytuple_to_mat(pytuple: &PyTuple) -> JuizResult<Capsule> {
@@ -113,9 +119,9 @@ impl PythonPlugin {
         Ok(PythonPlugin{path})
     }
 
-    pub fn get_manifest(&self, working_dir: Option<PathBuf>, symbol_name: &str) -> JuizResult<Value> {
-        self.get_manifest_with_name(working_dir, symbol_name)
-    }
+    // pub fn get_manifest(&self, working_dir: Option<PathBuf>, symbol_name: &str) -> JuizResult<Value> {
+    //     self.get_manifest_with_name(working_dir, symbol_name)
+    // }
 
     fn get_manifest_with_name(&self, working_dir: Option<PathBuf>, symbol_name: &str) -> JuizResult<Value> {
         let fullpath = working_dir.clone().unwrap_or(env!("CARGO_MANIFEST_DIR").into()).join(self.path.clone());
@@ -278,13 +284,13 @@ def argument_info(func):
     })
 }
 
-pub fn get_entry_point(fullpath: &PathBuf, symbol_name: &str) -> PyResult<Py<PyAny>> {
-    Python::with_gil(|py| -> PyResult<Py<PyAny>> {
-        let py_app = fs::read_to_string(fullpath).unwrap();
-        let module = PyModule::from_code_bound(py, &py_app.to_string(), fullpath.to_str().unwrap(), "")?;
-        module.getattr(symbol_name)?.into_py(py).call0(py)
-    })
-}
+// pub fn get_entry_point(fullpath: &PathBuf, symbol_name: &str) -> PyResult<Py<PyAny>> {
+//     Python::with_gil(|py| -> PyResult<Py<PyAny>> {
+//         let py_app = fs::read_to_string(fullpath).unwrap();
+//         let module = PyModule::from_code_bound(py, &py_app.to_string(), fullpath.to_str().unwrap(), "")?;
+//         module.getattr(symbol_name)?.into_py(py).call0(py)
+//     })
+// }
 
 
 
@@ -314,7 +320,7 @@ pub fn capsulemap_to_pytuple<'a>(py: Python, value: &'a CapsuleMap, signature: &
 
     // } ).collect::<Vec<Py<PyAny>>>()
 }
-
+#[allow(unused)]
 pub fn value_to_pytuple<'a>(py: Python, value: &'a Value) -> Vec<Py<PyAny>> {
     vec!(value_to_pyany(py, value))
 }

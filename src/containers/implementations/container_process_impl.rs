@@ -4,7 +4,7 @@ use anyhow::Context;
 
 use crate::prelude::*;
 use crate::processes::process_from_clousure;
-use crate::{object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, utils::check_process_manifest};
+use crate::object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore};
 
 pub type ContainerFunctionType<T>=dyn Fn(&mut ContainerImpl<T>, CapsuleMap) -> JuizResult<Capsule>+'static;
 pub type ContainerFunctionTypePtr<T>= Arc<ContainerFunctionType<T>>;

@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::prelude::*;
 use crate::containers::{ContainerFunctionType, ContainerFunctionTypePtr, ContainerImpl, ContainerProcessImpl};
-use crate::{object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, value::obj_get_str};
+use crate::object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore};
 pub struct ContainerProcessFactoryImpl<T> where T: 'static {
     core: ObjectCore,
     manifest: ProcessManifest,

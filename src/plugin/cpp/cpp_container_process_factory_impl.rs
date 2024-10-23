@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use crate::containers::ContainerImpl;
 use crate::prelude::*;
-use crate::{containers::ContainerProcessImpl, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, utils::check_process_factory_manifest, value::obj_get_str};
+use crate::{containers::ContainerProcessImpl, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}};
 
 use super::cpp_container_factory_impl::CppContainerStruct;
 #[repr(C)]

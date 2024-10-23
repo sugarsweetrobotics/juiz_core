@@ -2,7 +2,7 @@
 use std::sync::{Arc, Mutex};
 
 use crate::prelude::*;
-use crate::{containers::ContainerImpl, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, utils::check_process_factory_manifest, value::obj_get_str};
+use crate::{containers::ContainerImpl, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}};
 
 pub type ContainerStackConstructFunction<S>=fn(ContainerPtr, ContainerManifest) -> JuizResult<Box<S>>;
 

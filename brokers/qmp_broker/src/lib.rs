@@ -47,9 +47,9 @@ pub(crate) fn to_request_value(class_name: &str, function_name: &str, method_nam
 
 
 
-pub(crate) fn to_request(value: Value) -> anyhow::Result<CapsuleMap> {
-    value.try_into()
-}
+// pub(crate) fn to_request(value: Value) -> anyhow::Result<CapsuleMap> {
+//     value.try_into()
+// }
 
 
 pub async fn on_start(broker_manifest: Value, crud_broker: Arc<Mutex<CRUDBroker>>) -> () {

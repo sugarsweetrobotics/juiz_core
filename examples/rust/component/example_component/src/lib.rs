@@ -29,7 +29,7 @@ pub mod example_component {
         }
     }
 
-    fn create_example_component_container(manifest: ContainerManifest) -> JuizResult<Box<ExampleComponentContainer>> {
+    fn create_example_component_container(_manifest: ContainerManifest) -> JuizResult<Box<ExampleComponentContainer>> {
         Ok(Box::new(ExampleComponentContainer{value: 0}))
     }
 

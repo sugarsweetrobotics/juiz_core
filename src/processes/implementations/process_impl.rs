@@ -6,16 +6,11 @@
 
 use std::sync::Arc;
 
-use serde_json::Map;
 
-use crate::identifier::{identifier_from_manifest, create_identifier_from_manifest};
 use crate::object::{JuizObjectCoreHolder, ObjectCore, JuizObjectClass};
-
-use crate::value::{obj_get_bool, obj_get_obj, obj_get_str, obj_merge_mut};
-
 use crate::prelude::*;
 
-use crate::utils::{check_manifest_before_call, check_process_manifest};
+use crate::utils::check_manifest_before_call;
 use crate::connections::{SourceConnection, SourceConnectionImpl, DestinationConnection, DestinationConnectionImpl};
 
 use crate::value::CapsuleMap;
@@ -34,10 +29,10 @@ pub struct ProcessImpl {
 }
 
 
-pub fn argument_manifest(process_manifest: &ProcessManifest) -> &Vec<ArgumentManifest> {//JuizResult<&Map<String, Value>>{
-    // obj_get_obj(process_manifest, "arguments")
-    &process_manifest.arguments
-}
+// pub fn argument_manifest(process_manifest: &ProcessManifest) -> &Vec<ArgumentManifest> {//JuizResult<&Map<String, Value>>{
+//     // obj_get_obj(process_manifest, "arguments")
+//     &process_manifest.arguments
+// }
 
 pub fn process_from_clousure(manif: ProcessManifest, func: impl Fn(CapsuleMap) -> JuizResult<Capsule> + 'static) -> JuizResult<impl Process> {
     ProcessImpl::new_from_clousure(manif, func)

@@ -38,17 +38,17 @@ pub fn obj_get<'a>(value: &'a Value, key: &str) -> JuizResult<&'a Value> {
     }
 }
 
-pub fn obj_get_into(mut value: Value, key: &str) -> JuizResult<Value> {
-    match value.as_object_mut() {
-        None => return Err(anyhow::Error::from(JuizError::ValueWithKeyIsNotObjectError{value: value.clone(), key: key.to_string()})),
-        Some(hashmap) => {
-            match hashmap.remove(key) {
-                None => return Err(anyhow::Error::from(JuizError::ValueWithKeyNotFoundError{value: value.clone(), key: key.to_string()})),
-                Some(value_for_key) => Ok(value_for_key)
-            }
-        }
-    }
-}
+// pub fn obj_get_into(mut value: Value, key: &str) -> JuizResult<Value> {
+//     match value.as_object_mut() {
+//         None => return Err(anyhow::Error::from(JuizError::ValueWithKeyIsNotObjectError{value: value.clone(), key: key.to_string()})),
+//         Some(hashmap) => {
+//             match hashmap.remove(key) {
+//                 None => return Err(anyhow::Error::from(JuizError::ValueWithKeyNotFoundError{value: value.clone(), key: key.to_string()})),
+//                 Some(value_for_key) => Ok(value_for_key)
+//             }
+//         }
+//     }
+// }
 
 pub fn obj_insert(value: &mut Value, key: &str, data: Value) -> JuizResult<()> {
     get_hashmap_mut(value)?.insert(key.to_string(), data);

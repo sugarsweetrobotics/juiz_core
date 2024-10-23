@@ -1,4 +1,3 @@
-use std::path::Component;
 
 use crate::value::{obj_get_array, obj_get_str, Value};
 

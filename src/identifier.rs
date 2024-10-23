@@ -67,6 +67,7 @@ pub(crate) fn _create_factory_identifier(class_name: &str, type_name: &str) -> I
     identifier_new("core", "core", class_name, type_name, type_name)
 }
 
+#[allow(unused)]
 pub(crate) fn create_identifier_from_manifest(class_name: &str, manifest: &Value) -> JuizResult<Identifier> {
     identifier_from_manifest("core", "core", class_name, manifest)
 }
