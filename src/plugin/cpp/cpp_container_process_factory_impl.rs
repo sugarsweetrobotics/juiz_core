@@ -10,31 +10,31 @@ use super::cpp_container_factory_impl::CppContainerStruct;
 #[repr(C)]
 pub struct CppContainerProcessFactoryImpl {
     core: ObjectCore,
-    manifest: Value,
+    manifest: ProcessManifest,
     //plugin: Rc<CppPlugin>,
     entry_point: unsafe fn(*mut std::ffi::c_void, *mut CapsuleMap, *mut Capsule) -> i64,
 }
 
 impl CppContainerProcessFactoryImpl {
 
-    pub fn new2(manifest: &Value, entry_point: unsafe fn(*mut std::ffi::c_void, *mut CapsuleMap, *mut Capsule) -> i64) -> JuizResult<Self> {
+    pub fn new2(manifest: ProcessManifest, entry_point: unsafe fn(*mut std::ffi::c_void, *mut CapsuleMap, *mut Capsule) -> i64) -> JuizResult<Self> {
 
-        log::trace!("new2({manifest:}) called");
-        let type_name = obj_get_str(manifest, "type_name")?;
+        log::trace!("new2({manifest:?}) called");
+        //let type_name = obj_get_str(manifest, "type_name")?;
         Ok( CppContainerProcessFactoryImpl{
-            core: ObjectCore::create_factory(JuizObjectClass::ContainerFactory("ContainerFactoryImpl"), type_name),
-            manifest: check_process_factory_manifest(manifest.clone())?,
+            core: ObjectCore::create_factory(JuizObjectClass::ContainerFactory("ContainerFactoryImpl"), manifest.type_name.clone()),
+            manifest, //: //check_process_factory_manifest(manifest.clone())?,
             entry_point
         })
     }
 
-    fn apply_default_manifest(&self, manifest: Value) -> Result<Value, JuizError> {
-        let mut new_manifest = self.manifest.clone();
-        for (k, v) in manifest.as_object().unwrap().iter() {
-            new_manifest.as_object_mut().unwrap().insert(k.to_owned(), v.clone());
-        }
-        return Ok(new_manifest);
-    }
+    // fn apply_default_manifest(&self, manifest: Value) -> Result<Value, JuizError> {
+    //     let mut new_manifest = self.manifest.clone();
+    //     for (k, v) in manifest.as_object().unwrap().iter() {
+    //         new_manifest.as_object_mut().unwrap().insert(k.to_owned(), v.clone());
+    //     }
+    //     return Ok(new_manifest);
+    // }
 }
 
 
@@ -48,8 +48,8 @@ impl JuizObject for CppContainerProcessFactoryImpl {}
 
 
 impl ContainerProcessFactory for CppContainerProcessFactoryImpl {
-    fn create_container_process(&self, container: ContainerPtr, manifest: Value) -> JuizResult<ProcessPtr> {
-        log::trace!("ContainerProcessFactoryImpl::create_container_process(container, manifest={}) called", manifest);
+    fn create_container_process(&self, container: ContainerPtr, manifest: ProcessManifest) -> JuizResult<ProcessPtr> {
+        log::trace!("ContainerProcessFactoryImpl::create_container_process(container, manifest={:?}) called", manifest);
         
 
         let type_name = self.type_name().to_owned();
@@ -68,7 +68,7 @@ impl ContainerProcessFactory for CppContainerProcessFactoryImpl {
 
         Ok(ProcessPtr::new(
             ContainerProcessImpl::new(
-                self.apply_default_manifest(manifest)?, 
+                self.manifest.build_instance_manifest(manifest)?,//  manifest, 
                 container, 
                 function)?
         ))

@@ -51,7 +51,7 @@ impl Display for ContainerProxy {
 }
 
 impl Container for ContainerProxy {
-    fn manifest(&self) -> &Value {
+    fn manifest(&self) -> &ContainerManifest {
         todo!()
     }
     

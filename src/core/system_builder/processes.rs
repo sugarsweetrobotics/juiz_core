@@ -36,29 +36,20 @@ fn setup_process_factory(system: &System, name: &String, v: &Value) -> JuizResul
 
 
 pub(super) fn setup_processes(system: &System, manifest: &Value) -> JuizResult<()> {
-    log::trace!("setup_processes() called");
-    for process_manifest in get_array(manifest)?.iter() {
-        let p_name = obj_get_str(process_manifest, "name")?;
-        let p_type_name = obj_get_str(process_manifest, "type_name")?;
-        log::debug!("Process ({:}:{:}) Creating...", p_name, p_type_name);
+    log::trace!("setup_processes({manifest}) called");
+    for process_manifest_value  in get_array(manifest)?.iter() {
+        let process_manifest: ProcessManifest = process_manifest_value.clone().try_into()?;
+        log::debug!("Process ({:?}) Creating...", process_manifest);
         let new_process = system.core_broker().lock_mut()?.worker_mut().create_process_ref(process_manifest.clone())?;
-        log::info!("Process ({:}:{:}) Created", p_name, p_type_name);
+        log::info!("Process ({:?}) Created", process_manifest);
 
         // Topicをpublishするなら
-        let _reslt = obj_get_array(process_manifest, "publish").and_then(|pub_topics| {
-            for pub_topic in pub_topics.iter() {
-                setup_publish_topic(system, new_process.clone(), pub_topic)?
-            };
-            Ok(())
-        });
-
-        let _reslts = obj_get_obj(process_manifest, "subscribe").and_then(|sub_topic_map| {
-            for (arg_name, topic_prof) in sub_topic_map.iter() {
-                setup_subscribe_topic(system, new_process.clone(), arg_name, topic_prof)?;
-            };
-            Ok(())
-        });
-
+        for pub_topic in process_manifest.publishes.iter() {
+            setup_publish_topic(system, new_process.clone(), pub_topic.clone())?
+        }
+        for (arg_name, sub_topic) in process_manifest.subscribes.iter() {
+            setup_subscribe_topic(system, new_process.clone(), arg_name, sub_topic.clone())?
+        }
     } 
     log::trace!("setup_processes() exit");
     Ok(())

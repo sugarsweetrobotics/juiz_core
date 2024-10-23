@@ -3,8 +3,8 @@ use crate::prelude::*;
 use crate::connections::{DestinationConnection, SourceConnection};
 use mopa::mopafy;
 
-pub type FunctionType = fn(CapsuleMap) -> JuizResult<Capsule>;
-pub type FunctionTrait = dyn Fn(CapsuleMap) -> JuizResult<Capsule>;
+pub type ProcessBodyFunctionType = fn(CapsuleMap) -> JuizResult<Capsule>;
+pub type ProcessBodyFunctionTrait = dyn Fn(CapsuleMap) -> JuizResult<Capsule>;
 
 pub trait Process : Send + Sync + mopa::Any + JuizObject + 'static {
 
@@ -14,7 +14,7 @@ pub trait Process : Send + Sync + mopa::Any + JuizObject + 'static {
 
     //fn is_updated_exclude(& self, inlet_name: &str) -> JuizResult<bool>;
 
-    fn manifest(&self) -> &Value;
+    fn manifest(&self) -> &ProcessManifest;
     
     // fn profile_full(&self) -> JuizResult<Value>;
     /*

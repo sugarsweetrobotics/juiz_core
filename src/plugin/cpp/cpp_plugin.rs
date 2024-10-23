@@ -4,8 +4,8 @@ use libloading::{Library, Symbol};
 
 use super::cpp_container_factory_impl::CppContainerFactoryImpl;
 use super::cpp_container_process_factory_impl::CppContainerProcessFactoryImpl;
-use super::cpp_process_factory_impl::CppProcessFactoryImpl;
 use crate::prelude::*;
+use crate::processes::process_factory_create_from_trait;
 
 pub struct CppPlugin{
     path: PathBuf,
@@ -30,8 +30,8 @@ impl CppPlugin {
         &self.manifest
     }
 
-    pub fn load_component_profile(&self, _working_dir: Option<PathBuf>) -> JuizResult<Value> {
-        Ok(self.get_manifest().clone())
+    pub fn load_component_manifest(&self, _working_dir: Option<PathBuf>) -> JuizResult<ComponentManifest> {
+        Ok(self.get_manifest().clone().try_into()?)
     }
     
     pub fn new(path: PathBuf, manifest_entry_point: &str) -> JuizResult<CppPlugin> {
@@ -72,7 +72,8 @@ impl CppPlugin {
             let symbol = self.load_symbol::<SymbolType>(full_symbol_name.as_bytes())?;
             (symbol)()
         };
-        Ok(ProcessFactoryPtr::new(CppProcessFactoryImpl::new(self.get_manifest(), f)?))
+        create_cpp_process_factory(self.get_manifest().clone(), f)
+        //Ok(ProcessFactoryPtr::new(CppProcessFactoryImpl::new(self.get_manifest(), f)?))
     }
 
 
@@ -84,7 +85,7 @@ impl CppPlugin {
             let symbol = self.load_symbol::<SymbolType>(full_symbol_name.as_bytes())?;
             (symbol)()
         };
-        Ok(ContainerFactoryPtr::new(CppContainerFactoryImpl::new2(self.get_manifest(), f)?))
+        Ok(ContainerFactoryPtr::new(CppContainerFactoryImpl::new2(self.get_manifest().clone().try_into()?, f)?))
     }
     
     //pub fn load_container_factory_with_manifest(&self, working_dir: Option<PathBuf>, manifest: Value) -> JuizResult<Arc<Mutex<dyn ContainerFactory>>> {
@@ -103,7 +104,7 @@ impl CppPlugin {
             let symbol = self.load_symbol::<SymbolType>(full_symbol_name.as_bytes())?;
             (symbol)()
         };
-        Ok(ContainerProcessFactoryPtr::new(CppContainerProcessFactoryImpl::new2(self.get_manifest(), f)?))
+        Ok(ContainerProcessFactoryPtr::new(CppContainerProcessFactoryImpl::new2(self.get_manifest().clone().try_into()?, f)?))
     }
 
     pub fn load_symbol<T>(&self, symbol_name: &[u8]) -> JuizResult<libloading::Symbol<T>> {
@@ -118,4 +119,22 @@ impl CppPlugin {
             }
         }
     }
+}
+
+
+fn create_cpp_process_factory(manifest: Value, entry_point: unsafe fn(*mut CapsuleMap, *mut Capsule) -> i64) -> JuizResult<ProcessFactoryPtr> {
+    let entry_point_name = "process_entry_point".to_owned();
+    let function = move |mut argument: CapsuleMap| -> JuizResult<Capsule> {
+        log::trace!("cppfunc (argument={argument:?}) called");
+        let mut func_result : Capsule = Capsule::empty();
+        unsafe {
+            let v = entry_point(&mut argument, &mut func_result);
+            if v < 0 {
+                return Err(anyhow::Error::from(JuizError::CppPluginFunctionCallError{function_name:entry_point_name.clone(), return_value:v}));
+            } 
+        }
+        return Ok(func_result);
+    };
+
+    process_factory_create_from_trait(manifest.try_into()?, function)
 }

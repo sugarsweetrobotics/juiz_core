@@ -4,11 +4,12 @@ use anyhow::anyhow;
 use crate::prelude::*;
 
 
-pub type ContainerConstructFunction<T>=fn(Value) -> JuizResult<Box<T>>;
+pub type ContainerConstructFunction<T>=fn(ContainerManifest) -> JuizResult<Box<T>>;
+pub type ContainerConstructFunctionTrait<T>=dyn Fn(ContainerManifest) -> JuizResult<Box<T>>;
 
 pub trait ContainerFactory : JuizObject + 'static {
 
-    fn create_container(&self, core_worker: &mut CoreWorker, manifest: Value) -> JuizResult<ContainerPtr>;
+    fn create_container(&self, core_worker: &mut CoreWorker, manifest: ContainerManifest) -> JuizResult<ContainerPtr>;
 
     fn destroy_container(&mut self, c: ContainerPtr) -> JuizResult<Value>;
     

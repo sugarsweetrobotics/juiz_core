@@ -1,7 +1,7 @@
 
 
 use anyhow::anyhow;
-use crate::{containers::{ContainerFactoryWrapper, ContainerProcessFactoryWrapper}, core::system_builder::topics::{setup_publish_topic, setup_subscribe_topic}, plugin::JuizObjectPlugin, prelude::*, utils::{get_array, get_hashmap, when_contains_do}, value::obj_get_str};
+use crate::{brokers::http::http_router::container, containers::{ContainerFactoryWrapper, ContainerProcessFactoryWrapper}, core::system_builder::topics::{setup_publish_topic, setup_subscribe_topic}, plugin::JuizObjectPlugin, prelude::*, utils::{get_array, get_hashmap, when_contains_do}, value::obj_get_str};
 
 
 pub(super) fn setup_container_factories(system: &System, manifest: &Value) -> JuizResult<()> {
@@ -18,12 +18,11 @@ pub(super) fn setup_container_factories(system: &System, manifest: &Value) -> Ju
 
 pub(super) fn setup_containers(system: &System, manifest: &Value) -> JuizResult<()> {
     log::trace!("setup_containers({manifest}) called");
-    for container_manifest in get_array(manifest)?.iter() {
-        let type_name =  obj_get_str(container_manifest, "type_name")?;
-        let name =  obj_get_str(container_manifest, "name")?;
-        log::debug!("Container ({:}:{:}) Creating...", name, type_name);
-        setup_container(system, container_manifest)?;
-        log::debug!("Container ({:}:{:}) Fully Created", name, type_name);
+    for container_manifest_value in get_array(manifest)?.iter() {
+        let container_manifest: ContainerManifest = container_manifest_value.clone().try_into()?;
+        log::debug!("Container ({:?}) Creating...", container_manifest);
+        setup_container(system, container_manifest.clone())?;
+        log::debug!("Container ({:?}) Fully Created", container_manifest);
     } 
     log::trace!("setup_containers() exit");
     Ok(())
@@ -40,12 +39,12 @@ fn setup_container_factory(system: &System, name: &String, container_profile: &V
         },
         Some(obj) => {
             let language = obj.get("language").and_then(|v| { v.as_str() }).or(Some("rust")).unwrap();
-            let ctr = register_container_factory(system, JuizObjectPlugin::new(language, name, container_profile, manifest_entry_point)?, "container_factory", container_profile.clone())?;
+            let ctr = register_container_factory(system, JuizObjectPlugin::new(language, name, container_profile, manifest_entry_point)?, "container_factory")?;
             log::info!("ContainerFactory ({name:}) Loaded");
             when_contains_do(container_profile, "processes", |container_process_profile_map| {
                 for (cp_name, container_process_profile) in get_hashmap(container_process_profile_map)?.iter() {
                     log::debug!(" - ContainerProcessFactory ({cp_name:}) Loading...");
-                    register_container_process_factory(system, JuizObjectPlugin::new(language, cp_name, container_process_profile, manifest_entry_point)?, "container_process_factory", container_process_profile)?;
+                    register_container_process_factory(system, JuizObjectPlugin::new(language, cp_name, container_process_profile, manifest_entry_point)?, "container_process_factory")?;
                     log::info!(" - ContainerProcessFactory ({cp_name:}) Loaded");
                 }
                 Ok(())
@@ -61,36 +60,23 @@ fn setup_container_factory(system: &System, name: &String, container_profile: &V
 /// 
 /// 各コンテナを作成後に対応するコンテナプロセスを作成する。
 /// 
-fn setup_container(system: &System, container_manifest: &Value) -> JuizResult<()> {
-    log::trace!("setup_container({container_manifest}) called");
-    let name = obj_get_str(container_manifest, "name")?;
-    let type_name = obj_get_str(container_manifest, "type_name")?;
+fn setup_container(system: &System, container_manifest: ContainerManifest) -> JuizResult<()> {
+    log::trace!("setup_container({container_manifest:?}) called");
     let container = system.core_broker().lock_mut()?.worker_mut().create_container_ref(container_manifest.clone())?;
-    log::info!("Container ({:}:{:}) Created", name, type_name);            
-    let _ = when_contains_do(container_manifest, "processes", |container_process_manifests| {
-        for container_process_manifest in get_array(container_process_manifests)?.iter() {
-            let cp_name = obj_get_str(container_process_manifest, "name")?;
-            let cp_type_name = obj_get_str(container_process_manifest, "type_name")?;
-            log::debug!(" - ContainerProcess ({:}:{:}) Creating...", cp_name, cp_type_name);
-            let cp_ref = system.core_broker().lock_mut()?.worker_mut().create_container_process_ref(container.clone(), container_process_manifest.clone())?;
-            log::info!(" - ContainerProcess ({:}:{:}) Created", cp_name, cp_type_name);    
-            // Topicをpublishするなら
-            let _reslt = obj_get_array(container_process_manifest, "publish").and_then(|pub_topics| {
-                for pub_topic in pub_topics.iter() {
-                    setup_publish_topic(system, cp_ref.clone(), pub_topic)?
-                };
-                Ok(())
-            });
-
-            let _reslts = obj_get_obj(container_process_manifest, "subscribe").and_then(|sub_topic_map| {
-                for (arg_name, topic_prof) in sub_topic_map.iter() {
-                    setup_subscribe_topic(system, cp_ref.clone(), arg_name, topic_prof)?;
-                };
-                Ok(())
-            });
+    log::info!("Container ({:?}) Created", container_manifest);    
+    for container_process_manifest in container_manifest.processes.iter() {
+        log::debug!(" - ContainerProcess ({:?}) Creating...", container_process_manifest);
+        let cp_ref = system.core_broker().lock_mut()?.worker_mut().create_container_process_ref(container.clone(), container_process_manifest.clone())?;
+        log::info!(" - ContainerProcess ({:?}) Created", container_process_manifest);    
+        // Topicをpublishするなら
+        for pub_topic in container_process_manifest.publishes.iter() {
+            setup_publish_topic(system, cp_ref.clone(), pub_topic.clone())?
         }
-        Ok(())
-    })?;
+
+        for (arg_name, sub_topic) in container_process_manifest.subscribes.iter() {
+            setup_subscribe_topic(system, cp_ref.clone(), &arg_name, sub_topic.clone())?
+        }
+    }   
     log::trace!("setup_container() exit");
     Ok(())
 }
@@ -107,9 +93,9 @@ pub(super) fn cleanup_containers(system: &mut System) -> JuizResult<()> {
 
 
 
-pub(super) fn register_container_factory(system: &System, plugin: JuizObjectPlugin, symbol_name: &str, profile: Value) -> JuizResult<ContainerFactoryPtr> {
-    log::trace!("register_container_factory(symbol_name={symbol_name}, profile={profile}) called");
-    let pf = plugin.load_container_factory(system.get_working_dir(), symbol_name, profile)?;
+pub(super) fn register_container_factory(system: &System, plugin: JuizObjectPlugin, symbol_name: &str) -> JuizResult<ContainerFactoryPtr> {
+    log::trace!("register_container_factory(symbol_name={symbol_name}) called");
+    let pf = plugin.load_container_factory(system.get_working_dir(), symbol_name)?;
     let type_name = pf.lock().or_else(|e|{ Err(anyhow!(JuizError::ObjectLockError{target:e.to_string()}) ) })?.type_name().to_owned();
     let wrapper = ContainerFactoryPtr::new(ContainerFactoryWrapper::new(plugin, pf)?);
     let _result = system.core_broker().lock_mut()?.worker_mut().store_mut().containers.register_factory(type_name.as_str(), wrapper.clone());
@@ -118,9 +104,9 @@ pub(super) fn register_container_factory(system: &System, plugin: JuizObjectPlug
 }
 
 
-pub(super) fn register_container_process_factory(system: &System, plugin: JuizObjectPlugin, symbol_name: &str, profile: &Value) -> JuizResult<ContainerProcessFactoryPtr> {
-    log::trace!("register_container_process_factory(symbol_name={symbol_name}, profile={profile:}) called");
-    let cpf = plugin.load_container_process_factory(system.get_working_dir(), symbol_name, profile)?;
+pub(super) fn register_container_process_factory(system: &System, plugin: JuizObjectPlugin, symbol_name: &str) -> JuizResult<ContainerProcessFactoryPtr> {
+    log::trace!("register_container_process_factory(symbol_name={symbol_name}) called");
+    let cpf = plugin.load_container_process_factory(system.get_working_dir(), symbol_name)?;
     let type_name = cpf.lock().or_else(|e| { Err(anyhow!(JuizError::ObjectLockError { target: e.to_string() }))})?.type_name().to_owned();
     let pfw = ContainerProcessFactoryPtr::new(ContainerProcessFactoryWrapper::new(plugin, cpf )?);
     system.core_broker().lock_mut()?.worker_mut().store_mut().container_processes.register_factory(type_name.as_str(), pfw.clone())?;

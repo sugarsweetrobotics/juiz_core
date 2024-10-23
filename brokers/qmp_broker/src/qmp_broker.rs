@@ -64,55 +64,58 @@ pub const ALPN_QUIC_HTTP: &[&[u8]] = &[b"hq-29"];
 
 
 
-fn on_update(crud_broker: Arc<Mutex<CRUDBroker>>, cp: CapsuleMap, remote_addr: SocketAddr) -> JuizResult<CapsulePtr>{
-    log::trace!("on_update({cp:?}) called");
-    let class_name = cp.get_param("class_name").unwrap();
-    let function_name = cp.get_param("function_name").unwrap();
-    let remote_addr_str = remote_addr.to_string();
-    if class_name == "system" && function_name == "add_mastersystem" {
-        let _r = match cp.get("profile") {
-            Ok(capsule_ptr) => {
-                capsule_ptr.lock_modify_as_value(|v|{
-                    match v.as_object_mut().unwrap().get_mut("subsystem").unwrap().as_object_mut() {
-                        Some(obj) => {
-                            let broker_name = obj.get("broker_name").unwrap().as_str().unwrap().to_owned();
-                            let broker_tokens = broker_name.split(":").collect::<Vec<&str>>();
-                            let port_str = broker_tokens.get(1).unwrap();
-                            let remote_tokens = remote_addr_str.split(":").collect::<Vec<&str>>();
-                            let addr_str = (*remote_tokens.get(0).unwrap()).to_owned();
+// fn on_update(crud_broker: Arc<Mutex<CRUDBroker>>, class_name:&str, function_name:&str, cp: CapsuleMap, remote_addr: SocketAddr) -> JuizResult<CapsulePtr>{
+//     log::trace!("on_update({cp:?}) called");
+//     //let class_name = cp.get_param("class_name").unwrap().clone();
+//     //let function_name = cp.get_param("function_name").unwrap();
+//     let remote_addr_str = remote_addr.to_string();
+//     if class_name == "system" && function_name == "add_mastersystem" {
+//         let _r = match cp.get("profile") {
+//             Ok(capsule_ptr) => {
+//                 capsule_ptr.lock_modify_as_value(|v|{
+//                     match v.as_object_mut().unwrap().get_mut("subsystem").unwrap().as_object_mut() {
+//                         Some(obj) => {
+//                             let broker_name = obj.get("broker_name").unwrap().as_str().unwrap().to_owned();
+//                             let broker_tokens = broker_name.split(":").collect::<Vec<&str>>();
+//                             let port_str = broker_tokens.get(1).unwrap();
+//                             let remote_tokens = remote_addr_str.split(":").collect::<Vec<&str>>();
+//                             let addr_str = (*remote_tokens.get(0).unwrap()).to_owned();
                             
-                            let new_broker_name = addr_str + ":" + port_str;
-                            obj.insert("broker_name".to_owned(), jvalue!(new_broker_name));
-                        }
-                        None => todo!(),
-                    }
-                })
-            }
-            Err(_) => todo!(),
-        };
-    }
-    let retval = juiz_lock(&crud_broker)?.update_class(cp);
-    log::info!("retval: {retval:?}");
+//                             let new_broker_name = addr_str + ":" + port_str;
+//                             obj.insert("broker_name".to_owned(), jvalue!(new_broker_name));
+//                         }
+//                         None => todo!(),
+//                     }
+//                 })
+//             }
+//             Err(_) => todo!(),
+//         };
+//     }
+//     let retval = juiz_lock(&crud_broker)?.update_class(class_name, function_name, cp);
+//     log::info!("retval: {retval:?}");
 
-    return retval;
-}
+//     return retval;
+// }
 
 fn callback(request: Vec<u8>, crud_broker: Arc<Mutex<CRUDBroker>>, remote_addr: SocketAddr) -> anyhow::Result<Vec<u8>> {
     let val = vecu8_to_value(request)?;
-    let cp = to_request(val)?;
-    let method_name = cp.get_param("method_name").unwrap();
-    //let (class_name, function_name, method_name, payload, param) = to_request(&val)?;
-    let capsule_ptr = match method_name.as_str() {
-        "create" => juiz_lock(&crud_broker)?.create_class(cp),
-        "delete" => juiz_lock(&crud_broker)?.delete_class(cp),
-        "read" => juiz_lock(&crud_broker)?.read_class(cp),
-        "update" => {
-            on_update(crud_broker, cp, remote_addr)
-        }
-        _ => {
-            Err(anyhow!(JuizError::InvalidValueError{message: format!("qmp_broker received invalid value. Its method name is unknown ({})", method_name)}))
-        }
-    }?;
+    let capsule_ptr= juiz_lock(&crud_broker)?.on_value_request(val, Some(remote_addr))?;
+    // let cp = to_request(val)?;
+    // let class_name = cp.get_param("class_name").unwrap().clone();
+    // let method_name = cp.get_param("method_name").unwrap().clone();
+    // let function_name = cp.get_param("function_name").unwrap().clone();
+    // //let (class_name, function_name, method_name, payload, param) = to_request(&val)?;
+    // let capsule_ptr = match method_name.as_str() {
+    //     "create" => juiz_lock(&crud_broker)?.create_class(class_name.as_str(), function_name.as_str(), cp),
+    //     "delete" => juiz_lock(&crud_broker)?.delete_class(class_name.as_str(), function_name.as_str(), cp),
+    //     "read" => juiz_lock(&crud_broker)?.read_class(class_name.as_str(), function_name.as_str(), cp),
+    //     "update" => {
+    //         on_update(crud_broker, class_name.as_str(), function_name.as_str(), cp, remote_addr)
+    //     }
+    //     _ => {
+    //         Err(anyhow!(JuizError::InvalidValueError{message: format!("qmp_broker received invalid value. Its method name is unknown ({})", method_name)}))
+    //     }
+    // }?;
     if capsule_ptr.is_value()? {
         capsule_ptr.lock_as_value(|v| {
             value_to_vecu8(v)

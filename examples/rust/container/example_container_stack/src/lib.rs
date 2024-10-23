@@ -12,27 +12,28 @@ pub struct ExampleContainerStack {
 
 impl ExampleContainerStack {
 
-    pub fn manifest() -> Value {
-        ContainerManifest::new("example_container_stack").parent("example_container").into()
+    pub fn manifest() -> ContainerManifest {
+        ContainerManifest::new("example_container_stack")
+          .parent_type_name("example_container")
     }
 
 }
 
-fn create_example_container_ex(container_ptr: ContainerPtr, manifest: Value) -> JuizResult<Box<ExampleContainerStack>> {
-    let my_name = match manifest.as_object().unwrap().get("name") {
-        None => Err(anyhow!(JuizError::InvalidValueError{ message: "Argument profile does not include 'name'.".to_owned()})),
-        Some(v) => {
-            Ok(v.as_str().unwrap())
-        },
-    }?;
-    Ok(Box::new(ExampleContainerStack{name: my_name.to_owned(), container: container_ptr}))
+fn create_example_container_ex(container_ptr: ContainerPtr, manifest: ContainerManifest) -> JuizResult<Box<ExampleContainerStack>> {
+    // let my_name = match manifest.name {
+    //     None => Err(anyhow!(JuizError::InvalidValueError{ message: "Argument profile does not include 'name'.".to_owned()})),
+    //     Some(v) => {
+    //         Ok(v.as_str())
+    //     },
+    // }?;
+    Ok(Box::new(ExampleContainerStack{name: manifest.name.clone().unwrap(), container: container_ptr}))
 }
 
 #[no_mangle]
-pub unsafe extern "Rust" fn container_factory() -> JuizResult<Arc<Mutex<dyn ContainerFactory>>> {
+pub unsafe extern "Rust" fn container_factory() -> JuizResult<ContainerFactoryPtr> {
     env_logger::init();
     let manifest = ExampleContainerStack::manifest();
-    ContainerStackFactoryImpl::create(manifest, create_example_container_ex)
+    container_stack_factory_create(manifest, create_example_container_ex)
 }
 
 

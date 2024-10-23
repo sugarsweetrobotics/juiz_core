@@ -18,6 +18,10 @@ impl Description {
     pub fn to_str(self) -> String {
         self.text
     }
+
+    pub fn as_str(&self) -> &str {
+        self.text.as_str()
+    }
 }
 
 impl Into<Value> for Description {

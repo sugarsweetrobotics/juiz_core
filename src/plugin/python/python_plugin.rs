@@ -1,15 +1,15 @@
 
-use std::{collections::HashMap, fs, path::PathBuf};
-use pyo3::{prelude::*, types::{PyDict, PyFloat, PyInt, PyList, PyNone, PySet, PyString, PyTuple}};
+use std::{collections::HashMap, fs, path::PathBuf, rc::Rc};
+use pyo3::{prelude::*, types::{PyDict, PyFloat, PyFunction, PyInt, PyList, PyNone, PySet, PyString, PyTuple}};
 use serde_json::Map;
 
-use crate::{prelude::*, utils::get_array, value::obj_get_str};
+use crate::{containers::{container_factory_create_with_trait, container_process_factory_create_from_trait}, plugin::python::python_container_factory_impl::PythonContainerStruct, prelude::*, processes::process_factory_create_from_trait, utils::get_array, value::obj_get_str};
 
 #[cfg(feature="opencv4")]
 use crate::opencv::prelude::*;
 
 use crate::anyhow::{self, anyhow};
-use super::python_process_factory_impl::PythonProcessFactoryImpl;
+/// use super::python_process_factory_impl::PythonProcessFactoryImpl;
 use super::python_container_process_factory_impl::PythonContainerProcessFactoryImpl;
 use super::python_container_factory_impl::PythonContainerFactoryImpl;
 pub struct PythonPlugin {
@@ -144,52 +144,116 @@ if not "{parent:}" in sys.path:
     }
 
 
-    pub fn load_container_factory(&self, working_dir: Option<PathBuf>, symbol_name: &str, container_profile: Value) -> JuizResult<ContainerFactoryPtr> {
-        log::trace!("PythonPlugin({:?})::load_container_factory(symbol_name='{symbol_name}') called", self.path);
-        //self.load_container_factory_with_manifest(working_dir.clone(), self.get_manifest(working_dir, symbol_name)?)
-        self.load_container_factory_with_manifest(working_dir.clone(), container_profile)
-    }
     
-    pub fn load_container_factory_with_manifest(&self, working_dir: Option<PathBuf>, manifest: Value) -> JuizResult<ContainerFactoryPtr> {
-        Ok(ContainerFactoryPtr::new(PythonContainerFactoryImpl::new(
-            manifest,
-            working_dir.unwrap_or(env!("CARGO_MANIFEST_DIR").into()).join(self.path.clone())
-        )?))
+    
+    // pub fn load_container_factory_with_manifest(&self, working_dir: Option<PathBuf>, manifest: Value) -> JuizResult<ContainerFactoryPtr> {
+    //     Ok(ContainerFactoryPtr::new(PythonContainerFactoryImpl::new(
+    //         manifest,
+    //         working_dir.unwrap_or(env!("CARGO_MANIFEST_DIR").into()).join(self.path.clone())
+    //     )?))
+    // }
+
+    pub fn load_container_process_factory(&self, working_dir: Option<PathBuf>, symbol_name: &str) -> JuizResult<ContainerProcessFactoryPtr> {
+        log::trace!("PythonPlugin({:?})::load_container_process_factory(symbol_name='{symbol_name}') called", self.path);
+        // self.load_container_process_factory_with_manifest(working_dir.clone(), cp_profile.clone(), symbol_name)
+        let fullpath = working_dir.unwrap_or(env!("CARGO_MANIFEST_DIR").into()).join(self.path.clone());
+        let mut manifest = jvalue!({});
+        let py_app = fs::read_to_string(fullpath.clone()).unwrap();
+        let pyfunc2 = Python::with_gil(|py| -> PyResult<Py<PyAny>> {
+            let module = PyModule::from_code_bound(py, &py_app.to_string(), fullpath.clone().to_str().unwrap(), "")?;
+            let tuple = module.getattr(symbol_name)?.into_py(py).call0(py)?;
+            let pytuple = tuple.extract::<&PyTuple>(py)?;
+            manifest = pyany_to_value(pytuple.get_item(0)?)?;
+            let pyfunc = pytuple.get_item(1)?.extract::<&PyFunction>()?;
+            //Ok(tuple)
+            Ok(pyfunc.to_object(py))
+        })?;
+
+        let signature = get_python_function_signature(&pyfunc2)?;
+        let function = move |container: &mut ContainerImpl<PythonContainerStruct>, argument: CapsuleMap| -> JuizResult<Capsule> {
+            Python::with_gil(|py| {
+                let start_index = 1;
+                let v  = capsulemap_to_pytuple(py, &argument, &signature, start_index)?;
+                let elements = arg_to_pyargs(container, &v);
+                python_process_call(py, &pyfunc2, PyTuple::new_bound(py, elements))
+            }).or_else(|e| { Err(anyhow!(e)) })
+        };
+    
+        container_process_factory_create_from_trait(manifest.try_into()?, function)
+    
     }
 
-    pub fn load_container_process_factory(&self, working_dir: Option<PathBuf>, symbol_name: &str, cp_profile: &Value) -> JuizResult<ContainerProcessFactoryPtr> {
-        log::trace!("PythonPlugin({:?})::load_container_process_factory(symbol_name='{symbol_name}', profile='{cp_profile:}') called", self.path);
-        self.load_container_process_factory_with_manifest(working_dir.clone(), cp_profile.clone(), symbol_name)
-    }
-
-    pub fn load_container_process_factory_with_manifest(&self, working_dir: Option<PathBuf>, manifest: Value, symbol_name: &str) -> JuizResult<ContainerProcessFactoryPtr> {
-        Ok(ContainerProcessFactoryPtr::new(PythonContainerProcessFactoryImpl::new(
-            manifest,
-            working_dir.unwrap_or(env!("CARGO_MANIFEST_DIR").into()).join(self.path.clone()),
-            symbol_name
-        )?))
-    }
+    // fn load_container_process_factory_with_manifest(&self, working_dir: Option<PathBuf>, manifest: Value, symbol_name: &str) -> JuizResult<ContainerProcessFactoryPtr> {
+    //     Ok(ContainerProcessFactoryPtr::new(PythonContainerProcessFactoryImpl::new(
+    //         manifest,
+    //         working_dir.unwrap_or(env!("CARGO_MANIFEST_DIR").into()).join(self.path.clone()),
+    //         symbol_name
+    //     )?))
+    // }
 
     pub fn load_process_factory(&self, working_dir: Option<PathBuf>, symbol_name: &str) -> JuizResult<ProcessFactoryPtr> {
         log::trace!("PythonPlugin({:?})::load_process_factory(symbol_name='{symbol_name}') called", self.path);
-        self.load_process_factory_with_manifest(working_dir.clone(), self.get_manifest(working_dir, "manifest")?, symbol_name)
+        let fullpath = working_dir.unwrap_or(env!("CARGO_MANIFEST_DIR").into()).join(self.path.clone());
+        let mut manifest = jvalue!({});
+        let py_app = fs::read_to_string(fullpath.clone()).unwrap();
+        let pyfunc2 = Python::with_gil(|py| -> PyResult<Py<PyAny>> {
+            let module = PyModule::from_code_bound(py, &py_app.to_string(), fullpath.clone().to_str().unwrap(), "")?;
+            let tuple = module.getattr(symbol_name)?.into_py(py).call0(py)?;
+            let pytuple = tuple.extract::<&PyTuple>(py)?;
+            manifest = pyany_to_value(pytuple.get_item(0)?)?;
+            let pyfunc = pytuple.get_item(1)?.extract::<&PyFunction>()?;
+            //Ok(tuple)
+            Ok(pyfunc.to_object(py))
+        })?;
+
+        let signature = get_python_function_signature(&pyfunc2)?;
+        let function = move |argument: CapsuleMap| -> JuizResult<Capsule> {
+            Python::with_gil(|py| {
+                python_process_call(py, &pyfunc2, PyTuple::new_bound(py, capsulemap_to_pytuple(py, &argument, &signature, 0)?))
+            }).or_else(|e| { Err(anyhow!(e)) })
+        };
+        process_factory_create_from_trait(manifest.try_into()?, function)
     }
 
-    pub fn load_process_factory_with_manifest(&self, working_dir: Option<PathBuf>, manifest: Value, symbol_name: &str) -> JuizResult<ProcessFactoryPtr> {
-        Ok(ProcessFactoryPtr::new(PythonProcessFactoryImpl::new(
-            manifest,
-            working_dir.unwrap_or(env!("CARGO_MANIFEST_DIR").into()).join(self.path.clone()),
-            symbol_name,
-        )?))
+    pub fn load_container_factory(&self, working_dir: Option<PathBuf>, symbol_name: &str) -> JuizResult<ContainerFactoryPtr> {
+        log::trace!("PythonPlugin({:?})::load_container_factory(symbol_name='{symbol_name}') called", self.path);
+        
+        let fullpath = working_dir.unwrap_or(env!("CARGO_MANIFEST_DIR").into()).join(self.path.clone());
+        let mut manifest = jvalue!({});
+        let py_app = fs::read_to_string(fullpath.clone()).unwrap();
+        let pyfunc2 = Python::with_gil(|py| -> PyResult<Py<PyAny>> {
+            let module = PyModule::from_code_bound(py, &py_app.to_string(), fullpath.clone().to_str().unwrap(), "")?;
+            let tuple = module.getattr(symbol_name)?.into_py(py).call0(py)?;
+            let pytuple = tuple.extract::<&PyTuple>(py)?;
+            manifest = pyany_to_value(pytuple.get_item(0)?)?;
+            let pyfunc = pytuple.get_item(1)?.extract::<&PyFunction>()?;
+            //Ok(tuple)
+            Ok(pyfunc.to_object(py))
+        })?;
+        // let signature = get_python_function_signature(&pyfunc2)?;
+        let constructor = move |cm: ContainerManifest| -> JuizResult<Box<PythonContainerStruct>> {
+            let pyobj = Python::with_gil(|py| {
+                pyfunc2.call1(py, PyTuple::new_bound(py,  [value_to_pyany(py, &cm.into())]))
+            })?;
+            Ok(Box::new(PythonContainerStruct{
+                pyobj,
+            }))
+        };
+        
+        container_factory_create_with_trait(manifest.try_into()?, constructor)
     }
 
-    pub fn load_component_profile(&self, working_dir: Option<PathBuf>) -> JuizResult<Value> {
-        self.get_manifest_with_name(working_dir, "component_profile")
+    pub fn load_component_manifest(&self, working_dir: Option<PathBuf>) -> JuizResult<ComponentManifest> {
+        self.get_manifest_with_name(working_dir, "component_manifest")?.try_into()
     }
 }
 
-
-
+fn arg_to_pyargs<'a>(c: &'a mut ContainerImpl<PythonContainerStruct>, arg: &'a Vec<Py<PyAny>> ) -> Vec<&'a Py<PyAny>> {
+    let mut vec_arg: Vec<&Py<PyAny>> = Vec::new();
+    vec_arg.push(&c.t.pyobj);
+    vec_arg.extend(arg.iter());
+    vec_arg
+}
 
 pub fn get_python_function_signature(func: &Py<PyAny>) -> PyResult<Value> {
     Python::with_gil(|py| {

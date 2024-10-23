@@ -34,15 +34,32 @@ fn extract_method_name(args: & CapsuleMap) -> JuizResult<&String> {
     Ok(args.get_param("method_name").ok_or_else( || err("method_name") )?)
 }
 
+
+fn extract_class_name<'a>(args: &'a CapsuleMap) -> JuizResult<String> {
+    // method_name, class_name, function_name, params
+    let err = |name: &str | anyhow::Error::from(JuizError::CapsuleDoesNotIncludeParamError{ name: name.to_owned() });
+    let class_name = args.get_param("class_name").ok_or_else( || err("class_name") )?;
+    Ok(class_name.to_owned())
+}
+
+
+fn extract_function_name<'a>(args: &'a CapsuleMap) -> JuizResult<&String> {
+    let err = |name: &str | anyhow::Error::from(JuizError::CapsuleDoesNotIncludeParamError{ name: name.to_owned() });
+    let function_name = args.get_param("function_name").ok_or_else( || err("function_name") )?;
+    Ok(function_name)
+}
+
 fn handle_function(crud_broker: Arc<Mutex<CRUDBroker>>, args: CapsuleMap) -> JuizResult<CapsulePtr> {
     log::info!("MessengerBroker::handle_function() called");
     log::trace!(" - args: CapsuleMap = {args:?}");
-    let method_name = extract_method_name(&args)?.as_str();
-    log::trace!("MessengerBroker::handle_function() with method_name = {method_name:}");
-    let response = match  method_name{
-        "CREATE" => juiz_lock(&crud_broker)?.create_class(args),
-        "READ" =>  juiz_lock(&crud_broker)?.read_class(args),
-        "UPDATE" =>  juiz_lock(&crud_broker)?.update_class(args),
+    let class_name = extract_class_name(&args)?;
+    let function_name = extract_function_name(&args)?.to_owned();
+    //log::trace!("MessengerBroker::handle_function() with method_name = {method_name:}");
+    let response = match  extract_method_name(&args)?.as_str() {
+        "CREATE" => juiz_lock(&crud_broker)?.create_class(class_name.as_str(),  function_name.as_str(), args),
+        "READ" =>  juiz_lock(&crud_broker)?.read_class(class_name.as_str(), function_name.as_str(), args),
+        "UPDATE" =>  juiz_lock(&crud_broker)?.update_class(class_name.as_str(), function_name.as_str(), args),
+        "DELETE" => juiz_lock(&crud_broker)?.delete_class(class_name.as_str(), function_name.as_str(), args),
         _ => {
             Err(anyhow::Error::from(JuizError::CRUDBRokerCanNotFindMethodError{method_name: "".to_owned()}))
         }

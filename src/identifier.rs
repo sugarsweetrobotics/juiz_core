@@ -138,6 +138,10 @@ impl IdentifierStruct {
         self
     }
 
+    pub fn new_object(broker_type: &str, broker_name: &str, class_name: &str, object_type: &str, object_name: &str ) -> Self {
+        identifier_new(broker_type, broker_name, class_name, object_type, object_name).try_into().unwrap()
+    }
+
     pub fn new_broker(broker_type: &str, broker_name: &str) -> Self {
         let identifier = broker_type.to_owned() + "://" + broker_name;
         let class_name = "".to_owned();

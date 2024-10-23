@@ -89,15 +89,15 @@ impl JuizObjectPlugin {
         }
     }
 
-    pub fn load_container_factory(&self, working_dir: Option<PathBuf>, symbol_name: &str, container_profile: Value) -> JuizResult<ContainerFactoryPtr> {
-        log::trace!("load_container_factory({working_dir:?}, {symbol_name}, {container_profile}) called");
+    pub fn load_container_factory(&self, working_dir: Option<PathBuf>, symbol_name: &str) -> JuizResult<ContainerFactoryPtr> {
+        log::trace!("load_container_factory({working_dir:?}, {symbol_name}) called");
         match self {
             JuizObjectPlugin::Rust(p) => {
-                p.load_container_factory(working_dir, symbol_name, container_profile)
+                p.load_container_factory(working_dir, symbol_name)
                 
             },
             JuizObjectPlugin::Python(p) => {
-                p.load_container_factory(working_dir, symbol_name, container_profile)
+                p.load_container_factory(working_dir, symbol_name)
             },
             JuizObjectPlugin::Cpp(p) => {
                 p.load_container_factory(working_dir, "container_factory")
@@ -106,18 +106,14 @@ impl JuizObjectPlugin {
         }
     }
 
-    pub fn load_container_process_factory(&self, working_dir: Option<PathBuf>, symbol_name: &str, manifest: &Value) -> JuizResult<ContainerProcessFactoryPtr> {
+    pub fn load_container_process_factory(&self, working_dir: Option<PathBuf>, symbol_name: &str) -> JuizResult<ContainerProcessFactoryPtr> {
         log::trace!("load_container_process_factory({working_dir:?}, {symbol_name}) called");
         match self {
             JuizObjectPlugin::Rust(p) => {
-                type SymbolType = libloading::Symbol<'static, unsafe extern "Rust" fn() -> JuizResult<ContainerProcessFactoryPtr>>;
-                unsafe {
-                    let symbol = p.load_symbol::<SymbolType>(symbol_name.as_bytes())?;
-                    (symbol)().with_context(||format!("calling symbol '{symbol_name}'"))
-                }
+                p.load_container_process_factory(working_dir, symbol_name)
             },
             JuizObjectPlugin::Python(p) => {
-                p.load_container_process_factory(working_dir, symbol_name, manifest)
+                p.load_container_process_factory(working_dir, symbol_name)
             },
             JuizObjectPlugin::Cpp(p) => {
                 p.load_container_process_factory(working_dir, symbol_name)
@@ -126,11 +122,11 @@ impl JuizObjectPlugin {
         }
     }
 
-    pub fn load_component_profile(&self, working_dir: Option<PathBuf>) -> JuizResult<Value> {
+    pub fn load_component_manifest(&self, working_dir: Option<PathBuf>) -> JuizResult<ComponentManifest> {
         match self {
-            JuizObjectPlugin::Rust(p) => p.load_component_profile(),
-            JuizObjectPlugin::Python(p) => p.load_component_profile(working_dir),
-            JuizObjectPlugin::Cpp(p) => p.load_component_profile(working_dir),
+            JuizObjectPlugin::Rust(p) => p.load_component_manifest(),
+            JuizObjectPlugin::Python(p) => p.load_component_manifest(working_dir),
+            JuizObjectPlugin::Cpp(p) => p.load_component_manifest(working_dir),
         }
     }
 }

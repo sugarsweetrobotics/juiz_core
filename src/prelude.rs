@@ -8,11 +8,11 @@ pub use crate::{
     },
     object::JuizObject,
     manifests::{
-        argument_manifest::{ArgumentManifest, ArgumentType}, 
-        process_manifest::ProcessManifest,
-        manifest_description::Description,
-        container_manifest::ContainerManifest,
-        container_process_manifest::ContainerProcessManifest,
+        ArgumentManifest, ArgumentType, 
+        ProcessManifest,
+        Description,
+        ContainerManifest,
+        ComponentManifest,
     },
     processes::{
         Process,
@@ -22,6 +22,7 @@ pub use crate::{
         ProcessProxy,
         process_new,
         process_factory_create,
+        //create_process_factory
     },
     containers::{
         Container,
@@ -78,7 +79,10 @@ pub use crate::{
         JuizResult,
         JuizError,
     },
-    plugin::ContainerStackFactoryImpl,
+    plugin::{
+        ContainerStackFactoryImpl,
+        container_stack_factory_create
+    },
     connections::connect,
     utils::juiz_lock,
     log,

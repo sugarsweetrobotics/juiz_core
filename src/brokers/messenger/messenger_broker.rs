@@ -14,17 +14,11 @@ use super::super::crud_broker::CRUDBroker;
 pub struct MessengerBroker {
     core: ObjectCore, 
     thread_handle: Option<tokio::task::JoinHandle<()>>,
-    //core_broker: Arc<Mutex<CoreBroker>>,
     end_flag: Arc<Mutex<AtomicBool>>,
     crud_broker: Arc<Mutex<CRUDBroker>>, 
-    messenger: Arc<Mutex<dyn MessengerBrokerCore>>,
+    messenger_core: Arc<Mutex<dyn MessengerBrokerCore>>,
     tokio_runtime: Option<runtime::Runtime>,
 }
-
-// pub type SenderType = dyn Fn(CapsuleMap) -> JuizResult<()>;
-// pub type ReceiverType = dyn Fn(Duration) -> JuizResult<Capsule>;
-
-// pub struct SendReceivePair(pub Box<SenderType>, pub Box<ReceiverType>);
 
 pub trait MessengerBrokerCore : Send {
     fn receive_and_send(&self, timeout: Duration, func: Arc<Mutex<dyn Fn(CapsuleMap)->JuizResult<CapsulePtr >>>) -> JuizResult<Capsule>;
@@ -34,15 +28,13 @@ pub trait MessengerBrokerCoreFactory {
     fn create(&self, manifest: &Value) -> JuizResult<Arc<Mutex<dyn MessengerBrokerCore>>>;
 }
 
-// pub(crate) struct SenderReceiverPair(pub mpsc::Sender<Value>, pub mpsc::Receiver<Value>);
-
 impl MessengerBroker {
 
     pub fn new<'a>(impl_class_name: &'static str, type_name: &'a str, object_name: &'a str, core_broker: CoreBrokerPtr, messenger: Arc<Mutex<dyn MessengerBrokerCore>> ) -> JuizResult<Self>{
         Ok(MessengerBroker{
                 core: ObjectCore::create(JuizObjectClass::Broker(impl_class_name), type_name, object_name),
                 thread_handle: None,
-                messenger,
+                messenger_core: messenger,
                 crud_broker: Arc::new(Mutex::new(CRUDBroker::new(core_broker.clone())?)),
                 end_flag: Arc::new(Mutex::new(AtomicBool::from(false))),
                 //tokio_runtime: Some(runtime::Builder::new_multi_thread().enable_all().build().unwrap()),
@@ -51,53 +43,34 @@ impl MessengerBroker {
     }
 }
 
-/*
-fn to_param(map: &Map<String, Value>) -> JuizResult<HashMap<String, String>> {
-    log::trace!("to_param called");
-    let mut ret_map: HashMap<String, String> = HashMap::with_capacity(map.len());
-    for (k, v) in map.iter() {
-        match v.as_str() {
-            None => return Err(anyhow::Error::from(JuizError::CRUDBrokerParameterIsInvalidTypeError{})),
-            Some(str_v) => {
-                ret_map.insert(k.clone(), str_v.to_string());
-            }
-        };
-    }
-    Ok(ret_map)
-}
-*/
-
 fn extract_method_name(args: & CapsuleMap) -> JuizResult<&String> {
     let err = |name: &str | anyhow::Error::from(JuizError::CapsuleDoesNotIncludeParamError{ name: name.to_owned() });
     Ok(args.get_param("method_name").ok_or_else( || err("method_name") )?)
 }
-/*
-fn extract_function_name(args: & CapsuleMap) -> JuizResult<String> {
+
+fn extract_class_name<'a>(args: &'a CapsuleMap) -> JuizResult<String> {
+    // method_name, class_name, function_name, params
     let err = |name: &str | anyhow::Error::from(JuizError::CapsuleDoesNotIncludeParamError{ name: name.to_owned() });
-    Ok(args.get_param("function_name").ok_or_else( || err("function_name") )?.clone())
+    let class_name = args.get_param("class_name").ok_or_else( || err("class_name") )?;
+    Ok(class_name.to_owned())
+}
+fn extract_function_name<'a>(args: &'a CapsuleMap) -> JuizResult<&String> {
+    let err = |name: &str | anyhow::Error::from(JuizError::CapsuleDoesNotIncludeParamError{ name: name.to_owned() });
+    let function_name = args.get_param("function_name").ok_or_else( || err("function_name") )?;
+    Ok(function_name)
 }
 
-fn extract_create_parameter(args: CapsuleMap) -> Value {
-    return args.into();
-}
-*/
 
 fn handle_function(crud_broker: Arc<Mutex<CRUDBroker>>, args: CapsuleMap) -> JuizResult<CapsulePtr> {
     log::info!("MessengerBroker::handle_function() called");
-    /*
-    let method_name = obj_get_str(&value, "method_name")?;
-    let class_name = obj_get_str(&value, "class_name")?;
-    let function_name = obj_get_str(&value, "function_name")?;
-    let args = obj_get(&value, "arguments")?;
-    let params = to_param(obj_get_obj(&value, "params")?)?;
-    */
-    //  let (method_name, class_name, function_name, params) = extract_method_parameters(&args)?;
-    //let function_name = extract_function_name(&args)?;
+    let class_name = extract_class_name(&args)?;
+    let function_name = extract_function_name(&args)?.to_owned();
+
     match extract_method_name(&args)?.as_str() {
-        "CREATE" => juiz_lock(&crud_broker)?.create_class(args),
-        "READ" =>  juiz_lock(&crud_broker)?.read_class(args),
-        "UPDATE" =>  juiz_lock(&crud_broker)?.update_class(args),
-        "DELETE" => juiz_lock(&crud_broker)?.delete_class(args),
+        "CREATE" => juiz_lock(&crud_broker)?.create_class(class_name.as_str(), function_name.as_str(), args),
+        "READ" =>  juiz_lock(&crud_broker)?.read_class(class_name.as_str(), function_name.as_str(), args),
+        "UPDATE" =>  juiz_lock(&crud_broker)?.update_class(class_name.as_str(), function_name.as_str(), args),
+        "DELETE" => juiz_lock(&crud_broker)?.delete_class(class_name.as_str(), function_name.as_str(), args),
         _ => {
             Err(anyhow::Error::from(JuizError::CRUDBRokerCanNotFindMethodError{method_name: "".to_owned()}))
         }
@@ -118,11 +91,9 @@ impl Broker for MessengerBroker {
     fn start(&mut self) -> JuizResult<()> {
         let end_flag = Arc::clone(&self.end_flag);
         log::trace!("LocalBroker::start() called");
-        let sender_receiver = self.messenger.clone();
+        let messenger_core = self.messenger_core.clone();
 
         let cb = self.crud_broker.clone();
-//        let join_handle = tokio::task::spawn(async move
-
         self.thread_handle = Some(self.tokio_runtime.as_mut().unwrap().spawn(
         async move {
                 let timeout = Duration::new(0, 100*1000*1000);
@@ -149,7 +120,7 @@ impl Broker for MessengerBroker {
                     };
                     //sender_receiver.get_mut()
                     //match juiz_lock(&sender_receiver) {
-                    match sender_receiver.lock() {
+                    match messenger_core.lock() {
                         Err(_) => {},
                         Ok(sndr_recvr) => {
                             // log::trace!("In MessengerBroker::routine(), calling sndr_recvr.receive_and_send() funciton.");
@@ -167,7 +138,6 @@ impl Broker for MessengerBroker {
                 log::debug!("LocalBroker::routine() end!!!");
             }
         ));
-//        self.thread_handle = Some(join_handle);
         Ok(())
     }
 

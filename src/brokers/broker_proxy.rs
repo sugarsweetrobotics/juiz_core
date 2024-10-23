@@ -45,7 +45,7 @@ pub trait ProcessBrokerProxy {
     /// 引数はマニフェスト
     /// type_name, nameが最低限の引数。
     /// use_memoはオプション
-    fn process_create(&mut self, manifest: &Value) -> JuizResult<Value>;
+    fn process_create(&mut self, manifest: ProcessManifest) -> JuizResult<Value>;
 
     fn process_destroy(&mut self, identifier: &Identifier) -> JuizResult<Value>;
 
@@ -79,7 +79,7 @@ pub trait ProcessBrokerProxy {
 
 pub trait ContainerBrokerProxy {
 
-    fn container_create(&mut self, manifest: &Value) -> JuizResult<Value>;
+    fn container_create(&mut self, manifest: ContainerManifest) -> JuizResult<Value>;
 
     fn container_destroy(&mut self, identifier: &Identifier) -> JuizResult<Value>;
 
@@ -96,7 +96,7 @@ pub trait ContainerBrokerProxy {
 
 pub trait ContainerProcessBrokerProxy {
 
-    fn container_process_create(&mut self, container_id: &Identifier, manifest: &Value) -> JuizResult<Value>;
+    fn container_process_create(&mut self, container_id: &Identifier, manifest: ProcessManifest) -> JuizResult<Value>;
 
     fn container_process_destroy(&mut self, identifier: &Identifier) -> JuizResult<Value>;
 

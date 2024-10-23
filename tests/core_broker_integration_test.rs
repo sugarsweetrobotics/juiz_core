@@ -5,7 +5,7 @@ use juiz_core::{prelude::*, SystemStore, SystemStorePtr};
 mod common;
 
 
-fn new_process_factory(cb: &mut CoreBroker) -> Arc<Mutex<dyn ProcessFactory>> {
+fn new_process_factory(cb: &mut CoreBroker) -> JuizResult<ProcessFactoryPtr> {
     let manifest = serde_json::json!({
         "type_name" : "increment",
         "arguments" : {
@@ -16,11 +16,11 @@ fn new_process_factory(cb: &mut CoreBroker) -> Arc<Mutex<dyn ProcessFactory>> {
         }, 
     });
     let type_name = "increment";
-    let pf = Arc::new(Mutex::new(ProcessFactoryImpl::new(manifest, common::increment_function).unwrap()));
+    let pf = process_factory_create(manifest, common::increment_function)?;
     let result_pf = cb.worker_mut().store_mut().processes.register_factory(
         &type_name.to_owned(), pf.clone());
     assert!(result_pf.is_ok(), "register_process_factory failed. Error is {:?}", result_pf.err());
-    pf
+    Ok(pf)
 }
 
 fn new_core_broker() -> CoreBroker {

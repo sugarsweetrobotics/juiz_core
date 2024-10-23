@@ -16,7 +16,7 @@ pub mod cv_camera_capture {
     use juiz_core::env_logger;
 
     #[no_mangle]
-    pub unsafe extern "Rust" fn component_profile() -> Value {
+    pub unsafe extern "Rust" fn component_manifest() -> Value {
         env_logger::init();
         return jvalue!({
             "type_name": "opencv",

@@ -16,3 +16,6 @@ def manifest():
 def example_container_python_increment(container, arg0):
     container.value = container.value + arg0
     return container.value
+
+def container_process_factory():
+    return manifest(), example_container_python_increment

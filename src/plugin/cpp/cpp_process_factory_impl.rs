@@ -1,8 +1,25 @@
 
 
 use crate::prelude::*;
-use crate::processes::process_from_clousure_new_with_class_name;
+use crate::processes::{process_factory_create_from_trait, process_from_clousure};
 use crate::{object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, processes::ProcessPtr, utils::check_process_factory_manifest, value::obj_get_str};
+
+pub fn create_cpp_process_factory(manifest: Value, entry_point: unsafe fn(*mut CapsuleMap, *mut Capsule) -> i64) -> JuizResult<ProcessFactoryPtr> {
+    let entry_point_name = "process_entry_point".to_owned();
+    let function = move |mut argument: CapsuleMap| -> JuizResult<Capsule> {
+        log::trace!("cppfunc (argument={argument:?}) called");
+        let mut func_result : Capsule = Capsule::empty();
+        unsafe {
+            let v = entry_point(&mut argument, &mut func_result);
+            if v < 0 {
+                return Err(anyhow::Error::from(JuizError::CppPluginFunctionCallError{function_name:entry_point_name.clone(), return_value:v}));
+            } 
+        }
+        return Ok(func_result);
+    };
+
+    process_factory_create_from_trait(manifest, function)
+}
 
 //pub type CppFunctionType = Symbol<'static, extern "C" fn(*mut CapsuleMap, *mut Capsule) -> i64>;
 //pub type PythonFunctionType = dyn Fn(CapsuleMap)->JuizResult<Capsule>;
@@ -55,7 +72,7 @@ impl ProcessFactory for CppProcessFactoryImpl {
         log::trace!("CppaProcessFactoryImpl::create_process(manifest={}) called", manifest);
         let entry_point_name = "process_entry_point".to_owned();
         let entry_point = self.entry_point;
-        let cppfunc: Box<dyn Fn(CapsuleMap)->JuizResult<Capsule>> = Box::new(move |mut argument: CapsuleMap| -> JuizResult<Capsule> {
+        let cppfunc = move |mut argument: CapsuleMap| -> JuizResult<Capsule> {
             log::trace!("cppfunc (argument={argument:?}) called");
             let mut func_result : Capsule = Capsule::empty();
             unsafe {
@@ -65,10 +82,9 @@ impl ProcessFactory for CppProcessFactoryImpl {
                 } 
             }
             return Ok(func_result);
-        });
+        };
 
-        Ok(ProcessPtr::new(process_from_clousure_new_with_class_name(
-            JuizObjectClass::Process("ProcessImpl"), 
+        Ok(ProcessPtr::new(process_from_clousure(
             self.apply_default_manifest(manifest.clone())?, 
             cppfunc,
         )?))

@@ -6,7 +6,7 @@
 extern "C" {
     int64_t process_function_entry_point(capsule_map* cm, capsule* cp);
     int64_t manifest_entry_point(capsule_ptr* ptr);
-    int64_t component_profile_entry_point(capsule_ptr* ptr);
+    int64_t component_manifest_entry_point(capsule_ptr* ptr);
     int64_t process_entry_point(capsule_map* cm, capsule* cp);
     int64_t process_entry_point(capsule_map* cm, capsule* cp);
     int64_t (*process_factory_entry_point())(capsule_map*,capsule*);
@@ -46,8 +46,8 @@ int64_t manifest_entry_point(capsule_ptr* ptr) { \
 }
 
 
-#define DEFINE_COMPONENT_PROFILE_ENTRY_POINT(manif) \
-int64_t component_profile_entry_point(capsule_ptr* ptr) { \
+#define DEFINE_COMPONENT_MANIFEST_ENTRY_POINT(manif) \
+int64_t component_manifest_entry_point(capsule_ptr* ptr) { \
     auto v = manif(); \
     return capsule_ptr_set_value(ptr, v); \
 }

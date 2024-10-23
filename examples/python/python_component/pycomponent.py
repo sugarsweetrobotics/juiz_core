@@ -15,7 +15,7 @@ def get(pycomp):
     return pycomp.buf
 
 
-def component_profile():
+def component_manifest():
     return {
         "type_name": "pycomponent",
         "containers": [

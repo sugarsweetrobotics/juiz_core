@@ -329,8 +329,8 @@ impl ProcessBrokerProxy for MessengerBrokerProxy {
         self.update_by_id("process", "bind", arg.into(), id)
     }
     
-    fn process_create(&mut self, manifest: &Value) -> JuizResult<Value> {
-        capsule_to_value(self.create("process","create", manifest.clone().try_into()?)?)
+    fn process_create(&mut self, manifest: ProcessManifest) -> JuizResult<Value> {
+        capsule_to_value(self.create("process","create", Into::<Value>::into(manifest).try_into()?)?)
     }
     
     fn process_destroy(&mut self, identifier: &Identifier) -> JuizResult<Value> {
@@ -349,8 +349,8 @@ impl ContainerBrokerProxy for MessengerBrokerProxy {
         capsule_to_value(self.read_with_param("container", "list", &[("recursive".to_owned(), recursive.to_string())])?)
     }
     
-    fn container_create(&mut self, manifest: &Value) -> JuizResult<Value> {
-        capsule_to_value(self.create("container","create", manifest.clone().try_into()?)?)
+    fn container_create(&mut self, manifest: ContainerManifest) -> JuizResult<Value> {
+        capsule_to_value(self.create("container","create", Into::<Value>::into(manifest).try_into()?)?)
     }
     
     fn container_destroy(&mut self, identifier: &Identifier) -> JuizResult<Value> {
@@ -375,8 +375,8 @@ impl ContainerProcessBrokerProxy for MessengerBrokerProxy {
         self.update_output_by_id("container_process", "execute", CapsuleMap::new(), id)
     }
     
-    fn container_process_create(&mut self, container_id: &Identifier, manifest: &Value) -> JuizResult<Value> {
-        capsule_to_value(self.create_by_id("container_process","create", manifest.clone().try_into()?, container_id)?)
+    fn container_process_create(&mut self, container_id: &Identifier, manifest: ProcessManifest) -> JuizResult<Value> {
+        capsule_to_value(self.create_by_id("container_process","create", Into::<Value>::into(manifest).try_into()?, container_id)?)
     }
     
     fn container_process_destroy(&mut self, identifier: &Identifier) -> JuizResult<Value> {

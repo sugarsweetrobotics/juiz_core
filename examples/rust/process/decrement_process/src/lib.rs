@@ -2,11 +2,10 @@
 use juiz_core::{env_logger, prelude::*};
 
 
-pub unsafe extern "Rust" fn manifest() -> Value { 
+pub unsafe extern "Rust" fn manifest() -> ProcessManifest { 
     ProcessManifest::new("decrement_process")
         .description("Example(decremnet_process)")
         .add_int_arg("arg1", "The output will be 'arg1 - 1'.", 1)
-        .into()
 }
 
 fn decrement_process(args: CapsuleMap) -> JuizResult<Capsule> {

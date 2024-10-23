@@ -188,7 +188,7 @@ def sign(a):
 #     v = (target_velocity["vx"],  target_velocity["vy"],  target_velocity["wz"])
 #     turtle.set_target_velocity(v)
     
-def component_profile():
+def component_manifest():
     return {
         "type_name": "turtle_sim_py",
         "containers": [

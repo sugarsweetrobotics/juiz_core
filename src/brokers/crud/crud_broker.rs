@@ -1,4 +1,6 @@
 
+use std::net::SocketAddr;
+use anyhow::anyhow;
 use crate::{core::CoreBrokerPtr, prelude::*};
 use super::crud_callback_container::{create_callback_container, delete_callback_container, read_callback_container, update_callback_container, ClassCallbackContainerType};
 
@@ -62,284 +64,103 @@ impl CRUDBroker {
         })
     }
 
-    /*
-    pub fn create_class_old(&self, arg_value: CapsuleMap) -> JuizResult<Capsule> {
-        let class_name = extract_class_name(&arg_value)?;
-        //let function_name = extract_function_name(&arg_value)?;
 
-        //let (method_name, class_name, function_name, params) = extract_method_parameters(&arg_value)?;
-        log::trace!("CRUDBroker::create_class({class_name}, function_name, value) called");
-        //let value = extract_create_parameter(arg_value);
-        let mut cb = juiz_lock(&self.core_broker)?;
-        match class_name.as_str() {
-            "system" => {
-                match extract_function_name(&arg_value)? {
-                    _ => Err(anyhow::Error::from(JuizError::CRUDBrokerCanNotFindFunctionError{class_name:class_name, function_name: extract_function_name(&arg_value)?.clone()}))
-                }
-            },
-            "process" => {
-                match extract_function_name(&arg_value)? {
-                    _ => {
-                        return Err(anyhow::Error::from(JuizError::CRUDBrokerCanNotFindFunctionError{class_name:class_name, function_name: extract_function_name(&arg_value)?.clone()}));
+    fn on_update(&self, class_name:&str, function_name:&str, cp: CapsuleMap, opt_remote_addr: Option<SocketAddr>) -> JuizResult<CapsulePtr>{
+        log::trace!("on_update({cp:?}) called");
+        if class_name == "system" && function_name == "add_mastersystem" {
+            if let Some(remote_addr) = opt_remote_addr {
+                let remote_addr_str = remote_addr.to_string();
+                let _r = match cp.get("profile") {
+                    Ok(capsule_ptr) => {
+                        capsule_ptr.lock_modify_as_value(|v|{
+                            match v.as_object_mut().unwrap().get_mut("subsystem").unwrap().as_object_mut() {
+                                Some(obj) => {
+                                    let broker_name = obj.get("broker_name").unwrap().as_str().unwrap().to_owned();
+                                    let broker_tokens = broker_name.split(":").collect::<Vec<&str>>();
+                                    let port_str = broker_tokens.get(1).unwrap();
+                                    let remote_tokens = remote_addr_str.split(":").collect::<Vec<&str>>();
+                                    let addr_str = (*remote_tokens.get(0).unwrap()).to_owned();
+                                    let new_broker_name = addr_str + ":" + port_str;
+                                    obj.insert("broker_name".to_owned(), jvalue!(new_broker_name));
+                                }
+                                None => todo!(),
+                            }
+                        })
                     }
-                }
-            },
-            "connection" => {
-                match extract_function_name(&arg_value)?.as_str() {
-                    "create" => {
-                        let mut result = cb.connection_create(extract_create_parameter(arg_value))?;
-                        result.set_option("function_name", "create");
-                        Ok(result)
-                    },
-                    _ => Err(anyhow::Error::from(JuizError::CRUDBrokerCanNotFindFunctionError{class_name:class_name, function_name: extract_function_name(&arg_value)?.clone()}))
-                }
+                    Err(_) => todo!(),
+                };
+            }
+        }
+        let retval = self.update_class(class_name, function_name, cp);
+        log::info!("retval: {retval:?}");
+
+        return retval;
+    }
+
+
+
+    pub fn on_value_request(&self, val: Value, opt_requesting_host_addr: Option<SocketAddr>) -> JuizResult<CapsulePtr> {
+        let mut cp: CapsuleMap = val.try_into()?;
+        let class_name = cp.get_param("class_name").unwrap().clone();
+        let method_name = cp.get_param("method_name").unwrap().clone();
+        let function_name = cp.get_param("function_name").unwrap().clone();
+        if let Some(requesting_host_addr) = opt_requesting_host_addr {
+            cp.set_param("requesting_host_addr", requesting_host_addr.to_string().as_str());
+        }
+        //let (class_name, function_name, method_name, payload, param) = to_request(&val)?;
+        match method_name.as_str() {
+            "create" => self.create_class(class_name.as_str(), function_name.as_str(), cp),
+            "delete" => self.delete_class(class_name.as_str(), function_name.as_str(), cp),
+            "read" => self.read_class(class_name.as_str(), function_name.as_str(), cp),
+            "update" => {
+                self.on_update(class_name.as_str(), function_name.as_str(), cp, opt_requesting_host_addr)
             }
             _ => {
-                Ok(Capsule::from(jvalue!({})))
-            }
-        }
-    }
-    */
-
-    fn call_callback(&self, cb_container: &ClassCallbackContainerType, args: CapsuleMap) -> JuizResult<CapsulePtr> {
-        match cb_container.get(extract_class_name(&args)?.as_str()) {
-            None => {
-                Err(anyhow::Error::from(JuizError::CRUDBrokerCanNotFindFunctionError { class_name: extract_class_name(&args)?, function_name: extract_function_name(&args)?.clone()}))
-            },
-            Some(cbs) => {
-                let function_name = extract_function_name(&args)?.clone();
-                let class_name = extract_class_name(&args)?.clone();
-                
-                match cbs.get(function_name.as_str()) {
-                    None => {
-                        Err(anyhow::Error::from(JuizError::CRUDBrokerCanNotFindFunctionError { class_name: extract_class_name(&args)?, function_name: extract_function_name(&args)?.clone()}))
-                    },
-                    Some(cb) => {
-                        let mut capsule = cb(self.core_broker.clone(), args)?;
-                        let _  = capsule.set_function_name(function_name.as_str())?;
-                        let _ = capsule.set_class_name(class_name.as_str())?;
-                        Ok(capsule)
-                    }
-                }
+                Err(anyhow!(JuizError::InvalidValueError{message: format!("qmp_broker received invalid value. Its method name is unknown ({})", method_name)}))
             }
         }
     }
 
-    pub fn create_class(&self, args: CapsuleMap) -> JuizResult<CapsulePtr> {
-        self.call_callback(&self.create_callback_container, args)
+    pub fn create_class(&self, class_name: &str, function_name: &str, args: CapsuleMap) -> JuizResult<CapsulePtr> {
+        self.call_callback(&self.create_callback_container, class_name, function_name, args)
     }
 
-    pub fn read_class(&self, args: CapsuleMap) -> JuizResult<CapsulePtr> {
-        self.call_callback(&self.read_callback_container, args)
+    pub fn read_class_value2cap(&self, class_name: &str, function_name: &str, args: Value) -> JuizResult<CapsulePtr> {
+        self.call_callback(&self.read_callback_container, class_name, function_name, args.try_into()?)
     }
 
-    pub fn update_class(&self, args: CapsuleMap) -> JuizResult<CapsulePtr> {
-        self.call_callback(&self.update_callback_container, args)
+    pub fn update_class_value2cap(&self, class_name: &str, function_name: &str, args: Value) -> JuizResult<CapsulePtr> {
+        self.call_callback(&self.update_callback_container, class_name, function_name, args.try_into()?)
     }
 
-    pub fn delete_class(&self, args: CapsuleMap) -> JuizResult<CapsulePtr> {
-        self.call_callback(&self.delete_callback_container, args)
+    pub fn delete_class_value2cap(&self, class_name: &str, function_name: &str, args: Value) -> JuizResult<CapsulePtr> {
+        self.call_callback(&self.delete_callback_container, class_name, function_name, args.try_into()?)
     }
-    /*
-    pub fn read_class_old(&self, args: CapsuleMap) -> JuizResult<Capsule> {
-        let (method_name, class_name, function_name, params) = extract_method_parameters(&args)?;
-        log::trace!("CRUDBroker::read_class({class_name}, {function_name}, {params:?}) called");
-        let cb = juiz_lock(&self.core_broker)?;
-        match class_name {
-            "system" => {
-                match function_name {
-                    "profile_full" => {
-                        let mut result = cb.system_profile_full()?;
-                        result.set_option("function_name", "profile_full");
-                        Ok(result)
-                    },
-                    _ => {
-                        return Err(anyhow::Error::from(JuizError::CRUDBrokerCanNotFindFunctionError{class_name:class_name.to_string(), function_name: function_name.to_string()}));
-                    }
-                }
-            },
-            "broker" => {
-                match function_name {
-                    "profile_full" => {
-                        let id = params_get(params, "identifier").context("CRUDBroker.read_class()")?;
-                        return Ok(Capsule::from(cb.broker_profile_full(&id)?))
-                    },
-                    "list" => return Ok(Capsule::from(cb.broker_list()?)),
-                    _ => {
-                        return Err(anyhow::Error::from(JuizError::CRUDBrokerCanNotFindFunctionError{class_name:class_name.to_string(), function_name: function_name.to_string()}));
-                    }
-                }
-            },
-            "process" => {
-                match function_name {
-                    "profile_full" => {
-                        let id = params_get(params, "identifier")?;
-                        return Ok(Capsule::from(cb.process_profile_full(&id)?))
-                    },
-                    "list" => return Ok(Capsule::from(cb.process_list()?)),
-                    _ => {
-                        return Err(anyhow::Error::from(JuizError::CRUDBrokerCanNotFindFunctionError{class_name:class_name.to_string(), function_name: function_name.to_string()}));
-                    }
-                }
-            },
-            "container" => {
-                
-                match function_name {
-                    "profile_full" => return Ok(Capsule::from(cb.container_profile_full(&params_get(params, "identifier")?)?)),
-                    "list" => return Ok(Capsule::from(cb.container_list()?)),
-                    _ => {
-                        return Err(anyhow::Error::from(JuizError::CRUDBrokerCanNotFindFunctionError{class_name:class_name.to_string(), function_name: function_name.to_string()}));
-                    }
-                }
-            },
-            "container_process" => {
-                match function_name {
-                    "profile_full" => return Ok(Capsule::from(cb.container_process_profile_full(&params_get(params, "identifier")?)?)),
-                    "list" => return Ok(Capsule::from(cb.container_process_list()?)),
-                    _ => {
-                        return Err(anyhow::Error::from(JuizError::CRUDBrokerCanNotFindFunctionError{class_name:class_name.to_string(), function_name: function_name.to_string()}));
-                    }
-                }
-            },
-            "connection" => {
-                match function_name {
-                    "profile_full" => {
-                        let id = params_get(params, "identifier")?;
-                        return Ok(Capsule::from(cb.connection_profile_full(&id)?))
-                    },
-                    "list" => return Ok(Capsule::from(cb.connection_list()?)),
-                    _ => {
-                        return Err(anyhow::Error::from(JuizError::CRUDBrokerCanNotFindFunctionError{class_name:class_name.to_string(), function_name: function_name.to_string()}));
-                    }
-                }
-            },
-            "execution_context" => {
-                match function_name {
-                    "profile_full" => return Ok(Capsule::from(cb.ec_profile_full(&params_get(params, "identifier")?)?)),
-                    "list" => return Ok(Capsule::from(cb.ec_list()?)),
-                    "get_state" => return Ok(Capsule::from(cb.ec_get_state(&params_get(params, "identifier")?)?)),
-                    _ => {
-                        return Err(anyhow::Error::from(JuizError::CRUDBrokerCanNotFindFunctionError{class_name:class_name.to_string(), function_name: function_name.to_string()}));
-                    }
-                }
-            },
-            _ => {
-                Ok(Capsule::from(jvalue!({})))
-            }
-        }
+
+    pub fn read_class(&self, class_name: &str, function_name: &str, args: CapsuleMap) -> JuizResult<CapsulePtr> {
+        self.call_callback(&self.read_callback_container, class_name, function_name, args)
     }
-    */
-    /*
-    pub fn update_class(&self, args: CapsuleMap) -> JuizResult<Capsule> {
-        let (method_name, class_name, function_name, params) = extract_method_parameters(&args)?;
-        
-        log::trace!("CRUDBroker::update_class(class_name={class_name:}, function_name={function_name:}, params={params:?}) called");
-        let mut cb = juiz_lock(&self.core_broker)?;
-        match class_name {
-            "system" => {
-                match function_name {
-                    _ => {
-                        return Err(anyhow::Error::from(JuizError::CRUDBrokerCanNotFindFunctionError{class_name:class_name.to_string(), function_name: function_name.to_string()}));
-                    }
-                }
-            },
-            "process" => {
-                let id = params_get(params, "identifier")?;
-                match function_name {
-                    "call" => return cb.process_call(&id, args),
-                    "execute" => return cb.process_execute(&id),
-                    _ => {
-                        return Err(anyhow::Error::from(JuizError::CRUDBrokerCanNotFindFunctionError{class_name:class_name.to_string(), function_name: function_name.to_string()}));
-                    },
-                }
-            },
-            "container_process" => {
-                let id = params_get(params, "identifier")?;
-                match function_name {
-                    "call" => return cb.container_process_call(&id, args),
-                    "execute" => return cb.container_process_execute(&id),
-                    _ => {
-                        return Err(anyhow::Error::from(JuizError::CRUDBrokerCanNotFindFunctionError{class_name:class_name.to_string(), function_name: function_name.to_string()}));
-                    },
-                }
-            },
-            "execution_context" => {
-                match function_name {
-                    "start" => return Ok(Capsule::from(cb.ec_start(&params_get(params, "identifier")?)?)),
-                    "stop" => return Ok(Capsule::from(cb.ec_stop(&params_get(params, "identifier")?)?)),
-                    _ => {
-                        return Err(anyhow::Error::from(JuizError::CRUDBrokerCanNotFindFunctionError{class_name:class_name.to_string(), function_name: function_name.to_string()}));
-                    }
-                }
-            },
-            _ => {
-                Ok(Capsule::from(jvalue!({})))
-            }
-        }
+
+    pub fn update_class(&self, class_name: &str, function_name: &str, args: CapsuleMap) -> JuizResult<CapsulePtr> {
+        self.call_callback(&self.update_callback_container, class_name, function_name, args)
     }
-    */
-    /* 
-    pub fn delete_class(&self, args: CapsuleMap) -> JuizResult<Capsule> {
-        log::trace!("CRUDBroker::read_class called");
-        let (method_name, class_name, function_name, params) = extract_method_parameters(&args)?;
-        
-        let _cb = juiz_lock(&self.core_broker)?;
-        match class_name {
-            "system" => {
-                match function_name {
-                    _ => {
-                        return Err(anyhow::Error::from(JuizError::CRUDBrokerCanNotFindFunctionError{class_name:class_name.to_string(), function_name: function_name.to_string()}));
-                    }
-                }
-            },
-            "process" => {
-                
-                let _id = params_get(params, "identifier")?;
-                match function_name {
-                    _ => {
-                        return Err(anyhow::Error::from(JuizError::CRUDBrokerCanNotFindFunctionError{class_name:class_name.to_string(), function_name: function_name.to_string()}));
-                    }
-                }
-            },
-            "container" => {
-                
-                let _id = params_get(params, "identifier")?;
-                match function_name {
-                    _ => {
-                        return Err(anyhow::Error::from(JuizError::CRUDBrokerCanNotFindFunctionError{class_name:class_name.to_string(), function_name: function_name.to_string()}));
-                    }
-                }
-            },
-            "container_process" => {
-                let _id = params_get(params, "identifier")?;
-                match function_name {
-                    _ => {
-                        return Err(anyhow::Error::from(JuizError::CRUDBrokerCanNotFindFunctionError{class_name:class_name.to_string(), function_name: function_name.to_string()}));
-                    }
-                }
-            },
-            _ => {
-                Ok(Capsule::from(jvalue!({})))
-            }
-        }
+
+    pub fn delete_class(&self, class_name: &str, function_name: &str, args: CapsuleMap) -> JuizResult<CapsulePtr> {
+        self.call_callback(&self.delete_callback_container, class_name, function_name, args)
     }
-    */
+
+    fn call_callback(&self, cb_container: &ClassCallbackContainerType, class_name: &str, function_name:&str, args: CapsuleMap) -> JuizResult<CapsulePtr> {
+        cb_container.get(class_name).and_then(|cbs| {
+            cbs.get(function_name)
+        }).and_then(|cb|{
+            Some(cb(self.core_broker.clone(), args).and_then(|mut capsule|{
+                capsule.set_function_name(function_name)?;
+                capsule.set_class_name(class_name)?;
+                Ok(capsule)
+            }))
+        }).or_else(||{
+            Some(Err(anyhow::Error::from(JuizError::CRUDBrokerCanNotFindFunctionError { class_name: class_name.to_owned(), function_name: function_name.to_owned()})))
+        }).unwrap()
+    }
+    
 }
-
-/* 
-pub fn create_class(crud_broker: &Arc<Mutex<CRUDBroker>>, args: CapsuleMap) -> JuizResult<Capsule> {
-    juiz_lock(crud_broker)?.create_class(args)
-}
-
-pub fn read_class(crud_broker: &Arc<Mutex<CRUDBroker>>, args: CapsuleMap) -> JuizResult<Capsule> {
-    juiz_lock(crud_broker)?.read_class(args)
-}
-
-pub fn delete_class(crud_broker: &Arc<Mutex<CRUDBroker>>, args: CapsuleMap) -> JuizResult<Capsule> {
-    juiz_lock(crud_broker)?.delete_class(args)
-}
-
-pub fn update_class(crud_broker: &Arc<Mutex<CRUDBroker>>, args: CapsuleMap) -> JuizResult<Capsule> {
-    juiz_lock(crud_broker)?.update_class(args)
-}
-*/

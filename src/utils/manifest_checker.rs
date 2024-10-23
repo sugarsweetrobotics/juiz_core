@@ -85,24 +85,24 @@ pub fn check_process_manifest(mut process_manifest: Value) -> JuizResult<Value> 
     Ok(process_manifest)
 }
 
-fn check_arguments(args_manifest: &Value, argument: &CapsuleMap) -> JuizResult<()> {
+fn check_arguments(args_manifest: &Vec<ArgumentManifest>, argument: &CapsuleMap) -> JuizResult<()> {
     //let arg_map = get_hashmap(argument).context("check_arguments")?;
-    for (arg_name, _v) in get_hashmap(args_manifest).context("check_arguments")? {
-        match argument.get(arg_name) {
+    for arg_manifest in args_manifest.iter() {
+        match argument.get(arg_manifest.name.as_str()) {
             Err(_) => {
-                log::error!("In Process Manifest there is argument named '{arg_name}', but can not be found in argument:CapsuleMap ({argument:?}).");
+                log::error!("In Process Manifest there is argument named '{arg_manifest:?}', but can not be found in argument:CapsuleMap ({argument:?}).");
                 
                 return Err(
                 anyhow::Error::from(JuizError::ArgumentMissingWhenCallingError{
-                    process_manifest: args_manifest.clone(), 
-                    missing_arg_name: arg_name.to_owned()}));
+                    process_manifest: args_manifest.iter().map(|a|{a.clone().into()}).collect::<Vec<Value>>().into(), 
+                    missing_arg_name: arg_manifest.name.clone()}));
                 },
             Ok(_) => {}
-            };
+        };
     }
     Ok(())
 }
 
-pub fn check_manifest_before_call(manifest: &Value, argument: &CapsuleMap) -> JuizResult<()> {
-    check_arguments(obj_get(manifest, "arguments")?, argument)
+pub fn check_manifest_before_call(manifest: &ProcessManifest, argument: &CapsuleMap) -> JuizResult<()> {
+    check_arguments(&manifest.arguments, argument)
 }

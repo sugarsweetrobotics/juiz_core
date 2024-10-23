@@ -3,7 +3,7 @@ use std::sync::Arc;
 use anyhow::Context;
 
 use crate::prelude::*;
-use crate::processes::process_from_clousure_new_with_class_name;
+use crate::processes::process_from_clousure;
 use crate::{object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, utils::check_process_manifest};
 
 pub type ContainerFunctionType<T>=dyn Fn(&mut ContainerImpl<T>, CapsuleMap) -> JuizResult<Capsule>+'static;
@@ -22,23 +22,22 @@ pub struct ContainerProcessImpl {
 
 impl ContainerProcessImpl {
 
-    pub fn new<'a, T: 'static> (manif: Value, container: ContainerPtr, function: ContainerFunctionTypePtr<T>) -> JuizResult<Self> {
-        log::trace!("ContainerProcessImpl::new(manifest={}) called", manif);
-        let manifest = check_process_manifest(manif)?;
+    pub fn new<'a, T: 'static> (manifest: ProcessManifest, container: ContainerPtr, function: ContainerFunctionTypePtr<T>) -> JuizResult<Self> {
+        log::trace!("ContainerProcessImpl::new(manifest={:?}) called", manifest);
+        //let manifest = check_process_manifest(manif)?;
         let container_clone = container.clone();
-        let proc = process_from_clousure_new_with_class_name(
-            JuizObjectClass::ContainerProcess("ProcessImpl"), 
-            manifest.clone(), 
-            Box::new(move |args| {
+        let proc = process_from_clousure(
+            Into::<Value>::into(manifest.clone()).try_into()?, 
+            move |args| {
                 container_clone.downcast_mut_and_then(|c: &mut ContainerImpl<T> | {
                     (function)(c, args)
                 })?
-            })
+            }
         )?;
         
         Ok(ContainerProcessImpl{
             core: ObjectCore::create(JuizObjectClass::ContainerProcess("ContainerProcessImpl"), 
-            obj_get_str(&manifest, "type_name")?, obj_get_str(&manifest, "name")?),
+            manifest.type_name.as_str(), manifest.name.unwrap()),
             container_identifier: container.identifier().clone(),
             container: Some(container),
             process: Box::new(proc),
@@ -72,7 +71,7 @@ impl JuizObject for ContainerProcessImpl {
 
 impl Process for ContainerProcessImpl {
 
-    fn manifest(&self) -> &Value {
+    fn manifest(&self) -> &ProcessManifest {
         log::trace!("ContainerProcessImpl({})::manifest() called", self.identifier());
         self.process().context("ContainerProcessImpl::manifest()").unwrap().manifest()
     }

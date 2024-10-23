@@ -71,16 +71,24 @@ impl RustPlugin {
         }
     }
 
-    pub fn load_component_profile(&self) -> JuizResult<Value> {
-        type ComponentProfileFunctionSymbolType<'a> = libloading::Symbol<'a, unsafe extern "Rust" fn() -> Value>;
-        let symbol = self.load_symbol::<ComponentProfileFunctionSymbolType>(b"component_profile")?;
+    pub fn load_component_manifest(&self) -> JuizResult<ComponentManifest> {
+        type ComponentProfileFunctionSymbolType<'a> = libloading::Symbol<'a, unsafe extern "Rust" fn() -> ComponentManifest>;
+        let symbol = self.load_symbol::<ComponentProfileFunctionSymbolType>(b"component_manifest")?;
         Ok(unsafe {
              (symbol)()//.with_context(||format!("calling symbol 'container_factory'. arg is {manifest:}"))?;
         })
     }
 
-    pub fn load_container_factory(&self, _working_dir: Option<PathBuf>, symbol_name: &str, _container_profile: Value) -> JuizResult<ContainerFactoryPtr> {
+    pub fn load_container_factory(&self, _working_dir: Option<PathBuf>, symbol_name: &str) -> JuizResult<ContainerFactoryPtr> {
         type SymbolType = libloading::Symbol<'static, unsafe extern "Rust" fn() -> JuizResult<ContainerFactoryPtr>>;
+        unsafe {
+            let symbol = self.load_symbol::<SymbolType>(symbol_name.as_bytes())?;
+            (symbol)().with_context(||format!("calling symbol '{symbol_name}'"))
+        }
+    }
+
+    pub fn load_container_process_factory(&self, _working_dir: Option<PathBuf>, symbol_name: &str) -> JuizResult<ContainerProcessFactoryPtr> {
+        type SymbolType = libloading::Symbol<'static, unsafe extern "Rust" fn() -> JuizResult<ContainerProcessFactoryPtr>>;
         unsafe {
             let symbol = self.load_symbol::<SymbolType>(symbol_name.as_bytes())?;
             (symbol)().with_context(||format!("calling symbol '{symbol_name}'"))

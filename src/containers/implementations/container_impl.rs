@@ -11,7 +11,7 @@ use crate::{object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, value::
 #[allow(unused)]
 pub struct ContainerImpl<S: 'static> {
     core: ObjectCore,
-    manifest: Value,
+    manifest: ContainerManifest,
     pub t: Box<S>,
     processes: HashMap<String, ProcessPtr>,
     parent_container: Option<ContainerPtr>,
@@ -25,11 +25,11 @@ fn _identifier_from_manifest(manifest: &Value) -> Identifier {
 }
 
 impl<S: 'static> ContainerImpl<S> {
-    pub fn new(manifest: Value, t: Box<S>) -> JuizResult<Self> {
-        let type_name = obj_get_str(&manifest, "type_name")?;
-        let object_name = obj_get_str(&manifest, "name")?;
+    pub fn new(manifest: ContainerManifest, t: Box<S>) -> JuizResult<Self> {
+        // let type_name = obj_get_str(&manifest, "type_name")?;
+        // let object_name = obj_get_str(&manifest, "name")?;
         Ok(ContainerImpl{
-            core: ObjectCore::create(JuizObjectClass::Container("ContainerImpl"), type_name, object_name),
+            core: ObjectCore::create(JuizObjectClass::Container("ContainerImpl"), manifest.type_name.to_owned(), manifest.name.as_ref().unwrap().to_owned()),
             manifest, 
             t,
             processes: HashMap::new(),
@@ -37,11 +37,11 @@ impl<S: 'static> ContainerImpl<S> {
         })
     }
 
-    pub fn new_with_parent(manifest: Value, t: Box<S>, parent_container: ContainerPtr) -> JuizResult<Self> {
-        let type_name = obj_get_str(&manifest, "type_name")?;
-        let object_name = obj_get_str(&manifest, "name")?;
+    pub fn new_with_parent(manifest: ContainerManifest, t: Box<S>, parent_container: ContainerPtr) -> JuizResult<Self> {
+        //let type_name = obj_get_str(&manifest, "type_name")?;
+        //let object_name = obj_get_str(&manifest, "name")?;
         Ok(ContainerImpl{
-            core: ObjectCore::create(JuizObjectClass::Container("ContainerImpl"), type_name, object_name),
+            core: ObjectCore::create(JuizObjectClass::Container("ContainerImpl"), manifest.type_name.to_owned(),manifest.name.as_ref().unwrap().to_owned()),
             manifest, 
             t,
             processes: HashMap::new(),
@@ -83,7 +83,7 @@ impl<S: 'static> JuizObject for ContainerImpl<S> {
 
 impl<S: 'static> Container for ContainerImpl<S> {
 
-    fn manifest(&self) -> &Value {
+    fn manifest(&self) -> &ContainerManifest {
         &self.manifest
     }
 
@@ -146,7 +146,7 @@ impl<S: 'static> Container for ContainerImpl<S> {
 
 impl<S: 'static> Display for ContainerImpl<S> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "ContainerImpl(identifier={}, manifest={})", self.identifier(), self.manifest())
+        write!(f, "ContainerImpl(identifier={}, manifest={:?})", self.identifier(), self.manifest())
     }
 }
 

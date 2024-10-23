@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 
 use uuid::Uuid;
 
-use crate::{connections::connection_builder::connection_builder, containers::{ContainerProcessImpl, ContainerProxy}, ecs::{execution_context_function::ExecutionContextFunction, execution_context_proxy::ExecutionContextProxy}, identifier::identifier_from_manifest, object::JuizObjectClass, prelude::*, topics::TopicPtr, utils::manifest_util::{construct_id, id_from_manifest, id_from_manifest_and_class_name, type_name}};
+use crate::{connections::connection_builder::connection_builder, containers::{ContainerProcessImpl, ContainerProxy}, ecs::{execution_context_function::ExecutionContextFunction, execution_context_proxy::ExecutionContextProxy}, identifier::identifier_from_manifest, manifests::TopicManifest, object::JuizObjectClass, prelude::*, topics::TopicPtr, utils::manifest_util::{construct_id, id_from_manifest, id_from_manifest_and_class_name, type_name}};
 
 use super::core_store::CoreStore;
 use crate::anyhow::anyhow;
@@ -107,10 +107,10 @@ impl CoreWorker {
     }
 
 
-    pub fn create_process_ref(&mut self, manifest: Value) -> JuizResult<ProcessPtr> {
-        log::trace!("CoreBroker::create_process_ref(manifest={}) called", manifest);
-        let arc_pf = self.store().processes.factory(type_name(&manifest)?)?;
-        let p = arc_pf.lock()?.create_process(precreate_check(manifest)?)?;
+    pub fn create_process_ref(&mut self, manifest: ProcessManifest) -> JuizResult<ProcessPtr> {
+        log::trace!("CoreBroker::create_process_ref(manifest={:?}) called", manifest);
+        let arc_pf = self.store().processes.factory(manifest.type_name.as_str())?;
+        let p = arc_pf.lock()?.create_process(manifest)?;
         let id = p.identifier().clone();
         Ok(self.store_mut().processes.register(&id, p)?.clone())
     }
@@ -122,10 +122,10 @@ impl CoreWorker {
 
 
 
-    pub fn create_container_ref(&mut self, manifest: Value) -> JuizResult<ContainerPtr> {
-        log::trace!("CoreBroker::create_container(manifest={}) called", manifest);
-        let arc_pf = self.store().containers.factory(type_name(&manifest)?)?.clone();
-        let p = arc_pf.lock()?.create_container(self, precreate_check(manifest)?)?;
+    pub fn create_container_ref(&mut self, manifest: ContainerManifest) -> JuizResult<ContainerPtr> {
+        log::trace!("CoreBroker::create_container(manifest={:?}) called", manifest);
+        let arc_pf = self.store().containers.factory(manifest.type_name.as_str())?.clone();
+        let p = arc_pf.lock()?.create_container(self, manifest)?;
         let id = p.identifier().clone();
         Ok(self.store_mut().containers.register(&id, p)?.clone())
     }
@@ -146,11 +146,11 @@ impl CoreWorker {
         f.lock_mut()?.destroy_container(cont.clone())
     }
 
-    pub fn create_container_process_ref(&mut self, container: ContainerPtr, manifest: Value) -> JuizResult<ProcessPtr> {
-        log::trace!("CoreBroker::create_container_process_ref(manifest={}) called", manifest);
-        let typ_name = type_name(&manifest)?;
-        let arc_pf = self.store().container_processes.factory(typ_name)?;
-        let p = arc_pf.lock()?.create_container_process(container.clone(), precreate_check(manifest)?)?;
+    pub fn create_container_process_ref(&mut self, container: ContainerPtr, manifest: ProcessManifest) -> JuizResult<ProcessPtr> {
+        log::trace!("CoreBroker::create_container_process_ref(manifest={:?}) called", manifest);
+        //let typ_name = type_name(&manifest)?;
+        let arc_pf = self.store().container_processes.factory(manifest.type_name.as_str())?;
+        let p = arc_pf.lock()?.create_container_process(container.clone(), manifest)?;
         container.lock_mut()?.register_process(p.clone())?;
         let id = p.identifier().clone();
         Ok(self.store_mut().container_processes.register(&id, p)?.clone())
@@ -330,25 +330,20 @@ impl CoreWorker {
     }
 
 
-    pub fn process_publish_topic(&mut self, process: ProcessPtr, topic_info: &Value) -> JuizResult<()> {
-        log::error!("process_publish_topic({topic_info:}) called");
-        if let Some(topic_name) = topic_info.as_str() {
-            let topic = self.create_topic(topic_name.to_owned())?;
-            //let p = self.process_from_id(&id)?.clone();
-            self.connect_to_topic(process, topic)?;
-        }
+    pub fn process_publish_topic(&mut self, process: ProcessPtr, topic_info: TopicManifest) -> JuizResult<()> {
+        log::error!("process_publish_topic({topic_info:?}) called");
+        let topic_name = topic_info.name.as_str();
+        let topic = self.create_topic(topic_name.to_owned())?;
+        self.connect_to_topic(process, topic)?;
         Ok(())
     }
 
-    pub fn process_subscribe_topic(&mut self, process: ProcessPtr, arg_name: &String, topic_info: &Value) -> JuizResult<()> {
-        log::error!("process_subscribe_topic({arg_name}, {topic_info:}) called");
-        if let Some(topic_name) = topic_info.as_str() {
-            let topic = self.create_topic(topic_name.to_owned())?;
-            //let p = self.process_from_id(&id)?.clone();
-            self.connect_from_topic(process, arg_name, topic)?;
-        } else {
-            log::error!("")
-        }
+    pub fn process_subscribe_topic(&mut self, process: ProcessPtr, arg_name: &String, topic_info: TopicManifest) -> JuizResult<()> {
+        log::error!("process_subscribe_topic({arg_name}, {topic_info:?}) called");
+        let topic_name = topic_info.name.as_str();
+        let topic = self.create_topic(topic_name.to_owned())?;
+        //let p = self.process_from_id(&id)?.clone();
+        self.connect_from_topic(process, arg_name, topic)?;
         Ok(())
     }
 

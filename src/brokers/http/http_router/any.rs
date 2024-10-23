@@ -32,7 +32,7 @@ pub async fn object_post_handler(
     let map = full_query_to_map(&query);
     log::trace!("[POST] HTTPBroker/object_post_handler({class_name}, {function_name}, {body}, {map:?}) called");
     let v = tokio::task::spawn_blocking(move ||{
-        juiz_lock(&crud_broker).unwrap().create_class(construct_capsule_map(CapsuleMap::new(), "CREATE", class_name.as_str(), function_name.as_str(), query, headers, remote_addr))
+        juiz_lock(&crud_broker).unwrap().create_class(class_name.as_str(), function_name.as_str(), construct_capsule_map(CapsuleMap::new(), "CREATE", class_name.as_str(), function_name.as_str(), query, headers, remote_addr))
     }).await;
     let r = json_output_wrap(v.unwrap());
     r
@@ -142,7 +142,7 @@ pub async fn object_patch_handler(
     let map = full_query_to_map(&query);
     log::trace!("[PATCH] ({class_name}, {function_name}, {body}, {map:?}) called");
     let v = tokio::task::spawn_blocking(move ||{
-        juiz_lock(&crud_broker).unwrap().update_class(construct_capsule_map(body_to_capsule_map(body)?, "UPDATE", class_name.as_str(), function_name.as_str(), query, headers, remote_addr))
+        juiz_lock(&crud_broker).unwrap().update_class(class_name.as_str(), function_name.as_str(), construct_capsule_map(body_to_capsule_map(body)?, "UPDATE", class_name.as_str(), function_name.as_str(), query, headers, remote_addr))
     }).await;
     let r = json_output_wrap(v.unwrap());
     r
@@ -175,7 +175,7 @@ pub async fn object_get_handler(
     let map = full_query_to_map(&query);
     log::trace!("[GET] ({class_name}, {function_name}, {map:?}, {full_path:?}, {headers:?}) called");
     let v = tokio::task::spawn_blocking(move ||{
-        juiz_lock(&crud_broker).unwrap().read_class(construct_capsule_map(CapsuleMap::new(), "READ", class_name.as_str(), function_name.as_str(), query, headers, remote_addr))
+        juiz_lock(&crud_broker).unwrap().read_class(class_name.as_str(), function_name.as_str(), construct_capsule_map(CapsuleMap::new(), "READ", class_name.as_str(), function_name.as_str(), query, headers, remote_addr))
     }).await;
     let r = json_output_wrap(v.unwrap());
     r
@@ -202,7 +202,7 @@ pub async fn object_delete_handler(
     let map = full_query_to_map(&query);
     log::trace!("HTTPBroker/object_delete_handler({class_name}, {map:?}) called");
     let v = tokio::task::spawn_blocking(move ||{
-        juiz_lock(&crud_broker).unwrap().read_class(construct_capsule_map(CapsuleMap::new(), "DELETE", class_name.as_str(), function_name.as_str(), query, headers, remote_addr))
+        juiz_lock(&crud_broker).unwrap().read_class(class_name.as_str(), function_name.as_str(), construct_capsule_map(CapsuleMap::new(), "DELETE", class_name.as_str(), function_name.as_str(), query, headers, remote_addr))
     }).await;
     let r = json_output_wrap(v.unwrap());
     r

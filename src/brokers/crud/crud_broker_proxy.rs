@@ -124,8 +124,8 @@ impl ContainerProcessBrokerProxy for CRUDBrokerProxyHolder {
         self.broker.update("container_process", "execute", CapsuleMap::new(), param(&[("identifier", id)]))
     }
     
-    fn container_process_create(&mut self, container_id: &Identifier, manifest: &Value) -> JuizResult<Value> {
-        capsule_to_value(self.broker.create("container_process", "create", manifest.clone(), param(&[("identifier", container_id)]))?)
+    fn container_process_create(&mut self, container_id: &Identifier, manifest: ProcessManifest) -> JuizResult<Value> {
+        capsule_to_value(self.broker.create("container_process", "create", manifest.into(), param(&[("identifier", container_id)]))?)
     }
     
     fn container_process_destroy(&mut self, identifier: &Identifier) -> JuizResult<Value> {
@@ -151,8 +151,8 @@ impl ContainerBrokerProxy for CRUDBrokerProxyHolder {
         })?
     }
     
-    fn container_create(&mut self, manifest: &Value) -> JuizResult<Value> {
-        capsule_to_value(self.broker.create("container", "create", manifest.clone(), HashMap::new())?)
+    fn container_create(&mut self, manifest: ContainerManifest) -> JuizResult<Value> {
+        capsule_to_value(self.broker.create("container", "create", manifest.into(), HashMap::new())?)
 
     }
     
@@ -222,8 +222,8 @@ impl ProcessBrokerProxy for CRUDBrokerProxyHolder {
         self.broker.update("process", "bind", map, param(&[("identifier", id)]))
     }
     
-    fn process_create(&mut self, manifest: &Value) -> JuizResult<Value> {
-        capsule_to_value(self.broker.create("process", "create", manifest.clone(), HashMap::new())?)
+    fn process_create(&mut self, manifest: ProcessManifest) -> JuizResult<Value> {
+        capsule_to_value(self.broker.create("process", "create", manifest.into(), HashMap::new())?)
 
     }
     

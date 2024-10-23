@@ -62,18 +62,19 @@ impl TopicPtr {
 
     pub fn new(name: &str, system_uuid: Uuid) -> Self {
         log::trace!("new(name={name}, uuid={system_uuid}) called");
-        let manifest = jvalue!({
+        let manifest: ProcessManifest = jvalue!({
             "type_name": "topic",
             "topic_name": name,
             "name": name,
             "use_memo": false,
-            "arguments": {
-                "input": {
+            "arguments": [
+                {
+                    "name": "input",
                     "default": {},
                     "type": "object",
                 }
-            }
-        });
+            ]
+        }).try_into().unwrap();
 
         let topic = Arc::new(RwLock::new(Topic::new(name)));
         let my_topic_name = name.to_owned();
@@ -116,7 +117,7 @@ impl TopicPtr {
             topic,
             ptr: ProcessPtr::new(
                 //ProcessImpl::clousure_new_with_class_name(JuizObjectClass::Topic("Topic"), manifest, Box::new(topic_func)).unwrap()))
-                process_from_clousure_new_with_class_name(JuizObjectClass::Topic("Topic"), manifest, Box::new(topic_func)).unwrap())
+                process_from_clousure_new_with_class_name(JuizObjectClass::Topic("Topic"), manifest, topic_func).unwrap())
  
         }
     }

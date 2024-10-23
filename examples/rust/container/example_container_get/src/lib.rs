@@ -4,10 +4,10 @@ use example_container::ExampleContainer;
 use juiz_core::{env_logger, prelude::*};
 
 
-fn manifest() -> Value { 
-    ContainerProcessManifest::new(ExampleContainer::manifest(), "example_container_get")
+fn manifest() -> ProcessManifest { 
+    ProcessManifest::new("example_container_get")
         .description("Example(get)")
-        .into()
+        .container(ExampleContainer::manifest())
 }
 
 fn get_function(container: &mut ContainerImpl<ExampleContainer>, _v: CapsuleMap) -> JuizResult<Capsule> {

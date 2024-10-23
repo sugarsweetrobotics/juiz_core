@@ -4,6 +4,8 @@
 
 
 
+use std::sync::Arc;
+
 use serde_json::Map;
 
 use crate::identifier::{identifier_from_manifest, create_identifier_from_manifest};
@@ -19,60 +21,75 @@ use crate::connections::{SourceConnection, SourceConnectionImpl, DestinationConn
 use crate::value::CapsuleMap;
 use super::inlet::Inlet;
 use super::outlet::Outlet;
-use crate::processes::{FunctionTrait, FunctionType};
-
+use crate::processes::{ProcessBodyFunctionTrait, ProcessBodyFunctionType};
+use crate::manifests::ProcessManifest;
 
 pub struct ProcessImpl {
     core: ObjectCore,
-    manifest: Value,
-    function: Box<FunctionTrait>,
+    manifest: ProcessManifest,
+    function: Arc<ProcessBodyFunctionTrait>,
     identifier: Identifier,
     outlet: Outlet,
     inlets: Vec<Inlet>,
 }
 
 
-pub fn argument_manifest(process_manifest: &Value) -> JuizResult<&Map<String, Value>>{
-    obj_get_obj(process_manifest, "arguments")
+pub fn argument_manifest(process_manifest: &ProcessManifest) -> &Vec<ArgumentManifest> {//JuizResult<&Map<String, Value>>{
+    // obj_get_obj(process_manifest, "arguments")
+    &process_manifest.arguments
 }
 
-pub fn process_from_clousure_new_with_class_name(class_name: JuizObjectClass, manif: Value, func: Box<FunctionTrait>) -> JuizResult<impl Process> {
-    ProcessImpl::clousure_new_with_class_name(class_name, manif, func)
+pub fn process_from_clousure(manif: ProcessManifest, func: impl Fn(CapsuleMap) -> JuizResult<Capsule> + 'static) -> JuizResult<impl Process> {
+    ProcessImpl::new_from_clousure(manif, func)
+}
+
+pub fn process_from_clousure_new_with_class_name(class_name: JuizObjectClass, manif: ProcessManifest, func: impl Fn(CapsuleMap) -> JuizResult<Capsule> + 'static) -> JuizResult<impl Process> {
+    ProcessImpl::new_from_clousure_and_class_name(class_name, manif, func)
 }
      
-pub fn process_new(manif: Value, func: FunctionType) -> JuizResult<impl Process> {
-    ProcessImpl::new(manif, func)
+pub fn process_new(manif: ProcessManifest, func: ProcessBodyFunctionType) -> JuizResult<impl Process> {
+    ProcessImpl::new_from_fn(manif, func)
 }
     
 
 impl ProcessImpl {
 
-    pub fn new_with_class(class_name: JuizObjectClass, manif: Value, func: FunctionType) -> JuizResult<Self> {
-        log::trace!("ProcessImpl::new(manifest={}) called", manif);
-        let manifest = check_process_manifest(manif)?;
-        let type_name = obj_get_str(&manifest, "type_name")?;
-        let object_name = obj_get_str(&manifest, "name")?;
-        let use_memo = match obj_get_bool(&manifest, "use_memo") {
-            Err(_) => true,
-            Ok(v) => v
-        };
+    pub(crate) fn new_from_clousure_and_class_name(class_name: JuizObjectClass, manif: ProcessManifest, func: impl Fn(CapsuleMap) -> JuizResult<Capsule> + 'static) -> JuizResult<Self> {
+        ProcessImpl::new_from_clousure_ref_and_class_name(class_name, manif, Arc::new(func))
+    }
+
+    pub(crate) fn new_from_clousure_ref_and_class_name(class_name: JuizObjectClass, manifest: ProcessManifest, func: Arc<dyn Fn(CapsuleMap) -> JuizResult<Capsule> + 'static>) -> JuizResult<Self> {
+        log::debug!("ProcessImpl::new(manifest={:?}) called", manifest);
         Ok(Self{
-            core: ObjectCore::create(class_name, 
-                type_name,
-                object_name,
-            ),
-            manifest: manifest.clone(), 
-            function: Box::new(func), 
-            identifier: create_identifier_from_manifest("Process", &manifest)?,
-            outlet: Outlet::new(object_name, use_memo),
-            inlets: Self::create_inlets(&manifest)?,
+            core: ObjectCore::create(class_name, manifest.type_name.clone(), manifest.name.as_ref().unwrap()),
+            function: func, 
+            identifier: manifest.identifier()?, //identifier_from_manifest("core", "core", "Process", &manifest)?,
+            outlet: Outlet::new(manifest.name.as_ref().unwrap().as_str(), manifest.use_memo),
+            inlets: Self::create_inlets(&manifest),
+            manifest,
         })
     }
 
-    fn create_inlets(manifest: &Value) -> JuizResult<Vec<Inlet>> {
-        Ok(argument_manifest(&manifest)?.iter().map( |(k, v)| {
-            Inlet::new(k.as_str(), v.get("default").unwrap().clone())
-        }).collect::<Vec<Inlet>>())
+    pub fn new_with_class(class_name: JuizObjectClass, manif: ProcessManifest, func: ProcessBodyFunctionType) -> JuizResult<Self> {
+        log::trace!("ProcessImpl::new(manifest={:?}) called", manif);
+        ProcessImpl::new_from_clousure_and_class_name(class_name, manif, func)
+    }
+    pub fn new_from_fn(manif: ProcessManifest, func: ProcessBodyFunctionType) -> JuizResult<Self> {
+        Self::new_with_class(JuizObjectClass::Process("ProcessImpl"), manif, func)
+    }
+
+    pub fn new_from_clousure(manif: ProcessManifest, func: impl Fn(CapsuleMap) -> JuizResult<Capsule> + 'static) -> JuizResult<Self> {
+        ProcessImpl::new_from_clousure_and_class_name(JuizObjectClass::Process("ProcessImpl"), manif, func)
+    }
+
+    pub fn new_from_clousure_ref(manif: ProcessManifest, func: Arc<dyn Fn(CapsuleMap) -> JuizResult<Capsule> + 'static>) -> JuizResult<Self> {
+        ProcessImpl::new_from_clousure_ref_and_class_name(JuizObjectClass::Process("ProcessImpl"), manif, func)
+    }
+
+    fn create_inlets(manifest: &ProcessManifest) -> Vec<Inlet> {
+        manifest.arguments.iter().map(|v| {
+            Inlet::new(v.name.as_str(), v.default.clone())
+        }).collect::<Vec<Inlet>>()
     }
 
     #[allow(unused)]
@@ -84,30 +101,6 @@ impl ProcessImpl {
         self.inlets.iter_mut().find(|inlet| { (*inlet).name() == name }).ok_or_else(|| { anyhow::Error::from(JuizError::CanNotFindError { target: format!("Process::Inlet({name})") }) } )
     }
 
-    pub fn new(manif: Value, func: FunctionType) -> JuizResult<Self> {
-        Self::new_with_class(JuizObjectClass::Process("ProcessImpl"), manif, func)
-    }
-
-    pub(crate) fn clousure_new_with_class_name(class_name: JuizObjectClass, manif: Value, func: Box<FunctionTrait>) -> JuizResult<Self> {
-        log::trace!("ProcessImpl::new(manifest={}) called", manif);
-        let manifest = check_process_manifest(manif)?;
-        let object_name = obj_get_str(&manifest, "name")?;
-        let use_memo = obj_get_bool(&manifest, "use_memo").or::<bool>(Ok(true)).unwrap();
-        Ok(Self{
-            core: ObjectCore::create(class_name, obj_get_str(&manifest, "type_name")?, object_name),
-            function: func, 
-            identifier: identifier_from_manifest("core", "core", "Process", &manifest)?,
-            outlet: Outlet::new(object_name, use_memo),
-            inlets: Self::create_inlets(&manifest)?,
-            manifest: manifest, 
-        })
-    }
-
-    pub(crate) fn _clousure_new(manif: Value, func: Box<FunctionTrait>) -> JuizResult<Self> {
-        ProcessImpl::clousure_new_with_class_name(JuizObjectClass::Process("ProcessImpl"), manif, func)
-    }
-
-        
     fn collect_values(&self) -> CapsuleMap {
         log::trace!("ProcessImpl({}).collect_values() called.", &self.identifier);
         self.inlets.iter().map(|inlet| { (inlet.name().clone(), inlet.collect_value() )} ).collect::<Vec<(String, CapsulePtr)>>().into()
@@ -139,16 +132,15 @@ impl JuizObject for ProcessImpl {
         obj_merge_mut(&mut v, &jvalue!({
             "inlets": self.inlets.iter().map(|inlet| { inlet.profile_full().unwrap() }).collect::<Vec<Value>>(),
             "outlet": self.outlet.profile_full()?,
-            "arguments": self.manifest.get("arguments").unwrap(),
+            "arguments": self.manifest.arguments.iter().map(|v| { v.clone().into() }).collect::<Vec<Value>>(),
         }))?;
         Ok(v.into())
     }
-
 }
 
 impl Process for ProcessImpl {
     
-    fn manifest(&self) -> &Value { 
+    fn manifest(&self) -> &ProcessManifest { 
         &self.manifest
     }
 

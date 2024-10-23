@@ -20,13 +20,10 @@ pub struct LocalBrokerCore {
 
 impl MessengerBrokerCore for LocalBrokerCore {
     fn receive_and_send(&self, timeout: Duration, func: Arc<Mutex<dyn Fn(CapsuleMap)->JuizResult<CapsulePtr> >>) -> JuizResult<Capsule> {
-        //log::trace!("LocalBrokerCore::receive_and_send() called");
         let sendr_recvr = juiz_lock(&self.sender_receiver)?;
         let BrokerSideSenderReceiverPair(sendr, recvr) = sendr_recvr.deref();
         match recvr.recv_timeout(timeout) {
             Err(_e) => {
-                //log::error!("Timeout Error.");
-                //log::trace!("LocalBrokerCore::receive_and_send() exit");
                 Ok(Capsule::from(jvalue!({})))
             },
             Ok(value) => {

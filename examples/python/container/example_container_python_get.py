@@ -9,3 +9,6 @@ def manifest():
 
 def example_container_python_get(container):
     return container.value
+
+def container_process_factory():
+    return manifest(), example_container_python_get

@@ -1,11 +1,11 @@
 use example_container::ExampleContainer;
 use juiz_core::{env_logger, prelude::*};
 
-fn manifest() -> Value { 
-    ContainerProcessManifest::new(ExampleContainer::manifest(), "example_container_increment")
+fn manifest() -> ProcessManifest { 
+    ProcessManifest::new("example_container_increment")
         .description("Example(get)")
         .add_int_arg("arg1", "test_argument", 1)
-        .into()
+        .container(ExampleContainer::manifest())
 }
 
 fn increment_function(container: &mut ContainerImpl<ExampleContainer>, v: CapsuleMap) -> JuizResult<Capsule> {

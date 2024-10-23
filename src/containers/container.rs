@@ -5,7 +5,7 @@ use crate::prelude::*;
 
 pub trait Container : Display + mopa::Any + JuizObject{
     
-    fn manifest(&self) -> &Value;
+    fn manifest(&self) -> &ContainerManifest;
 
     fn process(&self, name_or_id: &String) -> Option<ProcessPtr>;
 

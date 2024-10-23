@@ -15,8 +15,8 @@ fn get_function(container: &mut ContainerImpl<ExampleContainerStack>, _v: Capsul
 #[no_mangle]
 pub unsafe extern "Rust" fn container_process_factory() -> JuizResult<ContainerProcessFactoryPtr> {
     env_logger::init();
-    let manifest = ContainerProcessManifest::new(ExampleContainerStack::manifest(), "example_container_stack_get")
+    let manifest = ProcessManifest::new("example_container_stack_get")
         .description("Example(get)")
-        .into();
+        .container(ExampleContainerStack::manifest());
     container_process_factory_create(manifest, &get_function)
 }

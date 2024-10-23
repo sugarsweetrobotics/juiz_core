@@ -54,8 +54,8 @@ impl JuizObject for ContainerProcessFactoryWrapper {
 
 impl ContainerProcessFactory for ContainerProcessFactoryWrapper {
 
-    fn create_container_process(&self, container: ContainerPtr, manifest: Value) -> JuizResult<ProcessPtr> {
-        log::trace!("ContainerProcessFactoryWrapper::create_container_process(manifest={}) called", manifest);
+    fn create_container_process(&self, container: ContainerPtr, manifest: ProcessManifest) -> JuizResult<ProcessPtr> {
+        log::trace!("ContainerProcessFactoryWrapper::create_container_process(manifest={:?}) called", manifest);
         let p = self.container_process_factory.lock()?.create_container_process(container, manifest)?;
         self.container_processes.borrow_mut().push(p.clone());
         Ok(p.clone())

@@ -188,6 +188,13 @@ pub enum JuizError {
     #[error("CppPlugin FunctionCall Failed (function_name={function_name}, return_value={return_value}")]
     CppPluginFunctionCallError { function_name: String, return_value: i64 },
 
+    #[error("ArgumentType parse string failed (target={target}")]
+    UnknownArgumentTypeStringError { target: String },
+
+    #[error("ProcessManifest is invalid. (message={message})")]
+    ProcessManifestInvalidError { message: String },
+    #[error("TopicManifest is invalid. (message={message})")]
+    TopicManifestInvalidError{message: String},
 }
 
 

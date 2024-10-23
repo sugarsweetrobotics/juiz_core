@@ -62,7 +62,7 @@ impl Process for ProcessProxy {
         todo!()
     }
 
-    fn manifest(&self) -> &Value {
+    fn manifest(&self) -> &ProcessManifest {
         todo!()
     }
 

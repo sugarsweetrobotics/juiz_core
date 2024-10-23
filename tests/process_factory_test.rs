@@ -18,7 +18,7 @@ fn simple_process_create_test() -> JuizResult<()>{
             }, 
         }, 
     });
-    let result_pf = Arc::new(Mutex::new(ProcessFactoryImpl::new(manifest, common::increment_function).unwrap()));
+    let result_pf =process_factory_create(manifest, common::increment_function)?;
     /*
     assert!(result_pf.is_ok());
     */
@@ -27,7 +27,7 @@ fn simple_process_create_test() -> JuizResult<()>{
             "name": "hogehoge",
         }
     );
-    let p = juiz_lock(&result_pf).unwrap().create_process(proc_manifest);
+    let p = result_pf.lock()?.create_process(proc_manifest);
     assert!(p.is_ok(), "ProcessImpl::new() failed. Error is {:?}", p.err());
     let result = p.ok().unwrap().lock()?.call(vec!(("arg1", jvalue!(3))).into());
     assert!(result.is_ok());

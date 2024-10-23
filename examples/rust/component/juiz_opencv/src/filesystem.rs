@@ -7,12 +7,12 @@ pub struct CvFilesystem {
 
 impl CvFilesystem {
 
-    pub fn manifest() -> Value {
-        ContainerManifest::new("cv_filesystem").into()
+    pub fn manifest() -> ContainerManifest {
+        ContainerManifest::new("cv_filesystem")
     }
 }
 
-fn create_cv_filesystem_container(_manifest: Value) -> JuizResult<Box<CvFilesystem>> {
+fn create_cv_filesystem_container(_manifest: ContainerManifest) -> JuizResult<Box<CvFilesystem>> {
     Ok(Box::new(CvFilesystem{}))
 }
 

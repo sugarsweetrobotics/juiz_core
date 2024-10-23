@@ -342,8 +342,8 @@ impl ProcessBrokerProxy for CoreBroker {
         Ok(self.worker().store().processes.get(id)?.lock_mut()?.bind(arg_name, value)?.into())
     }
     
-    fn process_create(&mut self, manifest: &Value) -> JuizResult<Value> {
-        self.worker_mut().create_process_ref(manifest.clone())?.lock()?.profile_full()
+    fn process_create(&mut self, manifest: ProcessManifest) -> JuizResult<Value> {
+        self.worker_mut().create_process_ref(manifest)?.lock()?.profile_full()
     }
     
     fn process_destroy(&mut self, identifier: &Identifier) -> JuizResult<Value> {
@@ -384,7 +384,7 @@ impl ContainerBrokerProxy for CoreBroker {
         Ok(ids)
     }
     
-    fn container_create(&mut self, manifest: &Value) -> JuizResult<Value> {
+    fn container_create(&mut self, manifest: ContainerManifest) -> JuizResult<Value> {
         self.worker_mut().create_container_ref(manifest.clone())?.lock()?.profile_full()
     }
     
@@ -435,9 +435,9 @@ impl ContainerProcessBrokerProxy for CoreBroker {
         }
     }
  
-    fn container_process_create(&mut self, container_id: &Identifier, manifest: &Value) -> JuizResult<Value> {
+    fn container_process_create(&mut self, container_id: &Identifier, manifest: ProcessManifest) -> JuizResult<Value> {
         let container = self.worker_mut().container_from_identifier(container_id)?;
-        self.worker_mut().create_container_process_ref(container, manifest.clone())?.lock()?.profile_full()
+        self.worker_mut().create_container_process_ref(container, manifest)?.lock()?.profile_full()
     }
     
     fn container_process_destroy(&mut self, identifier: &Identifier) -> JuizResult<Value> {

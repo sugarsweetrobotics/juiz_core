@@ -63,8 +63,8 @@ pub fn arg_to_pyargs<'a>(c: &'a mut ContainerImpl<PythonContainerStruct>, arg: &
 
 
 impl ContainerProcessFactory for PythonContainerProcessFactoryImpl {
-    fn create_container_process(&self, container: ContainerPtr, manifest: Value) -> JuizResult<ProcessPtr> {
-        log::trace!("ContainerProcessFactoryImpl::create_container_process(container, manifest={}) called", manifest);
+    fn create_container_process(&self, container: ContainerPtr, manifest: ProcessManifest) -> JuizResult<ProcessPtr> {
+        log::trace!("ContainerProcessFactoryImpl::create_container_process(container, manifest={:?}) called", manifest);
     
         let type_name = self.type_name().to_owned();
         let entry_point = self.entry_point.clone();
@@ -82,7 +82,8 @@ impl ContainerProcessFactory for PythonContainerProcessFactoryImpl {
 
         Ok(ProcessPtr::new(
             ContainerProcessImpl::new(
-                self.apply_default_manifest(manifest)?, 
+                manifest,
+                //self.apply_default_manifest(manifest)?, 
                 container, 
                 pyfunc)?
         ))

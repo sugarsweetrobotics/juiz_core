@@ -6,12 +6,12 @@ pub struct ExampleContainer {
 }
 
 impl ExampleContainer {
-    pub fn manifest() -> Value {
-        ContainerManifest::new("example_container").into()
+    pub fn manifest() -> ContainerManifest {
+        ContainerManifest::new("example_container")
     }
 }
 
-fn create_example_container(_manifest: Value) -> JuizResult<Box<ExampleContainer>> {
+fn create_example_container(_manifest: ContainerManifest) -> JuizResult<Box<ExampleContainer>> {
     Ok(Box::new(ExampleContainer{value: 0}))
 }
 

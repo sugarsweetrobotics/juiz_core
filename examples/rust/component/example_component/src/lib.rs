@@ -4,33 +4,17 @@ pub mod example_component {
     use juiz_core::prelude::*;
 
     #[no_mangle]
-    pub unsafe extern "Rust" fn component_profile() -> Value {
+    pub unsafe extern "Rust" fn component_manifest() -> ComponentManifest {
         env_logger::init();
-        return jvalue!({
-            "type_name": "example_component",
-            "containers": [
-                {
-                    "type_name": "example_component_container",
-                    "factory": "example_component_container_factory",
-                    "processes": [ 
-                        {
-                            "type_name": "example_component_container_get",
-                            "factory": "example_component_container_get_factory",
-                        },
-                        {
-                            "type_name": "example_component_container_increment",
-                            "factory": "example_component_container_increment_factory"
-                        }
-                    ]
-                }
-            ],
-            "processes": [
-                {
-                    "type_name": "increment_process",
-                    "factory": "increment_process_factory",
-                }
-            ]
-        }); 
+        ComponentManifest::new("example_component")
+          .add_container(ContainerManifest::new("example_component_container")
+            .factory("example_component_container_factory")
+            .add_process(ProcessManifest::new("example_component_container_get")
+              .factory("example_component_container_get_factory"))
+            .add_process(ProcessManifest::new("example_component_container_increment")
+              .factory("example_component_container_increment_factory"))
+          ).add_process(ProcessManifest::new("increment_process")
+            .factory("increment_process_factory"))
     }
 
     #[repr(Rust)]
@@ -40,12 +24,12 @@ pub mod example_component {
 
     impl ExampleComponentContainer {
 
-        pub fn manifest() -> Value {
-            ContainerManifest::new("example_component_container").into()
+        pub fn manifest() -> ContainerManifest {
+            ContainerManifest::new("example_component_container")
         }
     }
 
-    fn create_example_component_container(_manifest: Value) -> JuizResult<Box<ExampleComponentContainer>> {
+    fn create_example_component_container(manifest: ContainerManifest) -> JuizResult<Box<ExampleComponentContainer>> {
         Ok(Box::new(ExampleComponentContainer{value: 0}))
     }
 
@@ -78,7 +62,7 @@ pub mod example_component {
     #[no_mangle]
     pub unsafe extern "Rust" fn example_component_container_get_factory() -> JuizResult<ContainerProcessFactoryPtr> {
         container_process_factory_create(
-            ContainerProcessManifest::new(ExampleComponentContainer::manifest(), "example_component_container_get").into(),
+            ProcessManifest::new("example_component_container_get").container(ExampleComponentContainer::manifest()).into(),
             &example_component_container_get_function)
     }
     
@@ -91,7 +75,7 @@ pub mod example_component {
     #[no_mangle]
     pub unsafe extern "Rust" fn example_component_container_increment_factory() -> JuizResult<ContainerProcessFactoryPtr> {
         container_process_factory_create(
-            ContainerProcessManifest::new(ExampleComponentContainer::manifest(), "example_component_container_increment").into(),
+            ProcessManifest::new("example_component_container_increment").container(ExampleComponentContainer::manifest()),
             &example_component_container_increment_function)
     }
 
@@ -104,11 +88,10 @@ pub mod example_component {
     #[no_mangle]
     pub unsafe extern "Rust" fn example_component_container_add_factory() -> JuizResult<ContainerProcessFactoryPtr> {
         container_process_factory_create(
-            ContainerProcessManifest::new(
-                ExampleComponentContainer::manifest(), 
+            ProcessManifest::new(
                 "example_component_container_increment")
                 .add_int_arg("arg1", "This value waill be added to value", 1)
-                .into(),
+                .container(ExampleComponentContainer::manifest()),
             &example_component_container_add_function)
     }
 

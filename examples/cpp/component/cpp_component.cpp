@@ -73,7 +73,7 @@ int64_t (*create_example_cpp_container_increment())(CppContainer*, capsule_map*,
     return example_container_process_increment;
 }
 
-juiz::Value component_profile() {
+juiz::Value component_manifest() {
     juiz::Value v = {
         {"type_name", "cpp_component"},
         {"containers", std::vector<juiz::Value>{{
@@ -106,4 +106,4 @@ juiz::Value component_profile() {
 }
  
  
-DEFINE_COMPONENT_PROFILE_ENTRY_POINT(component_profile) 
+DEFINE_COMPONENT_MANIFEST_ENTRY_POINT(component_manifest) 

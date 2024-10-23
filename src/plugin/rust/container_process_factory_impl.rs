@@ -5,37 +5,37 @@ use crate::containers::{ContainerFunctionType, ContainerFunctionTypePtr, Contain
 use crate::{object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, value::obj_get_str};
 pub struct ContainerProcessFactoryImpl<T> where T: 'static {
     core: ObjectCore,
-    manifest: Value,
+    manifest: ProcessManifest,
     function: ContainerFunctionTypePtr<T>,
 }
 
 // pub type ContainerProcessConstructorType<T>=&'static dyn Fn(&mut ContainerImpl<T>, CapsuleMap) -> JuizResult<Capsule> ;
 impl<T: 'static> ContainerProcessFactoryImpl<T> {
-    fn new_t(manifest: Value, function: ContainerFunctionTypePtr<T>) -> JuizResult<Self> {
-        let type_name = obj_get_str(&manifest, "type_name")?;
+    pub fn new_t(manifest: ProcessManifest, function: ContainerFunctionTypePtr<T>) -> JuizResult<Self> {
+        // let type_name = obj_get_str(&manifest, "type_name")?;
         Ok(ContainerProcessFactoryImpl{
                 core: ObjectCore::create_factory(JuizObjectClass::ContainerProcessFactory("ContainerProcessFactoryImpl"), 
-                type_name),
+                manifest.type_name.clone()),
                 function,
                 manifest,
             }
         )
     }
 
-    pub fn new(manifest: Value, function: &'static ContainerFunctionType<T>) -> JuizResult<Self> {
+    pub fn new(manifest: ProcessManifest, function: &'static ContainerFunctionType<T>) -> JuizResult<Self> {
         //let type_name = obj_get_str(&manifest, "type_name")?;
         let f = Arc::new(|c: &mut ContainerImpl<T>, v| { function(c, v) } );
         Ok(Self::new_t(manifest, f)?)
         
     }
 
-    fn apply_default_manifest(&self, manifest: Value) -> JuizResult<Value> {
-        let mut new_manifest = self.manifest.clone();
-        for (k, v) in manifest.as_object().unwrap().iter() {
-            new_manifest.as_object_mut().unwrap().insert(k.to_owned(), v.clone());
-        }
-        return Ok(new_manifest);
-    }
+    // fn apply_default_manifest(&self, manifest: Value) -> JuizResult<Value> {
+    //     let mut new_manifest = self.manifest.clone();
+    //     for (k, v) in manifest.as_object().unwrap().iter() {
+    //         new_manifest.as_object_mut().unwrap().insert(k.to_owned(), v.clone());
+    //     }
+    //     return Ok(new_manifest);
+    // }
 }
 
 // pub fn create_container_process_factory<T: 'static>(
@@ -60,11 +60,12 @@ impl<T: 'static> JuizObjectCoreHolder for ContainerProcessFactoryImpl<T> {
 impl<T: 'static> JuizObject for ContainerProcessFactoryImpl<T> {}
 
 impl<T: 'static> ContainerProcessFactory for ContainerProcessFactoryImpl<T> {
-    fn create_container_process(&self, container: ContainerPtr, manifest: Value) -> JuizResult<ProcessPtr> {
-        log::trace!("ContainerProcessFactoryImpl::create_container_process(container, manifest={}) called", manifest);
+    fn create_container_process(&self, container: ContainerPtr, manifest: ProcessManifest) -> JuizResult<ProcessPtr> {
+        log::trace!("ContainerProcessFactoryImpl::create_container_process(container, manifest={:?}) called", manifest);
         Ok(ProcessPtr::new(
             ContainerProcessImpl::new(
-                self.apply_default_manifest(manifest)?, 
+                //self.apply_default_manifest(manifest)?, 
+                self.manifest.build_instance_manifest(manifest)?,
                 container, 
                 self.function.clone()
                 //Box::new(|c, v|{ self.function(c, v) }),
