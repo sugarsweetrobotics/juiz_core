@@ -7,4 +7,4 @@ edition = "2021"
 
 
 [dependencies]
-juiz_core = { path="../../../" }
+juiz_core = { path="../../../juiz_core/" }

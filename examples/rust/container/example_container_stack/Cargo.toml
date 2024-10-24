@@ -9,5 +9,5 @@ edition = "2021"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-juiz_core = { path="../../../../" }
+juiz_core = { path="../../../../juiz_core/" }
 example_container = { path="../example_container/" }
