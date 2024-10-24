@@ -8,15 +8,18 @@ mod common;
 fn new_process_factory(cb: &mut CoreBroker) -> JuizResult<ProcessFactoryPtr> {
     let manifest = serde_json::json!({
         "type_name" : "increment",
-        "arguments" : {
-            "arg1": {
+        "use_memo": true,
+        "arguments" : [
+            {
+                "name": "arg1",
+                "type": "int",
                 "description": "test_argument",
                 "default": 1,
             }, 
-        }, 
+        ], 
     });
     let type_name = "increment";
-    let pf = process_factory_create(manifest, common::increment_function)?;
+    let pf = process_factory_create(manifest.try_into()?, common::increment_function)?;
     let result_pf = cb.worker_mut().store_mut().processes.register_factory(
         &type_name.to_owned(), pf.clone());
     assert!(result_pf.is_ok(), "register_process_factory failed. Error is {:?}", result_pf.err());
@@ -49,7 +52,7 @@ fn core_broker_process_factory_integration_test() -> JuizResult<()> {
     let p_result = cb.worker_mut().create_process_ref(jvalue!({
         "name": "test_function",
         "type_name": "increment",
-    }));
+    }).try_into()?);
     assert!(p_result.is_ok(), "process_create failed. Error is {:?}", p_result.err());
 
     let arc_p = p_result.ok().unwrap();
@@ -89,7 +92,7 @@ fn core_broker_process_factory_integration_connection_test() -> JuizResult<()> {
     let p1_result = cb.worker_mut().create_process_ref(jvalue!({
         "name": "test_function1",
         "type_name": "increment",
-    }));
+    }).try_into()?);
     assert!(p1_result.is_ok(), "process_create failed. Error is {:?}", p1_result.err());
 
     let arc_p1 = p1_result.ok().unwrap();
@@ -99,7 +102,7 @@ fn core_broker_process_factory_integration_connection_test() -> JuizResult<()> {
     let p2_result = cb.worker_mut().create_process_ref(jvalue!({
         "name": "test_function2",
         "type_name": "increment",
-    }));
+    }).try_into()?);
     assert!(p2_result.is_ok(), "process_create failed. Error is {:?}", p2_result.err());
 
     let arc_p2 = p2_result.ok().unwrap();

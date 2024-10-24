@@ -11,8 +11,10 @@ fn cv_video_capture_read_function(container: &mut ContainerImpl<CvVideoCapture>,
     return Ok(jvalue!(true).into());
 }
 
-fn manifest() -> Value {
-    ContainerProcessManifest::new(CvVideoCapture::manifest(), "cv_video_capture_read").into()
+pub(crate) fn manifest() -> ProcessManifest {
+    ProcessManifest::new("cv_video_capture_read")
+        .container(CvVideoCapture::manifest())
+        .factory("cv_video_capture_read_factory")
 }
 
 #[no_mangle]

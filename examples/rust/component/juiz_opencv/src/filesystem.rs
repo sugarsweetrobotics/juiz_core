@@ -9,6 +9,7 @@ impl CvFilesystem {
 
     pub fn manifest() -> ContainerManifest {
         ContainerManifest::new("cv_filesystem")
+            .factory("cv_filesystem_factory")
     }
 }
 

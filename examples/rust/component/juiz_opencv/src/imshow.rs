@@ -23,10 +23,11 @@ fn imshow_function(container: &mut ContainerImpl<CvWindow>, args: CapsuleMap) ->
     })?
 }
 
-fn manifest() -> Value {
-    ContainerProcessManifest::new(CvWindow::manifest(), "imshow")
+pub(crate) fn manifest() -> ProcessManifest {
+    ProcessManifest::new("imshow")
+        .container(CvWindow::manifest())
+        .factory("imshow_factory")
         .add_image_arg("src", "")
-        .into()
 }
 
 

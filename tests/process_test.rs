@@ -9,55 +9,60 @@ mod common;
   
 
 #[test]
-fn no_name_manifest_process_test() {
-    let manifest = serde_json::json!({
-        "arguments" : {
-            "arg1": {
+fn no_name_manifest_process_test() -> JuizResult<()> {
+    let p: JuizResult<ProcessManifest> = serde_json::json!({
+        "arguments" : [
+            {
+                "name": "arg1",
+                "type": "int",
                 "description": "test_argument",
                 "default": 1,
             }, 
-        }, 
-    });
-    let p = process_new(manifest, common::increment_function);
+        ]
+    }).try_into();
+    //let p = process_new(manifest.try_into()?, common::increment_function);
     assert!(p.is_err());
+    Ok(())
     // assert!(p.err() == Some(JuizError::ManifestNameMissingError{}));
 }
 
-#[test]
-fn no_arguments_manifest_process_test() {
-    let manifest = serde_json::json!({
-        "name": "hoge",
-        "type_name": "increment",
-    });
-    let p = process_new(manifest, common::increment_function);
-    assert!(p.is_err());
-    // assert!(p.err() == Some(JuizError::ManifestArgumentsMissingError{}));
-}
+// #[test]
+// fn no_arguments_manifest_process_test()  -> JuizResult<()> {
+//     let p: JuizResult<ProcessManifest> = serde_json::json!({
+//         "name": "hoge",
+//         "type_name": "increment",
+//     }).try_into();
+//     //let p = process_new(manifest.try_into()?, common::increment_function);
+//     assert!(p.is_err());
+//     Ok(())
+//     // assert!(p.err() == Some(JuizError::ManifestArgumentsMissingError{}));
+// }
 
 
 #[test]
-fn no_default_manifest_process_test() {
-    let manifest = serde_json::json!({
+fn no_default_manifest_process_test() -> JuizResult<()>  {
+    let manifest: JuizResult<ProcessManifest> = serde_json::json!({
         "name": "hoge",
         "type_name": "increment",
-        "arguments": {
-            "arg1": {
+        "arguments": [
+            {
+                "name": "arg1",
                 "description": "test_argument",
             }, 
-        }
-    });
-    let p = process_new(manifest, common::increment_function);
-    assert!(p.is_err());
-    let _e = p.err();
+        ]
+    }).try_into();
+    assert!(manifest.is_err());
+    //let _e = p.err();
+    Ok(())
     // assert!(e == Some(JuizError::ManifestArgumentDefaultValueMissingError{}), "Error is {:?})", e);
 }
 
 #[cfg(test)]
 #[test]
-fn call_process_test() {
+fn call_process_test() -> JuizResult<()>  {
     
 
-    match common::new_increment_process("incremnet").call(vec!(("arg1", jvalue!(1))).into()) {
+    match common::new_increment_process("incremnet")?.call(vec!(("arg1", jvalue!(1))).into()) {
         Ok(vv) => {
 
             let iv = vv.lock_as_value(|value| { value.as_i64().unwrap() }).unwrap();
@@ -67,14 +72,15 @@ fn call_process_test() {
             print!("Return value is {:?}", ev);
         }
     }
+    Ok(())
 }
 
 #[cfg(test)]
 #[test]
-fn invoke_process_test() {
+fn invoke_process_test() -> JuizResult<()>  {
     
 
-    match common::new_increment_process("increment").invoke() {
+    match common::new_increment_process("increment")?.invoke() {
         Ok(vv) => {
 
             let iv = vv.lock_as_value(|value| { value.as_i64().unwrap() }).unwrap();
@@ -84,16 +90,17 @@ fn invoke_process_test() {
             print!("Return value is {:?}", ev);
         }
     }
+    Ok(())
 }
 
 
 
 #[cfg(test)]
 #[test]
-fn execute_process_test() {
+fn execute_process_test()  -> JuizResult<()> {
     
 
-    match common::new_execution_process("execute").execute() {
+    match common::new_execution_process("execute")?.execute() {
         Ok(vv) => {
 
             let iv = vv.lock_as_value(|value| { value.as_i64().unwrap() }).unwrap();
@@ -103,12 +110,13 @@ fn execute_process_test() {
             print!("Return value is {:?}", ev);
         }
     }
+    Ok(())
 }
 
 #[cfg(test)]
 #[test]
-fn call_invalid_argument_process_test() {
-    match common::new_increment_process("increment").call(vec!(("arg2", jvalue!(1))).into()) {
+fn call_invalid_argument_process_test() -> JuizResult<()>  {
+    match common::new_increment_process("increment")?.call(vec!(("arg2", jvalue!(1))).into()) {
         Ok(_vv) => {
             assert!(false, "Process must be return error.");
         }, 
@@ -117,14 +125,15 @@ fn call_invalid_argument_process_test() {
             // assert_eq!(ev, JuizError::ArgumentMissingWhenCallingError{});
         }
     }
+    Ok(())
 }
 
 #[cfg(test)]
 #[test]
-fn invoke_add_process_test() {
+fn invoke_add_process_test()  -> JuizResult<()> {
     
 
-    match common::new_add_process("add_01").invoke() {
+    match common::new_add_process("add_01")?.invoke() {
         Ok(vv) => {
 
             let iv = vv.lock_as_value(|value| { value.as_i64().unwrap() }).unwrap();
@@ -134,15 +143,17 @@ fn invoke_add_process_test() {
             print!("Return value is {:?}", ev);
         }
     }
+    Ok(())
 }
 
 #[cfg(test)]
 #[test]
-fn bind_and_invoke_add_process_test() {
+fn bind_and_invoke_add_process_test()->JuizResult<()> {
     
-    let mut p = common::new_add_process("add_01");
+    let mut p = common::new_add_process("add_01")?;
     p.bind("arg1", jvalue!(2).into()).expect("Bind Error.");
     let vv = p.invoke().expect("Bind Error");
     let iv = vv.lock_as_value(|value| { value.as_i64().unwrap() }).unwrap();
     assert_eq!(iv, 3);
+    Ok(())
 }

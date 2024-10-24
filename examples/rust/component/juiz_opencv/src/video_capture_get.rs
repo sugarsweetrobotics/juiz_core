@@ -11,8 +11,10 @@ fn cv_video_capture_get_function(container: &mut ContainerImpl<CvVideoCapture>, 
     return Ok(value);
 }
 
-fn manifest() -> Value {
-    ContainerProcessManifest::new(CvVideoCapture::manifest(), "cv_video_capture_get").into()
+pub(crate) fn manifest() -> ProcessManifest {
+    ProcessManifest::new("cv_video_capture_get")
+        .container(CvVideoCapture::manifest())
+        .factory("cv_video_capture_get_factory")
 }
 
 #[no_mangle]

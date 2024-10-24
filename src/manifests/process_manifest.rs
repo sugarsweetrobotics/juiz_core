@@ -180,7 +180,7 @@ impl ProcessManifest {
     /// use juiz_core::prelude::*;
     /// let manifest = ProcessManifest::new("hoge_type")
     ///   .description("hoge manifest")
-    ///   .publishes("topic1")
+    ///   .publishes("topic1");
     /// assert_eq!(manifest.publishes[0].name, "topic1");
     /// ```
     pub fn publishes(mut self, topic_name: &str) -> Self {
@@ -192,8 +192,8 @@ impl ProcessManifest {
     /// use juiz_core::prelude::*;
     /// let manifest = ProcessManifest::new("hoge_type")
     ///   .description("hoge manifest")
-    ///   .add_int_arg("arg0", "int_arg", 1.into());
-    ///   .subscribes("arg0", "topic1")
+    ///   .add_int_arg("arg0", "int_arg", 1.into())
+    ///   .subscribes("arg0", "topic1");
     /// assert_eq!(manifest.subscribes.get("arg0").unwrap().name, "topic1");
     /// ```
     pub fn subscribes(mut self, arg_name:&str, topic_name: &str) -> Self {
@@ -322,6 +322,12 @@ impl TryFrom<Value> for ProcessManifest {
             Err(_) => {
                 p = p.language("rust");
             }
+        }
+        match obj_get_bool(&value, "use_memo") {
+            Ok(flag) => {
+                p = p.use_memo(flag);
+            },
+            Err(_) => {}
         }
         match obj_get_str(&value, "container_type") {
             Ok(container_type) => {

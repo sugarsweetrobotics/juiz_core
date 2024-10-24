@@ -19,13 +19,13 @@ fn cvt_color_function(args: CapsuleMap) -> JuizResult<Capsule> {
     //         }
     //     }
     // })?
-}
+} 
 
-fn manifest() -> Value{
+fn manifest() ->  ProcessManifest{
     ProcessManifest::new("cv_cvt_color")
     .description("Convert Color")
     .add_image_arg("src", "")
-    .add_string_arg("code", "ConvertMethod. (BGR2RGB)", "BGR2RGB").into()
+    .add_string_arg("code", "ConvertMethod. (BGR2RGB)", "BGR2RGB")
 }
 
 

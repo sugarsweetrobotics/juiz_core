@@ -6,27 +6,28 @@ use juiz_core::prelude::*;
 
 mod common;
 
-fn new_increment_process<'a> () -> impl Process  {
+fn new_increment_process<'a> () -> JuizResult<impl Process> {
     let manifest = serde_json::json!({
         "name": "test_function",
         "type_name": "increment",
-        "arguments" : {
-            "arg1": {
+        "arguments" : [
+            {
+                "name": "arg1",
                 "type": "int",
                 "description": "test_argument",
                 "default": 1,
             }, 
-        }, 
+        ] 
     });
-    let p = process_new(manifest, common::increment_function);
+    let p = process_new(manifest.try_into()?, common::increment_function);
     assert!(p.is_ok() , "ProcessImpl::new() failed. Error is {:?}", p.err());
-    p.unwrap()
+    p
 }
 
 
 #[cfg(test)]
 #[test]
-fn core_broker_test() {
+fn core_broker_test() ->JuizResult<()> {
     
 
     use juiz_core::{SystemStore, SystemStorePtr};
@@ -45,7 +46,7 @@ fn core_broker_test() {
 
     let mut cb = result.unwrap();
 
-    let p = new_increment_process();
+    let p = new_increment_process()?;
     let id = p.identifier().clone();
     let result = cb.worker_mut().store_mut().processes.register(&id, ProcessPtr::new(p));
 
@@ -62,6 +63,7 @@ fn core_broker_test() {
         Err(ev) => {
             print!("Return value is {:?}", ev);
         }
-    }
+    };
+    Ok(())
 
 }

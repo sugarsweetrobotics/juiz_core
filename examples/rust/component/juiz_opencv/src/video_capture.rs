@@ -12,8 +12,9 @@ pub struct CvVideoCapture {
 
 impl CvVideoCapture {
 
-    pub fn manifest() -> Value {
-        ContainerManifest::new("cv_video_capture").into()
+    pub fn manifest() -> ContainerManifest {
+        ContainerManifest::new("cv_video_capture")
+            .factory("cv_video_capture_factory")
     }
 }
 
@@ -23,9 +24,10 @@ impl Drop for CvVideoCapture {
     }
 }
 
-fn create_cv_capture_container(_manifest: Value) -> JuizResult<Box<CvVideoCapture>> {
-    log::trace!("create_cv_capture_container({}) called", _manifest);
-    let cam = VideoCapture::new(0, CAP_ANY)?; // 0 is the default camera
+fn create_cv_capture_container(manifest: ContainerManifest) -> JuizResult<Box<CvVideoCapture>> {
+    log::trace!("create_cv_capture_container({:?}) called", manifest);
+    let index = obj_get_i64(&manifest.args, "index").or::<JuizError>(Ok(0)).unwrap();
+    let cam = VideoCapture::new(index as i32, CAP_ANY)?; // 0 is the default camera
     Ok(Box::new(CvVideoCapture{camera: cam, image: Some(Mat::default()) }))
 }
 

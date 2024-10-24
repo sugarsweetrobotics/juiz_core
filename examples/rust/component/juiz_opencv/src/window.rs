@@ -12,14 +12,15 @@ pub struct CvWindow {
 
 impl CvWindow {
 
-    pub fn manifest() -> Value {
+    pub fn manifest() -> ContainerManifest {
 
-        ContainerManifest::new("cv_window").into()
+        ContainerManifest::new("cv_window")
+            .factory("cv_window_factory")
     }
 }
 
-fn create_cv_window_container(manifest: Value) -> JuizResult<Box<CvWindow>> {
-    let name = obj_get_str(&manifest, "name")?;
+fn create_cv_window_container(manifest: ContainerManifest) -> JuizResult<Box<CvWindow>> {
+    let name = obj_get_str(&manifest.args, "name")?;
     //println!("opencv::named_window({name:})");
     named_window(name, 1)?;
     Ok(Box::new(CvWindow{name: name.to_owned()}))

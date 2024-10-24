@@ -28,8 +28,10 @@ fn imwrite_function(_container: &mut ContainerImpl<CvFilesystem>, args: CapsuleM
 }
 
 
-fn manifest() -> Value {
-    ContainerProcessManifest::new(CvFilesystem::manifest(), "imwrite")
+pub(crate) fn manifest() -> ProcessManifest {
+    ProcessManifest::new("imwrite")
+        .container(CvFilesystem::manifest())
+        .factory("imwrite_factory")
         .description("")
         .add_image_arg("src", "")
         .add_string_arg("filename", "", "img.png")

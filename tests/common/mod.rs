@@ -17,24 +17,29 @@ pub fn add_function(v: CapsuleMap) -> JuizResult<Capsule> {
 }
 
 #[allow(dead_code)]
-pub fn new_add_process<'a> (name: &str) -> impl Process {
+pub fn new_add_process<'a> (name: &str) -> JuizResult<impl Process> {
     let manifest = serde_json::json!({
         "name": name,
         "type_name": "add",
-        "arguments" : {
-            "arg1": {
+        "arguments" : [
+            {
+                "name": "arg1",
+                "type": "int",
                 "description": "test_argument_1",
                 "default": 1,
             }, 
-            "arg2": {
+             {
+                "name": "arg2",
+                "type": "int",
                 "description": "test_argument_2",
                 "default": 1,
             }, 
-        }, 
+        
+        ]
     });
-    let p = process_new(manifest, add_function);
+    let p = process_new(manifest.try_into()?, add_function);
     assert!(p.is_ok(), "ProcessImpl::new() failed. Error is '{:?}'", p.err());
-    p.unwrap()
+    p
 }
 
 
@@ -50,21 +55,44 @@ pub fn increment_function(v: CapsuleMap) -> JuizResult<Capsule> {
 }
 
 #[allow(dead_code)]
-pub fn new_increment_process<'a> (name: &str) -> impl Process {
+pub fn new_increment_process<'a> (name: &str) -> JuizResult<impl Process> {
     let manifest = serde_json::json!({
         "name": name,
         "type_name": "increment",
-        "arguments" : {
-            "arg1": {
+        "arguments" : [
+            {
+                "name": "arg1",
+                "type": "int",
                 "description": "test_argument",
                 "default": 1,
             }, 
-        }, 
+        ], 
     });
-    let p = process_new(manifest, increment_function);
+    let p = process_new(manifest.try_into()?, increment_function);
     assert!(p.is_ok(), "ProcessImpl::new() failed. Error is '{:?}'", p.err());
-    p.unwrap()
+    p
 }
+
+#[allow(dead_code)]
+pub fn new_increment_process_use_memo<'a> (name: &str) -> JuizResult<impl Process> {
+    let manifest = serde_json::json!({
+        "name": name,
+        "type_name": "increment",
+        "use_memo": true,
+        "arguments" : [
+            {
+                "name": "arg1",
+                "type": "int",
+                "description": "test_argument",
+                "default": 1,
+            }, 
+        ], 
+    });
+    let p = process_new(manifest.try_into()?, increment_function);
+    assert!(p.is_ok(), "ProcessImpl::new() failed. Error is '{:?}'", p.err());
+    p
+}
+
 
 static mut COUNTER: i64 = 0;
 
@@ -80,18 +108,20 @@ pub fn execution_function(_v: CapsuleMap) -> JuizResult<Capsule> {
 }
 
 #[allow(dead_code)]
-pub fn new_execution_process<'a> (name: &str) -> impl Process {
+pub fn new_execution_process<'a> (name: &str) -> JuizResult<impl Process> {
     let manifest = serde_json::json!({
         "name": "test_function",
         "type_name": name,
-        "arguments" : {
-            "arg1": {
+        "arguments" : [
+            {
+                "name": "arg1",
+                "type": "int",
                 "description": "test_argument",
                 "default": 1,
             }, 
-        }, 
+        ], 
     });
-    let p = process_new(manifest, execution_function);
+    let p = process_new(manifest.try_into()?, execution_function);
     assert!(p.is_ok(), "ProcessImpl::new() failed. Error is {:?}", p.err());
-    p.unwrap()
+    p
 }

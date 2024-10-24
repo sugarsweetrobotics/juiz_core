@@ -4,24 +4,37 @@ use juiz_core::prelude::*;
 mod common;
 
 
-fn setup() -> (ProcessPtr, ProcessPtr) {
+fn setup() -> JuizResult<(ProcessPtr, ProcessPtr)> {
 
-    let p1 = common::new_increment_process("process1");
-    let p2 = common::new_increment_process("process2");
+    let p1 = common::new_increment_process("process1")?;
+    let p2 = common::new_increment_process("process2")?;
 
     let rp1: ProcessPtr = ProcessPtr::new(p1);
     let rp2: ProcessPtr = ProcessPtr::new(p2);
 
-    return (rp1, rp2);
+    return Ok( (rp1, rp2) );
 
 }
+
+fn setup_use_memo() -> JuizResult<(ProcessPtr, ProcessPtr)> {
+
+    let p1 = common::new_increment_process_use_memo("process1")?;
+    let p2 = common::new_increment_process_use_memo("process2")?;
+
+    let rp1: ProcessPtr = ProcessPtr::new(p1);
+    let rp2: ProcessPtr = ProcessPtr::new(p2);
+
+    return Ok( (rp1, rp2) );
+
+}
+
 
 #[cfg(test)]
 #[test]
 fn simple_connection_invoke_test() -> JuizResult<()>{
     
 
-    let (rp1, rp2) = setup();
+    let (rp1, rp2) = setup()?;
 
     let manifeset =jvalue!({
         "id": "con1",
@@ -46,7 +59,7 @@ fn simple_connection_invoke_test() -> JuizResult<()>{
 fn simple_connection_push_invoke_test() -> JuizResult<()> {
     
 
-    let (rp1, rp2) = setup();
+    let (rp1, rp2) = setup()?;
 
     let manifeset =jvalue!({
         "id": "con1",
@@ -67,7 +80,7 @@ fn simple_connection_push_invoke_test() -> JuizResult<()> {
 
 #[test]
 fn simple_connection_execute_test() -> JuizResult<()> {
-    let (rp1, rp2) = setup();
+    let (rp1, rp2) = setup_use_memo()?;
 
 
     let manifeset =jvalue!({
@@ -106,7 +119,7 @@ fn simple_connection_execute_test() -> JuizResult<()> {
 #[cfg(test)]
 #[test]
 fn simple_connection_builder_invoke_test() -> JuizResult<()> {
-    let (rp1, rp2) = setup();
+    let (rp1, rp2) = setup_use_memo()?;
 
     let manifest =jvalue!({
         "id": "con1",
