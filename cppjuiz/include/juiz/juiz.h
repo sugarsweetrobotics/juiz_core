@@ -7,5 +7,6 @@
 #include "debug.h"
 #include "capsule_map.h"
 #include "manifest.h"
+#include "process_manifest.h"
 
 #endif

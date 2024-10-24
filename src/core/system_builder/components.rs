@@ -6,23 +6,23 @@ use crate::{core::system_builder::{containers::{register_container_factory, regi
 
 
 
-pub(super) fn setup_components(system: &System, manifest: &Value) -> JuizResult<()> {
+pub(super) fn setup_components(system: &System, manifest: &Value, option: &Value) -> JuizResult<()> {
     log::trace!("system_builder::setup_component_factories({manifest:?}) called");
     for (name, v) in get_hashmap(manifest)?.iter() {
         log::info!("Component (name={name:}) Loading...");
-        setup_component(system, name, v)?;
+        setup_component(system, name, v, option)?;
         log::info!("Component (name={name:}) Fully Loaded")
     }
     Ok(())
 }
 
 
-fn setup_component(system: &System, name: &String, v: &Value) -> JuizResult<()> {
+fn setup_component(system: &System, name: &String, v: &Value, option: &Value) -> JuizResult<()> {
     let manifest_entry_point = "component_manifest";
     
     log::trace!("setup_component(name={:}, value={:}) called", name, v);
     let language = obj_get_str(v, "language").or::<JuizResult<&str>>(Ok("rust")).unwrap();
-    let plugin = JuizObjectPlugin::new(language, name, v, manifest_entry_point)?;
+    let plugin = JuizObjectPlugin::new(language, name, v, manifest_entry_point, option)?;
     let component_manifest = plugin.load_component_manifest(system.get_working_dir())?;
     for container_profile in component_manifest.containers.iter() {
         log::debug!(" - ContainerFactory ({container_profile:?}) Loading...");

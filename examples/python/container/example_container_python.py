@@ -1,5 +1,5 @@
 
-
+from juiz import ContainerManifest
 
 class PyContainer:
     value: int
@@ -8,10 +8,9 @@ class PyContainer:
         
     @classmethod
     def manifest(cls):
-        return {
-            "type_name": "example_container_python",
-        }   
-
+        return ContainerManifest.new("example_container_python") \
+            .into_value()
+        
 def example_container_python(manifest):
     return PyContainer(manifest.get("value", 0))
 

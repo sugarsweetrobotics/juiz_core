@@ -3,9 +3,7 @@
 #include "example_container.h"
 
 juiz::Value manifest() {
-    return {
-        {"type_name", "example_container_cpp"},
-    };
+    return ContainerManifest("example_container_cpp").into_value();
 }
 
 CppContainer* create_container(juiz::Value value) {

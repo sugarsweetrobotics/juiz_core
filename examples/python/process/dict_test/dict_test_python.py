@@ -1,4 +1,4 @@
-
+from juiz import ProcessManifest
 
 def pydict_test(arg0, arg1):
     return {
@@ -8,21 +8,10 @@ def pydict_test(arg0, arg1):
     }
 
 def manifest():
-    return {
-        "type_name": "dict_test_python",
-        "arguments" : {
-            "arg0": {
-                "type": "int",
-                "description": "test_argument",
-                "default": 1,
-            }, 
-            "arg1": {
-                "type": "int",
-                "description": "test_argument",
-                "default": 1,
-            }, 
-        }, 
-    }
+    return ProcessManifest("dict_test_python")\
+        .add_object_arg("arg0", "test_argument", {})\
+        .add_object_arg("arg1", "test_argument", {})\
+        .into_value()
 
 def process_factory():
     return pydict_test

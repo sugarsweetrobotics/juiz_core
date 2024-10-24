@@ -3,11 +3,11 @@ use anyhow::Context;
 
 use crate::{core::system_builder::topics::{setup_publish_topic, setup_subscribe_topic}, plugin::JuizObjectPlugin, prelude::*, processes::ProcessFactoryWrapper, utils::{get_array, get_hashmap}};
 
-pub(super) fn setup_process_factories(system: &System, manifest: &serde_json::Value) -> JuizResult<()> {
+pub(super) fn setup_process_factories(system: &System, manifest: &serde_json::Value, option: &Value) -> JuizResult<()> {
     log::trace!("setup_process_factories({manifest:}) called");
     for (name, v) in get_hashmap(manifest)?.iter() {
         log::debug!("ProcessFactory (name={:}) Loading...", name);
-        setup_process_factory(system, name, v).with_context(||{format!("setup_process_factory(name='{name:}')")})?;
+        setup_process_factory(system, name, v, option).with_context(||{format!("setup_process_factory(name='{name:}')")})?;
         log::info!("ProcessFactory (name={:}) Loaded", name);
     }
     log::trace!("setup_process_factories() exit");
@@ -17,7 +17,7 @@ pub(super) fn setup_process_factories(system: &System, manifest: &serde_json::Va
 /// ProcessFactoryをセットアップする。
 /// name: ProcessFactoryの型名
 /// v: manifest。languageタグがあれば、rust, pythonから分岐する。
-fn setup_process_factory(system: &System, name: &String, v: &Value) -> JuizResult<ProcessFactoryPtr> {
+fn setup_process_factory(system: &System, name: &String, v: &Value, option: &Value) -> JuizResult<ProcessFactoryPtr> {
     log::trace!("setup_process_factory({name:}, {v:}) called");
     let manifest_entry_point = "manifest";
     let result = match v.as_object() {
@@ -27,7 +27,7 @@ fn setup_process_factory(system: &System, name: &String, v: &Value) -> JuizResul
         },
         Some(obj) => {
             let language = obj.get("language").and_then(|v| { v.as_str() }).or(Some("rust")).unwrap();
-            register_process_factory(system, JuizObjectPlugin::new(language, name, v, manifest_entry_point)?, "process_factory")
+            register_process_factory(system, JuizObjectPlugin::new(language, name, v, manifest_entry_point, option)?, "process_factory")
         }
     };
     log::trace!("setup_process_factory() exit");

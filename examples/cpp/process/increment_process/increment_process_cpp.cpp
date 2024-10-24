@@ -2,23 +2,15 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <iostream>
-
+#include <string>
+#include <vector>
 
 #include "juiz/juiz.h"
 
-
 juiz::Value manifest() {
-    return {
-        {"type_name", "increment_process_cpp"},
-        {"language", "c++"},
-        {"arguments", {
-            {"arg1", {
-                {"type", "int"},
-                {"description", "test_argument"},
-                {"default", 1},
-            }}
-        }}
-    };
+    return ProcessManifest{"increment_process_cpp"}
+        .add_int_arg("arg1", "test_argument", 1)
+        .into_value();
 }
 
 std::optional<int64_t> increment_process(juiz::CapsuleMap cm) {

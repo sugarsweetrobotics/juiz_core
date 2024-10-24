@@ -127,8 +127,11 @@ impl System {
     pub fn setup(mut self) -> JuizResult<Self> {
         log::trace!("System::setup() called");
         let manifest_copied = self.manifest.clone();
+        log::debug!(" - manifest: {:}", self.manifest);
+        let option = self.get_opt();
+        //log::info!("option: {option:}");
         let _ = when_contains_do_mut(&manifest_copied, "plugins", |v| {
-            system_builder::setup_plugins(&mut self, v).context("system_builder::setup_plugins in System::setup() failed")
+            system_builder::setup_plugins(&mut self, v, &option).context("system_builder::setup_plugins in System::setup() failed")
         })?;
 
         system_builder::setup_objects(&mut self, &manifest_copied)?;
@@ -166,6 +169,15 @@ impl System {
             broker.lock_mut()?.start()
         }).collect::<JuizResult<Vec<()>>>()?;
         Ok(())
+    }
+
+    fn get_opt(&self) -> Value {
+        let manif_obj = self.manifest.as_object().unwrap();
+        if manif_obj.contains_key("option") {
+            manif_obj.get("option").unwrap().clone()
+        } else {
+            jvalue!({})
+        }
     }
 
     fn get_opt_mut(&mut self) -> &mut Value {

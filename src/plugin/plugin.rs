@@ -53,11 +53,19 @@ fn cpp_plugin_path(name: &str, v: &Value) -> JuizResult<std::path::PathBuf> {
 
 impl JuizObjectPlugin {
 
-    pub fn  new(language: &str, name: &str, v: &Value, manifest_entry_point: &str) -> JuizResult<JuizObjectPlugin> {
+    pub fn new(language: &str, name: &str, v: &Value, manifest_entry_point: &str, option: &Value) -> JuizResult<JuizObjectPlugin> {
         //let manifest_entry_point = "manifest_entry_point";
         match language {
             "rust" => Ok(JuizObjectPlugin::Rust(Rc::new(RustPlugin::load(plugin_path(name, v)?)?))),
-            "python" => Ok( JuizObjectPlugin::Python(Rc::new(PythonPlugin::load(python_plugin_path(name, v)?)?))),
+            "python" => {
+                let pythonpaths = match obj_get_array(option, "pythonpath") {
+                    Ok(arr_value) => {
+                        Some(arr_value.iter().map(|v| { Into::<PathBuf>::into(v.as_str().unwrap()) } ).collect())
+                    },
+                    Err(_) => None,
+                };
+                Ok( JuizObjectPlugin::Python(Rc::new(PythonPlugin::load(python_plugin_path(name, v)?, pythonpaths)?)))
+            },
             "c++" => Ok(JuizObjectPlugin::Cpp(Rc::new(CppPlugin::new(cpp_plugin_path(name, v)?, manifest_entry_point)?))),
             _ => {
                 log::error!("In setup_container_factories() function, unknown language option ({:}) detected", language);

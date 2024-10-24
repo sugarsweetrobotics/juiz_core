@@ -3,11 +3,9 @@
 #include "example_container.h"
 
 juiz::Value manifest() {
-    return {
-        {"container_type_name", "example_container_cpp"},
-        {"type_name", "example_container_cpp_get"},
-        {"arguments", juiz::Value::object() }
-    };
+    return ProcessManifest("example_container_cpp_get")
+        .container_type("examlpe_container_cpp")
+        .into_value();
 }
 
 std::optional<int64_t> example_container_get(CppContainer* container, juiz::CapsuleMap cm) {

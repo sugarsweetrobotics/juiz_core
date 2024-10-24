@@ -1,17 +1,11 @@
 
-def manifest():
-    return {
-        "type_name": "example_container_python_increment",
-        "container_type_name": "example_container_python",
-        "arguments" : {
-            "arg0": {
-                "type": "int",
-                "description": "test_argument",
-                "default": 1,
-            }
-        }, 
-    }
+from juiz import ProcessManifest
 
+def manifest():
+    return ProcessManifest("example_container_python_increment")\
+        .set_container_type("example_container_python")\
+        .add_int_arg("arg0", "test_argument", 1)\
+        .into_value()
 
 def example_container_python_increment(container, arg0):
     container.value = container.value + arg0

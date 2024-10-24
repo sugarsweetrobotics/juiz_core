@@ -1,11 +1,9 @@
+from juiz import ProcessManifest
 
 def manifest():
-    return {
-        "type_name": "example_container_python_get",
-        "container_type_name": "example_container_python",
-        "arguments" : {
-        }, 
-    }
+    return ProcessManifest("example_container_python_get")\
+        .set_container_type("example_container_python")\
+        .into_value()
 
 def example_container_python_get(container):
     return container.value

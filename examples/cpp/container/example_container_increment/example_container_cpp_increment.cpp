@@ -3,17 +3,10 @@
 #include "example_container.h"
 
 juiz::Value manifest() {
-    return {
-        {"container_type_name", "example_container_cpp"},
-        {"type_name", "example_container_cpp_increment"},
-        {"arguments", {
-            {"arg0", {
-                {"type", "int"},
-                {"description", "test_argument"},
-                {"default", 1},
-            }}
-        } }
-    };
+    return ProcessManifest("example_container_cpp_increment")
+        .container_type("example_container_cpp")
+        .add_int_arg("arg0", "test_argument", 2)
+        .into_value();
 }
 
 

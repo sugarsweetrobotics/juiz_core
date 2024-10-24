@@ -8,17 +8,9 @@
 
 
 juiz::Value manifest() {
-    return {
-        {"type_name", "decrement_process_cpp"},
-        {"language", "c++"},
-        {"arguments", {
-            {"arg1", {
-                {"type", "int"},
-                {"description", "test_argument"},
-                {"default", 1},
-            }}
-        }}
-    };
+    return ProcessManifest{"descrement_process_cpp"}
+        .add_int_arg("arg1", "test_argument", 1)
+        .into_value();
 }
 
 std::optional<int64_t> decrement_process(juiz::CapsuleMap cm) {

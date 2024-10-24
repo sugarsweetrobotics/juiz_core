@@ -5,6 +5,8 @@ from turtle_py import Turtle
 from turtle_sim_map import TurtleSimMap
 turtle_sim = None
 
+from juiz import *
+
 class TurtleSim(object):
     def __init__(self, turtles=None, map_metadata=None):
         print('map_metadata=', map_metadata)
@@ -189,19 +191,10 @@ def sign(a):
 #     turtle.set_target_velocity(v)
     
 def component_manifest():
-    return {
-        "type_name": "turtle_sim_py",
-        "containers": [
-            {
-                "type_name": "turtle_sim",
-                "factory": "turtle_sim_manifest",
-                "processes": [
-                    {
-                        "type_name": "load_map",
-                        "factory": "load_map_factory",
-                        "arguments": {
-                            "map_metadata": {
-                                "default": {
+    return ComponentManifest("turtle_sim_py")\
+        .add_container(ContainerManifest("turtle_sim")\
+            .add_process(ProcessManifest("load_map").set_factory("load_map_factory")\
+                .add_object_arg("map_metadata", "map meta data", {
                                     "map": "map.png",
                                     "width": 10.0,
                                     "height": 10.0,
@@ -209,120 +202,167 @@ def component_manifest():
                                         "x": -5.0,
                                         "y": -5.0
                                     }
-                                }
-                            }
-                        }
-                    },
-                    {
-                        "type_name": "get_map",
-                        "factory": "get_map_factory",
-                        "arguments": {
-                        }
-                    },
-                    {
-                        "type_name": "get_profile",
-                        "factory": "get_profile_factory",
-                        "arguments": {}
-                    },
-                    {
-                        "type_name": "spawn_turtle",
-                        "factory": "spawn_turtle_factory",
-                        "arguments": {
-                            "init_pose": {
-                                "default": {
+                                })\
+            )\
+            .add_process(ProcessManifest("get_map").set_factory("get_map_factory"))\
+            .add_process(ProcessManifest("get_map_metadata").set_factory("get_map_metadata_factory"))\
+            .add_process(ProcessManifest("get_profile").set_factory("get_profile_factory"))\
+            .add_process(ProcessManifest("spawn_turtle").set_factory("spawn_turtle_factory")\
+                .add_object_arg("init_pose", "initial pose of turtle", {
                                     "x": 0.0,
                                     "y": 0.0,
                                     "th": 0.0
-                                }
-                            }
-                        }
-                    },
-                    {
-                        "type_name": "get_turtle_pose",
-                        "factory": "get_turtle_pose_factory",
-                        "arguments": {
-                            "index": {
-                                "default": {
-                                    0
-                                }
-                            }
-                        }
-                    },
-                    {
-                        "type_name": "get_turtle_lidar",
-                        "factory": "get_turtle_lidar_factory",
-                        "arguments": {
-                            "index": {
-                                "default": {
-                                    0
-                                }
-                            }
-                        }
-                    },
-                    {
-                        "type_name": "set_turtle_target_velocity",
-                        "factory": "set_turtle_target_velocity_factory",
-                        "arguments": {
-                            "index": {
-                                "default": 
-                                    0
-                                
-                            },
-                            "velocity": {
-                                "default": {
+                                })\
+            )\
+            .add_process(ProcessManifest("get_turtle_pose").set_factory("get_turtle_pose_factory")\
+                .add_int_arg("index", "index of turtle", 0)\
+            )\
+            .add_process(ProcessManifest("get_turtle_lidar").set_factory("get_turtle_lidar_factory")\
+                .add_int_arg("index", "index of turtle", 0)\
+            )\
+            .add_process(ProcessManifest("set_turtle_target_velocity").set_factory("set_turtle_target_velocity_factory")\
+                .add_int_arg("index", "index of turtle", 0)\
+                .add_object_arg("velocity", "velocity of turtle", {
                                     "vx": 0.0,
                                     "vy": 0.0,
                                     "wz": 0.0
-                                }
-                            }
-                        }
-                    },
-                    {
-                        "type_name": "update",
-                        "factory": "update_factory",
-                        "arguments": {
-                        }
-                    },
-                    {
-                        "type_name": "get_map_metadata",
-                        "factory": "get_map_metadata_factory",
-                        "arguments": {}
-                    }
-                ]  
-            },
-            # {
-            #     "type_name": "turtle",
-            #     "factory": "turtle_manifest",
-            #     "processes": [
-            #         {
-            #             "type_name": "get_pose",
-            #             "factory": "get_pose_factory",
-            #             "arguments": {
-            #             }
-            #         },
-            #         #{
-            #         #    "type_name": "update",
-            #         #    "factory": "update_factory",
-            #         #    "arguments": {
-            #         #    }
-            #         #},
-            #         {
-            #             "type_name": "set_target_velocity",
-            #             "factory": "set_target_velocity_factory",
-            #             "arguments": {
-            #                 "target_velocity": {
-            #                     "default": {
-            #                         "vx": 0.0,
-            #                         "vy": 0.0,
-            #                         "wz": 0.0
-            #                     }
-            #                 }
-            #             }
-            #         },
-            #     ]
-            # }
-        ]
-    }
+                                })\
+            )\
+        )
+    # return {
+    #     "type_name": "turtle_sim_py",
+    #     "containers": [
+    #         {
+    #             "type_name": "turtle_sim",
+    #             "factory": "turtle_sim_manifest",
+    #             "processes": [
+    #                 {
+    #                     "type_name": "load_map",
+    #                     "factory": "load_map_factory",
+    #                     "arguments": {
+    #                         "map_metadata": {
+    #                             "default": {
+    #                                 "map": "map.png",
+    #                                 "width": 10.0,
+    #                                 "height": 10.0,
+    #                                 "position_of_topleft": {
+    #                                     "x": -5.0,
+    #                                     "y": -5.0
+    #                                 }
+    #                             }
+    #                         }
+    #                     }
+    #                 },
+    #                 {
+    #                     "type_name": "get_map",
+    #                     "factory": "get_map_factory",
+    #                     "arguments": {
+    #                     }
+    #                 },
+    #                 {
+    #                     "type_name": "get_profile",
+    #                     "factory": "get_profile_factory",
+    #                     "arguments": {}
+    #                 },
+    #                 {
+    #                     "type_name": "spawn_turtle",
+    #                     "factory": "spawn_turtle_factory",
+    #                     "arguments": {
+    #                         "init_pose": {
+    #                             "default": {
+    #                                 "x": 0.0,
+    #                                 "y": 0.0,
+    #                                 "th": 0.0
+    #                             }
+    #                         }
+    #                     }
+    #                 },
+    #                 {
+    #                     "type_name": "get_turtle_pose",
+    #                     "factory": "get_turtle_pose_factory",
+    #                     "arguments": {
+    #                         "index": {
+    #                             "default": {
+    #                                 0
+    #                             }
+    #                         }
+    #                     }
+    #                 },
+    #                 {
+    #                     "type_name": "get_turtle_lidar",
+    #                     "factory": "get_turtle_lidar_factory",
+    #                     "arguments": {
+    #                         "index": {
+    #                             "default": {
+    #                                 0
+    #                             }
+    #                         }
+    #                     }
+    #                 },
+    #                 {
+    #                     "type_name": "set_turtle_target_velocity",
+    #                     "factory": "set_turtle_target_velocity_factory",
+    #                     "arguments": {
+    #                         "index": {
+    #                             "default": 
+    #                                 0
+                                
+    #                         },
+    #                         "velocity": {
+    #                             "default": {
+    #                                 "vx": 0.0,
+    #                                 "vy": 0.0,
+    #                                 "wz": 0.0
+    #                             }
+    #                         }
+    #                     }
+    #                 },
+    #                 {
+    #                     "type_name": "update",
+    #                     "factory": "update_factory",
+    #                     "arguments": {
+    #                     }
+    #                 },
+    #                 {
+    #                     "type_name": "get_map_metadata",
+    #                     "factory": "get_map_metadata_factory",
+    #                     "arguments": {}
+    #                 }
+    #             ]  
+    #         },
+    #         # {
+    #         #     "type_name": "turtle",
+    #         #     "factory": "turtle_manifest",
+    #         #     "processes": [
+    #         #         {
+    #         #             "type_name": "get_pose",
+    #         #             "factory": "get_pose_factory",
+    #         #             "arguments": {
+    #         #             }
+    #         #         },
+    #         #         #{
+    #         #         #    "type_name": "update",
+    #         #         #    "factory": "update_factory",
+    #         #         #    "arguments": {
+    #         #         #    }
+    #         #         #},
+    #         #         {
+    #         #             "type_name": "set_target_velocity",
+    #         #             "factory": "set_target_velocity_factory",
+    #         #             "arguments": {
+    #         #                 "target_velocity": {
+    #         #                     "default": {
+    #         #                         "vx": 0.0,
+    #         #                         "vy": 0.0,
+    #         #                         "wz": 0.0
+    #         #                     }
+    #         #                 }
+    #         #             }
+    #         #         },
+    #         #     ]
+    #         # }
+    #     ]
+    # }
     
     
     

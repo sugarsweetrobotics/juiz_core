@@ -4,11 +4,11 @@ use anyhow::anyhow;
 use crate::{containers::{ContainerFactoryWrapper, ContainerProcessFactoryWrapper}, core::system_builder::topics::{setup_publish_topic, setup_subscribe_topic}, plugin::JuizObjectPlugin, prelude::*, utils::{get_array, get_hashmap, when_contains_do}};
 
 
-pub(super) fn setup_container_factories(system: &System, manifest: &Value) -> JuizResult<()> {
+pub(super) fn setup_container_factories(system: &System, manifest: &Value, option: &Value) -> JuizResult<()> {
     log::trace!("setup_container_factories({manifest}) called");
     for (name, v) in get_hashmap(manifest)?.iter() {
         log::debug!("ContainerFactory (name={:}) Loading...", name);
-        setup_container_factory(system, name, v)?;
+        setup_container_factory(system, name, v, option)?;
         log::debug!("ContainerFactory (name={:}) Fully Loaded", name);
     }
     log::trace!("setup_container_factories() exit");
@@ -28,7 +28,7 @@ pub(super) fn setup_containers(system: &System, manifest: &Value) -> JuizResult<
     Ok(())
 }
 
-fn setup_container_factory(system: &System, name: &String, container_profile: &Value) -> JuizResult<ContainerFactoryPtr> {
+fn setup_container_factory(system: &System, name: &String, container_profile: &Value, option: &Value) -> JuizResult<ContainerFactoryPtr> {
 
     log::trace!("setup_container_factory(name={name}, profile={container_profile}) called");
     let manifest_entry_point = "manifest";
@@ -39,12 +39,12 @@ fn setup_container_factory(system: &System, name: &String, container_profile: &V
         },
         Some(obj) => {
             let language = obj.get("language").and_then(|v| { v.as_str() }).or(Some("rust")).unwrap();
-            let ctr = register_container_factory(system, JuizObjectPlugin::new(language, name, container_profile, manifest_entry_point)?, "container_factory")?;
+            let ctr = register_container_factory(system, JuizObjectPlugin::new(language, name, container_profile, manifest_entry_point, option)?, "container_factory")?;
             log::info!("ContainerFactory ({name:}) Loaded");
             when_contains_do(container_profile, "processes", |container_process_profile_map| {
                 for (cp_name, container_process_profile) in get_hashmap(container_process_profile_map)?.iter() {
                     log::debug!(" - ContainerProcessFactory ({cp_name:}) Loading...");
-                    register_container_process_factory(system, JuizObjectPlugin::new(language, cp_name, container_process_profile, manifest_entry_point)?, "container_process_factory")?;
+                    register_container_process_factory(system, JuizObjectPlugin::new(language, cp_name, container_process_profile, manifest_entry_point, option)?, "container_process_factory")?;
                     log::info!(" - ContainerProcessFactory ({cp_name:}) Loaded");
                 }
                 Ok(())
