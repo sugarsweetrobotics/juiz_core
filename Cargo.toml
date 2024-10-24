@@ -68,6 +68,7 @@ juiz_core = { path = "./juiz_core/" }
 [workspace]
 members = [
     ".",
+    "juiz_base",
     "juiz_core",
     "ecs/timer_ec",
     "ecs/one_shot_ec", 
@@ -87,6 +88,7 @@ members = [
 ]
 default-members = [
     ".",
+    "juiz_base",
     "juiz_core",
     # "app/juiz_command",
     "ecs/timer_ec",
