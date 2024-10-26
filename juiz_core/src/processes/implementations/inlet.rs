@@ -5,7 +5,6 @@ use crate::prelude::*;
 /// 
 /// 
 /// 
-use crate::connections::{connection::ConnectionType, SourceConnection};
 
 pub struct Inlet {
     name: String,
@@ -96,7 +95,7 @@ impl Inlet {
         }
     }
 
-    pub(crate) fn insert(&mut self, con: Box<crate::connections::SourceConnectionImpl>) {
+    pub(crate) fn insert(&mut self, con: Box<dyn SourceConnection + 'static>) {
         self.source_connections.push(con);
     }
 

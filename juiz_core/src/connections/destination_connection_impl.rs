@@ -3,15 +3,14 @@
 
 use serde_json::Value;
 
-use crate::connections::connection::ConnectionType;
+use juiz_base::connections::ConnectionType;
 use crate::prelude::*;
-use crate::object::JuizObjectCoreHolder;
 
 
 use core::fmt::Debug;
 use std::clone::Clone;
 
-use super::{DestinationConnection, connection::{Connection, ConnectionCore}};
+use juiz_base::connections::{DestinationConnection, Connection, ConnectionCore};
 
 
 pub struct DestinationConnectionImpl{
@@ -42,7 +41,7 @@ impl DestinationConnectionImpl {
 }
 
 impl JuizObjectCoreHolder for DestinationConnectionImpl {
-    fn core(&self) -> &crate::object::ObjectCore {
+    fn core(&self) -> &ObjectCore {
         self.core.object_core()
     }
 }

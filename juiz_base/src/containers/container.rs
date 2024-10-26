@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
 use mopa::mopafy;
-use crate::prelude::*;
+use crate::{object::JuizObject, prelude::*, processes::ProcessPtr};
 
 pub trait Container : Display + mopa::Any + JuizObject{
     

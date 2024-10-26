@@ -4,7 +4,7 @@ use std::sync::{Arc, Mutex};
 
 use crate::prelude::*;
 use juiz_base::prelude::*;
-use crate::{object::*, brokers::BrokerProxy};
+use crate::brokers::BrokerProxy;
 
 #[allow(unused)]
 pub struct ProcessProxy {
@@ -93,11 +93,11 @@ impl Process for ProcessProxy {
         juiz_lock(&self.broker_proxy)?.process_try_connect_to(self.identifier(), arg_name, destination.identifier(), manifest)
     }
 
-    fn source_connections(&self) -> JuizResult<Vec<&Box<dyn crate::connections::SourceConnection>>> {
+    fn source_connections(&self) -> JuizResult<Vec<&Box<dyn SourceConnection>>> {
         todo!()
     }
 
-    fn destination_connections(&self) -> JuizResult<Vec<&Box<dyn crate::connections::DestinationConnection>>> {
+    fn destination_connections(&self) -> JuizResult<Vec<&Box<dyn DestinationConnection>>> {
         todo!()
     }
 

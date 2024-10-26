@@ -13,7 +13,6 @@ use juiz_base::utils::yaml_conf_load::yaml_conf_load_with;
 use crate::brokers::broker_ptr::BrokerPtr;
 use crate::prelude::*;
 use crate::{
-    object::{JuizObject, ObjectCore, JuizObjectCoreHolder, JuizObjectClass},
     brokers::{
         broker_proxy::SystemBrokerProxy,
         broker_factories_wrapper::BrokerFactoriesWrapper},

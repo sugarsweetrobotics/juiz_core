@@ -1,33 +1,38 @@
 use std::sync::Arc;
-
+use anyhow::anyhow;
+use crate::connections::ConnectionFactoryImpl;
 use crate::prelude::*;
 use crate::containers::{ContainerFunctionType, ContainerFunctionTypePtr, ContainerImpl, ContainerProcessImpl};
-use crate::object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore};
-pub struct ContainerProcessFactoryImpl<T> where T: 'static {
+use crate::processes::{process_from_clousure, process_from_clousure_new_with_class_name};
+
+pub type BindedContainerFunctionType = Arc<dyn Fn(ContainerPtr, CapsuleMap)->JuizResult<Capsule>>;
+pub struct ContainerProcessFactoryImpl {
     core: ObjectCore,
     manifest: ProcessManifest,
-    function: ContainerFunctionTypePtr<T>,
+   // function: ContainerFunctionTypePtr<T>,
+    binded_function: BindedContainerFunctionType,
 }
 
 // pub type ContainerProcessConstructorType<T>=&'static dyn Fn(&mut ContainerImpl<T>, CapsuleMap) -> JuizResult<Capsule> ;
-impl<T: 'static> ContainerProcessFactoryImpl<T> {
-    pub fn new_t(manifest: ProcessManifest, function: ContainerFunctionTypePtr<T>) -> JuizResult<Self> {
+impl ContainerProcessFactoryImpl {
+    pub fn new_t(manifest: ProcessManifest, function: BindedContainerFunctionType) -> JuizResult<Self> {
         // let type_name = obj_get_str(&manifest, "type_name")?;
         Ok(ContainerProcessFactoryImpl{
                 core: ObjectCore::create_factory(JuizObjectClass::ContainerProcessFactory("ContainerProcessFactoryImpl"), 
                 manifest.type_name.clone()),
-                function,
+               // function: function.clone(),
                 manifest,
+                binded_function: function
             }
         )
     }
 
-    pub fn new(manifest: ProcessManifest, function: &'static ContainerFunctionType<T>) -> JuizResult<Self> {
-        //let type_name = obj_get_str(&manifest, "type_name")?;
-        let f = Arc::new(|c: &mut ContainerImpl<T>, v| { function(c, v) } );
-        Ok(Self::new_t(manifest, f)?)
+    // pub fn new(manifest: ProcessManifest, function: &'static ContainerFunctionType<T>) -> JuizResult<Self> {
+    //     //let type_name = obj_get_str(&manifest, "type_name")?;
+    //     let f = Arc::new(|c: &mut ContainerImpl<T>, v| { function(c, v) } );
+    //     Ok(Self::new_t(manifest, f)?)
         
-    }
+    // }
 
     // fn apply_default_manifest(&self, manifest: Value) -> JuizResult<Value> {
     //     let mut new_manifest = self.manifest.clone();
@@ -51,26 +56,52 @@ impl<T: 'static> ContainerProcessFactoryImpl<T> {
 //     ContainerProcessFactoryImpl::<T>::create(manifest, ff)
 // }
 
-impl<T: 'static> JuizObjectCoreHolder for ContainerProcessFactoryImpl<T> {
-    fn core(&self) -> &crate::object::ObjectCore {
+impl JuizObjectCoreHolder for ContainerProcessFactoryImpl {
+    fn core(&self) -> &ObjectCore {
         &self.core
     }
 }
 
-impl<T: 'static> JuizObject for ContainerProcessFactoryImpl<T> {}
+impl JuizObject for ContainerProcessFactoryImpl {}
 
-impl<T: 'static> ContainerProcessFactory for ContainerProcessFactoryImpl<T> {
+
+pub fn bind_container_function<T: 'static >(function: impl Fn(&mut ContainerImpl<T>, CapsuleMap) -> JuizResult<Capsule> + 'static) -> BindedContainerFunctionType {
+    Arc::new(move |container, args| -> JuizResult<Capsule> {
+        match container.lock_mut()?.downcast_mut::<ContainerImpl<T>>() {
+            Some(c) =>(function)(c, args),
+            None => Err(anyhow!(JuizError::ContainerDowncastingError{identifier: "ContainerPtr".to_owned()}))
+        }
+    })
+}
+
+impl ContainerProcessFactory for ContainerProcessFactoryImpl {
     fn create_container_process(&self, container: ContainerPtr, manifest: ProcessManifest) -> JuizResult<ProcessPtr> {
         log::trace!("ContainerProcessFactoryImpl::create_container_process(container, manifest={:?}) called", manifest);
-        Ok(ProcessPtr::new(
-            ContainerProcessImpl::new(
-                //self.apply_default_manifest(manifest)?, 
-                self.manifest.build_instance_manifest(manifest)?,
-                container, 
-                self.function.clone()
-                //Box::new(|c, v|{ self.function(c, v) }),
-            )?
-        ))
+        
+        //let function_clone = self.function.clone();
+        // let func = move |args| -> JuizResult<Capsule> {
+        //     container.downcast_mut_and_then(|c: &mut ContainerImpl<T> | {
+        //         (function_clone)(c, args)
+        //     })?
+        // };
+        let function_clone = self.binded_function.clone();
+        let func = move |args| -> JuizResult<Capsule> {
+            function_clone(container.clone(), args)
+        };
+        Ok(ProcessPtr::new(process_from_clousure_new_with_class_name(
+            JuizObjectClass::ContainerProcess("ContainerProcessImpl"), 
+            self.manifest.build_instance_manifest(manifest)?, 
+            func, 
+            Box::new(ConnectionFactoryImpl::new()))?))
+        // Ok(ProcessPtr::new(
+        //     ContainerProcessImpl::new(
+        //         //self.apply_default_manifest(manifest)?, 
+        //         self.manifest.build_instance_manifest(manifest)?,
+        //         container, 
+        //         self.function.clone()
+        //         //Box::new(|c, v|{ self.function(c, v) }),
+        //     )?
+        // ))
     }
     
     fn destroy_container_process(&mut self, proc: ProcessPtr) -> JuizResult<Value> {

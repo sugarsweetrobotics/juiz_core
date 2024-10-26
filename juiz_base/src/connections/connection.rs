@@ -1,6 +1,6 @@
 
 use crate::prelude::*;
-use crate::object::{ObjectCore, JuizObjectClass};
+use crate::object::{JuizObject, JuizObjectClass, ObjectCore};
 
 
 #[derive(Debug, PartialEq, Clone)]

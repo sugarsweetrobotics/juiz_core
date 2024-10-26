@@ -1,11 +1,11 @@
 use std::sync::Arc;
 
 use anyhow::Context;
+use anyhow::anyhow;
 
+use crate::connections::ConnectionFactoryImpl;
 use crate::prelude::*;
 use crate::processes::process_from_clousure;
-use crate::object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore};
-
 pub type ContainerFunctionType<T>=dyn Fn(&mut ContainerImpl<T>, CapsuleMap) -> JuizResult<Capsule>+'static;
 pub type ContainerFunctionTypePtr<T>= Arc<ContainerFunctionType<T>>;
 
@@ -29,10 +29,16 @@ impl ContainerProcessImpl {
         let proc = process_from_clousure(
             Into::<Value>::into(manifest.clone()).try_into()?, 
             move |args| {
-                container_clone.downcast_mut_and_then(|c: &mut ContainerImpl<T> | {
-                    (function)(c, args)
-                })?
-            }
+                match container_clone.lock_mut()?.downcast_mut::<ContainerImpl<T>>() {
+                    Some(c) => {
+                        (function)(c, args)
+                    }
+                    None => {
+                        Err(anyhow!(JuizError::ContainerDowncastingError{identifier: "ContainerPtr".to_owned()}))
+                    },
+                }
+            },
+            Box::new(ConnectionFactoryImpl::new())
         )?;
         
         Ok(ContainerProcessImpl{
@@ -109,11 +115,11 @@ impl Process for ContainerProcessImpl {
         self.process_mut()?.try_connect_to(target, connect_arg_to, connection_manifest)
     }
 
-    fn source_connections(&self) -> JuizResult<Vec<&Box<dyn crate::connections::SourceConnection>>> {
+    fn source_connections(&self) -> JuizResult<Vec<&Box<dyn SourceConnection>>> {
         self.process()?.source_connections()
     }
 
-    fn destination_connections(&self) -> JuizResult<Vec<&Box<dyn crate::connections::DestinationConnection>>> {
+    fn destination_connections(&self) -> JuizResult<Vec<&Box<dyn DestinationConnection>>> {
         self.process()?.destination_connections()
     }
     

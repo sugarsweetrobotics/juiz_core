@@ -3,7 +3,6 @@ use std::sync::{Arc, Mutex};
 
 use crate::core::CoreBrokerPtr;
 use crate::prelude::*;
-use crate::object::{JuizObjectCoreHolder, ObjectCore, JuizObjectClass};
 
 use super::broker_ptr::BrokerPtr;
 
@@ -31,7 +30,7 @@ impl BrokerFactoryImpl {
 
 impl JuizObjectCoreHolder for BrokerFactoryImpl {
     
-    fn core(&self) -> &crate::object::ObjectCore {
+    fn core(&self) -> &ObjectCore {
         &self.core
     }
 }

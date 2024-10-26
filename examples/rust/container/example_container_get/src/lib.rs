@@ -1,7 +1,7 @@
 
 
 use example_container::ExampleContainer;
-use juiz_core::{env_logger, prelude::*};
+use juiz_base::{env_logger, prelude::*};
 
 
 fn manifest() -> ProcessManifest { 
@@ -16,7 +16,7 @@ fn get_function(container: &mut ContainerImpl<ExampleContainer>, _v: CapsuleMap)
 
 
 #[no_mangle]
-pub unsafe extern "Rust" fn container_process_factory() -> JuizResult<ContainerProcessFactoryPtr> {
+pub unsafe extern "Rust" fn container_process_factory() -> JuizResult<ContainerProcessFactoryStruct> {
     env_logger::init();
     container_process_factory_create(manifest(), &get_function)
 }

@@ -7,11 +7,11 @@
 use std::sync::Arc;
 
 
-use crate::object::{JuizObjectCoreHolder, ObjectCore, JuizObjectClass};
+use crate::connections::ConnectionFactory;
 use crate::prelude::*;
 
 use juiz_base::utils::check_manifest_before_call;
-use crate::connections::{SourceConnection, SourceConnectionImpl, DestinationConnection, DestinationConnectionImpl};
+use juiz_base::connections::{DestinationConnection, SourceConnection};
 
 //use crate::value::CapsuleMap;
 use super::inlet::Inlet;
@@ -26,6 +26,7 @@ pub struct ProcessImpl {
     identifier: Identifier,
     outlet: Outlet,
     inlets: Vec<Inlet>,
+    connection_factory: Box<dyn ConnectionFactory + 'static>,
 }
 
 
@@ -34,26 +35,26 @@ pub struct ProcessImpl {
 //     &process_manifest.arguments
 // }
 
-pub fn process_from_clousure(manif: ProcessManifest, func: impl Fn(CapsuleMap) -> JuizResult<Capsule> + 'static) -> JuizResult<impl Process> {
-    ProcessImpl::new_from_clousure(manif, func)
+pub fn process_from_clousure(manif: ProcessManifest, func: impl Fn(CapsuleMap) -> JuizResult<Capsule> + 'static, connection_factory: Box<impl ConnectionFactory + 'static>) -> JuizResult<impl Process> {
+    ProcessImpl::new_from_clousure(manif, func, connection_factory)
 }
 
-pub fn process_from_clousure_new_with_class_name(class_name: JuizObjectClass, manif: ProcessManifest, func: impl Fn(CapsuleMap) -> JuizResult<Capsule> + 'static) -> JuizResult<impl Process> {
-    ProcessImpl::new_from_clousure_and_class_name(class_name, manif, func)
+pub fn process_from_clousure_new_with_class_name(class_name: JuizObjectClass, manif: ProcessManifest, func: impl Fn(CapsuleMap) -> JuizResult<Capsule> + 'static, connection_factory: Box<impl ConnectionFactory + 'static>) -> JuizResult<impl Process> {
+    ProcessImpl::new_from_clousure_and_class_name(class_name, manif, func, connection_factory)
 }
      
-pub fn process_new(manif: ProcessManifest, func: ProcessBodyFunctionType) -> JuizResult<impl Process> {
-    ProcessImpl::new_from_fn(manif, func)
+pub fn process_new(manif: ProcessManifest, func: ProcessBodyFunctionType, connection_factory: Box<impl ConnectionFactory+'static>) -> JuizResult<impl Process> {
+    ProcessImpl::new_from_fn(manif, func, connection_factory)
 }
     
 
 impl ProcessImpl {
 
-    pub(crate) fn new_from_clousure_and_class_name(class_name: JuizObjectClass, manif: ProcessManifest, func: impl Fn(CapsuleMap) -> JuizResult<Capsule> + 'static) -> JuizResult<Self> {
-        ProcessImpl::new_from_clousure_ref_and_class_name(class_name, manif, Arc::new(func))
+    pub(crate) fn new_from_clousure_and_class_name(class_name: JuizObjectClass, manif: ProcessManifest, func: impl Fn(CapsuleMap) -> JuizResult<Capsule> + 'static, connection_factory: Box<impl ConnectionFactory + 'static>) -> JuizResult<Self> {
+        ProcessImpl::new_from_clousure_ref_and_class_name(class_name, manif, Arc::new(func), connection_factory)
     }
 
-    pub(crate) fn new_from_clousure_ref_and_class_name(class_name: JuizObjectClass, manifest: ProcessManifest, func: Arc<dyn Fn(CapsuleMap) -> JuizResult<Capsule> + 'static>) -> JuizResult<Self> {
+    pub(crate) fn new_from_clousure_ref_and_class_name(class_name: JuizObjectClass, manifest: ProcessManifest, func: Arc<dyn Fn(CapsuleMap) -> JuizResult<Capsule> + 'static>, connection_factory: Box<impl ConnectionFactory + 'static>) -> JuizResult<Self> {
         log::debug!("ProcessImpl::new(manifest={:?}) called", manifest);
         Ok(Self{
             core: ObjectCore::create(class_name, manifest.type_name.clone(), manifest.name.as_ref().unwrap()),
@@ -62,23 +63,24 @@ impl ProcessImpl {
             outlet: Outlet::new(manifest.name.as_ref().unwrap().as_str(), manifest.use_memo),
             inlets: Self::create_inlets(&manifest),
             manifest,
+            connection_factory,
         })
     }
 
-    pub fn new_with_class(class_name: JuizObjectClass, manif: ProcessManifest, func: ProcessBodyFunctionType) -> JuizResult<Self> {
+    pub fn new_with_class(class_name: JuizObjectClass, manif: ProcessManifest, func: ProcessBodyFunctionType, connection_factory: Box<impl ConnectionFactory + 'static>) -> JuizResult<Self> {
         log::trace!("ProcessImpl::new(manifest={:?}) called", manif);
-        ProcessImpl::new_from_clousure_and_class_name(class_name, manif, func)
+        ProcessImpl::new_from_clousure_and_class_name(class_name, manif, func, connection_factory)
     }
-    pub fn new_from_fn(manif: ProcessManifest, func: ProcessBodyFunctionType) -> JuizResult<Self> {
-        Self::new_with_class(JuizObjectClass::Process("ProcessImpl"), manif, func)
-    }
-
-    pub fn new_from_clousure(manif: ProcessManifest, func: impl Fn(CapsuleMap) -> JuizResult<Capsule> + 'static) -> JuizResult<Self> {
-        ProcessImpl::new_from_clousure_and_class_name(JuizObjectClass::Process("ProcessImpl"), manif, func)
+    pub fn new_from_fn(manif: ProcessManifest, func: ProcessBodyFunctionType, connection_factory: Box<impl ConnectionFactory + 'static>) -> JuizResult<Self> {
+        Self::new_with_class(JuizObjectClass::Process("ProcessImpl"), manif, func, connection_factory)
     }
 
-    pub fn new_from_clousure_ref(manif: ProcessManifest, func: Arc<dyn Fn(CapsuleMap) -> JuizResult<Capsule> + 'static>) -> JuizResult<Self> {
-        ProcessImpl::new_from_clousure_ref_and_class_name(JuizObjectClass::Process("ProcessImpl"), manif, func)
+    pub fn new_from_clousure(manif: ProcessManifest, func: impl Fn(CapsuleMap) -> JuizResult<Capsule> + 'static, connection_factory: Box<impl ConnectionFactory + 'static>) -> JuizResult<Self> {
+        ProcessImpl::new_from_clousure_and_class_name(JuizObjectClass::Process("ProcessImpl"), manif, func, connection_factory)
+    }
+
+    pub fn new_from_clousure_ref(manif: ProcessManifest, func: Arc<dyn Fn(CapsuleMap) -> JuizResult<Capsule> + 'static>, connection_factory: Box<impl ConnectionFactory + 'static>) -> JuizResult<Self> {
+        ProcessImpl::new_from_clousure_ref_and_class_name(JuizObjectClass::Process("ProcessImpl"), manif, func, connection_factory)
     }
 
     fn create_inlets(manifest: &ProcessManifest) -> Vec<Inlet> {
@@ -114,7 +116,7 @@ impl ProcessImpl {
 }
 
 impl JuizObjectCoreHolder for ProcessImpl {
-    fn core(&self) -> &crate::object::ObjectCore {
+    fn core(&self) -> &ObjectCore {
         &self.core
     }
 }
@@ -200,14 +202,12 @@ impl Process for ProcessImpl {
     fn notify_connected_from(&mut self, source: ProcessPtr, connecting_arg: &str, connection_manifest: Value) -> JuizResult<Value> {
         log::trace!("ProcessImpl(id={:?}).notify_connected_from(source=Process()) called", self.identifier());
         let id = self.identifier().clone();
+        let con = self.connection_factory.create_source_connection(id, source, connection_manifest.clone(), connecting_arg.to_owned())?;
         self.inlet_mut(connecting_arg)?.insert(
-            Box::new(
-                SourceConnectionImpl::new(
-                    id,
-                    source, connection_manifest.clone(), 
-                    connecting_arg.to_owned()
-                )?
-            ));
+            con
+            
+            
+            );
         log::trace!("ProcessImpl(id={:?}).notify_connected_from(source=Process()) exit", self.identifier());
         Ok(connection_manifest.into())
     }
@@ -215,14 +215,15 @@ impl Process for ProcessImpl {
     fn try_connect_to(&mut self, destination: ProcessPtr, arg_name: &str, connection_manifest: Value) -> JuizResult<Value> {
         log::trace!("ProcessImpl(id={:?}).try_connect_to(destination=Process()) called", self.identifier());
         let destination_id = destination.identifier().clone();
+        let con = self.connection_factory.create_destination_connection(
+            &self.identifier(), 
+            &destination_id,
+            destination, 
+            connection_manifest.clone(), 
+            arg_name.to_owned())?;
         self.outlet.insert(
             arg_name.to_owned(), 
-            Box::new(DestinationConnectionImpl::new(
-                &self.identifier(), 
-                &destination_id,
-                destination, 
-                connection_manifest.clone(), 
-                arg_name.to_owned())?));
+            con);
         log::trace!("ProcessImpl(id={:?}).try_connect_to(destination=Process()) exit", self.identifier());
         Ok(connection_manifest.into())
     }

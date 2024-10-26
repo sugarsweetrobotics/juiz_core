@@ -5,6 +5,8 @@ use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use anyhow::anyhow;
 use crate::prelude::*;
 
+use super::Process;
+
 #[derive(Clone)]
 pub struct ProcessPtr {
     identifier: Identifier,

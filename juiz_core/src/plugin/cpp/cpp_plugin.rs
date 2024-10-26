@@ -7,6 +7,7 @@ use libloading::{Library, Symbol};
 //use super::cpp_container_process_factory_impl::CppContainerProcessFactoryImpl;
 //use crate::brokers::http::http_router::container;
 use crate::containers::{container_factory_create_with_trait, container_process_factory_create_from_trait};
+use crate::plugin::rust::bind_container_function;
 //use crate::plugin::cpp::cpp_container_factory_impl::CppContainerStruct;
 use crate::prelude::*;
 use crate::processes::process_factory_create_from_trait;
@@ -140,7 +141,7 @@ impl CppPlugin {
             }
             Ok(retval)
         };
-        container_process_factory_create_from_trait(manifest, constructor)
+        container_process_factory_create_from_trait(manifest, bind_container_function(constructor))
         //Ok(ContainerProcessFactoryPtr::new(CppContainerProcessFactoryImpl::new2(self.get_manifest().clone().try_into()?, f)?))
     }
 

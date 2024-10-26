@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 
 use crate::prelude::*;
-use crate::connections::DestinationConnection;
 
 
 
@@ -34,7 +33,7 @@ impl Outlet {
         }).into())
     }
 
-    pub(crate) fn insert(&mut self, name: String, con: Box<crate::connections::DestinationConnectionImpl>) -> () {
+    pub(crate) fn insert(&mut self, name: String, con: Box<dyn DestinationConnection + 'static>) -> () {
         self.destination_connections.insert(name, con);
     }
 

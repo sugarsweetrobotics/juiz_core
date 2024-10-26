@@ -1,7 +1,6 @@
 
 
 pub mod geometry;
-mod object;
 
 mod core;
 mod plugin;

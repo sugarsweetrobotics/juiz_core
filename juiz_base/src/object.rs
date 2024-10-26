@@ -1,6 +1,6 @@
 
 use crate::prelude::*;
-use juiz_base::identifier::identifier_new;
+use crate::identifier::identifier_new;
 
 #[derive(Clone, Debug)]
 pub enum JuizObjectClass {

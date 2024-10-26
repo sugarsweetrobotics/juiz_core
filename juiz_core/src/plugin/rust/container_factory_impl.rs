@@ -4,23 +4,25 @@ use std::sync::Arc;
 
 use crate::containers::ContainerConstructFunctionTrait;
 use crate::prelude::*;
-use crate::{containers::ContainerImpl, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}};
+use crate::{containers::ContainerImpl};
 
-
+pub type ContainerConstructor = dyn Fn(ContainerManifest)->JuizResult<ContainerPtr>;
 #[repr(C)]
-pub struct ContainerFactoryImpl<T> {
+pub struct ContainerFactoryImpl {
     core: ObjectCore,
     manifest: ContainerManifest,
-    constructor: Arc<ContainerConstructFunctionTrait<T>>,
+    // constructor: Arc<ContainerConstructFunctionTrait<T>>,
+    binded_container_constructor: Arc<ContainerConstructor>,
 }
 
-impl<S: 'static> ContainerFactoryImpl<S> {
+impl ContainerFactoryImpl {
 
-    pub fn new(manifest: ContainerManifest, constructor: impl Fn(ContainerManifest) -> JuizResult<Box<S>> + 'static) -> JuizResult<Self> {
-        Ok(ContainerFactoryImpl::<S>{
+    pub fn new<S: 'static>(manifest: ContainerManifest, constructor: Arc<ContainerConstructor>) -> JuizResult<Self> {
+        Ok(ContainerFactoryImpl{
                 core: ObjectCore::create_factory(JuizObjectClass::ContainerFactory("ContainerFactoryImpl"), manifest.type_name.clone().as_str()),
                 manifest,
-                constructor: Arc::new(constructor)
+                // constructor: Arc::new(constructor),
+                binded_container_constructor: constructor,
         })
     }
 
@@ -34,23 +36,24 @@ impl<S: 'static> ContainerFactoryImpl<S> {
 }
 
 
-impl<T: 'static> JuizObjectCoreHolder for ContainerFactoryImpl<T> {
+impl JuizObjectCoreHolder for ContainerFactoryImpl {
     fn core(&self) -> &ObjectCore {
         &self.core
     }
 }
 
-impl<T: 'static> JuizObject for ContainerFactoryImpl<T> {}
+impl JuizObject for ContainerFactoryImpl {}
 
-impl<T: 'static> ContainerFactory for ContainerFactoryImpl<T> {
+impl ContainerFactory for ContainerFactoryImpl {
 
     fn create_container(&self, _core_worker: &mut CoreWorker, manifest: ContainerManifest) -> JuizResult<ContainerPtr>{
         log::trace!("ContainerFactoryImpl::create_container(manifest={:?}) called", manifest);
-        Ok(ContainerPtr::new(ContainerImpl::new(
-                // self.apply_default_manifest(manifest.clone())?,
-                manifest.clone(),
-                (self.constructor)(manifest)?
-            )?))
+        // Ok(ContainerPtr::new(ContainerImpl::new(
+        //         // self.apply_default_manifest(manifest.clone())?,
+        //         manifest.clone(),
+        //         (self.constructor)(manifest)?
+        //     )?))
+        (self.binded_container_constructor)(manifest)
     }
     
     fn destroy_container(&mut self, c: ContainerPtr) -> JuizResult<Value> {

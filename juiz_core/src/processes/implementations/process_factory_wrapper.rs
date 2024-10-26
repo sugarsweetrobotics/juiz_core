@@ -1,6 +1,6 @@
 use std::cell::RefCell;
 use crate::prelude::*;
-use crate::{plugin::JuizObjectPlugin, object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}};
+use crate::{plugin::JuizObjectPlugin};
 
 #[allow(dead_code)]
 pub struct ProcessFactoryWrapper {

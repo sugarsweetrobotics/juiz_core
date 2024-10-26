@@ -1,7 +1,10 @@
 
+use crate::object::JuizObject;
 use crate::prelude::*;
 use crate::connections::{DestinationConnection, SourceConnection};
 use mopa::mopafy;
+
+use super::ProcessPtr;
 
 pub type ProcessBodyFunctionType = fn(CapsuleMap) -> JuizResult<Capsule>;
 pub type ProcessBodyFunctionTrait = dyn Fn(CapsuleMap) -> JuizResult<Capsule>;

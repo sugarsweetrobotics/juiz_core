@@ -18,5 +18,5 @@ pub(crate) use rust::RustPlugin;
 // pub(crate) fn create_process_factory(manifest: Value, function: FunctionType) -> JuizResult<impl ProcessFactory> {
 //     ProcessFactoryImpl::new(manifest, function)
 // }
-
+pub use rust::BindedContainerFunctionType;
 pub use rust::container_stack_factory_create;

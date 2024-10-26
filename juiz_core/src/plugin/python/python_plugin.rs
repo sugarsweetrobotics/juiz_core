@@ -3,7 +3,7 @@ use std::{collections::HashMap, fs, path::PathBuf};
 use pyo3::{prelude::*, types::{PyDict, PyFloat, PyFunction, PyInt, PyList, PyNone, PySet, PyString, PyTuple}};
 use serde_json::Map;
 
-use crate::{containers::{container_factory_create_with_trait, container_process_factory_create_from_trait}, prelude::*, processes::process_factory_create_from_trait};
+use crate::{containers::{container_factory_create_with_trait, container_process_factory_create_from_trait}, plugin::rust::bind_container_function, prelude::*, processes::process_factory_create_from_trait};
 
 #[cfg(feature="opencv4")]
 use crate::opencv::prelude::*;
@@ -147,7 +147,7 @@ if not "{path_str:}" in sys.path:
             }).or_else(|e| { Err(anyhow!(e)) })
         };
     
-        container_process_factory_create_from_trait(manifest.try_into()?, function)
+        container_process_factory_create_from_trait(manifest.try_into()?, bind_container_function(function))
     
     }
 

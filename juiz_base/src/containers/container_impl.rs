@@ -3,9 +3,7 @@
 /// 
 
 use std::{collections::HashMap, fmt::Display, ops::{Deref, DerefMut}};
-use crate::prelude::*;
-
-use crate::object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore};
+use crate::{prelude::*, processes::ProcessPtr};
 
 
 #[allow(unused)]

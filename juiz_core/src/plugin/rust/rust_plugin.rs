@@ -64,19 +64,12 @@ impl RustPlugin {
     }
 
     pub fn load_process_factory(&self, _working_dir: Option<PathBuf>, symbol_name: &str) -> JuizResult<ProcessFactoryPtr> {
-        type SymbolType = libloading::Symbol<'static, unsafe extern "Rust" fn() -> JuizResult<ProcessFactoryPtr>>;
+        type SymbolType = libloading::Symbol<'static, unsafe extern "Rust" fn() -> JuizResult<ProcessFactoryStruct>>;
         unsafe {
             let symbol = self.load_symbol::<SymbolType>(symbol_name.as_bytes())?;
-            (symbol)().with_context(||format!("calling symbol '{symbol_name}'"))
+            let ProcessFactoryStruct(manifest, proc_function) = (symbol)().with_context(||format!("calling symbol '{symbol_name}'"))?;
+            process_factory_create(manifest, proc_function)
         }
-    }
-
-    pub fn load_component_manifest(&self) -> JuizResult<ComponentManifest> {
-        type ComponentProfileFunctionSymbolType<'a> = libloading::Symbol<'a, unsafe extern "Rust" fn() -> ComponentManifest>;
-        let symbol = self.load_symbol::<ComponentProfileFunctionSymbolType>(b"component_manifest")?;
-        Ok(unsafe {
-             (symbol)()//.with_context(||format!("calling symbol 'container_factory'. arg is {manifest:}"))?;
-        })
     }
 
     pub fn load_container_factory(&self, _working_dir: Option<PathBuf>, symbol_name: &str) -> JuizResult<ContainerFactoryPtr> {
@@ -93,6 +86,14 @@ impl RustPlugin {
             let symbol = self.load_symbol::<SymbolType>(symbol_name.as_bytes())?;
             (symbol)().with_context(||format!("calling symbol '{symbol_name}'"))
         }
+    }
+
+    pub fn load_component_manifest(&self) -> JuizResult<ComponentManifest> {
+        type ComponentProfileFunctionSymbolType<'a> = libloading::Symbol<'a, unsafe extern "Rust" fn() -> ComponentManifest>;
+        let symbol = self.load_symbol::<ComponentProfileFunctionSymbolType>(b"component_manifest")?;
+        Ok(unsafe {
+             (symbol)()//.with_context(||format!("calling symbol 'container_factory'. arg is {manifest:}"))?;
+        })
     }
 
     pub fn load_broker_factory(&self, system: &mut System, ) -> JuizResult<Arc<Mutex<dyn BrokerFactory>>> {

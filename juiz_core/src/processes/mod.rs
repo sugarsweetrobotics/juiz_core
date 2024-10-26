@@ -1,11 +1,10 @@
 
-mod process;
-mod process_ptr;
+
 mod process_factory;
 mod implementations;
 
-pub use process::{Process, ProcessBodyFunctionTrait,  ProcessBodyFunctionType};
-pub use process_ptr::ProcessPtr;
+pub use juiz_base::processes::{Process, ProcessBodyFunctionTrait,  ProcessBodyFunctionType};
+pub use juiz_base::processes::ProcessPtr;
 pub use process_factory::{ProcessFactory, ProcessFactoryPtr};
 pub(crate) use implementations::{
     process_from_clousure_new_with_class_name,

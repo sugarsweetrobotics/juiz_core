@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 
 use crate::prelude::*;
-use crate::{object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, plugin::RustPlugin};
+use crate::{plugin::RustPlugin};
 
 use super::{execution_context_factory::ExecutionContextFactory, execution_context_function::ExecutionContextFunction, execution_context_holder::ExecutionContextHolder};
 

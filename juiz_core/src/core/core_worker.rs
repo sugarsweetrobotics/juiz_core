@@ -4,7 +4,7 @@ use std::sync::{Arc, Mutex};
 use juiz_base::{identifier::identifier_from_manifest, utils::manifest_util::{construct_id, id_from_manifest, id_from_manifest_and_class_name, type_name}};
 use uuid::Uuid;
 
-use crate::{connections::connection_builder::connection_builder, containers::{ContainerProcessImpl, ContainerProxy}, ecs::{execution_context_function::ExecutionContextFunction, execution_context_proxy::ExecutionContextProxy}, object::JuizObjectClass, prelude::*, topics::TopicPtr};
+use crate::{connections::connection_builder::connection_builder, containers::{ContainerProcessImpl, ContainerProxy}, ecs::{execution_context_function::ExecutionContextFunction, execution_context_proxy::ExecutionContextProxy}, prelude::*, topics::TopicPtr};
 
 use super::core_store::CoreStore;
 use crate::anyhow::anyhow;

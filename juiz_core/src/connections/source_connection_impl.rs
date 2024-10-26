@@ -3,12 +3,11 @@
 
 
 use crate::prelude::*;
-use crate::object::{JuizObjectCoreHolder, ObjectCore};
 
 use core::fmt::Debug;
 use std::clone::Clone;
 
-use super::{SourceConnection, connection::{Connection, ConnectionCore}};
+use juiz_base::connections::{Connection, ConnectionCore};
 
 pub struct SourceConnectionImpl {
     core: ConnectionCore,

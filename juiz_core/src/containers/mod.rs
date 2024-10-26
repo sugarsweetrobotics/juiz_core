@@ -1,6 +1,5 @@
 
-mod container;
-mod container_ptr;
+
 mod container_process;
 
 mod container_factory;
@@ -9,10 +8,8 @@ mod implementations;
 
 use std::sync::Arc;
 
-use crate::{plugin::ContainerProcessFactoryImpl, prelude::*};
+use crate::{plugin::{BindedContainerFunctionType, ContainerProcessFactoryImpl}, prelude::*};
 
-pub use container::Container;
-pub use container_ptr::ContainerPtr;
 pub use container_factory::{ContainerFactory, ContainerFactoryPtr, ContainerConstructFunction, ContainerConstructFunctionTrait};
 pub use container_process_factory::{ContainerProcessFactory, ContainerProcessFactoryPtr};
 
@@ -39,11 +36,15 @@ pub fn container_factory_create_with_trait<S: 'static>(manifest: ContainerManife
     Ok(ContainerFactoryPtr::new(ContainerFactoryImpl::new(manifest, constructor)?))
 }
 
-pub fn container_process_factory_create<S: 'static>(manifest: ProcessManifest, constructor: &'static ContainerFunctionType<S>) -> JuizResult<ContainerProcessFactoryPtr> {
-    Ok(ContainerProcessFactoryPtr::new(ContainerProcessFactoryImpl::new(manifest, constructor)?))
-}
+// pub fn container_process_factory_create<S: 'static>(manifest: ProcessManifest, constructor: &'static ContainerFunctionType<S>) -> JuizResult<ContainerProcessFactoryPtr> {
+//     Ok(ContainerProcessFactoryPtr::new(ContainerProcessFactoryImpl::new(manifest, constructor)?))
+// }
 
 
-pub fn container_process_factory_create_from_trait<S: 'static>(manifest: ProcessManifest, constructor: impl Fn(&mut ContainerImpl<S>, CapsuleMap) -> JuizResult<Capsule> + 'static) -> JuizResult<ContainerProcessFactoryPtr> {
-    Ok(ContainerProcessFactoryPtr::new(ContainerProcessFactoryImpl::new_t(manifest, Arc::new(constructor))?))
+// pub fn container_process_factory_create_from_trait<S: 'static>(manifest: ProcessManifest, constructor: impl Fn(&mut ContainerImpl<S>, CapsuleMap) -> JuizResult<Capsule> + 'static) -> JuizResult<ContainerProcessFactoryPtr> {
+//     Ok(ContainerProcessFactoryPtr::new(ContainerProcessFactoryImpl::new_t(manifest, Arc::new(constructor))?))
+// }
+
+pub fn container_process_factory_create_from_trait(manifest: ProcessManifest, constructor: BindedContainerFunctionType) -> JuizResult<ContainerProcessFactoryPtr> {
+    Ok(ContainerProcessFactoryPtr::new(ContainerProcessFactoryImpl::new_t(manifest, constructor)?))
 }

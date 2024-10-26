@@ -99,12 +99,32 @@ pub use crate::{
         when_contains_do,
         when_contains_do_mut,
         
-    }
+    },
+    factory::{
+        process_factory,
+        ProcessFactoryStruct,
+    },
+    containers::{
+        Container,
+        ContainerPtr,
+        ContainerImpl,
+    },
+    connections::{
+        Connection,
+        ConnectionType,
+        SourceConnection,
+        DestinationConnection,
+    },
+    object::{
+        JuizObject,
+        JuizObjectCoreHolder, 
+        JuizObjectClass,
+        ObjectCore},
     // plugin::{
     //     ContainerStackFactoryImpl,
     //     container_stack_factory_create
     // },
     // connections::connect,
     // utils::juiz_lock,
-    //log,
+    log,
 };

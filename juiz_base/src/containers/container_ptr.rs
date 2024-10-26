@@ -38,21 +38,22 @@ impl ContainerPtr {
         self.ptr.write().or_else(|_|{ Err(anyhow!(JuizError::ObjectLockError{target:"ContainerPtr".to_owned()})) })
     }
 
-    pub fn downcast_and_then<T: 'static, R, F>(&self, func: F) -> JuizResult<R> where F: FnOnce(&ContainerImpl<T>)->R {
-        match self.lock()?.downcast_ref::<ContainerImpl<T>>() {
-            None => Err(anyhow::Error::from(JuizError::ContainerDowncastingError{identifier: self.identifier.clone()})),
-            Some(container_impl) => { 
-                Ok(func(container_impl))
-            }
-        }
-    }
+    
+    // pub fn downcast_and_then<T: 'static, R, F>(&self, func: F) -> JuizResult<R> where F: FnOnce(&ContainerImpl<T>)->R {
+    //     match self.lock()?.downcast_ref::<ContainerImpl<T>>() {
+    //         None => Err(anyhow::Error::from(JuizError::ContainerDowncastingError{identifier: self.identifier.clone()})),
+    //         Some(container_impl) => { 
+    //             Ok(func(container_impl))
+    //         }
+    //     }
+    // }
 
-    pub fn downcast_mut_and_then<T: 'static, R, F>(&self, func: F) -> JuizResult<R> where F: FnOnce(&mut ContainerImpl<T>)->R {
-        match self.lock_mut()?.downcast_mut::<ContainerImpl<T>>() {
-            None => Err(anyhow::Error::from(JuizError::ContainerDowncastingError{identifier: self.identifier.clone()})),
-            Some(container_impl) => { 
-                Ok(func(container_impl))
-            }
-        }
-    }
+    // pub fn downcast_mut_and_then<T: 'static, R, F>(&self, func: F) -> JuizResult<R> where F: FnOnce(&mut ContainerImpl<T>)->R {
+    //     match self.lock_mut()?.downcast_mut::<ContainerImpl<T>>() {
+    //         None => Err(anyhow::Error::from(JuizError::ContainerDowncastingError{identifier: self.identifier.clone()})),
+    //         Some(container_impl) => { 
+    //             Ok(func(container_impl))
+    //         }
+    //     }
+    // }
 }

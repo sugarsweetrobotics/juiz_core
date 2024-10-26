@@ -2,7 +2,7 @@ use std::cell::RefCell;
 
 
 use crate::prelude::*;
-use crate::{object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore}, plugin::{JuizObjectPlugin, Plugin}};
+use crate::{plugin::{JuizObjectPlugin, Plugin}};
 
 
 #[allow(dead_code)]
@@ -28,7 +28,7 @@ impl ContainerProcessFactoryWrapper {
 }
 
 impl JuizObjectCoreHolder for ContainerProcessFactoryWrapper {
-    fn core(&self) -> &crate::object::ObjectCore {
+    fn core(&self) -> &ObjectCore {
         &self.core
     }
 }

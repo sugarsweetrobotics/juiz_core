@@ -23,7 +23,6 @@ use crate::brokers::broker_proxy::{
     SystemBrokerProxy, TopicBrokerProxy
 };
 
-use crate::object::{JuizObjectClass, JuizObjectCoreHolder, ObjectCore};
 
 use crate::connections::connection_builder::connection_builder;
 use super::core_worker::CoreWorker;

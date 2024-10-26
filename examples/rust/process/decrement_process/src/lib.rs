@@ -1,5 +1,5 @@
 
-use juiz_core::{env_logger, prelude::*};
+use juiz_base::{env_logger, prelude::*};
 
 
 pub unsafe extern "Rust" fn manifest() -> ProcessManifest { 
@@ -15,7 +15,8 @@ fn decrement_process(args: CapsuleMap) -> JuizResult<Capsule> {
 }
 
 #[no_mangle]
-pub unsafe extern "Rust" fn process_factory() -> JuizResult<ProcessFactoryPtr> {
+pub unsafe extern "Rust" fn process_factory() -> JuizResult<(ProcessManifest, fn(CapsuleMap)->JuizResult<Capsule>)> {
     env_logger::init();
-    process_factory_create(manifest(), decrement_process)
+    Ok((manifest(), decrement_process))
+    // process_factory_create(manifest(), decrement_process)
 }

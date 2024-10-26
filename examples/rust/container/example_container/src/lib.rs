@@ -1,4 +1,4 @@
-use juiz_core::{env_logger, prelude::*};
+use juiz_base::{env_logger, factory::ContainerFactoryStruct, prelude::*};
 
 #[repr(Rust)]
 pub struct ExampleContainer {
@@ -16,9 +16,9 @@ fn create_example_container(_manifest: ContainerManifest) -> JuizResult<Box<Exam
 }
 
 #[no_mangle]
-pub unsafe extern "Rust" fn container_factory() -> JuizResult<ContainerFactoryPtr> {
+pub unsafe extern "Rust" fn container_factory() -> JuizResult<ContainerFactoryStruct> {
     env_logger::init();
-    container_factory_create(ExampleContainer::manifest(), create_example_container)
+    Ok(juiz_base::container_factory(ExampleContainer::manifest(), create_example_container))
 }
 
 

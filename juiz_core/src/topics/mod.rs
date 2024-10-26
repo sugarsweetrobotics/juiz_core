@@ -2,7 +2,7 @@ use std::sync::{Arc, RwLock};
 
 use uuid::Uuid;
 
-use crate::{anyhow::anyhow, core::SubSystemProxy, object::JuizObjectClass, prelude::*, processes::process_from_clousure_new_with_class_name};
+use crate::{anyhow::anyhow, connections::ConnectionFactoryImpl, core::SubSystemProxy, prelude::*, processes::process_from_clousure_new_with_class_name};
 pub type TopicName = String;
 
 #[derive(Clone)]
@@ -117,7 +117,7 @@ impl TopicPtr {
             topic,
             ptr: ProcessPtr::new(
                 //ProcessImpl::clousure_new_with_class_name(JuizObjectClass::Topic("Topic"), manifest, Box::new(topic_func)).unwrap()))
-                process_from_clousure_new_with_class_name(JuizObjectClass::Topic("Topic"), manifest, topic_func).unwrap())
+                process_from_clousure_new_with_class_name(JuizObjectClass::Topic("Topic"), manifest, topic_func, Box::new(ConnectionFactoryImpl::new())).unwrap())
  
         }
     }

@@ -2,10 +2,9 @@
 
 use std::sync::Arc;
 
-use crate::object::JuizObjectClass;
+use crate::connections::ConnectionFactoryImpl;
 use crate::prelude::*;
 use crate::processes::implementations::process_impl::ProcessImpl;
-use crate::object::{JuizObjectCoreHolder, ObjectCore};
 use crate::processes::{ProcessBodyFunctionTrait, ProcessBodyFunctionType};
 
 #[repr(C)]
@@ -65,7 +64,8 @@ impl ProcessFactory for ProcessFactoryImpl {
         Ok(ProcessPtr::new(
             ProcessImpl::new_from_clousure_ref(
                 self.manifest.build_instance_manifest(manifest)?, 
-                self.function.clone())?
+                self.function.clone(), 
+            Box::new(ConnectionFactoryImpl::new()))?
         ))
     }
 }

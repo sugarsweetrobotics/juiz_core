@@ -7,7 +7,7 @@ use container_stack_factory::ContainerStackConstructFunction;
 pub(crate) use rust_plugin::RustPlugin;
 pub use container_factory_impl::ContainerFactoryImpl;
 pub use container_stack_factory::ContainerStackFactoryImpl;
-pub use container_process_factory_impl::ContainerProcessFactoryImpl;
+pub use container_process_factory_impl::{ContainerProcessFactoryImpl, bind_container_function, BindedContainerFunctionType};
 
 use crate::{prelude::*, prelude::ContainerManifest};
 
