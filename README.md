@@ -133,11 +133,56 @@ ECには種類があり、デフォルトで提供しているTimerECは、定�
 
 機能要素を利用してシステムを構成するユーザは、juiz_appが提供するjuizコマンドを使う。
 juizコマンドに、yaml形式の設定ファイルを読み込ませる。
-このyaml形式ファイルがしてするDLLをjuizコマンドがロードし、設定ファイルに従ってコンテナやプロセスを実体化する。
+このyaml形式ファイルが指定するDLLをjuizコマンドがロードし、設定ファイルに従ってコンテナやプロセスを実体化する。
 コンテナやプロセスはCoreBrokerによって管理されており、CoreBrokerと外部APIとのインターフェースはBrokerと名付けられている。
 BrokerはCoreBrokerを通してコンテナやプロセスにアクセスするためのAPIを定義したインターフェースである。
 Brokerの実装として、デフォルトでHTTP+JSONとQUIC (バイナリ) が提供されている。
 特にHTTPのBrokerはデフォルトでOpenAPIのインターフェース定義を提供するので、SwaggerUIで動作確認をすることが可能である。
+
+例えば
+```
+$ juiz -f examples/rust/container/example_container.conf -d 
+```
+のように、.confファイル (実際はyamlファイル）を-fオプションで利用する。-dオプションは実行後に待機するオプションで、Ctrl+Cでシグナルを送ると終了する。
+juizコマンドが待機中は、デフォルトで8000番ポートでhttp_brokerが動作しており、提供するAPIをSwaggerUIで試すことができるので、
+```
+http://127.0.0.1:8000/docs
+```
+にアクセスすると動作する。
+
+## 機能要素の実装方法
+
+### Rustでの実装
+
+機能要素を実装するには、juiz_sdkというcrateを使う。
+例えば、引数に1を足して返すだけの純粋プロセスのコードを書いてみる。
+
+``` rust
+
+
+```
+
+### C++での実装
+
+モジュールのローダーであるjuizコマンドはrustで書かれているが、他の言語とのインターフェースを持っているので、機能モジュールを別の言語で書くことができる。
+C++では、exportすべき関数の名前と、扱うべきデータ型が決まっており、これを提供するヘッダーファイルであるjuiz.hが提供されている。
+
+``` c++
+
+```
+
+### Pythonでの実装
+
+PythonはRustのPyO3 crateを用いて実装されており、入出力で扱うデータ型は主にintやstrなどのプリミティブやlist, tuple, dictなどの複合型になる。
+独自のデータ型を使う場合は、dataclassを使って構成して、juizに渡す関数の出力ではasdictメソッドでdictに変換して送ることになる。
+
+``` python
+
+```
+
+
+
+## 設定ファイルの中身
 
 設定ファイルの例について示す。
 ``` yaml
@@ -169,8 +214,16 @@ Brokerの実装として、デフォルトでHTTP+JSONとQUIC (バイナリ) が
       "name": "get0"
 "processes":
   - "type_name": "increment_process"
-    "name": "increment0" 
+    "name": "inc0" 
 ```
+このファイルではコンテナのファクトリーとして、example_container型のコンテナのファクトリーを含んだexample_container.dylibファイルと、そのexample_containerに結び付けられたexample_container_get型のコンテナプロセスのファクトリーを含んだdylibファイル、同じくexample_container下のexample_container_incrementのdylib、
+同時に、純粋プロセスのファクトリーとしてincrement_processのdylibを読み込んでいる。
+ファクトリーのdylibファイルは、それが提供する型の名前＋拡張子、で指定するルールになっている。
+また、containerの実体としてexample_container型のcontainer0を実体化し、このコンテナのメンバーとしてexample_container_increment型のコンテナプロセスであるincrement0と、example_container_getのget0を実体化している。
+また、純粋プロセスであるincrement_process型のinc0も実体化している。
+
+ここでもう少し設定ファイルについて説明する。
+
 トップレベルの「name」はシステムの名前を定義する。
 
 「option」はデフォルトで動作するモジュールの動作定義をする。
@@ -183,4 +236,5 @@ Brokerの実装として、デフォルトでHTTP+JSONとQUIC (バイナリ) が
 
 トップレベルの「containers」は、pluginsで読み込まれたコンテナを実体化するための設定が書かれている。
 同様に「processes」は純粋プロセス実体化のための定義が書かれている。
+
 
