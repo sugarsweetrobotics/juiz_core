@@ -1,6 +1,6 @@
 # juiz - the robot middleware
 
-# Motivation
+## モチベーション Motivation
 
 まず、このソフトウェアを作った動機を書いておく。
 
@@ -100,3 +100,87 @@ bindの名前からも分かるとおり、このAPIは引数の部分適用に�
 一方でnaoqiでは、機能要素であるALModuleを実行するブローカーに対してリクエスト・レスポンス型の通信を行い機能を利用するが、これをラッピングする各言語のライブラリがあり、これをALProxyと呼び、このALProxyを介して、例えばPythonのプログラムを書く事が出来る。
 これは、naoqiの機能要素を利用するプログラマーにとって、naoqiの提供するAPIに関する知識が殆ど必要無いことを意味している。
 また、ALModuleは実体化されるとドキュメントを自動生成し、ブローカーで動作するhttpサーバー上でドキュメントを閲覧出来るため、通常のライブラリとして提供される以上の知識を得る方法もまた標準化されている。
+
+本提案でも、同様にProxyライブラリを提供することで、各プログラミング言語の任意のアプリケーションに組み込みやすい形での機能提供を考えている。
+全体の設計方針としては、継続的に状態を更新し続ける処理、特にリアルタイム性が高い処理は機能要素をconnectして大きな機能要素を作り、キーとなるプロセスを周期的にexecuteすることで状態を更新し続ける。
+
+ちなみに脱線するが、juizの実装では、周期的にexecuteを呼ぶスレッドの作成が頻出パターンであったので、特別にExecutionContextの機能を提供している。
+EC (Execution Context) は、実体化するとprocessを結びつける (tie) ことができる。
+またECにはSTART_STATEおよびSTOP_STATEの状態を持っており、外部APIでECをstartしてSTART_STATEに遷移すると、processをexecuteする。
+ECには種類があり、デフォルトで提供しているTimerECは、定められたrateに従ってSTART_STATEである間は周期的にprocessをexecuteする。
+またデフォルトで提供されているMainLoopECは、OSがプログラムに割り当てたメインのスレッド上でprocessをexecuteすることができる。
+これはmain threadでの実行を要求するOSおよび主にGUI等のライブラリの利用上で便利な機能となる。
+
+一方で、ロボットやロボット要素を使う開発者は、Proxyライブラリを使って独自のアプリケーションを作る。
+研究者であればmain関数でロボット要素を初期化するコマンドを送った後、ループ内で繰り返し、状態の取得とアクチュエータの動作を指令するプログラムを書くかもしれない。
+特定のプロセスが励起された場合に呼ばれるコールバックを使ってイベントドリブンなアプリケーションを書くこともできる。
+もちろん、ロボットを利用する側の開発者が機能要素を開発することも可能である。
+
+このように本提案モデルでは、多層的なユーザー層を想定した、ユーザーとの接点の設計を行っている。
+この設計はnaoqiに強く影響を受けている。
+いずれはchoregraphのようなグラフィカルなツールを用意することを準備している。
+
+## 実装について
+
+上記のように本提案が提供するのは機能要素との通信機能を提供するミドルウェアと、それを利用するためのラッパーライブラリであるプロキシーである。
+
+ミドルウェア部の実装はRust言語を用いたcrateとして実装されている。
+主に、機能要素を開発するためのjuiz_sdkと、機能要素を実体化するためのツールとしてのjuiz_coreおよびjuiz_appである。
+
+機能要素を提供するユーザーは、juiz_sdk crateを利用して機能要素を作成する。
+機能要素のためのコードはスケルトンコードを自動生成するためのアプリケーションを開発中である。
+これを使ってビルドしたコードはdynamic link library (DLL. .so, .dylib, .dllファイル) として提供できる。
+
+機能要素を利用してシステムを構成するユーザは、juiz_appが提供するjuizコマンドを使う。
+juizコマンドに、yaml形式の設定ファイルを読み込ませる。
+このyaml形式ファイルがしてするDLLをjuizコマンドがロードし、設定ファイルに従ってコンテナやプロセスを実体化する。
+コンテナやプロセスはCoreBrokerによって管理されており、CoreBrokerと外部APIとのインターフェースはBrokerと名付けられている。
+BrokerはCoreBrokerを通してコンテナやプロセスにアクセスするためのAPIを定義したインターフェースである。
+Brokerの実装として、デフォルトでHTTP+JSONとQUIC (バイナリ) が提供されている。
+特にHTTPのBrokerはデフォルトでOpenAPIのインターフェース定義を提供するので、SwaggerUIで動作確認をすることが可能である。
+
+設定ファイルの例について示す。
+``` yaml
+"name": "test_system"
+"option":
+  "http_broker":
+    "start": true
+    "port": 8000
+"plugins":  
+  "container_factories":
+    "example_container":
+      "language": "rust"
+      "path": "./target/debug"
+      "processes":
+        "example_container_get":
+          "path": "./target/debug"
+        "example_container_increment":
+          "path": "./target/debug"
+  "process_factories":
+    "increment_process":
+      "path": "./target/debug"
+"containers":
+  - "type_name": "example_container"
+    "name": "container0"
+    "processes":
+    - "type_name": "example_container_increment"
+      "name": "increment0"
+    - "type_name": "example_container_get"
+      "name": "get0"
+"processes":
+  - "type_name": "increment_process"
+    "name": "increment0" 
+```
+トップレベルの「name」はシステムの名前を定義する。
+
+「option」はデフォルトで動作するモジュールの動作定義をする。
+「http_broker」はhttp Brokerの振る舞いについて定義できる。
+「start」をtrueにするとデフォルトでhttp_brokerが起動し、portで指定するポートで通信が可能になる。
+これ以外にも後述するpythonpathなど、デフォルトの動作について調整できる。
+
+「plugins」は、コンテナやプロセスおよびbrokerの実装のDLLを読み込むための定義が書かれている。
+「container_factories」はコンテナのDLLの読み込み、「process_factories」はプロセスのDLL読み込みを行っている。
+
+トップレベルの「containers」は、pluginsで読み込まれたコンテナを実体化するための設定が書かれている。
+同様に「processes」は純粋プロセス実体化のための定義が書かれている。
+
