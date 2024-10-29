@@ -1,10 +1,4 @@
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <iostream>
-#include <string>
-#include <vector>
-
 #include "juiz/juiz.h"
 
 juiz::Value manifest() {

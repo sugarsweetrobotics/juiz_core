@@ -166,8 +166,23 @@ http://127.0.0.1:8000/docs
 例えば、引数に1を足して返すだけの純粋プロセスのコードを書いてみる。
 
 ``` rust
+use juiz_sdk::prelude::*;
 
+pub unsafe extern "Rust" fn manifest() -> ProcessManifest { 
+    ProcessManifest::new("increment_process")
+        .description("Example(incremnet_process)")
+        .add_int_arg("arg1", "The output will be 'arg1 + 1'.", 1)
+}
 
+fn increment_process(args: CapsuleMap) -> JuizResult<Capsule> {
+    let i = args.get_int("arg1")?;
+    return Ok(jvalue!(i+1).into());
+}
+
+#[no_mangle]
+pub unsafe extern "Rust" fn process_factory() -> JuizResult<ProcessFactoryStruct> {
+    Ok(juiz_sdk::process_factory(manifest(), increment_process))
+}
 ```
 
 ### C++での実装
@@ -176,7 +191,20 @@ http://127.0.0.1:8000/docs
 C++では、exportすべき関数の名前と、扱うべきデータ型が決まっており、これを提供するヘッダーファイルであるjuiz.hが提供されている。
 
 ``` c++
+#include "juiz/juiz.h"
 
+juiz::Value manifest() {
+    return ProcessManifest{"increment_process_cpp"}
+        .add_int_arg("arg1", "test_argument", 1)
+        .into_value();
+}
+
+std::optional<int64_t> increment_process(juiz::CapsuleMap cm) {
+    auto a = cm.get_int("arg1");
+    return a + 1;
+}
+
+PROCESS_FACTORY(manifest, increment_process);
 ```
 
 ### Pythonでの実装
@@ -185,7 +213,20 @@ PythonはRustのPyO3 crateを用いて実装されており、入出力で扱う
 独自のデータ型を使う場合は、dataclassを使って構成して、juizに渡す関数の出力ではasdictメソッドでdictに変換して送ることになる。
 
 ``` python
+from juiz import ProcessManifest
 
+def manifest():
+    v = ProcessManifest.new("increment_process_python")\
+        .set_description("increment function") \
+        .add_int_arg("arg1", "test_argument value", 1)\
+        .into_value()
+    return v
+        
+def increment_process(arg1):
+    return arg1 + 1
+
+def process_factory():
+    return manifest(), increment_process
 ```
 
 

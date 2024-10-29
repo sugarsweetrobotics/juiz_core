@@ -9,7 +9,7 @@ AR=ar
 
 JUIZ_DIR=../../../..
 JUIZ_LIB_DIR=${JUIZ_DIR}/target/debug
-JUIZ_INCLUDE_DIR=${JUIZ_DIR}/cppjuiz/include
+JUIZ_INCLUDE_DIR=${JUIZ_DIR}/bindings/cppjuiz/include
 CONTIAINER_INCLUDE_DIR=../example_container/
 
 CFLAGS=-Wall -O -I${JUIZ_INCLUDE_DIR} -I${CONTIAINER_INCLUDE_DIR} -c -fPIC -arch arm64 #-arch x86_64 -fPIC

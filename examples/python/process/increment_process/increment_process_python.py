@@ -1,8 +1,4 @@
-from dataclasses import dataclass, asdict
-from typing import List, Any
-
 from juiz import ProcessManifest
-
 
 def manifest():
     v = ProcessManifest.new("increment_process_python")\
@@ -11,7 +7,6 @@ def manifest():
         .into_value()
     return v
         
-    
 def increment_process(arg1):
     print('pyadd ', arg1, '>', arg1+1)
     return arg1 + 1
