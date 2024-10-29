@@ -9,8 +9,16 @@ pub(super) fn setup_connections(system: &System, manifest: &Value) -> JuizResult
         let dstv = obj_get_obj(c, "destination")?;
         //let p_type_name = obj_get_str(c, "type_name")?;
         log::debug!("Connection ({:?}->{:?}) Creating...", srcv, dstv);
-        connection_builder::create_connection(system, &c).context("connection_builder::create_connections faled in system_builder::setup_connections()")?;
-        log::info!("Connection ({:?}->{:?}) Created", srcv, dstv);
+        match connection_builder::create_connection(system, &c) {
+            Ok(c) => {
+                log::info!("Connection ({:?}->{:?}) Created", srcv, dstv);
+                Ok(c)
+            },
+            Err(e) => {
+                log::error!("Connectin ({srcv:?}->{dstv:?}) create failed. Error ({e:})");
+                Err(e)
+            }
+        }?;
     } 
     Ok(())
 }

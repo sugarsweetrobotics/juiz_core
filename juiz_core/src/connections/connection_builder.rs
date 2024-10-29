@@ -9,23 +9,21 @@ pub mod connection_builder {
     ///
     pub fn create_connection(system: &System, manifest: &Value) -> JuizResult<Value> {
         
-        log::trace!("connection_builder::create_connections(manifest={:?}) called", manifest);
+        log::trace!("connection_builder::create_connection(manifest={:?}) called", manifest);
+        let src = system.core_broker().lock()?.worker().any_process_from_manifest(
+            get_value(manifest, "source")?)?;
+        let dst = system.core_broker().lock()?.worker().any_process_from_manifest(
+            get_value(manifest, "destination")?)?;
+        let arg_name =  get_str(manifest, "arg_name")?.to_owned();
+        
         connect(
-            system.core_broker().lock_mut()?.worker_mut().any_process_from_manifest(
-                get_value(manifest, "source")
-                    .context("When loading 'source' value but not found in connection_builder::create_connectin()")?)
-                .context("System::process_from_manifest(source) failed in connection_builder::create_connection()")?,
-            system.core_broker().lock_mut()?.worker_mut().any_process_from_manifest(
-                get_value(manifest, "destination")
-                    .context("When loading 'destination' value but not found in connection_builder::create_connectin()")?)
-                .context("System::process_from_manifest(destination) failed in connection_builder::create_connection()")?,
-            &get_str(manifest, "arg_name").context("When loading arg_name failed in connection_builder::create_connection()")?.to_string(),
+            src, dst, &arg_name,
             manifest.clone()
-        )
+        ).context("connection_builder::connect()")
     }
     
     pub fn connect(src: ProcessPtr, dst: ProcessPtr, arg_name: &String, manifest: Value) -> JuizResult<Value> {
-        log::debug!("connection_builder::connect({manifest}) called");
+        log::trace!("connection_builder::connect({manifest}) called");
         let src_manifest = match src.lock_mut()?.try_connect_to(dst.clone(), arg_name, manifest) {
             Ok(manif) => {
                 log::trace!("source_connection, connected!");
