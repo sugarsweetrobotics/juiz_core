@@ -12,6 +12,8 @@ pub mod connections;
 
 pub use env_logger;
 pub use log;
+pub use image;
+pub use anyhow;
 
 pub use containers::ContainerImpl;
-pub use factory::{process_factory, ProcessFactoryStruct, container_factory, ContainerFactoryStruct};
+pub use factory::{process_factory, ProcessFactoryStruct, container_factory, ContainerFactoryStruct, container_process_factory, ContainerProcessFactoryStruct};

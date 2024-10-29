@@ -6,10 +6,10 @@ use anyhow::anyhow;
 use crate::connections::ConnectionFactoryImpl;
 use crate::prelude::*;
 use crate::processes::process_from_clousure;
-pub type ContainerFunctionType<T>=dyn Fn(&mut ContainerImpl<T>, CapsuleMap) -> JuizResult<Capsule>+'static;
-pub type ContainerFunctionTypePtr<T>= Arc<ContainerFunctionType<T>>;
 
-///pub type ContainerProcessPtr=Arc<RwLock<ContainerProcessImpl>>;
+// type ContainerFunctionTypePtr<T>= Arc<dyn Fn(&mut ContainerImpl<T>, CapsuleMap) -> JuizResult<Capsule>+'static>;
+
+// pub type ContainerProcessPtr=Arc<RwLock<ContainerProcessImpl>>;
 
 #[allow(dead_code)]
 pub struct ContainerProcessImpl {
@@ -22,7 +22,7 @@ pub struct ContainerProcessImpl {
 
 impl ContainerProcessImpl {
 
-    pub fn new<'a, T: 'static> (manifest: ProcessManifest, container: ContainerPtr, function: ContainerFunctionTypePtr<T>) -> JuizResult<Self> {
+    pub fn new<'a, T: 'static> (manifest: ProcessManifest, container: ContainerPtr, function: Arc<dyn Fn(&mut ContainerImpl<T>, CapsuleMap) -> JuizResult<Capsule>+'static>) -> JuizResult<Self> {
         log::trace!("ContainerProcessImpl::new(manifest={:?}) called", manifest);
         //let manifest = check_process_manifest(manif)?;
         let container_clone = container.clone();

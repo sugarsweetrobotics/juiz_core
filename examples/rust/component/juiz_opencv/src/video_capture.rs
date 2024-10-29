@@ -1,6 +1,6 @@
 
 
-use juiz_core::prelude::*;
+use juiz_base::prelude::*;
 use opencv::{core::Mat, videoio::{VideoCapture, CAP_ANY}};
 
 #[allow(dead_code)]
@@ -32,7 +32,7 @@ fn create_cv_capture_container(manifest: ContainerManifest) -> JuizResult<Box<Cv
 }
 
 #[no_mangle]
-pub unsafe extern "Rust" fn cv_video_capture_factory() -> JuizResult<ContainerFactoryPtr> {
+pub unsafe extern "Rust" fn cv_video_capture_factory() -> JuizResult<ContainerFactoryStruct> {
     log::trace!("cv_video_capture_factory() called");
-    container_factory_create(CvVideoCapture::manifest(), create_cv_capture_container)
+    Ok(juiz_base::container_factory(CvVideoCapture::manifest(), create_cv_capture_container))
 }

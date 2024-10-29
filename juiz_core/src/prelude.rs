@@ -19,8 +19,6 @@ pub use crate::{
         ContainerFactoryPtr,
         ContainerProcessFactory,
         ContainerProcessFactoryPtr,
-        container_factory_create,
-        //container_process_factory_create,
     },
     brokers::{
         Broker,

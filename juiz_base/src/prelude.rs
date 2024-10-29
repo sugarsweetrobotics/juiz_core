@@ -103,6 +103,10 @@ pub use crate::{
     factory::{
         process_factory,
         ProcessFactoryStruct,
+        container_factory,
+        container_process_factory,
+        ContainerFactoryStruct,
+        ContainerProcessFactoryStruct,
     },
     containers::{
         Container,

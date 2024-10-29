@@ -1,5 +1,5 @@
 
-use juiz_core::prelude::*;
+use juiz_base::prelude::*;
 
 #[repr(Rust)]
 pub struct CvFilesystem {
@@ -18,8 +18,8 @@ fn create_cv_filesystem_container(_manifest: ContainerManifest) -> JuizResult<Bo
 }
 
 #[no_mangle]
-pub unsafe extern "Rust" fn cv_filesystem_factory() -> JuizResult<ContainerFactoryPtr> {
-    container_factory_create(CvFilesystem::manifest(), create_cv_filesystem_container)
+pub unsafe extern "Rust" fn cv_filesystem_factory() -> JuizResult<ContainerFactoryStruct> {
+    Ok(juiz_base::container_factory(CvFilesystem::manifest(), create_cv_filesystem_container))
 }
 
 

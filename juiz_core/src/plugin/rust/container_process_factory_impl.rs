@@ -2,8 +2,8 @@ use std::sync::Arc;
 use anyhow::anyhow;
 use crate::connections::ConnectionFactoryImpl;
 use crate::prelude::*;
-use crate::containers::{ContainerFunctionType, ContainerFunctionTypePtr, ContainerImpl, ContainerProcessImpl};
-use crate::processes::{process_from_clousure, process_from_clousure_new_with_class_name};
+use crate::containers::{ContainerImpl, ContainerProcessImpl};
+use crate::processes::process_from_clousure_new_with_class_name;
 
 pub type BindedContainerFunctionType = Arc<dyn Fn(ContainerPtr, CapsuleMap)->JuizResult<Capsule>>;
 pub struct ContainerProcessFactoryImpl {

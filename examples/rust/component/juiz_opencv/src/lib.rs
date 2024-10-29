@@ -12,8 +12,8 @@ mod imwrite;
 
 pub mod cv_camera_capture {
 
-    use juiz_core::prelude::*;
-    use juiz_core::env_logger;
+    use juiz_base::prelude::*;
+    use juiz_base::env_logger;
 
     use crate::filesystem;
     use crate::imshow;

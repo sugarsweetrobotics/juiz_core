@@ -1,6 +1,6 @@
 
 
-use juiz_core::{image::DynamicImage, prelude::*};
+use juiz_base::{image::DynamicImage, prelude::*};
 use opencv::{core::Mat, imgproc::{cvt_color, COLOR_BGR2RGB}, videoio::VideoCaptureTrait};
 use crate::video_capture::CvVideoCapture;
 
@@ -23,10 +23,10 @@ pub(crate) fn manifest() -> ProcessManifest {
 }
 
 #[no_mangle]
-pub unsafe extern "Rust" fn cv_video_capture_readandget_factory() -> JuizResult<ContainerProcessFactoryPtr> {
-    container_process_factory_create(
+pub unsafe extern "Rust" fn cv_video_capture_readandget_factory() -> JuizResult<ContainerProcessFactoryStruct> {
+    Ok(juiz_base::container_process_factory(
         manifest(),
-        &cv_video_capture_readandget_function)
+        &cv_video_capture_readandget_function))
 }
 
 

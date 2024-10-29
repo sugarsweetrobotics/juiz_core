@@ -1,13 +1,15 @@
 
 use std::ffi::c_void;
 use std::path::PathBuf;
+use std::sync::Arc;
 use libloading::{Library, Symbol};
 
 //use super::cpp_container_factory_impl::CppContainerFactoryImpl;
 //use super::cpp_container_process_factory_impl::CppContainerProcessFactoryImpl;
 //use crate::brokers::http::http_router::container;
-use crate::containers::{container_factory_create_with_trait, container_process_factory_create_from_trait};
+use crate::containers::{container_process_factory_create_from_trait};
 use crate::plugin::rust::bind_container_function;
+use crate::plugin::ContainerFactoryImpl;
 //use crate::plugin::cpp::cpp_container_factory_impl::CppContainerStruct;
 use crate::prelude::*;
 use crate::processes::process_factory_create_from_trait;
@@ -94,21 +96,23 @@ impl CppPlugin {
         };
         let container_manifest: ContainerManifest = self.get_manifest().clone().try_into()?;
         let container_manifest_clone = container_manifest.clone();
-        let constructor = move |cm| -> JuizResult<Box<CppContainerStruct>> {
+        let constructor = move |cm: ContainerManifest| -> JuizResult<ContainerPtr> {
             let mut pobj: *mut c_void = std::ptr::null_mut();
             unsafe {
                 let symbol = entry_point.clone();
-                let retval = (symbol)(&mut container_manifest_clone.build_instance_manifest(cm)?.into(), &mut pobj);
+                let retval = (symbol)(&mut container_manifest_clone.build_instance_manifest(cm.clone())?.into(), &mut pobj);
                 if retval < 0 || pobj == std::ptr::null_mut() {
                     return Err(anyhow::Error::from(JuizError::CppPluginFunctionCallError { function_name: "create_container".to_owned(), return_value: retval }));
                 }
-                Ok(Box::new(CppContainerStruct{
+                Ok(ContainerPtr::new(ContainerImpl::new(cm, Box::new(CppContainerStruct{
                     cobj: pobj
-                }))
+                }))?))
             }
         };
 
-        container_factory_create_with_trait(container_manifest, constructor)
+        //container_factory_create_with_trait(container_manifest, constructor)
+        Ok(ContainerFactoryPtr::new(ContainerFactoryImpl::new(container_manifest, Arc::new(constructor))?))
+        
         //Ok(ContainerFactoryPtr::new(CppContainerFactoryImpl::new2(self.get_manifest().clone().try_into()?, f)?))
     }
 

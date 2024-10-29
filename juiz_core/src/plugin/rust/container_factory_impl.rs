@@ -2,9 +2,7 @@
 
 use std::sync::Arc;
 
-use crate::containers::ContainerConstructFunctionTrait;
 use crate::prelude::*;
-use crate::{containers::ContainerImpl};
 
 pub type ContainerConstructor = dyn Fn(ContainerManifest)->JuizResult<ContainerPtr>;
 #[repr(C)]
@@ -17,7 +15,7 @@ pub struct ContainerFactoryImpl {
 
 impl ContainerFactoryImpl {
 
-    pub fn new<S: 'static>(manifest: ContainerManifest, constructor: Arc<ContainerConstructor>) -> JuizResult<Self> {
+    pub fn new(manifest: ContainerManifest, constructor: Arc<ContainerConstructor>) -> JuizResult<Self> {
         Ok(ContainerFactoryImpl{
                 core: ObjectCore::create_factory(JuizObjectClass::ContainerFactory("ContainerFactoryImpl"), manifest.type_name.clone().as_str()),
                 manifest,

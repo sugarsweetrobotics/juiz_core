@@ -1,9 +1,9 @@
 
-use std::{collections::HashMap, fs, path::PathBuf};
+use std::{collections::HashMap, fs, path::PathBuf, sync::Arc};
 use pyo3::{prelude::*, types::{PyDict, PyFloat, PyFunction, PyInt, PyList, PyNone, PySet, PyString, PyTuple}};
 use serde_json::Map;
 
-use crate::{containers::{container_factory_create_with_trait, container_process_factory_create_from_trait}, plugin::rust::bind_container_function, prelude::*, processes::process_factory_create_from_trait};
+use crate::{containers::container_process_factory_create_from_trait, plugin::{rust::bind_container_function, ContainerFactoryImpl}, prelude::*, processes::process_factory_create_from_trait};
 
 #[cfg(feature="opencv4")]
 use crate::opencv::prelude::*;
@@ -200,16 +200,18 @@ if not "{path_str:}" in sys.path:
             Ok(pyfunc.to_object(py))
         })?;
         // let signature = get_python_function_signature(&pyfunc2)?;
-        let constructor = move |cm: ContainerManifest| -> JuizResult<Box<PythonContainerStruct>> {
+        let constructor = move |cm: ContainerManifest| -> JuizResult<ContainerPtr> {
             let pyobj = Python::with_gil(|py| {
-                pyfunc2.call1(py, PyTuple::new_bound(py,  [value_to_pyany(py, &cm.into())]))
+                pyfunc2.call1(py, PyTuple::new_bound(py,  [value_to_pyany(py, &cm.clone().into())]))
             })?;
-            Ok(Box::new(PythonContainerStruct{
+            Ok(ContainerPtr::new(ContainerImpl::new(cm, Box::new(PythonContainerStruct{
                 pyobj,
-            }))
+            }))?))
         };
         
-        container_factory_create_with_trait(manifest.try_into()?, constructor)
+        Ok(ContainerFactoryPtr::new(ContainerFactoryImpl::new(manifest.try_into()?, Arc::new(constructor))?))
+        
+        //container_factory_create_with_trait(manifest.try_into()?, constructor)
     }
 
     pub fn load_component_manifest(&self, working_dir: Option<PathBuf>) -> JuizResult<ComponentManifest> {

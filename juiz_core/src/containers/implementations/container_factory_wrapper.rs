@@ -1,7 +1,7 @@
 use std::cell::RefCell;
 
 use crate::prelude::*;
-use crate::{plugin::{JuizObjectPlugin, Plugin}};
+use crate::plugin::{JuizObjectPlugin, Plugin};
 
 #[allow(dead_code)]
 pub struct ContainerFactoryWrapper {

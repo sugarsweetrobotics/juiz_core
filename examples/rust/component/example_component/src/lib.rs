@@ -1,7 +1,7 @@
 
 pub mod example_component {
-    use juiz_core::env_logger;
-    use juiz_core::prelude::*;
+    use juiz_base::env_logger;
+    use juiz_base::prelude::*;
 
     #[no_mangle]
     pub unsafe extern "Rust" fn component_manifest() -> ComponentManifest {
@@ -34,8 +34,8 @@ pub mod example_component {
     }
 
     #[no_mangle]
-    pub unsafe extern "Rust" fn example_component_container_factory() -> JuizResult<ContainerFactoryPtr> {
-        container_factory_create(ExampleComponentContainer::manifest(), create_example_component_container)
+    pub unsafe extern "Rust" fn example_component_container_factory() -> JuizResult<ContainerFactoryStruct> {
+        Ok(juiz_base::container_factory(ExampleComponentContainer::manifest(), create_example_component_container))
     }
 
     fn increment_process(args: CapsuleMap) -> JuizResult<Capsule> {
@@ -45,13 +45,13 @@ pub mod example_component {
     }
     
     #[no_mangle]
-    pub unsafe extern "Rust" fn increment_process_factory() -> JuizResult<ProcessFactoryPtr> {
+    pub unsafe extern "Rust" fn increment_process_factory() -> JuizResult<ProcessFactoryStruct> {
         // env_logger::init();
         let manif = ProcessManifest::new("increment_process")
             .description("Example(incremnet_process)")
             .add_int_arg("arg1", "The output will be 'arg1 + 1'.", 1)
             .into();
-        process_factory_create(manif, increment_process)
+        Ok(juiz_base::process_factory(manif, increment_process))
     }
     
 
@@ -60,10 +60,10 @@ pub mod example_component {
     }
     
     #[no_mangle]
-    pub unsafe extern "Rust" fn example_component_container_get_factory() -> JuizResult<ContainerProcessFactoryPtr> {
-        container_process_factory_create(
+    pub unsafe extern "Rust" fn example_component_container_get_factory() -> JuizResult<ContainerProcessFactoryStruct> {
+        Ok(juiz_base::container_process_factory(
             ProcessManifest::new("example_component_container_get").container(ExampleComponentContainer::manifest()).into(),
-            &example_component_container_get_function)
+            &example_component_container_get_function))
     }
     
 
@@ -73,10 +73,10 @@ pub mod example_component {
     }
     
     #[no_mangle]
-    pub unsafe extern "Rust" fn example_component_container_increment_factory() -> JuizResult<ContainerProcessFactoryPtr> {
-        container_process_factory_create(
+    pub unsafe extern "Rust" fn example_component_container_increment_factory() -> JuizResult<ContainerProcessFactoryStruct> {
+        Ok(juiz_base::container_process_factory(
             ProcessManifest::new("example_component_container_increment").container(ExampleComponentContainer::manifest()),
-            &example_component_container_increment_function)
+            &example_component_container_increment_function))
     }
 
     fn example_component_container_add_function(container: &mut ContainerImpl<ExampleComponentContainer>, v: CapsuleMap) -> JuizResult<Capsule> {
@@ -86,13 +86,13 @@ pub mod example_component {
     }
     
     #[no_mangle]
-    pub unsafe extern "Rust" fn example_component_container_add_factory() -> JuizResult<ContainerProcessFactoryPtr> {
-        container_process_factory_create(
+    pub unsafe extern "Rust" fn example_component_container_add_factory() -> JuizResult<ContainerProcessFactoryStruct> {
+        Ok(juiz_base::container_process_factory(
             ProcessManifest::new(
                 "example_component_container_increment")
                 .add_int_arg("arg1", "This value waill be added to value", 1)
                 .container(ExampleComponentContainer::manifest()),
-            &example_component_container_add_function)
+            &example_component_container_add_function))
     }
 
 }
