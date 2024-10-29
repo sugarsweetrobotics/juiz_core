@@ -235,21 +235,21 @@ def process_factory():
 
 設定ファイルの例について示す。
 ``` yaml
-"name": "test_system"
-"option":
-  "http_broker":
-    "start": true
-    "port": 8000
-"plugins":  
-  "container_factories":
-    "example_container":
-      "language": "rust"
-      "path": "./target/debug"
-      "processes":
-        "example_container_get":
-          "path": "./target/debug"
-        "example_container_increment":
-          "path": "./target/debug"
+name: "test_system"
+option:
+  http_broker:
+    start: true
+    port: 8000
+plugins:  
+  container_factories:
+    example_container:
+      language: "rust"
+      path: "./target/debug"
+      processes:
+        example_container_get:
+          path: "./target/debug"
+        example_container_increment:
+          path: "./target/debug"
   "process_factories":
     "increment_process":
       "path": "./target/debug"
