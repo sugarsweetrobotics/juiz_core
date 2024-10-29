@@ -1,5 +1,5 @@
 
-use juiz_base::{env_logger, prelude::*};
+use juiz_sdk::{env_logger, prelude::*};
 
 
 pub unsafe extern "Rust" fn manifest() -> ProcessManifest { 

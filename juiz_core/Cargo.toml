@@ -62,4 +62,4 @@ utoipa-rapidoc = { version="4.0.0", features = ["axum"] }
 
 yaml-rust2 = "0.9.0"
 
-juiz_base = { path = "../juiz_base/" }
+juiz_sdk = { path = "../juiz_sdk/" }

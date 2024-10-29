@@ -1,6 +1,6 @@
 use example_container::ExampleContainer;
-use juiz_base::prelude::*;
-use juiz_base::env_logger;
+use juiz_sdk::prelude::*;
+use juiz_sdk::env_logger;
 
 fn manifest() -> ProcessManifest { 
     ProcessManifest::new("example_container_increment")
@@ -18,5 +18,5 @@ fn increment_function(container: &mut ContainerImpl<ExampleContainer>, v: Capsul
 #[no_mangle]
 pub unsafe extern "Rust" fn container_process_factory() -> JuizResult<ContainerProcessFactoryStruct> {
     env_logger::init();
-    Ok(juiz_base::container_process_factory(manifest(), increment_function))
+    Ok(juiz_sdk::container_process_factory(manifest(), increment_function))
 }

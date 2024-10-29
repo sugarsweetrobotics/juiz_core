@@ -33,4 +33,4 @@ pub use image;
 pub use tokio;
 pub use futures;
 
-pub use juiz_base::utils;
+pub use juiz_sdk::utils;

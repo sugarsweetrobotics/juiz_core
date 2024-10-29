@@ -3,7 +3,7 @@
 use std::sync::{Arc, Mutex};
 
 use crate::prelude::*;
-use juiz_base::prelude::*;
+use juiz_sdk::prelude::*;
 use crate::brokers::BrokerProxy;
 
 #[allow(unused)]

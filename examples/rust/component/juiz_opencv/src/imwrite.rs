@@ -1,6 +1,6 @@
 
 
-use juiz_base::{prelude::*, anyhow};
+use juiz_sdk::{prelude::*, anyhow};
 use opencv::{core::{Mat, Vector}, imgcodecs::imwrite};
 use cv_convert::TryFromCv;
 use crate::filesystem::CvFilesystem;
@@ -41,7 +41,7 @@ pub(crate) fn manifest() -> ProcessManifest {
 
 #[no_mangle]
 pub unsafe extern "Rust" fn imwrite_factory() -> JuizResult<ContainerProcessFactoryStruct> {
-    Ok(juiz_base::container_process_factory(
+    Ok(juiz_sdk::container_process_factory(
         manifest(),
         &imwrite_function))
 }

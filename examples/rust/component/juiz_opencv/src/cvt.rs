@@ -1,7 +1,7 @@
 
 
 
-use juiz_base::prelude::*;
+use juiz_sdk::prelude::*;
 
 
 fn cvt_color_function(args: CapsuleMap) -> JuizResult<Capsule> {
@@ -31,7 +31,7 @@ fn manifest() ->  ProcessManifest{
 
 #[no_mangle]
 pub unsafe extern "Rust" fn cv_cvt_color_factory() -> JuizResult<ProcessFactoryStruct> {
-    Ok(juiz_base::process_factory(
+    Ok(juiz_sdk::process_factory(
         manifest(),
                 cvt_color_function
     ))

@@ -1,4 +1,4 @@
-use juiz_base::result::JuizResult;
+use juiz_sdk::result::JuizResult;
 use crate::prelude::*;
 
 

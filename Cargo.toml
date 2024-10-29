@@ -5,10 +5,6 @@ edition = "2021"
 default-run = "juiz"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[[bin]]
-name = "juiz"
-path = "src/bin/juiz/main.rs"
-
 #[lib]
 # crate-type = ["cdylib", "lib"]
 
@@ -68,7 +64,8 @@ juiz_core = { path = "./juiz_core/" }
 [workspace]
 members = [
     ".",
-    "juiz_base",
+    "juiz_app",
+    "juiz_sdk",
     "juiz_core",
     "ecs/timer_ec",
     "ecs/one_shot_ec", 
@@ -88,8 +85,9 @@ members = [
 ]
 default-members = [
     ".",
-    "juiz_base",
+    "juiz_sdk",
     "juiz_core",
+    "juiz_app",
     # "app/juiz_command",
     "ecs/timer_ec",
     "ecs/one_shot_ec", 

@@ -1,5 +1,5 @@
 
-use juiz_base::{anyhow, prelude::*};
+use juiz_sdk::{anyhow, prelude::*};
 use opencv::{core::Mat, highgui::{imshow, wait_key}};
 use crate::window::CvWindow;
 use cv_convert::TryFromCv;
@@ -33,7 +33,7 @@ pub(crate) fn manifest() -> ProcessManifest {
 
 #[no_mangle]
 pub unsafe extern "Rust" fn imshow_factory() -> JuizResult<ContainerProcessFactoryStruct> {
-    Ok(juiz_base::container_process_factory(
+    Ok(juiz_sdk::container_process_factory(
         manifest(),
         &imshow_function))
 }

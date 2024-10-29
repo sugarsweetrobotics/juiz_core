@@ -1,7 +1,7 @@
 
 
 use example_container_stack::{ExampleContainer, ExampleContainerStack};
-use juiz_base::{env_logger, prelude::*};
+use juiz_sdk::{env_logger, prelude::*};
 use anyhow::anyhow;
 
 fn get_function(container: &mut ContainerImpl<ExampleContainerStack>, _v: CapsuleMap) -> JuizResult<Capsule> {
@@ -24,5 +24,5 @@ pub unsafe extern "Rust" fn container_process_factory() -> JuizResult<ContainerP
     let manifest = ProcessManifest::new("example_container_stack_get")
         .description("Example(get)")
         .container(ExampleContainerStack::manifest());
-    Ok(juiz_base::container_process_factory(manifest, get_function))
+    Ok(juiz_sdk::container_process_factory(manifest, get_function))
 }

@@ -2,7 +2,7 @@
 
 
 use crate::{core::CoreWorker, prelude::*};
-use juiz_base::utils::juiz_lock;
+use juiz_sdk::utils::juiz_lock;
 use std::sync::{Arc, Mutex};
 use crate::{plugin::RustPlugin, brokers::{BrokerProxy, BrokerFactory, BrokerProxyFactory}};
 

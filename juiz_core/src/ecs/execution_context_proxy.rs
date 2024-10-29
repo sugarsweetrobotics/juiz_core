@@ -2,7 +2,7 @@
 
 use std::sync::{Arc, Mutex};
 
-use juiz_base::object::JuizObject;
+use juiz_sdk::object::JuizObject;
 
 use crate::prelude::*;
 use crate::{brokers::BrokerProxy};

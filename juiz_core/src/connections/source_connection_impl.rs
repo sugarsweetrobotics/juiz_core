@@ -7,7 +7,7 @@ use crate::prelude::*;
 use core::fmt::Debug;
 use std::clone::Clone;
 
-use juiz_base::connections::{Connection, ConnectionCore};
+use juiz_sdk::connections::{Connection, ConnectionCore};
 
 pub struct SourceConnectionImpl {
     core: ConnectionCore,

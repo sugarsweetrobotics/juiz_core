@@ -3,8 +3,8 @@
 mod process_factory;
 mod implementations;
 
-pub use juiz_base::processes::{Process, ProcessBodyFunctionTrait,  ProcessBodyFunctionType};
-pub use juiz_base::processes::ProcessPtr;
+pub use juiz_sdk::processes::{Process, ProcessBodyFunctionTrait,  ProcessBodyFunctionType};
+pub use juiz_sdk::processes::ProcessPtr;
 pub use process_factory::{ProcessFactory, ProcessFactoryPtr};
 pub(crate) use implementations::{
     process_from_clousure_new_with_class_name,

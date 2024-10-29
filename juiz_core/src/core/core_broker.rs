@@ -4,9 +4,9 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use anyhow::Context;
-use juiz_base::identifier::connection_identifier_split;
-use juiz_base::utils::check_corebroker_manifest;
-use juiz_base::utils::manifest_util::id_from_manifest;
+use juiz_sdk::identifier::connection_identifier_split;
+use juiz_sdk::utils::check_corebroker_manifest;
+use juiz_sdk::utils::manifest_util::id_from_manifest;
 use uuid::Uuid;
 use crate::prelude::*;
 use crate::anyhow::anyhow;

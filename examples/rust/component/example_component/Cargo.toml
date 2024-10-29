@@ -10,5 +10,5 @@ crate-type = ["cdylib"]
 
 [dependencies]
 
-juiz_base = { path="../../../../juiz_base/" }
+juiz_sdk = { path="../../../../juiz_sdk/" }
 

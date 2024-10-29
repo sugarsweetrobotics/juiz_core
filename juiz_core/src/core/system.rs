@@ -7,8 +7,8 @@ use std::time::{self, Duration};
 use home::home_dir;
 
 use anyhow::{anyhow, Context};
-use juiz_base::utils::manifest_util::manifest_merge;
-use juiz_base::utils::yaml_conf_load::yaml_conf_load_with;
+use juiz_sdk::utils::manifest_util::manifest_merge;
+use juiz_sdk::utils::yaml_conf_load::yaml_conf_load_with;
 
 use crate::brokers::broker_ptr::BrokerPtr;
 use crate::prelude::*;

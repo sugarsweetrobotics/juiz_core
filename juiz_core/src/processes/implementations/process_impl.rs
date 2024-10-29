@@ -10,8 +10,8 @@ use std::sync::Arc;
 use crate::connections::ConnectionFactory;
 use crate::prelude::*;
 
-use juiz_base::utils::check_manifest_before_call;
-use juiz_base::connections::{DestinationConnection, SourceConnection};
+use juiz_sdk::utils::check_manifest_before_call;
+use juiz_sdk::connections::{DestinationConnection, SourceConnection};
 
 //use crate::value::CapsuleMap;
 use super::inlet::Inlet;

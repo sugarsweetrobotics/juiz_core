@@ -1,6 +1,6 @@
 
 
-use juiz_base::prelude::*;
+use juiz_sdk::prelude::*;
 use opencv::highgui::named_window;
 
 #[allow(dead_code)]
@@ -29,7 +29,7 @@ fn create_cv_window_container(manifest: ContainerManifest) -> JuizResult<Box<CvW
 #[no_mangle]
 pub unsafe extern "Rust" fn cv_window_factory() -> JuizResult<ContainerFactoryStruct> {
     // env_logger::init();
-    Ok(juiz_base::container_factory(CvWindow::manifest(), create_cv_window_container))
+    Ok(juiz_sdk::container_factory(CvWindow::manifest(), create_cv_window_container))
 }
 
 

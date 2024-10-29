@@ -3,14 +3,14 @@
 
 use serde_json::Value;
 
-use juiz_base::connections::ConnectionType;
+use juiz_sdk::connections::ConnectionType;
 use crate::prelude::*;
 
 
 use core::fmt::Debug;
 use std::clone::Clone;
 
-use juiz_base::connections::{DestinationConnection, Connection, ConnectionCore};
+use juiz_sdk::connections::{DestinationConnection, Connection, ConnectionCore};
 
 
 pub struct DestinationConnectionImpl{
