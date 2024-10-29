@@ -1,5 +1,5 @@
 use std::{path::PathBuf, rc::Rc};
-
+use juiz_sdk::anyhow::{self, anyhow, Context};
 
 use crate::prelude::*;
 use crate::{containers::{ContainerFactoryPtr, ContainerProcessFactoryPtr}, prelude::ProcessFactoryPtr};
@@ -16,7 +16,7 @@ pub enum JuizObjectPlugin {
 
 
 /// 引数vからpathメンバの値を引き出し、nameと連結したPathを作成する
-pub fn concat_dirname(v: &serde_json::Value, name: String) -> JuizResult<PathBuf> {
+pub fn concat_dirname(v: &Value, name: String) -> JuizResult<PathBuf> {
     Ok(PathBuf::from(obj_get_str(v, "path")?.to_owned()).join(name))
 }
 

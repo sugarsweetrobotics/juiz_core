@@ -1,6 +1,6 @@
 
 use std::net::SocketAddr;
-use anyhow::anyhow;
+use juiz_sdk::anyhow::anyhow;
 use crate::prelude::*;
 use crate::core::CoreBrokerPtr;
 use super::crud_callback_container::{create_callback_container, delete_callback_container, read_callback_container, update_callback_container, ClassCallbackContainerType};
@@ -16,7 +16,7 @@ pub struct CRUDBroker {
 
 fn _resource_name_to_cls_and_id<'a>(resource_name: &'a str, _params: &Vec<String>) -> JuizResult<(&'a str, Identifier)> {
     let mut split = resource_name.split('/');
-    let class_name = split.next().ok_or( anyhow::Error::from(JuizError::CRUDBrokerGivenResourseNameHasNoClassNameError{resource_name: resource_name.to_string()} ))?;
+    let class_name = split.next().ok_or( anyhow!(JuizError::CRUDBrokerGivenResourseNameHasNoClassNameError{resource_name: resource_name.to_string()} ))?;
     Ok((class_name, "".to_string()))
 }
 /*
@@ -160,7 +160,7 @@ impl CRUDBroker {
                 Ok(capsule)
             }))
         }).or_else(||{
-            Some(Err(anyhow::Error::from(JuizError::CRUDBrokerCanNotFindFunctionError { class_name: class_name.to_owned(), function_name: function_name.to_owned()})))
+            Some(Err(anyhow!(JuizError::CRUDBrokerCanNotFindFunctionError { class_name: class_name.to_owned(), function_name: function_name.to_owned()})))
         }).unwrap()
     }
     

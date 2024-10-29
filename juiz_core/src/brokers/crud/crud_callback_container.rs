@@ -1,5 +1,6 @@
 use std::{collections::HashMap, path::PathBuf, str::FromStr};
 
+use juiz_sdk::anyhow::{self, anyhow};
 use uuid::Uuid;
 
 use crate::{brokers::broker_proxy::{BrokerBrokerProxy, ConnectionBrokerProxy, ContainerBrokerProxy, ContainerProcessBrokerProxy, ExecutionContextBrokerProxy, ProcessBrokerProxy, SystemBrokerProxy, TopicBrokerProxy}, core::CoreBrokerPtr, prelude::*};
@@ -43,7 +44,7 @@ pub(crate) fn create_callback_container() -> ClassCallbackContainerType {
 
     let mut container_process_callbacks = CallbackContainerType::new();
     container_process_callbacks.insert("create",  |cb, args| {
-        let id = args.get_param("identifier").ok_or_else(||{anyhow::Error::from(JuizError::CRUDBrokerCanNotParameterFunctionError { key_name: "identifier".to_owned() })})?;
+        let id = args.get_param("identifier").ok_or_else(||{anyhow!(JuizError::CRUDBrokerCanNotParameterFunctionError { key_name: "identifier".to_owned() })})?;
         Ok(cb.lock_mut()?.container_process_create(&id.clone(), extract_create_parameter(args)?.try_into()?)?.into())}
     );
     create_cb_container.insert("container_process", container_process_callbacks);

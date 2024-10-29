@@ -1,5 +1,6 @@
 use std::{collections::HashMap, io::Read, sync::{Arc, Mutex}};
 
+use juiz_sdk::anyhow::{self, anyhow};
 
 use crate::{core::CoreWorker, prelude::*};
 use crate::brokers::{create_broker_proxy_factory_impl, BrokerProxy, BrokerProxyFactory};
@@ -162,7 +163,7 @@ fn image_png_response_to_capsule_ptr(mut response: Response) -> JuizResult<Capsu
 
     let mut buf: Vec<u8> = Vec::new();
     let _result = response.read_to_end(&mut buf)?;
-    let image = image::load_from_memory(buf.as_ref())?;
+    let image = juiz_sdk::image::load_from_memory(buf.as_ref())?;
     Ok(image.into())
 }
 

@@ -2,8 +2,7 @@
 use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use crate::prelude::*;
-use anyhow::anyhow;
-
+use juiz_sdk::anyhow::{self, anyhow};
 /// ContainerProcessを生成するためのFactoryクラスのtrait
 /// 
 pub trait ContainerProcessFactory : JuizObject + 'static {

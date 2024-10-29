@@ -9,7 +9,7 @@ mod implementations;
 
 use crate::{plugin::{BindedContainerFunctionType, ContainerProcessFactoryImpl}, prelude::*};
 
-pub use container_factory::{ContainerFactory, ContainerFactoryPtr, ContainerConstructFunctionTrait};
+pub use container_factory::{ContainerFactory, ContainerFactoryPtr};
 pub use container_process_factory::{ContainerProcessFactory, ContainerProcessFactoryPtr};
 
 pub(crate) use implementations::{

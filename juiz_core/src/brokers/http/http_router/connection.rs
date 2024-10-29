@@ -1,3 +1,4 @@
+use juiz_sdk::serde;
 use serde::Deserialize;
 use utoipa::OpenApi;
 

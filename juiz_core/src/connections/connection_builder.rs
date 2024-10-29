@@ -4,7 +4,7 @@ pub mod connection_builder {
 
     use crate::prelude::*;
     use std::collections::HashMap;
-    use anyhow::{anyhow, Context};
+    use juiz_sdk::anyhow::{self, anyhow, Context};
 
     ///
     pub fn create_connection(system: &System, manifest: &Value) -> JuizResult<Value> {

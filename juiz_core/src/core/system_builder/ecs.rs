@@ -1,10 +1,9 @@
 use std::sync::{Arc, Mutex};
-
-use anyhow::Context;
+use juiz_sdk::anyhow::{self, anyhow, Context};
 
 use crate::{ecs::{execution_context_function::ExecutionContextFunction, execution_context_holder_factory::ExecutionContextHolderFactory, ExecutionContextFactory}, plugin::{concat_dirname, plugin_name_to_file_name, RustPlugin}, prelude::*};
 
-pub(super) fn setup_execution_context_factories(system: &System, manifest: &serde_json::Value) -> JuizResult<()> {
+pub(super) fn setup_execution_context_factories(system: &System, manifest: &Value) -> JuizResult<()> {
     log::trace!("system_builder::setup_execution_context_factories() called");
     for (name, value) in get_hashmap(manifest)?.iter() {
         log::debug!("ExecutionContextFactory (name={name:}, value='{value:}') Loading...");

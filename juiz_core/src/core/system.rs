@@ -5,8 +5,7 @@ use std::sync::{
     Arc, Mutex};
 use std::time::{self, Duration};
 use home::home_dir;
-
-use anyhow::{anyhow, Context};
+use juiz_sdk::anyhow::{self, anyhow, Context};
 use juiz_sdk::utils::manifest_util::manifest_merge;
 use juiz_sdk::utils::yaml_conf_load::yaml_conf_load_with;
 

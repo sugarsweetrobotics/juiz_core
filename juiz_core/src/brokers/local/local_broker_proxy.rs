@@ -1,5 +1,6 @@
 use std::{sync::{Arc, Mutex}, time::Duration, ops::Deref};
 
+use juiz_sdk::anyhow::{self, anyhow};
 use crate::prelude::*;
 use crate::brokers::messenger_broker_proxy_factory::create_messenger_broker_proxy_factory;
 

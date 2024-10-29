@@ -47,5 +47,4 @@ pub use crate::{
         container_stack_factory_create
     },
     connections::connect,
-    log,
 };

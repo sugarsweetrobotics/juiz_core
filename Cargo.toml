@@ -5,18 +5,24 @@ edition = "2021"
 default-run = "juiz"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-#[lib]
-# crate-type = ["cdylib", "lib"]
+[dependencies]
+home = "0.5.9"
+clap = { version="4.4.10", features = ["derive"] }
+juiz_core = { path = "./juiz_core/" }
 
+[[bin]]
+name = "juiz"
+path = "src/bin/juiz/main.rs"
 
 [features]
 default = []
 opencv4 = []
 
-[dependencies]
+[workspace.dependencies]
 anyhow = "1.0.89"
 approx = "*"
 axum = "0.7.7"
+
 
 clap = { version="4.4.10", features = ["derive"] }
 
@@ -58,13 +64,11 @@ utoipa-rapidoc = { version="4.0.0", features = ["axum"] }
 
 yaml-rust2 = "0.9.0"
 
-juiz_core = { path = "./juiz_core/" }
 
 # juiz_core = { path = "../../../../juiz_core/" }
 [workspace]
 members = [
     ".",
-    "juiz_app",
     "juiz_sdk",
     "juiz_core",
     "ecs/timer_ec",
@@ -87,7 +91,6 @@ default-members = [
     ".",
     "juiz_sdk",
     "juiz_core",
-    "juiz_app",
     # "app/juiz_command",
     "ecs/timer_ec",
     "ecs/one_shot_ec", 

@@ -1,5 +1,6 @@
 use std::{collections::HashMap, sync::{Mutex, Arc}};
 
+use juiz_sdk::anyhow::anyhow;
 use uuid::Uuid;
 
 use crate::{brokers::broker_proxy::TopicBrokerProxy, prelude::*};
@@ -61,7 +62,7 @@ impl CRUDBrokerProxyHolder {
     fn convert_identifier_name(&self, id_array: &Value) -> JuizResult<Value> {
         let mut ids: Vec<String> = Vec::new();
         for vid in get_array(id_array)?.iter() {
-            let id = vid.as_str().ok_or(anyhow::Error::from(JuizError::ValueIsNotStringError{}))?.to_owned();
+            let id = vid.as_str().ok_or(anyhow!(JuizError::ValueIsNotStringError{}))?.to_owned();
             let mut id_struct = IdentifierStruct::try_from(id)?;
             id_struct.broker_type_name = self.type_name().to_owned();
             id_struct.broker_name = self.name().to_owned();

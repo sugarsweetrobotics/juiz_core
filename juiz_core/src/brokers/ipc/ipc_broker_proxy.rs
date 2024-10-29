@@ -60,7 +60,7 @@ impl MessengerBrokerProxyCore for IPCBrokerProxyCore {
         self.buf_reader.borrow_mut().get_mut().write_all(strv.as_bytes())?;
 
         self.buf_reader.borrow_mut().read_line(&mut buffer)?;
-        Ok(serde_json::from_str::<Value>(buffer.as_str())?.into())
+        Ok(juiz_sdk::serde_json::from_str::<Value>(buffer.as_str())?.into())
         //Ok(Value::from(buffer).try_into()?)
     }
 

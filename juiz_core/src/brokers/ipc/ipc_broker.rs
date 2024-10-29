@@ -1,5 +1,6 @@
 use std::{sync::{Arc, Mutex}, thread::sleep, time::Duration};
 
+use juiz_sdk::anyhow::{self, anyhow};
 
 use crate::{brokers::broker_ptr::BrokerPtr, core::CoreBrokerPtr, prelude::*};
 use crate::brokers::{broker_factory_impl::create_broker_factory_impl, BrokerFactory, CRUDBrokerHolder};
@@ -87,7 +88,7 @@ fn handle_buffer_function(crud_broker: Arc<Mutex<CRUDBroker>>, conn: &mut BufRea
 }
 
 fn handle_buffer(crud_broker: Arc<Mutex<CRUDBroker>>, buffer: &String) -> JuizResult<Value> {
-    let value: CapsuleMap = serde_json::from_str::<Value>(buffer.as_str())?.try_into()?;
+    let value: CapsuleMap = juiz_sdk::serde_json::from_str::<Value>(buffer.as_str())?.try_into()?;
     let result = handle_function(crud_broker.clone(), value)?;
     capsule_to_value(result)
 }

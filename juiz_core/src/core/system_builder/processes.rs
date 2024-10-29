@@ -1,9 +1,8 @@
-
-use anyhow::Context;
+use juiz_sdk::anyhow::{self, anyhow, Context};
 
 use crate::{core::system_builder::topics::{setup_publish_topic, setup_subscribe_topic}, plugin::JuizObjectPlugin, prelude::*, processes::ProcessFactoryWrapper};
 
-pub(super) fn setup_process_factories(system: &System, manifest: &serde_json::Value, option: &Value) -> JuizResult<()> {
+pub(super) fn setup_process_factories(system: &System, manifest: &Value, option: &Value) -> JuizResult<()> {
     log::trace!("setup_process_factories({manifest:}) called");
     for (name, v) in get_hashmap(manifest)?.iter() {
         log::debug!("ProcessFactory (name={:}) Loading...", name);

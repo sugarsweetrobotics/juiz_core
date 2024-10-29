@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use anyhow::Context;
-use anyhow::anyhow;
+use juiz_sdk::anyhow::{self, anyhow};
 
 use crate::connections::ConnectionFactoryImpl;
 use crate::prelude::*;

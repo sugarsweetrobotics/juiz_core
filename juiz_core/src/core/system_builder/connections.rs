@@ -1,8 +1,8 @@
-use anyhow::Context;
 
+use juiz_sdk::anyhow::{self, anyhow, Context};
 use crate::{connections::connection_builder::connection_builder, prelude::*};
 
-pub(super) fn setup_connections(system: &System, manifest: &serde_json::Value) -> JuizResult<()> {
+pub(super) fn setup_connections(system: &System, manifest: &Value) -> JuizResult<()> {
     log::trace!("system_builder::setup_connections() called");
     for c in get_array(manifest)?.iter() {
         let srcv = obj_get_obj(c, "source")?;
