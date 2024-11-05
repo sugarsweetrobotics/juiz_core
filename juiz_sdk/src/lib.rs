@@ -20,3 +20,5 @@ pub use serde_json;
 
 pub use containers::ContainerImpl;
 pub use factory::{process_factory, ProcessFactoryStruct, container_factory, ContainerFactoryStruct, container_process_factory, ContainerProcessFactoryStruct};
+
+pub use juiz_macro::juiz_process;

@@ -1,5 +1,5 @@
 
-from juiz import ProcessManifest
+from juiz.juiz import ProcessManifest
 
 def manifest():
     return ProcessManifest("example_container_python_increment")\

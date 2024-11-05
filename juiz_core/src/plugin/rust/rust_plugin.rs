@@ -3,8 +3,7 @@ use juiz_sdk::anyhow::{self, anyhow, Context};
 use libloading::Library;
 use std::{path::PathBuf, sync::{Arc, Mutex}};
 
-use crate::prelude::*;
-use crate::prelude::ProcessFactoryPtr;
+use crate::{containers::{container_factory_create, container_process_factory_create}, prelude::*};
 use crate::plugin::Plugin;
 // use super::plugin::Plugin;
 
@@ -73,18 +72,20 @@ impl RustPlugin {
     }
 
     pub fn load_container_factory(&self, _working_dir: Option<PathBuf>, symbol_name: &str) -> JuizResult<ContainerFactoryPtr> {
-        type SymbolType = libloading::Symbol<'static, unsafe extern "Rust" fn() -> JuizResult<ContainerFactoryPtr>>;
+        type SymbolType = libloading::Symbol<'static, unsafe extern "Rust" fn() -> JuizResult<ContainerFactoryStruct>>;
         unsafe {
             let symbol = self.load_symbol::<SymbolType>(symbol_name.as_bytes())?;
-            (symbol)().with_context(||format!("calling symbol '{symbol_name}'"))
+            let ContainerFactoryStruct(manifest, factory_function) = (symbol)()?;
+            container_factory_create(manifest, factory_function)
         }
     }
 
     pub fn load_container_process_factory(&self, _working_dir: Option<PathBuf>, symbol_name: &str) -> JuizResult<ContainerProcessFactoryPtr> {
-        type SymbolType = libloading::Symbol<'static, unsafe extern "Rust" fn() -> JuizResult<ContainerProcessFactoryPtr>>;
+        type SymbolType = libloading::Symbol<'static, unsafe extern "Rust" fn() -> JuizResult<ContainerProcessFactoryStruct>>;
         unsafe {
             let symbol = self.load_symbol::<SymbolType>(symbol_name.as_bytes())?;
-            (symbol)().with_context(||format!("calling symbol '{symbol_name}'"))
+            let ContainerProcessFactoryStruct(manifest, factory_function) = (symbol)()?;
+            container_process_factory_create(manifest, factory_function)
         }
     }
 

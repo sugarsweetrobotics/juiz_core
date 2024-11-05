@@ -151,7 +151,7 @@ Brokerの実装として、デフォルトでHTTP+JSONとQUIC (バイナリ) が
 ```
 $ juiz -f examples/rust/container/example_container.conf -d 
 ```
-のように、.confファイル (実際はyamlファイル）を-fオプションで利用する。-dオプションは実行後に待機するオプションで、Ctrl+Cでシグナルを送ると終了する。
+のように、.confファイル (実際はyamlファイル) を-fオプションで利用する。-dオプションは実行後に待機するオプションで、Ctrl+Cでシグナルを送ると終了する。
 juizコマンドが待機中は、デフォルトで8000番ポートでhttp_brokerが動作しており、提供するAPIをSwaggerUIで試すことができるので、
 ```
 http://127.0.0.1:8000/docs
@@ -160,7 +160,8 @@ http://127.0.0.1:8000/docs
 
 ## 機能要素の実装方法
 
-### Rustでの実装
+### Processの実装
+#### Rustでの実装
 
 機能要素を実装するには、juiz_sdkというcrateを使う。
 例えば、引数に1を足して返すだけの純粋プロセスのコードを書いてみる。
@@ -168,24 +169,19 @@ http://127.0.0.1:8000/docs
 ``` rust
 use juiz_sdk::prelude::*;
 
-pub unsafe extern "Rust" fn manifest() -> ProcessManifest { 
-    ProcessManifest::new("increment_process")
-        .description("Example(incremnet_process)")
-        .add_int_arg("arg1", "The output will be 'arg1 + 1'.", 1)
-}
-
-fn increment_process(args: CapsuleMap) -> JuizResult<Capsule> {
-    let i = args.get_int("arg1")?;
-    return Ok(jvalue!(i+1).into());
-}
-
-#[no_mangle]
-pub unsafe extern "Rust" fn process_factory() -> JuizResult<ProcessFactoryStruct> {
-    Ok(juiz_sdk::process_factory(manifest(), increment_process))
+#[juiz_process]
+fn increment_process(arg1: i64) -> JuizResult<Capsule> {
+    log::trace!("increment_process({:?}) called", arg1);
+    return Ok(jvalue!(arg1+1).into());
 }
 ```
+まずjuiz_sdk::prelude::*をインポートすると、基本的なマクロや変数の型が使えるようになる。
+juiz_processマクロを当てた関数が、Processの本体になる。関数の名前がProcessのタイプ名になる。
+引数は複数の引数が使えて、i64, f64, bool, String, Value, Vec<Value>などが使える。
+引数の名前もパラメータになっている。
+juiz_processマクロに引数を与えると、ドキュメントやデフォルト引数を自動生成できる。詳しい内容は後述（予定）
 
-### C++での実装
+#### C++での実装
 
 モジュールのローダーであるjuizコマンドはrustで書かれているが、他の言語とのインターフェースを持っているので、機能モジュールを別の言語で書くことができる。
 C++では、exportすべき関数の名前と、扱うべきデータ型が決まっており、これを提供するヘッダーファイルであるjuiz.hが提供されている。
@@ -206,8 +202,9 @@ std::optional<int64_t> increment_process(juiz::CapsuleMap cm) {
 
 PROCESS_FACTORY(manifest, increment_process);
 ```
-
-### Pythonでの実装
+C++はRustで自動生成していた部分をかなり自分で書かないといけない。
+これはいずれなんとかしたい。
+#### Pythonでの実装
 
 PythonはRustのPyO3 crateを用いて実装されており、入出力で扱うデータ型は主にintやstrなどのプリミティブやlist, tuple, dictなどの複合型になる。
 独自のデータ型を使う場合は、dataclassを使って構成して、juizに渡す関数の出力ではasdictメソッドでdictに変換して送ることになる。
@@ -228,9 +225,178 @@ def increment_process(arg1):
 def process_factory():
     return manifest(), increment_process
 ```
+Pythonはアノテーションで記述量を減らすことができると信じている。すぐに対応予定。
+
+### Containerの実装
+
+#### Rustでの実装
+
+``` rust
+use juiz_sdk::{env_logger, factory::ContainerFactoryStruct, prelude::*};
+
+#[repr(Rust)]
+pub struct ExampleContainer {
+    pub value: i64
+}
+
+impl ExampleContainer {
+    pub fn manifest() -> ContainerManifest {
+        ContainerManifest::new("example_container")
+    }
+}
+
+fn create_example_container(_manifest: ContainerManifest) -> JuizResult<Box<ExampleContainer>> {
+    Ok(Box::new(ExampleContainer{value: 0}))
+}
+
+#[no_mangle]
+pub unsafe extern "Rust" fn container_factory() -> JuizResult<ContainerFactoryStruct> {
+    env_logger::init();
+    Ok(juiz_sdk::container_factory(ExampleContainer::manifest(), create_example_container))
+}
 
 
+```
 
+#### C++での実装
+
+
+``` c++ 
+// -- example_contaienr.h
+#pragma once
+
+#include <cstdint>
+
+class CppContainer {
+public:
+    int64_t value;
+    CppContainer(int64_t v) : value(v) {}
+};
+```
+
+``` c++
+// --- example_container_cpp.cpp
+#include "juiz/juiz.h"
+#include "example_container.h"
+
+juiz::Value manifest() {
+    return ContainerManifest("example_container_cpp").into_value();
+}
+
+CppContainer* create_container(juiz::Value value) {
+    int64_t int_value = 0;
+    if (value.isObjectValue()) {
+        if (value.hasKey("value")) {
+            auto objv = value.objectValue();
+            auto v = objv["value"];
+            if (v.isIntValue()) {
+               int_value = v.intValue();
+            }
+        }   
+    }
+    return new CppContainer(int_value);
+}
+
+bool destroy_container(CppContainer* p_container) {
+    if (p_container) {
+        delete p_container;
+        return true;
+    }
+    return false;
+}
+
+CONTAINER_FACTORY(manifest, create_container, destroy_container);
+```
+#### Pythonでの実装
+
+``` python
+from juiz import ContainerManifest
+
+class PyContainer:
+    value: int
+    def __init__(self, value):
+        self.value = value
+        
+    @classmethod
+    def manifest(cls):
+        return ContainerManifest.new("example_container_python") \
+            .into_value()
+        
+def example_container_python(manifest):
+    return PyContainer(manifest.get("value", 0))
+
+def container_factory():
+    return PyContainer.manifest(), example_container_python
+```
+
+### Container Processの実装
+
+#### Rustでの実装
+
+``` rust
+use example_container::ExampleContainer;
+use juiz_sdk::prelude::*;
+use juiz_sdk::env_logger;
+
+fn manifest() -> ProcessManifest { 
+    ProcessManifest::new("example_container_increment")
+        .container(ExampleContainer::manifest())
+        .description("Example(get)")
+        .add_int_arg("arg1", "test_argument", 1)
+}
+
+fn increment_function(container: &mut ContainerImpl<ExampleContainer>, v: CapsuleMap) -> JuizResult<Capsule> {
+    let i = v.get_int("arg1")?;
+    container.value = container.value + i;
+    return Ok(jvalue!(container.value).into());
+}
+
+#[no_mangle]
+pub unsafe extern "Rust" fn container_process_factory() -> JuizResult<ContainerProcessFactoryStruct> {
+    Ok(juiz_sdk::container_process_factory(manifest(), increment_function))
+}
+```
+#### C++での実装
+
+
+``` c++
+#include "juiz/juiz.h"
+#include "example_container.h"
+
+juiz::Value manifest() {
+    return ProcessManifest("example_container_cpp_increment")
+        .container_type("example_container_cpp")
+        .add_int_arg("arg0", "test_argument", 2)
+        .into_value();
+}
+
+std::optional<int64_t> example_container_increment(CppContainer* container, juiz::CapsuleMap cm) {
+    int64_t v = cm.get_int("arg0");
+    container->value = container->value + v;
+    return container->value;
+}
+
+CONTAINER_PROCESS_FACTORY(CppContainer, manifest, example_container_increment)
+```
+#### Pythonでの実装
+
+
+``` python
+from juiz import ProcessManifest
+
+def manifest():
+    return ProcessManifest("example_container_python_increment")\
+        .set_container_type("example_container_python")\
+        .add_int_arg("arg0", "test_argument", 1)\
+        .into_value()
+
+def example_container_python_increment(container, arg0):
+    container.value = container.value + arg0
+    return container.value
+
+def container_process_factory():
+    return manifest(), example_container_python_increment
+```
 ## 設定ファイルの中身
 
 設定ファイルの例について示す。

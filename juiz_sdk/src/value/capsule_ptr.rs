@@ -2,7 +2,7 @@
 //pub type CapsulePtr = Arc<Mutex<Capsule>>;
 
 use std::{collections::HashMap, sync::{Arc, Mutex}};
-
+use anyhow::anyhow;
 use image::DynamicImage;
 #[cfg(feature="opencv4")]
 pub use opencv::core::Mat;
@@ -296,7 +296,6 @@ impl Clone for CapsulePtr {
     }
 }
 
-
 pub fn capsule_to_value(capsule: CapsulePtr) -> JuizResult<Value> {
     log::trace!("capsule_to_value(capsule: {capsule:?}) called");
     capsule.lock_as_value_and_opt(|v, opt| {
@@ -311,3 +310,74 @@ pub fn value_to_capsule(value: Value) -> CapsulePtr {
     value.into()
 }
 
+impl TryInto<i64> for CapsulePtr {
+    type Error = anyhow::Error;
+
+    fn try_into(self) -> Result<i64, Self::Error> {
+        self.lock_as_value(|v| {
+            v.as_i64()
+        })?.ok_or_else(|| {anyhow!(JuizError::ValueTypeError { message: "From<i64> for CapsulePtr failed.".to_owned() })})
+    }
+}
+
+
+impl TryInto<f64> for CapsulePtr {
+    type Error = anyhow::Error;
+
+    fn try_into(self) -> Result<f64, Self::Error> {
+        self.lock_as_value(|v| {
+            v.as_f64()
+        })?.ok_or_else(|| {anyhow!(JuizError::ValueTypeError { message: "From<f64> for CapsulePtr failed.".to_owned() })})
+    }
+}
+
+impl TryInto<String> for CapsulePtr {
+    type Error = anyhow::Error;
+
+    fn try_into(self) -> Result<String, Self::Error> {
+        self.lock_as_value(|v| {
+            v.as_str().and_then(|sv| { Some(sv.to_owned()) })
+        })?.ok_or_else(|| {anyhow!(JuizError::ValueTypeError { message: "From<String> for CapsulePtr failed.".to_owned() })})
+    }
+}
+
+impl TryInto<bool> for CapsulePtr {
+    type Error = anyhow::Error;
+
+    fn try_into(self) -> Result<bool, Self::Error> {
+        self.lock_as_value(|v| {
+            v.as_bool()
+        })?.ok_or_else(|| {anyhow!(JuizError::ValueTypeError { message: "From<bool> for CapsulePtr failed.".to_owned() })})
+    }
+}
+
+impl TryInto<u64> for CapsulePtr {
+    type Error = anyhow::Error;
+
+    fn try_into(self) -> Result<u64, Self::Error> {
+        self.lock_as_value(|v| {
+            v.as_u64()
+        })?.ok_or_else(|| {anyhow!(JuizError::ValueTypeError { message: "From<u64> for CapsulePtr failed.".to_owned() })})
+    }
+}
+
+impl TryInto<Vec<i64>> for CapsulePtr {
+    type Error = anyhow::Error;
+
+    fn try_into(self) -> Result<Vec<i64>, Self::Error> {
+        let val = self.lock_as_value(|v| -> JuizResult<Vec<Value>> {
+            Ok(v.as_array().ok_or_else(|| {anyhow!(JuizError::ValueTypeError { message: "From<u64> for CapsulePtr failed.".to_owned() })})?.clone())
+        })??;
+        val.into_iter().map(|v| { v.as_i64().ok_or_else(|| {anyhow!(JuizError::ValueTypeError { message: "From<Vec<i64>> for CapsulePtr failed.".to_owned() })}) }).collect::<JuizResult<Vec<i64>>>()
+    }
+}
+impl TryInto<Vec<f64>> for CapsulePtr {
+    type Error = anyhow::Error;
+
+    fn try_into(self) -> Result<Vec<f64>, Self::Error> {
+        let val = self.lock_as_value(|v| -> JuizResult<Vec<Value>> {
+            Ok(v.as_array().ok_or_else(|| {anyhow!(JuizError::ValueTypeError { message: "From<Vec<f64>>> for CapsulePtr failed.".to_owned() })})?.clone())
+        })??;
+        val.into_iter().map(|v| { v.as_f64().ok_or_else(|| {anyhow!(JuizError::ValueTypeError { message: "From<Vec<f64>> for CapsulePtr failed.".to_owned() })}) }).collect::<JuizResult<Vec<f64>>>()
+    }
+}

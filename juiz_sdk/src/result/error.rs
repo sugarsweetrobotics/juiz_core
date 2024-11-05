@@ -1,5 +1,5 @@
 
-use std::sync::mpsc;
+use std::sync::{mpsc, PoisonError};
 
 use crate::prelude::*;
 use thiserror::Error;
@@ -195,6 +195,15 @@ pub enum JuizError {
     ProcessManifestInvalidError { message: String },
     #[error("TopicManifest is invalid. (message={message})")]
     TopicManifestInvalidError{message: String},
+
+    #[error("Poison Error (error={error})")]
+    PoisonError{ error: String},
 }
 
 
+
+impl<T> From<PoisonError<T>> for JuizError {
+    fn from(err: PoisonError<T>) -> Self {
+        Self::PoisonError{error: err.to_string()}
+    }
+}

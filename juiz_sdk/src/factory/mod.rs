@@ -36,3 +36,17 @@ fn bind_container_process_function<T: 'static>(function: impl Fn(&mut ContainerI
         }
     }
 }
+
+
+pub struct ContainerStackFactoryStruct(pub ContainerManifest, pub Arc<dyn Fn(ContainerManifest, ContainerPtr)->JuizResult<ContainerPtr>+'static>);
+
+
+pub fn container_stack_factory<T: 'static>(manifest: ContainerManifest, function: impl Fn(ContainerManifest, ContainerPtr)->JuizResult<Box<T>> + 'static)-> ContainerStackFactoryStruct {
+    ContainerStackFactoryStruct(manifest, Arc::new(bind_container_stack_constructor(function)))
+}
+
+pub fn bind_container_stack_constructor<T: 'static>(function: impl Fn(ContainerManifest, ContainerPtr)->JuizResult<Box<T>>) -> impl Fn(ContainerManifest, ContainerPtr)->JuizResult<ContainerPtr> {
+    move |cn: ContainerManifest, cp: ContainerPtr| -> JuizResult<ContainerPtr> {
+        Ok(ContainerPtr::new(ContainerImpl::new(cn.clone(), function(cn, cp)?)?))
+    }
+}

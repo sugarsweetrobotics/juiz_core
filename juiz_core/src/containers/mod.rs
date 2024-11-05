@@ -7,11 +7,12 @@ mod container_process_factory;
 mod implementations;
 
 
-use crate::{plugin::{BindedContainerFunctionType, ContainerProcessFactoryImpl}, prelude::*};
+use crate::prelude::*;
 
 pub use container_factory::{ContainerFactory, ContainerFactoryPtr};
 pub use container_process_factory::{ContainerProcessFactory, ContainerProcessFactoryPtr};
 
+use implementations::{BindedContainerFunctionType, ContainerProcessFactoryImpl};
 pub(crate) use implementations::{
     ContainerProcessImpl,
     ContainerFactoryWrapper, 
@@ -46,3 +47,7 @@ pub use implementations::{
 pub fn container_process_factory_create_from_trait(manifest: ProcessManifest, constructor: BindedContainerFunctionType) -> JuizResult<ContainerProcessFactoryPtr> {
     Ok(ContainerProcessFactoryPtr::new(ContainerProcessFactoryImpl::new_t(manifest, constructor)?))
 }
+
+pub use implementations::container_factory_create;
+pub use implementations::container_process_factory_create;
+pub use implementations::bind_container_function;

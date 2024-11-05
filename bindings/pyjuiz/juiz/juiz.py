@@ -16,8 +16,8 @@ class ArgumentManifest:
 class ProcessManifest:
     
     type_name: str
-    dscription: str = ""
-    arguments: List[ArgumentManifest] = []
+    arguments: List[ArgumentManifest]
+    description: str = ""
     factory: str = "process_factory"
     use_demo: bool = False
     language: str = ""
@@ -79,18 +79,18 @@ class ProcessManifest:
 @dataclass
 class ContainerManifest:
     type_name: str
+    args: dict
+    processes: List[ProcessManifest] 
     language: str = "python"
     factory: str = "container_factory"
     description: str = ""
-    processes: List[ProcessManifest] = []
-    args: dict = {}
     parent_type_name: Optional[str] = None
     parent_name: Optional[str] = None
     name: Optional[str] = None
     
     @classmethod
     def new(cls, type_name):
-        return ContainerManifest(type_name=type_name)
+        return ContainerManifest(type_name=type_name, args={}, processes=[])
     
     def add_process(self, process_manifest: ProcessManifest):
         self.processes.append(process_manifest\
@@ -104,14 +104,14 @@ class ContainerManifest:
 @dataclass
 class ComponentManifest:
     type_name: str
+    containers: List[ContainerManifest]
+    processes: List[ProcessManifest]
     description: str = ""
     language: str = "python"
-    containers: List[ContainerManifest] = []
-    processes: List[ProcessManifest] = []
     
     @classmethod
     def new(cls, type_name):
-        return ComponentManifest(type_name=type_name)
+        return ComponentManifest(type_name=type_name, containers=[], processes=[])
     
     def set_description(self, desc):
         self.description = desc

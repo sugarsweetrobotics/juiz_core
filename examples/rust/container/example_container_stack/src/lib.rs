@@ -18,7 +18,7 @@ impl ExampleContainerStack {
 
 }
 
-fn create_example_container_ex(container_ptr: ContainerPtr, manifest: ContainerManifest) -> JuizResult<Box<ExampleContainerStack>> {
+fn create_example_container_ex(manifest: ContainerManifest, container_ptr: ContainerPtr) -> JuizResult<Box<ExampleContainerStack>> {
     // let my_name = match manifest.name {
     //     None => Err(anyhow!(JuizError::InvalidValueError{ message: "Argument profile does not include 'name'.".to_owned()})),
     //     Some(v) => {
@@ -29,10 +29,10 @@ fn create_example_container_ex(container_ptr: ContainerPtr, manifest: ContainerM
 }
 
 #[no_mangle]
-pub unsafe extern "Rust" fn container_factory() -> JuizResult<ContainerFactoryPtr> {
+pub unsafe extern "Rust" fn container_factory() -> JuizResult<ContainerStackFactoryStruct> {
     env_logger::init();
     let manifest = ExampleContainerStack::manifest();
-    container_stack_factory_create(manifest, create_example_container_ex)
+    Ok(container_stack_factory(manifest, create_example_container_ex))
 }
 
 

@@ -107,6 +107,8 @@ pub use crate::{
         container_process_factory,
         ContainerFactoryStruct,
         ContainerProcessFactoryStruct,
+        container_stack_factory,
+        ContainerStackFactoryStruct,
     },
     containers::{
         Container,
@@ -131,4 +133,12 @@ pub use crate::{
     // connections::connect,
     // utils::juiz_lock,
     log,
+
+    
 };
+
+pub use juiz_macro::{
+    juiz_process
+};
+
+pub use env_logger;

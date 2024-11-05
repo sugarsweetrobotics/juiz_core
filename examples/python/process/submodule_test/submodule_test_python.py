@@ -1,5 +1,5 @@
 import sys
-from juiz import ProcessManifest
+from juiz.juiz import ProcessManifest
 
 sys.path.append('.')
 from submodule import submodule_func

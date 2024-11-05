@@ -6,6 +6,7 @@ use std::{collections::HashMap, mem::swap};
 use opencv::core::Mat;
 
 use image::DynamicImage;
+use serde_json::Map;
 use crate::prelude::*;
 
 #[derive(Clone, Debug)]
@@ -263,3 +264,42 @@ impl Capsule {
     }
 }
 
+impl From<bool> for Capsule {
+    fn from(value: bool) -> Self {
+        jvalue!(value).into()
+    }
+}
+impl From<u64> for Capsule {
+    fn from(value: u64) -> Self {
+        jvalue!(value).into()
+    }
+}
+impl From<i64> for Capsule {
+    fn from(value: i64) -> Self {
+        jvalue!(value).into()
+    }
+}
+impl From<f64> for Capsule {
+    fn from(value: f64) -> Self {
+        jvalue!(value).into()
+    }
+}
+impl From<&str> for Capsule {
+    fn from(value: &str) -> Self {
+        jvalue!(value).into()
+    }
+}
+impl From<String> for Capsule {
+    fn from(value: String) -> Self {
+        jvalue!(value).into()
+    }
+}
+impl From<Map<String, Value>> for Capsule {
+    fn from(value: Map<String, Value>) -> Self {
+        jvalue!(value).into()
+    }
+}impl From<Vec<Value>> for Capsule {
+    fn from(value: Vec<Value>) -> Self {
+        jvalue!(value).into()
+    }
+}

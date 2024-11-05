@@ -1,4 +1,4 @@
-from juiz import ProcessManifest
+from juiz.juiz import ProcessManifest
 
 def manifest():
     v = ProcessManifest.new("increment_process_python")\

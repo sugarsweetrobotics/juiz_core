@@ -5,7 +5,7 @@ from turtle_py import Turtle
 from turtle_sim_map import TurtleSimMap
 turtle_sim = None
 
-from juiz import *
+from juiz.juiz import *
 
 class TurtleSim(object):
     def __init__(self, turtles=None, map_metadata=None):

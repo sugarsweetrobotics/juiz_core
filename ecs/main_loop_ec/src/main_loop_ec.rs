@@ -10,7 +10,6 @@ use juiz_core::env_logger;
 pub struct MainLoopEC {
     name: String,
     rate: f64,
-    //core: Option<Arc<Mutex<ExecutionContextCore>>>,
 }
 
 impl MainLoopEC {
@@ -18,7 +17,6 @@ impl MainLoopEC {
         Arc::new(RwLock::new(Self{
             name: name.to_owned(),
             rate,
-            //core: None
         }))
     }
 }

@@ -332,8 +332,8 @@ impl ProcessBrokerProxy for CoreBroker {
         self.worker_mut().any_process_proxy_from_identifier(destination_process_id)?.lock_mut()?.notify_connected_from(source_process, arg_name, manifest)
      }
      
-    fn process_bind(&mut self, id: &Identifier, arg_name: &str, value: CapsulePtr) -> JuizResult<CapsulePtr> {
-        Ok(self.worker().store().processes.get(id)?.lock_mut()?.bind(arg_name, value)?.into())
+    fn process_p_apply(&mut self, id: &Identifier, arg_name: &str, value: CapsulePtr) -> JuizResult<CapsulePtr> {
+        Ok(self.worker().store().processes.get(id)?.lock_mut()?.p_apply(arg_name, value)?.into())
     }
     
     fn process_create(&mut self, manifest: ProcessManifest) -> JuizResult<Value> {

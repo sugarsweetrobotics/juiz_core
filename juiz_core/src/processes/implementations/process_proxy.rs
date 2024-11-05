@@ -102,8 +102,8 @@ impl Process for ProcessProxy {
     }
 
 
-    fn bind(&mut self, arg_name: &str, value: CapsulePtr) -> JuizResult<CapsulePtr> {
-        juiz_lock(&self.broker_proxy)?.process_bind(self.identifier(), arg_name, value)
+    fn p_apply(&mut self, arg_name: &str, value: CapsulePtr) -> JuizResult<CapsulePtr> {
+        juiz_lock(&self.broker_proxy)?.process_p_apply(self.identifier(), arg_name, value)
     }
     
     fn purge(&mut self) -> JuizResult<()> {

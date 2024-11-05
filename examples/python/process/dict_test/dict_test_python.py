@@ -1,4 +1,4 @@
-from juiz import ProcessManifest
+from juiz.juiz import ProcessManifest
 
 def pydict_test(arg0, arg1):
     return {

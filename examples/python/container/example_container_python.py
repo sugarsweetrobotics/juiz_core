@@ -1,5 +1,5 @@
 
-from juiz import ContainerManifest
+from juiz.juiz import ContainerManifest
 
 class PyContainer:
     value: int

@@ -56,6 +56,7 @@ thiserror = "1.0.63"
 tower = { version = "0.5.1", features = ["util"] }
 tower-http = { version = "0.6.1", features = ["fs", "trace"] }
 tokio = { version = "1.40.0", features = ["full"] }
+toml = "0.8.19"
 uuid = {version = "1.10.0", features = ["v4"] }
 utoipa = { version="4.2.3", features = ["axum_extras"] }
 utoipa-swagger-ui = { version = "7.1.0", features = ["axum"] }
@@ -69,8 +70,10 @@ yaml-rust2 = "0.9.0"
 [workspace]
 members = [
     ".",
+    "juiz_macro",
     "juiz_sdk",
     "juiz_core",
+    "juiz_app",
     "ecs/timer_ec",
     "ecs/one_shot_ec", 
     "ecs/main_loop_ec",
@@ -87,9 +90,12 @@ members = [
     # "examples/rust/component/imgproc_component",
     "examples/rust/component/example_component", 
     "brokers/qmp_broker",
+
+    "tutorial/rust/talker_listener/talker"
 ]
 default-members = [
     ".",
+    "juiz_macro",
     "juiz_sdk",
     "juiz_core",
     # "app/juiz_command",

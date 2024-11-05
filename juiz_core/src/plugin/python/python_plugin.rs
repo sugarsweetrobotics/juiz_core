@@ -3,7 +3,7 @@ use std::{collections::HashMap, fs, path::PathBuf, sync::Arc};
 use pyo3::{prelude::*, types::{PyDict, PyFloat, PyFunction, PyInt, PyList, PyNone, PySet, PyString, PyTuple}};
 use juiz_sdk::serde_json::Map;
 use juiz_sdk::anyhow::{self, anyhow, Context};
-use crate::{containers::container_process_factory_create_from_trait, plugin::{rust::bind_container_function, ContainerFactoryImpl}, prelude::*, processes::process_factory_create_from_trait};
+use crate::{containers::{bind_container_function, container_factory_create, container_process_factory_create_from_trait}, prelude::*, processes::process_factory_create_from_trait};
 
 #[cfg(feature="opencv4")]
 use crate::opencv::prelude::*;
@@ -208,9 +208,7 @@ if not "{path_str:}" in sys.path:
             }))?))
         };
         
-        Ok(ContainerFactoryPtr::new(ContainerFactoryImpl::new(manifest.try_into()?, Arc::new(constructor))?))
-        
-        //container_factory_create_with_trait(manifest.try_into()?, constructor)
+        container_factory_create(manifest.try_into()?, Arc::new(constructor))
     }
 
     pub fn load_component_manifest(&self, working_dir: Option<PathBuf>) -> JuizResult<ComponentManifest> {

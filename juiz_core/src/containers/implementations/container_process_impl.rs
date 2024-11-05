@@ -123,8 +123,8 @@ impl Process for ContainerProcessImpl {
         self.process()?.destination_connections()
     }
     
-    fn bind(&mut self, arg_name: &str, value: CapsulePtr) -> JuizResult<CapsulePtr> {
-        self.process_mut()?.bind(arg_name, value)
+    fn p_apply(&mut self, arg_name: &str, value: CapsulePtr) -> JuizResult<CapsulePtr> {
+        self.process_mut()?.p_apply(arg_name, value)
     }
     
     fn purge(&mut self) -> JuizResult<()> {

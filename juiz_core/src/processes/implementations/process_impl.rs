@@ -238,7 +238,7 @@ impl Process for ProcessImpl {
         self.outlet.destination_connections()
     }
     
-    fn bind(&mut self, arg_name: &str, value: CapsulePtr) -> JuizResult<CapsulePtr> {
+    fn p_apply(&mut self, arg_name: &str, value: CapsulePtr) -> JuizResult<CapsulePtr> {
         self.inlet_mut(arg_name)?.bind(value)
     }
     

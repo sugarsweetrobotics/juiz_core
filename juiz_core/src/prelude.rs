@@ -41,10 +41,5 @@ pub use crate::{
         CoreBrokerPtr,
         CoreWorker,
     },
-    
-    plugin::{
-        ContainerStackFactoryImpl,
-        container_stack_factory_create
-    },
     connections::connect,
 };

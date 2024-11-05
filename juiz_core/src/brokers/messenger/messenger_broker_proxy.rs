@@ -326,7 +326,7 @@ impl ProcessBrokerProxy for MessengerBrokerProxy {
         capsule_to_value(value)
     }
     
-    fn process_bind(&mut self, id: &Identifier, arg_name: &str, value: CapsulePtr) -> JuizResult<CapsulePtr> {
+    fn process_p_apply(&mut self, id: &Identifier, arg_name: &str, value: CapsulePtr) -> JuizResult<CapsulePtr> {
         let arg = vec!(("arg_name", jvalue!(arg_name)), ("value", capsule_to_value(value)?));
         self.update_by_id("process", "bind", arg.into(), id)
     }

@@ -151,7 +151,7 @@ fn invoke_add_process_test()  -> JuizResult<()> {
 fn bind_and_invoke_add_process_test()->JuizResult<()> {
     
     let mut p = common::new_add_process("add_01")?;
-    p.bind("arg1", jvalue!(2).into()).expect("Bind Error.");
+    p.p_apply("arg1", jvalue!(2).into()).expect("Bind Error.");
     let vv = p.invoke().expect("Bind Error");
     let iv = vv.lock_as_value(|value| { value.as_i64().unwrap() }).unwrap();
     assert_eq!(iv, 3);

@@ -13,8 +13,7 @@ pub struct ExecutionContextHolder{
     object_core: ObjectCore,
     core: Arc<Mutex<ExecutionContextCore>>,
     execution_context: Arc<RwLock<dyn ExecutionContext>>,
-    thread_handle: Option<tokio::task::JoinHandle<()>>,
-    //tokio_runtime: &'static runtime::Runtime,
+    thread_handle: Option<tokio::task::JoinHandle<JuizResult<()>>>,
     tokio_runtime: runtime::Runtime,
     end_flag: Arc<Mutex<AtomicBool>>,
 }
@@ -29,9 +28,7 @@ impl ExecutionContextHolder {
                     juiz_borrow(&ec)?.name()), 
                 core: ExecutionContextCore::new(), 
                 execution_context: ec.clone(),
-                //tokio_runtime: runtime,
                 tokio_runtime: runtime::Builder::new_multi_thread().thread_name("execution_context_holder").worker_threads(4).enable_all().build().unwrap(),
-                //tokio_runtime: Some(runtime::Builder::new_current_thread().enable_all().build().unwrap()),
                 thread_handle: None,
                 end_flag: Arc::new(Mutex::new(AtomicBool::from(false))),
              }
@@ -73,112 +70,33 @@ impl ExecutionContextHolder {
 
         let end_flag = Arc::clone(&self.end_flag);
 
-
-        //self.thread_handle = Some(self.tokio_runtime.spawn(
         self.thread_handle = Some(self.tokio_runtime.spawn_blocking(
-//            async move {
-            move || {
+            move || -> JuizResult<()> {
 
-                {
-                    match juiz_borrow_mut(&mut ec) {
-                        Err(e) => {
-                            log::error!("ExecutionContextHolder.routine() error: {e:?}");
-                            return;
-                        }, 
-                        Ok(mut e) => {
-                            match e.on_starting(&core) {
-                                Ok(_) => {},
-                                Err(e) => {
-                                    log::error!("ExecutionContextHolder.routine() error: {e:?}");
-                                    return;
-                                }
-                            }
-                        }
-                    }
+                juiz_borrow_mut(&mut ec)?.on_starting(&core)?;
+                core.lock().or_else(|e|{Err(Into::<JuizError>::into(e))})?.state.store(ExecutionContextState::STARTED.to_i64(), std::sync::atomic::Ordering::SeqCst);
 
-                    match core.lock() {
-                        Err(e) => {
-                            log::error!("ExecutionContextHolder.routine() error: {e:?}");
-                            return;
-                        },
-                        Ok(s) => {
-                            s.state.store(ExecutionContextState::STARTED.to_i64(), std::sync::atomic::Ordering::SeqCst);
-                        }
-                    }
-                }
                 loop {
-                    log::trace!("ExecutionContextHolder::routine() loop");
-                    match end_flag.lock() {
-                        Err(e) => {
-                            log::error!("Error({e:?}) in ExecutionContextHodler::routine()");
-                            continue
-                        },
-                        Ok(f) => {
-                            match f.load(std::sync::atomic::Ordering::SeqCst) {
-                                true => {
-                                    log::debug!("Detect end_flag is raised in ExecutionContextHodler::routine()");
-                                    break;
-                                }
-                                false => (),
-                            }
-                        }
-                    };
-
-                    {
-                        match juiz_borrow(&ec) {
-                            Err(e) => {
-                                log::error!("ExecutionContextHolder.routine() error: {e:?}");
-                                break;
-                            }, 
-                            Ok(e) => {
-                                match e.execute(&core) {
-                                    Err(e) => {
-                                        log::error!("ExecutionContext.execute() failed in ExecutionContextHolder.routine() error: {e:?}");
-                                        break;
-                                    }, Ok(f) => {
-                                        if !f {
-                                            break;
-                                        }
-                                    }
-                                }
-                            }
-                        };
+                    if end_flag.lock().or_else(|e|{Err(Into::<JuizError>::into(e))})?
+                        .load(std::sync::atomic::Ordering::SeqCst) {
+                            log::debug!("Detect end_flag is raised in ExecutionContextHodler::routine()");
+                            break;
                     }
-                } // loop
-                {
-                    match juiz_borrow_mut(&mut ec) {
-                        Err(e) => {
-                            log::error!("ExecutionContextHolder.routine() error: {e:?}");
-                            return;
-                        }, 
-                        Ok(mut e) => {
-                            match e.on_stopping(&core) {
-                                Ok(_) => {},
-                                Err(e) => {
-                                    log::error!("ExecutionContextHolder.routine() error: {e:?}");
-                                    return;
-                                }
-                            }
-                        }
-                    }
-                    match core.lock() {
-                        Err(e) => {
-                            log::error!("ExecutionContextHolder.routine() error: {e:?}");
-                            return;
-                        },
-                        Ok(c) => {
-                            c.state.store(ExecutionContextState::STOPPED.to_i64(), std::sync::atomic::Ordering::SeqCst);
-                        }
+                    if !juiz_borrow(&ec)?.execute(&core)? {
+                        break;
                     }
                 }
+
+                juiz_borrow_mut(&mut ec)?.on_stopping(&core)?;
+                core.lock().or_else(|e|{Err(Into::<JuizError>::into(e))})?
+                    .state.store(ExecutionContextState::STOPPED.to_i64(), std::sync::atomic::Ordering::SeqCst);
+                
+                Ok(())
             }
         ));
         log::trace!("ExecutionContextHolder::start(type_name={:}) exit", self.type_name());
         Ok(jvalue!({}))
     }
-
-
-    
 
     fn stop_periodic(&mut self) -> JuizResult<Value> {
         log::info!("ExecutionContextHolder::stop() called");

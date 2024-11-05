@@ -7,9 +7,7 @@ use juiz_sdk::anyhow::{self, anyhow, Context};
 //use super::cpp_container_factory_impl::CppContainerFactoryImpl;
 //use super::cpp_container_process_factory_impl::CppContainerProcessFactoryImpl;
 //use crate::brokers::http::http_router::container;
-use crate::containers::{container_process_factory_create_from_trait};
-use crate::plugin::rust::bind_container_function;
-use crate::plugin::ContainerFactoryImpl;
+use crate::containers::{bind_container_function, container_factory_create, container_process_factory_create_from_trait};
 //use crate::plugin::cpp::cpp_container_factory_impl::CppContainerStruct;
 use crate::prelude::*;
 use crate::processes::process_factory_create_from_trait;
@@ -111,8 +109,8 @@ impl CppPlugin {
         };
 
         //container_factory_create_with_trait(container_manifest, constructor)
-        Ok(ContainerFactoryPtr::new(ContainerFactoryImpl::new(container_manifest, Arc::new(constructor))?))
-        
+        //Ok(ContainerFactoryPtr::new(ContainerFactoryImpl::new(container_manifest, Arc::new(constructor))?))
+        container_factory_create(container_manifest, Arc::new(constructor))
         //Ok(ContainerFactoryPtr::new(CppContainerFactoryImpl::new2(self.get_manifest().clone().try_into()?, f)?))
     }
 

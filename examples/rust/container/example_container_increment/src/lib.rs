@@ -5,7 +5,7 @@ use juiz_sdk::env_logger;
 fn manifest() -> ProcessManifest { 
     ProcessManifest::new("example_container_increment")
         .description("Example(get)")
-        .add_int_arg("arg1", "test_argument", 1)
+        .add_int_arg("arg1", "test_argument", 5)
         .container(ExampleContainer::manifest())
 }
 
