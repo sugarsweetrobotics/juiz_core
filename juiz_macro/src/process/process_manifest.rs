@@ -2,7 +2,6 @@
 
 use std::collections::HashMap;
 
-use syn::Ident;
 use quote::{format_ident, quote};
 use serde_json::json;
 use crate::proc_macro::TokenStream;

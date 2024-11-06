@@ -1,4 +1,4 @@
-use juiz_sdk::{env_logger, factory::ContainerFactoryStruct, prelude::*};
+use juiz_sdk::prelude::*;
 
 #[repr(Rust)]
 pub struct ExampleContainer {

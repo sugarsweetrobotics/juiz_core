@@ -3,7 +3,7 @@
 
 use std::collections::HashMap;
 
-use quote::{quote, ToTokens};
+use quote::quote;
 use crate::proc_macro::TokenStream;
 use syn::{parse_quote, ItemFn, TypePath};
 use crate::util::parse_arg_map;

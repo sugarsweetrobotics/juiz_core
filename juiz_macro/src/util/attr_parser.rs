@@ -17,7 +17,7 @@ pub(crate) fn toplevel_key_value(attr: &mut IntoIter, value: &mut Map<String, Va
                                             match v {
                                                 proc_macro::TokenTree::Group(group) => {
                                                     match group.delimiter() {
-                                                        proc_macro::Delimiter::Parenthesis => {
+                                                        proc_macro::Delimiter::Brace => {
                                                             let key = kident.to_string();
                                                             let mut it = group.stream().into_iter();
                                                             let mut tmp_val: Map<String, Value> = Map::new();
@@ -28,28 +28,32 @@ pub(crate) fn toplevel_key_value(attr: &mut IntoIter, value: &mut Map<String, Va
                                                         proc_macro::Delimiter::Bracket => {
                                                             // リストです。
                                                             let key = kident.to_string();
-                                                            let mut it = group.stream().into_iter();
-                                                            let val = group.stream().into_iter().map(|token| {
+                                                            let _it = group.stream().into_iter();
+                                                            let mut val: Vec<Value> = Vec::new();
+                                                            for token in  group.stream().into_iter() {
                                                                 match token {
                                                                     proc_macro::TokenTree::Ident(ident) => {
-                                                                        json!(ident.to_string())
+                                                                        val.push(json!(ident.to_string()));
                                                                     },
-                                                                    _ => {
-                                                                        panic!("リストの中身は単一の識別子に限られています")
+                                                                    proc_macro::TokenTree::Punct(_punct) => {
+                                                                        // カンマは無視するよ
+                                                                    },
+                                                                    _var => {
+                                                                        panic!("リストの中身は単一の識別子に限られています ({_var:?})")
                                                                     }
                                                                 }
-                                                            }).collect::<Vec<Value>>();
+                                                            }
                                                             value.insert(key, val.into());
                                                         },
-                                                        _ => {
-                                                            panic!("予期しないかっこです");
+                                                        _par => {
+                                                            panic!("予期しないかっこ ({_par:?})です");
                                                         }
                                                     }
                                                 },
                                                 proc_macro::TokenTree::Ident(ident) => {
                                                     let _key = kident.to_string();
                                                     let _val = ident.to_string();
-                                                    todo!()
+                                                    todo!("まだ実装していない箇所です ({ident:})")
                                                 },
                                                 proc_macro::TokenTree::Literal(literal) => {
                                                     let key = kident.to_string();

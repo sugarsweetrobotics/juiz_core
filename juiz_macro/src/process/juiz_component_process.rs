@@ -5,9 +5,8 @@ use crate::proc_macro::TokenStream;
 use syn::{parse_macro_input, ItemFn, Stmt};
 
 use crate::util::parse_attr;
-use super::{gen_process_factory::component_factory_tokenstream, process_manifest::{component_construct_manif_tokenstream, component_manifest_tokenstream, construct_manif_tokenstream, manifest_tokenstream}};
+use super::{gen_process_factory::component_factory_tokenstream, process_manifest::{component_construct_manif_tokenstream, component_manifest_tokenstream}};
 use crate::util::{get_body_tokenstream, change_argument_to_capsule_map};
-use super::gen_process_factory::factory_tokenstream;
 
 pub(crate) fn juiz_component_process_inner(attr: TokenStream, item: TokenStream) -> TokenStream {
     let manifest_attr = parse_attr(attr);

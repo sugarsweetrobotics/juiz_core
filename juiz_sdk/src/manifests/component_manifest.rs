@@ -45,8 +45,21 @@ impl ComponentManifest {
     }
 
     pub fn add_process(mut self, process: ProcessManifest) -> Self {
-        self.processes.push(process);
-        self
+        if let Some(container_type) = process.container_type.as_ref() {
+            let m = self.containers.into_iter().map(|c| {
+                if c.type_name == container_type.as_str() {
+                    c.add_process(process.clone())
+                } else {
+                    c
+                }
+            }).collect::<Vec<ContainerManifest>>();
+            self.containers = m;
+            self
+        } else {
+            self.processes.push(process);
+            self
+        }
+        
     }
 }
 
