@@ -166,6 +166,8 @@ http://127.0.0.1:8000/docs
 機能要素を実装するには、juiz_sdkというcrateを使う。
 例えば、引数に1を足して返すだけの純粋プロセスのコードを書いてみる。
 
+Rustで記述するのが現状ではもっともエレガントにProcessやContainerを記述できる。
+
 ``` rust
 use juiz_sdk::prelude::*;
 
@@ -203,10 +205,11 @@ std::optional<int64_t> increment_process(juiz::CapsuleMap cm) {
 PROCESS_FACTORY(manifest, increment_process);
 ```
 C++はRustで自動生成していた部分をかなり自分で書かないといけない。
-これはいずれなんとかしたい。
+これはいずれなんとかしたいが、できるのだろうか・・・
+
 #### Pythonでの実装
 
-PythonはRustのPyO3 crateを用いて実装されており、入出力で扱うデータ型は主にintやstrなどのプリミティブやlist, tuple, dictなどの複合型になる。
+PythonとのインターフェースはRustのPyO3 crateを用いて実装されており、入出力で扱うデータ型は主にintやstrなどのプリミティブやlist, tuple, dictなどの複合型になる。
 独自のデータ型を使う場合は、dataclassを使って構成して、juizに渡す関数の出力ではasdictメソッドでdictに変換して送ることになる。
 
 ``` python
@@ -225,41 +228,34 @@ def increment_process(arg1):
 def process_factory():
     return manifest(), increment_process
 ```
-Pythonはアノテーションで記述量を減らすことができると信じている。すぐに対応予定。
+Pythonはデコレータで記述量を減らすことができると信じている。すぐに対応予定。
+おそらく、manifestを自動生成するくらいはできると思ってる。
 
 ### Containerの実装
+Containerはstructを与えてやることで実現する。
+後述のContainerProcessはこのstructを最初の引数として受け取るProcessを定義することになる。
 
 #### Rustでの実装
-
+例によってRustでのContainerの記述はエレガントである。
+Containerを作成する関数にjuiz_containerのマクロアトリビュートを追加するだけで実現できる。
+この関数をコンテナのコンストラクタと呼ぶことにする。
+返り値はBoxして渡して欲しい。
 ``` rust
-use juiz_sdk::{env_logger, factory::ContainerFactoryStruct, prelude::*};
+use juiz_sdk::prelude::*;
 
 #[repr(Rust)]
 pub struct ExampleContainer {
     pub value: i64
 }
 
-impl ExampleContainer {
-    pub fn manifest() -> ContainerManifest {
-        ContainerManifest::new("example_container")
-    }
+#[juiz_container]
+fn example_container(initial_value: i64) -> JuizResult<Box<ExampleContainer>> {
+    Ok(Box::new(ExampleContainer{value:initial_value}))
 }
-
-fn create_example_container(_manifest: ContainerManifest) -> JuizResult<Box<ExampleContainer>> {
-    Ok(Box::new(ExampleContainer{value: 0}))
-}
-
-#[no_mangle]
-pub unsafe extern "Rust" fn container_factory() -> JuizResult<ContainerFactoryStruct> {
-    env_logger::init();
-    Ok(juiz_sdk::container_factory(ExampleContainer::manifest(), create_example_container))
-}
-
-
 ```
 
 #### C++での実装
-
+C++ではヘッダーファイル (*.h) でstructを定義して、ソースファイル (*.cpp) でコンストラクタ等を定義する。
 
 ``` c++ 
 // -- example_contaienr.h
@@ -274,6 +270,8 @@ public:
 };
 ```
 
+コンテナのコンストラクタとしてcreate_container関数を定義している。
+このあたりもtemplateを使えばもう少しウマく書けそうなんだけど、Rustとの接続の部分も含めて設計が必要で、難しい。
 ``` c++
 // --- example_container_cpp.cpp
 #include "juiz/juiz.h"
@@ -309,6 +307,7 @@ CONTAINER_FACTORY(manifest, create_container, destroy_container);
 ```
 #### Pythonでの実装
 
+Pythonはやはり記述としては少ないが、もう少しスッキリさせるにはデコレータでなんとかしたいと考えている。
 ``` python
 from juiz import ContainerManifest
 
@@ -332,32 +331,25 @@ def container_factory():
 ### Container Processの実装
 
 #### Rustでの実装
-
+コンテナプロセスではjuiz_container_processマクロを使い、このマクロの引数に「container_type = ほにゃらら」という値を入れる。
+マクロの引数は初めて出てきたが、実はjuiz_processやjuiz_containerにも引数を与えることができる。
+それはいずれどこかで。
 ``` rust
 use example_container::ExampleContainer;
 use juiz_sdk::prelude::*;
-use juiz_sdk::env_logger;
 
-fn manifest() -> ProcessManifest { 
-    ProcessManifest::new("example_container_increment")
-        .container(ExampleContainer::manifest())
-        .description("Example(get)")
-        .add_int_arg("arg1", "test_argument", 1)
-}
-
-fn increment_function(container: &mut ContainerImpl<ExampleContainer>, v: CapsuleMap) -> JuizResult<Capsule> {
-    let i = v.get_int("arg1")?;
-    container.value = container.value + i;
+#[juiz_container_process(
+    container_type = "example_container"
+)]
+fn increment_function(container: &mut ContainerImpl<ExampleContainer>, arg1: i64) -> JuizResult<Capsule> {
+    container.value = container.value + arg1;
     return Ok(jvalue!(container.value).into());
 }
-
-#[no_mangle]
-pub unsafe extern "Rust" fn container_process_factory() -> JuizResult<ContainerProcessFactoryStruct> {
-    Ok(juiz_sdk::container_process_factory(manifest(), increment_function))
-}
 ```
-#### C++での実装
 
+#### C++での実装
+C++はやはりどこか冗長な記述になってしまう。
+コンテナを生成するコードで使ったヘッダーを再利用することで、同じ構造体にアクセスするコンテナプロセスを作ることができる。
 
 ``` c++
 #include "juiz/juiz.h"
@@ -379,6 +371,7 @@ std::optional<int64_t> example_container_increment(CppContainer* container, juiz
 CONTAINER_PROCESS_FACTORY(CppContainer, manifest, example_container_increment)
 ```
 #### Pythonでの実装
+コンテナプロセスはやはりC++よりはスッキリと書ける。
 
 
 ``` python
