@@ -85,7 +85,7 @@ fn construct_manif_inner(_container_type_ident: syn::Ident, function_name: Strin
         }
     }
 
-    println!("{}", construct_manif.to_token_stream().to_string());
+    // println!("{}", construct_manif.to_token_stream().to_string());
     construct_manif
 }
 
@@ -108,7 +108,7 @@ pub(crate) fn construct_manif_tokenstream(container_type_ident: syn::Ident, func
 }
 
 pub(crate) fn component_construct_manif_tokenstream(container_type_ident: syn::Ident, function_name: String, manifest_attr: &serde_json::Value, arg_map: &HashMap<TypePath, syn::Ident>, factory_name: String) -> TokenStream {
-    let container_manifest_function_name_ident = format!("{}_manifest", container_type_ident.to_string());
+    let container_manifest_function_name_ident = format_ident!("{}_manifest", container_type_ident.to_string());
     
     // attr変数から読み取った値からdescriptionを取得
     let description = manifest_attr.as_object().unwrap().get("description").and_then(|v| { Some(v.clone()) }).or(Some(json!(format!("Default description of Process({function_name})")))).unwrap().as_str().unwrap().to_owned();
