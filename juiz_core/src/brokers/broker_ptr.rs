@@ -3,7 +3,7 @@ use crate::prelude::*;
 
 use super::Broker;
 
-use juiz_sdk::anyhow::{self, anyhow};
+use juiz_sdk::anyhow::anyhow;
 
 
 #[derive(Clone)]

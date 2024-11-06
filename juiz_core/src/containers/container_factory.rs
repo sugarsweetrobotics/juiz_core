@@ -1,11 +1,11 @@
 
 use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
-use juiz_sdk::anyhow::{self, anyhow};
+use juiz_sdk::anyhow::anyhow;
 use crate::prelude::*;
 
 
-pub type ContainerConstructFunction<T>=fn(ContainerManifest) -> JuizResult<Box<T>>;
-pub type ContainerConstructFunctionTrait<T>=dyn Fn(ContainerManifest) -> JuizResult<Box<T>>;
+//pub type ContainerConstructFunction<T>=fn(ContainerManifest) -> JuizResult<Box<T>>;
+//pub type ContainerConstructFunctionTrait<T>=dyn Fn(ContainerManifest) -> JuizResult<Box<T>>;
 
 pub trait ContainerFactory : JuizObject + 'static {
 

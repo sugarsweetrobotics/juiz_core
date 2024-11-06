@@ -5,7 +5,7 @@
 
 
 use std::sync::Arc;
-use juiz_sdk::anyhow::{self, anyhow, Context};
+use juiz_sdk::anyhow;
 
 use crate::connections::ConnectionFactory;
 use crate::prelude::*;
@@ -35,9 +35,9 @@ pub struct ProcessImpl {
 //     &process_manifest.arguments
 // }
 
-pub fn process_from_clousure(manif: ProcessManifest, func: impl Fn(CapsuleMap) -> JuizResult<Capsule> + 'static, connection_factory: Box<impl ConnectionFactory + 'static>) -> JuizResult<impl Process> {
-    ProcessImpl::new_from_clousure(manif, func, connection_factory)
-}
+// pub fn process_from_clousure(manif: ProcessManifest, func: impl Fn(CapsuleMap) -> JuizResult<Capsule> + 'static, connection_factory: Box<impl ConnectionFactory + 'static>) -> JuizResult<impl Process> {
+//     ProcessImpl::new_from_clousure(manif, func, connection_factory)
+// }
 
 pub fn process_from_clousure_new_with_class_name(class_name: JuizObjectClass, manif: ProcessManifest, func: impl Fn(CapsuleMap) -> JuizResult<Capsule> + 'static, connection_factory: Box<impl ConnectionFactory + 'static>) -> JuizResult<impl Process> {
     ProcessImpl::new_from_clousure_and_class_name(class_name, manif, func, connection_factory)
@@ -75,9 +75,9 @@ impl ProcessImpl {
         Self::new_with_class(JuizObjectClass::Process("ProcessImpl"), manif, func, connection_factory)
     }
 
-    pub fn new_from_clousure(manif: ProcessManifest, func: impl Fn(CapsuleMap) -> JuizResult<Capsule> + 'static, connection_factory: Box<impl ConnectionFactory + 'static>) -> JuizResult<Self> {
-        ProcessImpl::new_from_clousure_and_class_name(JuizObjectClass::Process("ProcessImpl"), manif, func, connection_factory)
-    }
+    // pub fn new_from_clousure(manif: ProcessManifest, func: impl Fn(CapsuleMap) -> JuizResult<Capsule> + 'static, connection_factory: Box<impl ConnectionFactory + 'static>) -> JuizResult<Self> {
+    //     ProcessImpl::new_from_clousure_and_class_name(JuizObjectClass::Process("ProcessImpl"), manif, func, connection_factory)
+    // }
 
     pub fn new_from_clousure_ref(manif: ProcessManifest, func: Arc<dyn Fn(CapsuleMap) -> JuizResult<Capsule> + 'static>, connection_factory: Box<impl ConnectionFactory + 'static>) -> JuizResult<Self> {
         ProcessImpl::new_from_clousure_ref_and_class_name(JuizObjectClass::Process("ProcessImpl"), manif, func, connection_factory)

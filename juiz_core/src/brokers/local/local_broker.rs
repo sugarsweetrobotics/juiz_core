@@ -1,6 +1,6 @@
 use std::{ops::Deref, sync::{mpsc::{self, Sender}, Arc, Mutex}, time::Duration};
 
-use juiz_sdk::anyhow::{self, anyhow};
+use juiz_sdk::anyhow;
 
 use crate::{core::CoreBrokerPtr, prelude::*};
 use crate::brokers::create_messenger_broker_factory;

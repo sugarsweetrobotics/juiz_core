@@ -2,7 +2,7 @@
 
 use std::collections::HashMap;
 
-use quote::{format_ident, quote, ToTokens};
+use quote::{format_ident, quote};
 use serde_json::json;
 use crate::proc_macro::TokenStream;
 use syn::TypePath;
@@ -23,7 +23,7 @@ pub(crate) fn component_manifest_tokenstream(proc_type_str: String) -> TokenStre
     }.into()
 }
 
-fn construct_manif_inner(_container_type_ident: syn::Ident, function_name: String, manifest_attr: &serde_json::Value, arg_map: &HashMap<TypePath, syn::Ident>, mut construct_manif : proc_macro2::TokenStream) -> proc_macro2::TokenStream {
+fn construct_manif_inner(_container_type_ident: syn::Ident, _function_name: String, manifest_attr: &serde_json::Value, arg_map: &HashMap<TypePath, syn::Ident>, mut construct_manif : proc_macro2::TokenStream) -> proc_macro2::TokenStream {
     
     
     let empty_value = json!({}); // 空っぽのMapは使い回す。
@@ -93,7 +93,7 @@ pub(crate) fn construct_manif_tokenstream(container_type_ident: syn::Ident, func
     // attr変数から読み取った値からdescriptionを取得
     let description = manifest_attr.as_object().unwrap().get("description").and_then(|v| { Some(v.clone()) }).or(Some(json!(format!("Default description of Process({function_name})")))).unwrap().as_str().unwrap().to_owned();
     // ここでmanifestデータの基本データを作成する部分
-    let mut construct_manif = quote!{
+    let construct_manif = quote!{
         let mut manif = ProcessManifest::new( #function_name ).description(#description).container(#container_type_ident ::manifest2() );
     };
     
@@ -113,7 +113,7 @@ pub(crate) fn component_construct_manif_tokenstream(container_type_ident: syn::I
     // attr変数から読み取った値からdescriptionを取得
     let description = manifest_attr.as_object().unwrap().get("description").and_then(|v| { Some(v.clone()) }).or(Some(json!(format!("Default description of Process({function_name})")))).unwrap().as_str().unwrap().to_owned();
     // ここでmanifestデータの基本データを作成する部分
-    let mut construct_manif = quote!{
+    let construct_manif = quote!{
         let mut manif = ProcessManifest::new( #function_name ).description(#description).container(#container_manifest_function_name_ident() );
     };
     

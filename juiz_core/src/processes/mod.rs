@@ -8,7 +8,7 @@ pub use juiz_sdk::processes::ProcessPtr;
 pub use process_factory::{ProcessFactory, ProcessFactoryPtr};
 pub(crate) use implementations::{
     process_from_clousure_new_with_class_name,
-    process_from_clousure,
+    //process_from_clousure,
     ProcessFactoryWrapper,
     ProcessFactoryImpl,
 };

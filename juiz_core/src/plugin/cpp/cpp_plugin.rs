@@ -3,7 +3,7 @@ use std::ffi::c_void;
 use std::path::PathBuf;
 use std::sync::Arc;
 use libloading::{Library, Symbol};
-use juiz_sdk::anyhow::{self, anyhow, Context};
+use juiz_sdk::anyhow;
 //use super::cpp_container_factory_impl::CppContainerFactoryImpl;
 //use super::cpp_container_process_factory_impl::CppContainerProcessFactoryImpl;
 //use crate::brokers::http::http_router::container;
@@ -93,7 +93,7 @@ impl CppPlugin {
             (symbol)()
         };
         let container_manifest: ContainerManifest = self.get_manifest().clone().try_into()?;
-        let container_manifest_clone = container_manifest.clone();
+        //let _container_manifest_clone = container_manifest.clone();
         let constructor = move |cm: ContainerManifest, mut v: CapsuleMap| -> JuizResult<ContainerPtr> {
             let mut pobj: *mut c_void = std::ptr::null_mut();
             unsafe {

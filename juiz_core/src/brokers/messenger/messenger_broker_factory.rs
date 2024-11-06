@@ -2,7 +2,7 @@
 use std::sync::{Mutex, Arc};
 use anyhow::Context;
 
-use juiz_sdk::anyhow::{self, anyhow};
+use juiz_sdk::anyhow;
 use crate::brokers::broker_ptr::BrokerPtr;
 use crate::core::CoreBrokerPtr;
 

@@ -1,5 +1,5 @@
 use std::sync::Arc;
-use juiz_sdk::anyhow::{self, anyhow, Context};
+use juiz_sdk::anyhow::anyhow;
 use crate::connections::ConnectionFactoryImpl;
 use crate::prelude::*;
 use crate::containers::{ContainerImpl, ContainerProcessImpl};

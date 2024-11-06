@@ -2,7 +2,7 @@
 use std::sync::{Arc, Mutex};
 
 use crate::prelude::*;
-use crate::{containers::ContainerImpl};
+//use crate::{containers::ContainerImpl};
 
 pub type ContainerStackConstructFunction<S>=fn(ContainerPtr, ContainerManifest) -> JuizResult<Box<S>>;
 
@@ -15,6 +15,7 @@ pub struct ContainerStackFactoryImpl<T: 'static> {
     constructor: ContainerStackConstructFunction<T>
 }
 
+#[allow(unused)]
 impl<T: 'static> ContainerStackFactoryImpl<T> {
 
     pub fn new(manifest: ContainerManifest, constructor: ContainerStackConstructFunction<T>) -> JuizResult<Self> {
@@ -50,7 +51,7 @@ impl<T: 'static> JuizObject for ContainerStackFactoryImpl<T> {}
 
 impl<T: 'static> ContainerFactory for ContainerStackFactoryImpl<T> {
 
-    fn create_container(&self, core_worker: &mut CoreWorker, manifest: CapsuleMap) -> JuizResult<ContainerPtr>{
+    fn create_container(&self, _core_worker: &mut CoreWorker, manifest: CapsuleMap) -> JuizResult<ContainerPtr>{
         log::trace!("ContainerStackFactory::create_container(manifest={:?}) called", manifest);
         // //let parent_id = obj_get_str(&manifest, "parent_container")?.to_owned();
         // //let parent_manifest = obj_get(&manifest, "parent_container")?;

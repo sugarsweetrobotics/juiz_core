@@ -1,6 +1,6 @@
 use std::{collections::HashMap, io::Read, sync::{Arc, Mutex}};
 
-use juiz_sdk::anyhow::{self, anyhow};
+use juiz_sdk::anyhow;
 
 use crate::{core::CoreWorker, prelude::*};
 use crate::brokers::{create_broker_proxy_factory_impl, BrokerProxy, BrokerProxyFactory};

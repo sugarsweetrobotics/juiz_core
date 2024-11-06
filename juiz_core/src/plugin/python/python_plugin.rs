@@ -2,7 +2,7 @@
 use std::{collections::HashMap, fs, path::PathBuf, sync::Arc};
 use pyo3::{prelude::*, types::{PyDict, PyFloat, PyFunction, PyInt, PyList, PyNone, PySet, PyString, PyTuple}};
 use juiz_sdk::serde_json::Map;
-use juiz_sdk::anyhow::{self, anyhow, Context};
+use juiz_sdk::anyhow::{self, anyhow};
 use crate::{containers::{bind_container_function, container_factory_create, container_process_factory_create_from_trait}, prelude::*, processes::process_factory_create_from_trait};
 
 #[cfg(feature="opencv4")]

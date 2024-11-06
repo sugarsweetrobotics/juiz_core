@@ -111,7 +111,7 @@ default-members = [
     "examples/rust/container/example_container_get",
     "examples/rust/container/example_container_increment",
     #"examples/rust/component/example_component",
-    "examples/rust/container/example_container_stack",
-    "examples/rust/container/example_container_stack_get",
+    #"examples/rust/container/example_container_stack",
+    #"examples/rust/container/example_container_stack_get",
     "brokers/qmp_broker",
 ]

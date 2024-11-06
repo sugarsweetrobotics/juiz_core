@@ -1,11 +1,8 @@
-use std::sync::Arc;
-
 use anyhow::Context;
-use juiz_sdk::anyhow::{self, anyhow};
+use juiz_sdk::anyhow;
 
-use crate::connections::ConnectionFactoryImpl;
 use crate::prelude::*;
-use crate::processes::process_from_clousure;
+//use crate::processes::process_from_clousure;
 
 // type ContainerFunctionTypePtr<T>= Arc<dyn Fn(&mut ContainerImpl<T>, CapsuleMap) -> JuizResult<Capsule>+'static>;
 
@@ -22,33 +19,33 @@ pub struct ContainerProcessImpl {
 
 impl ContainerProcessImpl {
 
-    pub fn new<'a, T: 'static> (manifest: ProcessManifest, container: ContainerPtr, function: Arc<dyn Fn(&mut ContainerImpl<T>, CapsuleMap) -> JuizResult<Capsule>+'static>) -> JuizResult<Self> {
-        log::trace!("ContainerProcessImpl::new(manifest={:?}) called", manifest);
-        //let manifest = check_process_manifest(manif)?;
-        let container_clone = container.clone();
-        let proc = process_from_clousure(
-            Into::<Value>::into(manifest.clone()).try_into()?, 
-            move |args| {
-                match container_clone.lock_mut()?.downcast_mut::<ContainerImpl<T>>() {
-                    Some(c) => {
-                        (function)(c, args)
-                    }
-                    None => {
-                        Err(anyhow!(JuizError::ContainerDowncastingError{identifier: "ContainerPtr".to_owned()}))
-                    },
-                }
-            },
-            Box::new(ConnectionFactoryImpl::new())
-        )?;
+    // pub fn new<'a, T: 'static> (manifest: ProcessManifest, container: ContainerPtr, function: Arc<dyn Fn(&mut ContainerImpl<T>, CapsuleMap) -> JuizResult<Capsule>+'static>) -> JuizResult<Self> {
+    //     log::trace!("ContainerProcessImpl::new(manifest={:?}) called", manifest);
+    //     //let manifest = check_process_manifest(manif)?;
+    //     let container_clone = container.clone();
+    //     let proc = process_from_clousure(
+    //         Into::<Value>::into(manifest.clone()).try_into()?, 
+    //         move |args| {
+    //             match container_clone.lock_mut()?.downcast_mut::<ContainerImpl<T>>() {
+    //                 Some(c) => {
+    //                     (function)(c, args)
+    //                 }
+    //                 None => {
+    //                     Err(anyhow!(JuizError::ContainerDowncastingError{identifier: "ContainerPtr".to_owned()}))
+    //                 },
+    //             }
+    //         },
+    //         Box::new(ConnectionFactoryImpl::new())
+    //     )?;
         
-        Ok(ContainerProcessImpl{
-            core: ObjectCore::create(JuizObjectClass::ContainerProcess("ContainerProcessImpl"), 
-            manifest.type_name.as_str(), manifest.name.unwrap()),
-            container_identifier: container.identifier().clone(),
-            container: Some(container),
-            process: Box::new(proc),
-        })
-    }
+    //     Ok(ContainerProcessImpl{
+    //         core: ObjectCore::create(JuizObjectClass::ContainerProcess("ContainerProcessImpl"), 
+    //         manifest.type_name.as_str(), manifest.name.unwrap()),
+    //         container_identifier: container.identifier().clone(),
+    //         container: Some(container),
+    //         process: Box::new(proc),
+    //     })
+    // }
 
     fn process(&self) -> JuizResult<&Box<dyn Process>> {
         Ok(&self.process)
