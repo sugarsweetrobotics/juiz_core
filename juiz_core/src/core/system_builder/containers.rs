@@ -20,7 +20,7 @@ pub(super) fn setup_containers(system: &System, manifest: &Value) -> JuizResult<
     for container_manifest_value in get_array(manifest)?.iter() {
         let container_manifest: ContainerManifest = container_manifest_value.clone().try_into()?;
         log::debug!("Container ({:?}) Creating...", container_manifest);
-        setup_container(system, container_manifest.clone())?;
+        setup_container(system, container_manifest.clone(), container_manifest_value.clone().try_into()?)?;
         log::debug!("Container ({:?}) Fully Created", container_manifest);
     } 
     log::trace!("setup_containers() exit");
@@ -59,10 +59,11 @@ fn setup_container_factory(system: &System, name: &String, container_profile: &V
 /// 
 /// 各コンテナを作成後に対応するコンテナプロセスを作成する。
 /// 
-fn setup_container(system: &System, container_manifest: ContainerManifest) -> JuizResult<()> {
+fn setup_container(system: &System, container_manifest: ContainerManifest, container_argument: CapsuleMap) -> JuizResult<()> {
     log::trace!("setup_container({container_manifest:?}) called");
-    let container = system.core_broker().lock_mut()?.worker_mut().create_container_ref(container_manifest.clone())?;
-    log::info!("Container ({:?}) Created", container_manifest);    
+    let type_name = container_manifest.type_name;
+    let container = system.core_broker().lock_mut()?.worker_mut().create_container_ref(type_name.as_str(), container_argument)?;
+    log::info!("Container Created");    
     for container_process_manifest in container_manifest.processes.iter() {
         log::debug!(" - ContainerProcess ({:?}) Creating...", container_process_manifest);
         let cp_ref = system.core_broker().lock_mut()?.worker_mut().create_container_process_ref(container.clone(), container_process_manifest.clone())?;

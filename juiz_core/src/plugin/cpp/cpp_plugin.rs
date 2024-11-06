@@ -87,18 +87,19 @@ impl CppPlugin {
     pub fn load_container_factory(&self, _working_dir: Option<PathBuf>, symbol_name: &str) -> JuizResult<ContainerFactoryPtr> {
         log::trace!("CppPlugin({:?})::load_container_factory() called", self.path);
         let full_symbol_name = symbol_name.to_owned() + "_entry_point";
-        type SymbolType = libloading::Symbol<'static, unsafe fn() -> unsafe fn(*mut Value, *mut *mut std::ffi::c_void)->i64>;
+        type SymbolType = libloading::Symbol<'static, unsafe fn() -> unsafe fn(*mut CapsuleMap, *mut *mut std::ffi::c_void)->i64>;
         let entry_point = unsafe {
             let symbol = self.load_symbol::<SymbolType>(full_symbol_name.as_bytes())?;
             (symbol)()
         };
         let container_manifest: ContainerManifest = self.get_manifest().clone().try_into()?;
         let container_manifest_clone = container_manifest.clone();
-        let constructor = move |cm: ContainerManifest| -> JuizResult<ContainerPtr> {
+        let constructor = move |cm: ContainerManifest, mut v: CapsuleMap| -> JuizResult<ContainerPtr> {
             let mut pobj: *mut c_void = std::ptr::null_mut();
             unsafe {
                 let symbol = entry_point.clone();
-                let retval = (symbol)(&mut container_manifest_clone.build_instance_manifest(cm.clone())?.into(), &mut pobj);
+                //let retval = (symbol)(&mut container_manifest_clone.build_instance_manifest(cm.clone())?.into(), &mut pobj);
+                let retval = (symbol)(&mut v, &mut pobj);
                 if retval < 0 || pobj == std::ptr::null_mut() {
                     return Err(anyhow::Error::from(JuizError::CppPluginFunctionCallError { function_name: "create_container".to_owned(), return_value: retval }));
                 }

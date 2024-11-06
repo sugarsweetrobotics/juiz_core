@@ -50,19 +50,20 @@ impl<T: 'static> JuizObject for ContainerStackFactoryImpl<T> {}
 
 impl<T: 'static> ContainerFactory for ContainerStackFactoryImpl<T> {
 
-    fn create_container(&self, core_worker: &mut CoreWorker, manifest: ContainerManifest) -> JuizResult<ContainerPtr>{
+    fn create_container(&self, core_worker: &mut CoreWorker, manifest: CapsuleMap) -> JuizResult<ContainerPtr>{
         log::trace!("ContainerStackFactory::create_container(manifest={:?}) called", manifest);
-        //let parent_id = obj_get_str(&manifest, "parent_container")?.to_owned();
-        //let parent_manifest = obj_get(&manifest, "parent_container")?;
-        //let parent_container = core_worker.container_from_identifier(&parent_id)?;
-        let parent_container_manifest = manifest.parent_container_manifest();
-        let parent_container = core_worker.container_from_manifest(&parent_container_manifest.into())?;
-        Ok(ContainerPtr::new(ContainerImpl::new_with_parent(
-            manifest.clone(),
-            // self.apply_default_manifest(manifest.clone())?,
-            (self.constructor)(parent_container.clone(), manifest)?,
-            parent_container,
-        )?))
+        // //let parent_id = obj_get_str(&manifest, "parent_container")?.to_owned();
+        // //let parent_manifest = obj_get(&manifest, "parent_container")?;
+        // //let parent_container = core_worker.container_from_identifier(&parent_id)?;
+        // let parent_container_manifest = manifest.parent_container_manifest();
+        // let parent_container = core_worker.container_from_manifest(&parent_container_manifest.into())?;
+        // Ok(ContainerPtr::new(ContainerImpl::new_with_parent(
+        //     manifest.clone(),
+        //     // self.apply_default_manifest(manifest.clone())?,
+        //     (self.constructor)(parent_container.clone(), manifest)?,
+        //     parent_container,
+        // )?))
+        todo!()
     }
     
     fn destroy_container(&mut self, c: ContainerPtr) -> JuizResult<Value> {

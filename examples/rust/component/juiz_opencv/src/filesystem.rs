@@ -21,5 +21,3 @@ fn create_cv_filesystem_container(_manifest: ContainerManifest) -> JuizResult<Bo
 pub unsafe extern "Rust" fn cv_filesystem_factory() -> JuizResult<ContainerFactoryStruct> {
     Ok(juiz_sdk::container_factory(CvFilesystem::manifest(), create_cv_filesystem_container))
 }
-
-

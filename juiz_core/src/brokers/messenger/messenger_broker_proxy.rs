@@ -351,7 +351,7 @@ impl ContainerBrokerProxy for MessengerBrokerProxy {
         capsule_to_value(self.read_with_param("container", "list", &[("recursive".to_owned(), recursive.to_string())])?)
     }
     
-    fn container_create(&mut self, manifest: ContainerManifest) -> JuizResult<Value> {
+    fn container_create(&mut self, manifest: CapsuleMap) -> JuizResult<Value> {
         capsule_to_value(self.create("container","create", Into::<Value>::into(manifest).try_into()?)?)
     }
     

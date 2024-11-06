@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use crate::prelude::*;
 
-pub type ContainerConstructor = dyn Fn(ContainerManifest)->JuizResult<ContainerPtr>;
+pub type ContainerConstructor = dyn Fn(ContainerManifest, CapsuleMap)->JuizResult<ContainerPtr>;
 #[repr(C)]
 pub struct ContainerFactoryImpl {
     core: ObjectCore,
@@ -44,14 +44,14 @@ impl JuizObject for ContainerFactoryImpl {}
 
 impl ContainerFactory for ContainerFactoryImpl {
 
-    fn create_container(&self, _core_worker: &mut CoreWorker, manifest: ContainerManifest) -> JuizResult<ContainerPtr>{
+    fn create_container(&self, _core_worker: &mut CoreWorker, manifest: CapsuleMap) -> JuizResult<ContainerPtr>{
         log::trace!("ContainerFactoryImpl::create_container(manifest={:?}) called", manifest);
         // Ok(ContainerPtr::new(ContainerImpl::new(
         //         // self.apply_default_manifest(manifest.clone())?,
         //         manifest.clone(),
         //         (self.constructor)(manifest)?
         //     )?))
-        (self.binded_container_constructor)(manifest)
+        (self.binded_container_constructor)(self.manifest.clone(), manifest)
     }
     
     fn destroy_container(&mut self, c: ContainerPtr) -> JuizResult<Value> {

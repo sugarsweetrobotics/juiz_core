@@ -76,7 +76,7 @@ pub trait ProcessBrokerProxy {
 
 pub trait ContainerBrokerProxy {
 
-    fn container_create(&mut self, manifest: ContainerManifest) -> JuizResult<Value>;
+    fn container_create(&mut self, manifest: CapsuleMap) -> JuizResult<Value>;
 
     fn container_destroy(&mut self, identifier: &Identifier) -> JuizResult<Value>;
 

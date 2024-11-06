@@ -138,7 +138,11 @@ pub use crate::{
 };
 
 pub use juiz_macro::{
-    juiz_process
+    juiz_container,
+    juiz_process,
+    juiz_container_process,
+    juiz_component_process,
+    juiz_component_manifest,
 };
 
 pub use env_logger;

@@ -8,16 +8,16 @@ pub fn process_factory(manifest: ProcessManifest, func: fn(CapsuleMap)->JuizResu
     ProcessFactoryStruct(manifest, func)
 }
 
-pub struct ContainerFactoryStruct(pub ContainerManifest, pub Arc<dyn Fn(ContainerManifest)->JuizResult<ContainerPtr>+'static>);
+pub struct ContainerFactoryStruct(pub ContainerManifest, pub Arc<dyn Fn(ContainerManifest, CapsuleMap)->JuizResult<ContainerPtr>+'static>);
 
 
-pub fn container_factory<T: 'static>(manifest: ContainerManifest, function: impl Fn(ContainerManifest)->JuizResult<Box<T>> + 'static)-> ContainerFactoryStruct {
+pub fn container_factory<T: 'static>(manifest: ContainerManifest, function: impl Fn(CapsuleMap)->JuizResult<Box<T>> + 'static)-> ContainerFactoryStruct {
     ContainerFactoryStruct(manifest, Arc::new(bind_container_constructor(function)))
 }
 
-pub fn bind_container_constructor<T: 'static>(function: impl Fn(ContainerManifest)->JuizResult<Box<T>>) -> impl Fn(ContainerManifest)->JuizResult<ContainerPtr> {
-    move |cn: ContainerManifest| -> JuizResult<ContainerPtr> {
-        Ok(ContainerPtr::new(ContainerImpl::new(cn.clone(), function(cn)?)?))
+pub fn bind_container_constructor<T: 'static>(function: impl Fn(CapsuleMap)->JuizResult<Box<T>>) -> impl Fn(ContainerManifest, CapsuleMap)->JuizResult<ContainerPtr> {
+    move |cn: ContainerManifest, v: CapsuleMap| -> JuizResult<ContainerPtr> {
+        Ok(ContainerPtr::new(ContainerImpl::new(cn.clone(), function(v)?)?))
     }
 }
 

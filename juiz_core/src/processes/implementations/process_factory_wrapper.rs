@@ -36,7 +36,7 @@ impl JuizObject for ProcessFactoryWrapper {
         let v = self.core.profile_full()?;
         Ok(obj_merge(v, &jvalue!({
             "plugin": prof,
-            "process_factory": self.process_factory.lock()?.profile_full()?,
+            "given_process_factory": self.process_factory.lock()?.profile_full()?,
         }))?.into())
     }
 

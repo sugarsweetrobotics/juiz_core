@@ -257,6 +257,7 @@ impl Into<Value> for ProcessManifest {
             "arguments": arguments_to_array(self.arguments),
             "publishes": self.publishes.iter().map(|v|{ v.clone().into() }).collect::<Vec<Value>>(),
             "subscribes": self.subscribes.iter().map(|(k,v)|{ (k.clone(), v.clone().into() ) }).collect::<Map<String, Value>>(),
+            "factory": self.factory,
         });
         let map = v.as_object_mut().unwrap();
         if let Some(container_name) = self.container_name {
@@ -321,6 +322,14 @@ impl TryFrom<Value> for ProcessManifest {
             },
             Err(_) => {
                 p = p.language("rust");
+            }
+        }
+        match obj_get_str(&value, "factory") {
+            Ok(factory) => {
+                p = p.factory(factory);
+            },
+            Err(_) => {
+                p = p.factory("process_factory");
             }
         }
         match obj_get_bool(&value, "use_memo") {

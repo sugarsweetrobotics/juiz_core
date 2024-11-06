@@ -123,9 +123,9 @@ impl CoreWorker {
 
 
 
-    pub fn create_container_ref(&mut self, manifest: ContainerManifest) -> JuizResult<ContainerPtr> {
+    pub fn create_container_ref(&mut self, type_name: &str, manifest: CapsuleMap) -> JuizResult<ContainerPtr> {
         log::trace!("CoreBroker::create_container(manifest={:?}) called", manifest);
-        let arc_pf = self.store().containers.factory(manifest.type_name.as_str())?.clone();
+        let arc_pf = self.store().containers.factory(type_name)?.clone();
         let p = arc_pf.lock()?.create_container(self, manifest)?;
         let id = p.identifier().clone();
         Ok(self.store_mut().containers.register(&id, p)?.clone())

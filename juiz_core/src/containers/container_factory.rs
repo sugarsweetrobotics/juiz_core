@@ -9,7 +9,7 @@ pub type ContainerConstructFunctionTrait<T>=dyn Fn(ContainerManifest) -> JuizRes
 
 pub trait ContainerFactory : JuizObject + 'static {
 
-    fn create_container(&self, core_worker: &mut CoreWorker, manifest: ContainerManifest) -> JuizResult<ContainerPtr>;
+    fn create_container(&self, core_worker: &mut CoreWorker, manifest: CapsuleMap) -> JuizResult<ContainerPtr>;
 
     fn destroy_container(&mut self, c: ContainerPtr) -> JuizResult<Value>;
     

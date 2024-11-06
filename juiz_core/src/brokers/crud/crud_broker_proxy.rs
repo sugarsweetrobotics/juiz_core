@@ -152,7 +152,7 @@ impl ContainerBrokerProxy for CRUDBrokerProxyHolder {
         })?
     }
     
-    fn container_create(&mut self, manifest: ContainerManifest) -> JuizResult<Value> {
+    fn container_create(&mut self, manifest: CapsuleMap) -> JuizResult<Value> {
         capsule_to_value(self.broker.create("container", "create", manifest.into(), HashMap::new())?)
 
     }

@@ -378,8 +378,10 @@ impl ContainerBrokerProxy for CoreBroker {
         Ok(ids)
     }
     
-    fn container_create(&mut self, manifest: ContainerManifest) -> JuizResult<Value> {
-        self.worker_mut().create_container_ref(manifest.clone())?.lock()?.profile_full()
+    fn container_create(&mut self, manifest: CapsuleMap) -> JuizResult<Value> {
+        let type_name: String =  manifest.get("type_name")?.try_into()?;
+       //let type_name = obj_get_str(&manifest, "type_name")?;
+        self.worker_mut().create_container_ref(type_name.as_str(), manifest)?.lock()?.profile_full()
     }
     
     fn container_destroy(&mut self, identifier: &Identifier) -> JuizResult<Value> {

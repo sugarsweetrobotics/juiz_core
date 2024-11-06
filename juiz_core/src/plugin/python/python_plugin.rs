@@ -199,9 +199,10 @@ if not "{path_str:}" in sys.path:
             Ok(pyfunc.to_object(py))
         })?;
         // let signature = get_python_function_signature(&pyfunc2)?;
-        let constructor = move |cm: ContainerManifest| -> JuizResult<ContainerPtr> {
+        let constructor = move |cm: ContainerManifest, arg: CapsuleMap| -> JuizResult<ContainerPtr> {
             let pyobj = Python::with_gil(|py| {
-                pyfunc2.call1(py, PyTuple::new_bound(py,  [value_to_pyany(py, &cm.clone().into())]))
+                let v: Value = arg.into();
+                pyfunc2.call1(py, PyTuple::new_bound(py,  [value_to_pyany(py, obj_get(&v, "__map__").unwrap())]))
             })?;
             Ok(ContainerPtr::new(ContainerImpl::new(cm, Box::new(PythonContainerStruct{
                 pyobj,

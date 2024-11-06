@@ -49,6 +49,10 @@ impl CapsuleMap {
         }
     }
 
+    pub fn get_map<'a>(&'a self) -> &'a HashMap<String, CapsulePtr> {
+        &self.map
+    }
+    
 
     pub fn get_params<'a>(&'a self) -> &'a HashMap<String, String> {
         &self.param
@@ -90,17 +94,20 @@ impl TryFrom<Value> for CapsuleMap {
 
     fn try_from(value: Value) -> Result<Self, Self::Error> {
         let mut c = CapsuleMap::new();
-        for (k, v) in get_hashmap(&value)?.iter() {
-            if k == "map" {
-                for (key, value) in get_hashmap(v)?.iter() {
-                    c.insert(key.to_owned(), (*value).clone().into());
-                }
-            } else if k == "param" {
-                for (key, value) in get_hashmap(v)?.iter() {
+        let c_map = get_hashmap(&value)?;
+        if c_map.contains_key("__map__") {
+            let map_v = c_map.get("__map__").unwrap();
+            for (key, value) in get_hashmap(map_v)?.iter() {
+                c.insert(key.to_owned(), (*value).clone().into());
+            }
+            if c_map.contains_key("__param__") {
+                let param_v = c_map.get("__param__").unwrap();
+                for (key, value) in get_hashmap(param_v)?.iter() {
                     c.set_param(key.as_str(), (*value).as_str().unwrap());
                 }
-            } else {
-                // log::warn!("Trying to convert from Value to CapuleMap but it does not contain key 'map' and 'param'.");
+            }
+        } else {
+            for (k, v) in get_hashmap(&value)?.iter() {
                 c.insert(k.to_owned(), v.clone().into());                
             }
         }
@@ -111,23 +118,27 @@ impl TryFrom<Value> for CapsuleMap {
 impl From<CapsuleMap> for Value {
     fn from(capsule_map: CapsuleMap) -> Self {
         // log::trace!("Value From CapusleMap ({capsule_map:?}) called");
-        let mut v1 = jvalue!({});
-        let map = v1.as_object_mut().unwrap();
-        for (key, value) in capsule_map.map.iter() {
-            let _ = value.lock_as_value(|vv| -> () { 
-                map.insert(key.clone(), vv.clone()); 
-            });
-            //map.insert(k, Value::try_from(v.lock().unwrap().clone()).unwrap());
-        }
-        let mut v2 = jvalue!({});
-        let param = v2.as_object_mut().unwrap();
-        for (key, value) in capsule_map.param.iter() {
-            param.insert(key.clone(), jvalue!(value));
-        }
+        // let mut v1 = jvalue!({});
+        // let map = v1.as_object_mut().unwrap();
+        // for (key, value) in capsule_map.map.iter() {
+        //     let _ = value.lock_as_value(|vv| -> () { 
+        //         map.insert(key.clone(), vv.clone()); 
+        //     });
+        //     //map.insert(k, Value::try_from(v.lock().unwrap().clone()).unwrap());
+        // }
+        // let mut v2 = jvalue!({});
+        // let param = v2.as_object_mut().unwrap();
+        // for (key, value) in capsule_map.param.iter() {
+        //     param.insert(key.clone(), jvalue!(value));
+        // }
 
+        let map_map = capsule_map.map.into_iter().map(|(k,v)| -> (String,Value) {
+            (k, v.extract_value().unwrap())
+        }).collect::<Map<String,Value>>();
+        
         return jvalue!({
-            "map": v1,
-            "param": v2,
+            "__map__": map_map,
+            "__param___": capsule_map.param,
         })
     }
 }
