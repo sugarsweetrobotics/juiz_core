@@ -27,7 +27,7 @@ pub(crate) fn toplevel_key_value(attr: &mut IntoIter, value: &mut Map<String, Va
                                                             if let proc_macro::TokenTree::Ident(kident2) = ttree2 {
                                                                 key = key + ":" + kident2.to_string().as_str();
 
-                                                                let ttree3 = attr.next().unwrap();
+                                                                let _ttree3 = attr.next().unwrap();
                                                             } else {
                                                                 panic!("二つのセミコロン (::) のあとは識別子を規定していますが {ttree2:?} でした")
                                                             }
