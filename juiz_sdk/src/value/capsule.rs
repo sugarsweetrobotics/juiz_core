@@ -100,6 +100,13 @@ impl CapsuleValue {
             _ => return None
         }
     }
+
+    pub fn to_image(self) -> Option<DynamicImage> {
+        match self {
+            Self::Image(v) => return Some(v), 
+            _ => return None
+        }
+    }
     /*
     pub fn to_mat(&self) -> Option<Mat> {
         match self {
@@ -221,6 +228,8 @@ impl Capsule {
 
     pub fn as_image(&self) -> Option<&DynamicImage> { self.value.as_image() }
     //pub fn to_mat(&self) -> Option<opencv::core::Mat> { self.value.to_mat() }
+
+    pub fn to_image(self) -> Option<DynamicImage> { self.value.to_image() }
 
     pub fn set_option(&mut self, key: &str, value: &str) -> &mut Self {
         self.option.insert(key.to_owned(), value.to_owned());

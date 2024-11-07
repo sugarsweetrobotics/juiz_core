@@ -4,87 +4,39 @@ mod video_capture;
 mod video_capture_read;
 mod video_capture_get;
 mod video_capture_readandget;
-mod cvt;
+mod cv_cvt_color;
 mod window;
-mod imshow;
+mod window_show;
 mod filesystem;
-mod imwrite;
+mod filesystem_imwrite;
 
-pub mod cv_camera_capture {
+pub use juiz_sdk::prelude::*;
 
-    use juiz_sdk::prelude::*;
-    use juiz_sdk::env_logger;
+use video_capture::*;
+use video_capture_read::*;
+use video_capture_get::*;
+use video_capture_readandget::*;
+use window::*;
+use window_show::*;
+use filesystem::*;
+use cv_cvt_color::*;
 
-    use crate::filesystem;
-    use crate::imshow;
-    use crate::imwrite;
-    use crate::video_capture;
-    use crate::video_capture_get;
-    use crate::video_capture_read;
-    use crate::video_capture_readandget;
-    use crate::window;
+juiz_component_manifest!(
+    container_name = "juiz_opencv"
+    containers = {
+        video_capture = [
+            video_capture_get,
+            video_capture_read,
+            video_capture_readandget
+        ],
+        window = [
+            window_show,
+        ],
+        filesystem = [
 
-
-    #[no_mangle]
-    pub unsafe extern "Rust" fn component_manifest() -> ComponentManifest {
-        env_logger::init();
-        ComponentManifest::new("opencv")
-            .add_container(video_capture::CvVideoCapture::manifest()
-                .add_process(video_capture_get::manifest())
-                .add_process(video_capture_read::manifest())
-                .add_process(video_capture_readandget::manifest()))
-            .add_container(window::CvWindow::manifest()
-                .add_process(imshow::manifest()))
-            .add_container(filesystem::CvFilesystem::manifest()
-                .add_process(imwrite::manifest()))   
-    }
-
-    #[no_mangle]
-    pub unsafe extern "Rust" fn component_manifest_value() -> Value {
-        env_logger::init();
-        return jvalue!({
-            "type_name": "opencv",
-            "containers": [
-                {
-                    "type_name": "cv_video_capture",
-                    "factory": "cv_video_capture_factory",
-                    "processes": [ {
-                        "type_name": "cv_video_capture_read",
-                        "factory": "cv_video_capture_read_factory"
-                    },
-                    {
-                        "type_name": "cv_video_capture_readandget",
-                        "factory": "cv_video_capture_readandget_factory"
-                    },
-                    {
-                        "type_name": "cv_video_capture_get",
-                        "factory": "cv_video_capture_get_factory"
-                    }
-                    ]
-                },
-                {
-                    "type_name": "cv_window",
-                    "factory": "cv_window_factory",
-                    "processes": [ {
-                        "type_name": "imshow",
-                        "factory": "imshow_factory"
-                    }]
-                },
-                {
-                    "type_name": "cv_filesystem",
-                    "factory": "cv_filesystem_factory",
-                    "processes": [ {
-                        "type_name": "imwrite",
-                        "factory": "imwrite_factory"
-                    }]
-                }
-            ],
-            "processes": [
-                {
-                    "type_name": "cv_cvt_color",
-                    "factory": "cv_cvt_color_factory",
-                }
-            ]
-        }); 
-    }
-}
+        ]
+    },
+    processes = [
+        cv_cvt_color
+    ]
+);

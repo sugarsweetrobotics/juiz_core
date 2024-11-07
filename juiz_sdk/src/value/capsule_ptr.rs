@@ -115,6 +115,24 @@ impl CapsulePtr {
         }
     }
 
+    pub fn extract_image(self) -> JuizResult<DynamicImage> {
+        match Arc::try_unwrap(self.value) {
+            Ok(v) => {
+                match v.into_inner() {
+                    Ok(vv) => {
+                        return Ok(vv.to_image().unwrap())
+                    },
+                    Err(v) => {
+                        return Ok(v.get_ref().as_image().unwrap().clone())
+                    }
+                }
+            },
+            Err(e) => {
+                e.lock().and_then(|v| { Ok(v.as_image().unwrap().clone()) }).or_else(|_e| { Err(anyhow::Error::from(JuizError::MutexLockFailedError { error: "".to_owned() })) })
+            }
+        }
+    }
+
     pub fn extract_value(self) -> JuizResult<Value> {
         match Arc::try_unwrap(self.value) {
             Ok(v) => {
@@ -379,5 +397,13 @@ impl TryInto<Vec<f64>> for CapsulePtr {
             Ok(v.as_array().ok_or_else(|| {anyhow!(JuizError::ValueTypeError { message: "From<Vec<f64>>> for CapsulePtr failed.".to_owned() })})?.clone())
         })??;
         val.into_iter().map(|v| { v.as_f64().ok_or_else(|| {anyhow!(JuizError::ValueTypeError { message: "From<Vec<f64>> for CapsulePtr failed.".to_owned() })}) }).collect::<JuizResult<Vec<f64>>>()
+    }
+}
+
+impl TryInto<DynamicImage> for CapsulePtr {
+    type Error = anyhow::Error;
+
+    fn try_into(self) -> Result<DynamicImage, Self::Error> {
+        self.extract_image()
     }
 }

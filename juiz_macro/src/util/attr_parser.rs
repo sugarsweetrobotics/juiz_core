@@ -8,17 +8,51 @@ pub(crate) fn toplevel_key_value(attr: &mut IntoIter, value: &mut Map<String, Va
         Some(k) => {
             match k {
                 proc_macro::TokenTree::Ident(kident) => {
+                    let mut key = kident.to_string();
                     match attr.next() {
                         Some(p) => {
                             match p {
-                                proc_macro::TokenTree::Punct(_punct) => {
+                                proc_macro::TokenTree::Punct(punct) => {
+                                    let punct_char = punct.to_string();
+                                    match punct_char.as_str() {
+                                        "=" => {
+                                            // 期待通り何もしない
+                                        }
+                                        ":" => {
+                                            if let Some(ttree) = attr.next() {
+                                                if let proc_macro::TokenTree::Punct(punct2) = ttree {
+                                                    let ttree2 = attr.next().unwrap();
+                                                    match punct2.as_char() {
+                                                        ':' => {
+                                                            if let proc_macro::TokenTree::Ident(kident2) = ttree2 {
+                                                                key = key + ":" + kident2.to_string().as_str();
+
+                                                                let ttree3 = attr.next().unwrap();
+                                                            } else {
+                                                                panic!("二つのセミコロン (::) のあとは識別子を規定していますが {ttree2:?} でした")
+                                                            }
+                                                        }
+                                                        _var => {
+                                                            panic!("セミコロン (:) のあとはもう一度セミコロンを予期していますが、{_var:?} でした")
+                                                        }
+                                                    }
+                                                } else {
+                                                    panic!("セミコロン (:) のあとはもう一度セミコロンを予期しています")
+                                                }
+                                            } else {
+                                                panic!("予期しない終端です。")
+                                            }
+                                        }
+                                        _ => {
+                                            panic!("予期しない識別子 {punct_char:}");
+                                        }
+                                    }
                                     match attr.next() {
                                         Some(v) => {
                                             match v {
                                                 proc_macro::TokenTree::Group(group) => {
                                                     match group.delimiter() {
                                                         proc_macro::Delimiter::Brace => {
-                                                            let key = kident.to_string();
                                                             let mut it = group.stream().into_iter();
                                                             let mut tmp_val: Map<String, Value> = Map::new();
                                                             toplevel_key_value(&mut it, &mut tmp_val, true)?;
@@ -84,13 +118,13 @@ pub(crate) fn toplevel_key_value(attr: &mut IntoIter, value: &mut Map<String, Va
                                                     //let val = literal.to_string();
                                                     value.insert(key, val.into());
                                                 },
-                                                _ => {
-                                                    panic!("Expected value after '='")
+                                                _var => {
+                                                    panic!("Expected value after '=' but {_var:?}")
                                                 }
                                             }
                                         }
                                         None => {
-                                            panic!("Expected value after '='")
+                                            panic!("Expected value after '=' but None")
                                         }
                                     }
                                 }

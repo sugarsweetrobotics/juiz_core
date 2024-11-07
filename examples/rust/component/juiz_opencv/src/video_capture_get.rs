@@ -1,27 +1,15 @@
 
 
 use juiz_sdk::{image::DynamicImage, prelude::*};
-use crate::video_capture::CvVideoCapture;
+use crate::video_capture::*;
 
 use cv_convert::TryFromCv;
 
-fn cv_video_capture_get_function(container: &mut ContainerImpl<CvVideoCapture>, _v: CapsuleMap) -> JuizResult<Capsule> {
+#[juiz_component_container_process(
+    container_type = "video_capture"
+)]
+fn video_capture_get(container: &mut ContainerImpl<CvVideoCapture>) -> JuizResult<Capsule> {
     let img : DynamicImage = DynamicImage::try_from_cv(container.image.clone().unwrap())?;
     let value: Capsule = img.into();
     return Ok(value);
 }
-
-pub(crate) fn manifest() -> ProcessManifest {
-    ProcessManifest::new("cv_video_capture_get")
-        .container(CvVideoCapture::manifest())
-        .factory("cv_video_capture_get_factory")
-}
-
-#[no_mangle]
-pub unsafe extern "Rust" fn cv_video_capture_get_factory() -> JuizResult<ContainerProcessFactoryStruct> {
-    Ok(juiz_sdk::container_process_factory(
-        manifest(),
-        &cv_video_capture_get_function))
-}
-
-

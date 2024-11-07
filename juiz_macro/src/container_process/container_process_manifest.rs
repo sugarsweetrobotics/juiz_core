@@ -10,7 +10,7 @@ use syn::TypePath;
 
 pub(crate) fn manifest_tokenstream() -> TokenStream {
     quote!{
-        fn manifest2() -> juiz_sdk::prelude::ProcessManifest { 
+        pub(crate) fn manifest2() -> juiz_sdk::prelude::ProcessManifest { 
         }
     }.into()
 }
@@ -18,7 +18,7 @@ pub(crate) fn manifest_tokenstream() -> TokenStream {
 pub(crate) fn component_manifest_tokenstream(proc_type_str: String) -> TokenStream {
     let manifest_function_name_ident = format_ident!("{}", proc_type_str + "_manifest");
     quote!{
-        fn #manifest_function_name_ident() -> juiz_sdk::prelude::ProcessManifest { 
+        pub(crate) fn #manifest_function_name_ident() -> juiz_sdk::prelude::ProcessManifest { 
         }
     }.into()
 }
@@ -79,8 +79,14 @@ fn construct_manif_inner(_container_type_ident: syn::Ident, _function_name: Stri
                     manif = manif.add_object_arg(#arg_name, #description, serde_json::from_str(#value_str).unwrap());
                 }
             },
+            "DynamicImage" => {
+                construct_manif = quote!{
+                    #construct_manif
+                    manif = manif.add_image_arg(#arg_name, #description);
+                }
+            }
             _ => {
-                panic!("自動マニフェスト生成に失敗。対応するデータ型ではありません。 ({type_name:})")
+                panic!("[container_process_manifest.rs]自動マニフェスト生成に失敗。対応するデータ型ではありません。 ({type_name:})")
             }
         }
     }
