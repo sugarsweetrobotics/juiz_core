@@ -18,7 +18,7 @@ pub fn add_function(v: CapsuleMap) -> JuizResult<Capsule> {
 
 #[allow(dead_code)]
 pub fn new_add_process<'a> (name: &str) -> JuizResult<impl Process> {
-    let manifest = serde_json::json!({
+    let manifest = jvalue!({
         "name": name,
         "type_name": "add",
         "arguments" : [
@@ -56,7 +56,7 @@ pub fn increment_function(v: CapsuleMap) -> JuizResult<Capsule> {
 
 #[allow(dead_code)]
 pub fn new_increment_process<'a> (name: &str) -> JuizResult<impl Process> {
-    let manifest = serde_json::json!({
+    let manifest = jvalue!({
         "name": name,
         "type_name": "increment",
         "arguments" : [
@@ -75,7 +75,7 @@ pub fn new_increment_process<'a> (name: &str) -> JuizResult<impl Process> {
 
 #[allow(dead_code)]
 pub fn new_increment_process_use_memo<'a> (name: &str) -> JuizResult<impl Process> {
-    let manifest = serde_json::json!({
+    let manifest = jvalue!({
         "name": name,
         "type_name": "increment",
         "use_memo": true,
@@ -109,7 +109,7 @@ pub fn execution_function(_v: CapsuleMap) -> JuizResult<Capsule> {
 
 #[allow(dead_code)]
 pub fn new_execution_process<'a> (name: &str) -> JuizResult<impl Process> {
-    let manifest = serde_json::json!({
+    let manifest = jvalue!({
         "name": "test_function",
         "type_name": name,
         "arguments" : [

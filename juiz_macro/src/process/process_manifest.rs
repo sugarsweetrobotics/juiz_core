@@ -10,7 +10,7 @@ use syn::TypePath;
 
 pub(crate) fn manifest_tokenstream() -> TokenStream {
     quote!{
-        pub(crate) fn manifest2() -> juiz_sdk::prelude::ProcessManifest { 
+        pub(crate) fn manifest() -> juiz_sdk::prelude::ProcessManifest { 
         }
     }.into()
 }

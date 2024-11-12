@@ -34,6 +34,27 @@ pub trait SystemBrokerProxy {
     /// 
     fn system_uuid(&self) -> JuizResult<Value>;
 
+    /// Processのfactoryをファイルシステムからロードする
+    /// 
+    /// 
+    fn system_load_process(&mut self, language: String, filepath: String) -> JuizResult<Value>;
+
+    /// Containerのfactoryをファイルシステムからロードする
+    /// 
+    /// 
+    fn system_load_container(&mut self, language: String, filepath: String) -> JuizResult<Value>;
+
+
+    /// ContainerProcessのfactoryをファイルシステムからロードする
+    /// 
+    /// 
+    fn system_load_container_process(&mut self, language: String, filepath: String) -> JuizResult<Value>;
+
+    /// Componentのfactoryをファイルシステムからロードする
+    /// 
+    /// 
+    fn system_load_component(&mut self, language: String, filepath: String) -> JuizResult<Value>;
+
 }
 
 pub trait ProcessBrokerProxy {

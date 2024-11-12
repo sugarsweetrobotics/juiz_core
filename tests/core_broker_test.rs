@@ -7,7 +7,7 @@ use juiz_core::prelude::*;
 mod common;
 
 fn new_increment_process<'a> () -> JuizResult<impl Process> {
-    let manifest = serde_json::json!({
+    let manifest = jvalue!({
         "name": "test_function",
         "type_name": "increment",
         "arguments" : [

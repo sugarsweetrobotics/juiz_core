@@ -33,12 +33,12 @@ pub use crate::{
         ExecutionContextBrokerProxy,
         BrokerBrokerProxy,
         ConnectionBrokerProxy,     
+        CoreBrokerPtr,
+        CoreBroker
     },
     
     core:: {
         System,
-        CoreBroker,
-        CoreBrokerPtr,
         CoreWorker,
     },
     connections::connect,

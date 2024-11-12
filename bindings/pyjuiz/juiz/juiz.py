@@ -20,7 +20,7 @@ class ProcessManifest:
     description: str = ""
     factory: str = "process_factory"
     use_demo: bool = False
-    language: str = ""
+    language: str = "python"
     name: Optional[str] = None
     container_name: Optional[str] = None
     container_type: Optional[str] = None
@@ -57,6 +57,10 @@ class ProcessManifest:
         self.arguments.append(argument_manifest)
         return self
 
+    def add_bool_arg(self, name, description, default_value:bool):
+        self.add_argument(ArgumentManifest.new("bool", name, description, default_value))
+        return self
+    
     def add_int_arg(self, name, description, default_value:int):
         self.add_argument(ArgumentManifest.new("int", name, description, default_value))
         return self
@@ -69,8 +73,12 @@ class ProcessManifest:
         self.add_argument(ArgumentManifest.new("string", name, description, default_value))
         return self
 
-    def add_object_arg(self, name, description, default_value:Any):
+    def add_object_arg(self, name, description, default_value: dict):
         self.add_argument(ArgumentManifest.new("object", name, description, default_value))
+        return self
+    
+    def add_array_arg(self, name, description, default_value: list):
+        self.add_argument(ArgumentManifest.new("array", name, description, default_value))
         return self
         
     def into_value(self):
@@ -81,6 +89,7 @@ class ContainerManifest:
     type_name: str
     args: dict
     processes: List[ProcessManifest] 
+    arguments: List[ArgumentManifest]
     language: str = "python"
     factory: str = "container_factory"
     description: str = ""
@@ -90,7 +99,7 @@ class ContainerManifest:
     
     @classmethod
     def new(cls, type_name):
-        return ContainerManifest(type_name=type_name, args={}, processes=[])
+        return ContainerManifest(type_name=type_name, args={}, processes=[], arguments=[])
     
     def add_process(self, process_manifest: ProcessManifest):
         self.processes.append(process_manifest\
@@ -98,9 +107,40 @@ class ContainerManifest:
             .set_container_name(self.name))
         return self
     
+    def set_description(self, desc): 
+        self.description = desc
+        return self
+    
     def into_value(self):
         return asdict(self, dict_factory=lambda x: {k: v for (k, v) in x if v is not None})
     
+    def add_argument(self, argument_manifest):
+        self.arguments.append(argument_manifest)
+        return self
+    
+    def add_bool_arg(self, name, description, default_value:bool):
+        self.add_argument(ArgumentManifest.new("bool", name, description, default_value))
+        return self
+    
+    def add_int_arg(self, name, description, default_value:int):
+        self.add_argument(ArgumentManifest.new("int", name, description, default_value))
+        return self
+        
+    def add_float_arg(self, name, description, default_value:float):
+        self.add_argument(ArgumentManifest.new("float", name, description, default_value))
+        return self
+        
+    def add_string_arg(self, name, description, default_value:str):
+        self.add_argument(ArgumentManifest.new("string", name, description, default_value))
+        return self
+
+    def add_object_arg(self, name, description, default_value: dict):
+        self.add_argument(ArgumentManifest.new("object", name, description, default_value))
+        return self
+    
+    def add_array_arg(self, name, description, default_value: list):
+        self.add_argument(ArgumentManifest.new("array", name, description, default_value))
+        return self
 @dataclass
 class ComponentManifest:
     type_name: str

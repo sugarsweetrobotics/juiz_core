@@ -39,11 +39,16 @@ impl JuizObject for ContainerFactoryWrapper {
             JuizObjectPlugin::Python(p) => p.profile_full().unwrap(),
             JuizObjectPlugin::Cpp(p) => p.profile_full().unwrap(),
         };
+        let container_prof = self.container_factory.lock()?.profile_full()?;
+        let lang = obj_get_str(&container_prof, "language")?.to_owned();
         //let prof = self.rust_plugin.as_ref().and_then(|p|{ Some(p.profile_full().unwrap()) }).or_else(|| { self.python_plugin.as_ref().and_then( |p| {Some(p.profile_full().unwrap())}).or( Some(self.cpp_plugin.as_ref().unwrap().profile_full().unwrap())) });
         Ok(obj_merge(self.core.profile_full()?, &jvalue!(
             {
+                "__class__": "ContainerFactoryWrapper",
                 "plugin": prof,
-                "container_factory": self.container_factory.lock()?.profile_full()?,
+                "language": lang,
+                "container_factory": container_prof,
+                
             }
         ))?.into())
     }

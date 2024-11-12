@@ -3,7 +3,8 @@ use std::{collections::HashMap, path::PathBuf, str::FromStr};
 use juiz_sdk::anyhow::{self, anyhow};
 use uuid::Uuid;
 
-use crate::{brokers::broker_proxy::{BrokerBrokerProxy, ConnectionBrokerProxy, ContainerBrokerProxy, ContainerProcessBrokerProxy, ExecutionContextBrokerProxy, ProcessBrokerProxy, SystemBrokerProxy, TopicBrokerProxy}, core::CoreBrokerPtr, prelude::*};
+use super::super::core_broker::CoreBrokerPtr;
+use crate::{brokers::broker_proxy::{BrokerBrokerProxy, ConnectionBrokerProxy, ContainerBrokerProxy, ContainerProcessBrokerProxy, ExecutionContextBrokerProxy, ProcessBrokerProxy, SystemBrokerProxy, TopicBrokerProxy}, prelude::*};
 use juiz_sdk::value::{CapsuleMap, value_to_capsule};
 
 
@@ -219,6 +220,54 @@ pub(crate) fn update_callback_container() -> ClassCallbackContainerType {
         }
         Ok(value_to_capsule(cb.lock_mut()?.system_add_mastersystem(manif)?))
     });
+    system_callbacks.insert("load_process", |cb, args| {
+        log::trace!("system_callbacks[load_process'] called with args {args:?}");
+        let filepath=  match args.get("filepath")?.extract_value()?.as_str() {
+            Some(fp_str) => Ok(fp_str.to_owned()),
+            None => Err(anyhow!(JuizError::InvalidValueError { message: "system_load_process need 'filepath' argument.".to_owned() }))
+        }?;
+        let language = match args.get("language")?.extract_value()?.as_str() {
+            Some(lang_str) => Ok(lang_str.to_owned()),
+            None => Err(anyhow!(JuizError::InvalidValueError { message: "system_load_process need 'language' argument.".to_owned() }))
+        }?;
+        Ok(value_to_capsule(cb.lock_mut()?.system_load_process(language, filepath)?))
+    });    
+    system_callbacks.insert("load_container", |cb, args| {
+        log::trace!("system_callbacks[load_container'] called with args {args:?}");
+        let filepath=  match args.get("filepath")?.extract_value()?.as_str() {
+            Some(fp_str) => Ok(fp_str.to_owned()),
+            None => Err(anyhow!(JuizError::InvalidValueError { message: "system_load_container need 'filepath' argument.".to_owned() }))
+        }?;
+        let language = match args.get("language")?.extract_value()?.as_str() {
+            Some(lang_str) => Ok(lang_str.to_owned()),
+            None => Err(anyhow!(JuizError::InvalidValueError { message: "system_load_container need 'language' argument.".to_owned() }))
+        }?;
+        Ok(value_to_capsule(cb.lock_mut()?.system_load_container(language, filepath)?))
+    }); 
+    system_callbacks.insert("load_container_process", |cb, args| {
+        log::trace!("system_callbacks[load_container_process'] called with args {args:?}");
+        let filepath=  match args.get("filepath")?.extract_value()?.as_str() {
+            Some(fp_str) => Ok(fp_str.to_owned()),
+            None => Err(anyhow!(JuizError::InvalidValueError { message: "system_load_container_process need 'filepath' argument.".to_owned() }))
+        }?;
+        let language = match args.get("language")?.extract_value()?.as_str() {
+            Some(lang_str) => Ok(lang_str.to_owned()),
+            None => Err(anyhow!(JuizError::InvalidValueError { message: "system_load_container_process need 'language' argument.".to_owned() }))
+        }?;
+        Ok(value_to_capsule(cb.lock_mut()?.system_load_container_process(language, filepath)?))
+    }); 
+    system_callbacks.insert("load_component", |cb, args| {
+        log::trace!("system_callbacks[load_component'] called with args {args:?}");
+        let filepath=  match args.get("filepath")?.extract_value()?.as_str() {
+            Some(fp_str) => Ok(fp_str.to_owned()),
+            None => Err(anyhow!(JuizError::InvalidValueError { message: "system_load_container need 'filepath' argument.".to_owned() }))
+        }?;
+        let language = match args.get("language")?.extract_value()?.as_str() {
+            Some(lang_str) => Ok(lang_str.to_owned()),
+            None => Err(anyhow!(JuizError::InvalidValueError { message: "system_load_container need 'language' argument.".to_owned() }))
+        }?;
+        Ok(value_to_capsule(cb.lock_mut()?.system_load_component(language, filepath)?))
+    }); 
     update_cb_container.insert("system", system_callbacks);
 
     let mut proc_cbs = CallbackContainerType::new();

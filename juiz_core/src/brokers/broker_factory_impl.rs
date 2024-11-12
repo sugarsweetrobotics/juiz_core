@@ -1,7 +1,7 @@
 
 use std::sync::{Arc, Mutex};
 
-use crate::core::CoreBrokerPtr;
+use super::core_broker::CoreBrokerPtr;
 use crate::prelude::*;
 
 use super::broker_ptr::BrokerPtr;

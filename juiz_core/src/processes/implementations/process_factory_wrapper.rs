@@ -34,9 +34,13 @@ impl JuizObject for ProcessFactoryWrapper {
         log::trace!("ProcessFactoryWrapper({:})::profile_full() called", self.type_name());
         let prof = self.plugin.profile_full().unwrap();
         let v = self.core.profile_full()?;
+        let proc_prof = self.process_factory.lock()?.profile_full()?;
+        let lang = obj_get_str(&proc_prof, "language")?.to_owned();
+    
         Ok(obj_merge(v, &jvalue!({
             "plugin": prof,
-            "given_process_factory": self.process_factory.lock()?.profile_full()?,
+            "language": lang,
+            "given_process_factory": proc_prof,
         }))?.into())
     }
 

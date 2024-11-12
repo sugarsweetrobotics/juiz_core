@@ -61,9 +61,23 @@ public:
     factory_ = fact;
     return *this;
   }
+  ProcessManifest add_bool_arg(const std::string& name, const std::string& description, bool default_value) {
+    arguments_.push_back(ArgumentManifest("bool", name, description, juiz::Value{default_value}));
+    return *this;
+  }
 
   ProcessManifest add_int_arg(const std::string& name, const std::string& description, int64_t default_value) {
     arguments_.push_back(ArgumentManifest("int", name, description, {default_value}));
+    return *this;
+  }
+
+  ProcessManifest add_float_arg(const std::string& name, const std::string& description, double default_value) {
+    arguments_.push_back(ArgumentManifest("float", name, description, {default_value}));
+    return *this;
+  }
+
+  ProcessManifest add_string_arg(const std::string& name, const std::string& description, const std::string& default_value) {
+    arguments_.push_back(ArgumentManifest("string", name, description, {default_value}));
     return *this;
   }
 
@@ -122,7 +136,7 @@ public:
 class ContainerManifest {
 public:
 
-  ContainerManifest(const std::string& type_name): type_name_(type_name) {}
+  ContainerManifest(const std::string& type_name): type_name_(type_name), language_("c++") {}
 
   ContainerManifest description(const std::string& description) {
     description_ = description;

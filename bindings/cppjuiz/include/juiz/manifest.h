@@ -66,8 +66,12 @@ int64_t serialize(capsule* cp, double& retval) {
     return capsule_set_float(cp, retval);
 }
 
-template<std::string&>
-int64_t serialize(capsule* cp, std::string& retval) {
+// template<std::string&>
+int64_t serialize(capsule* cp, const std::string& retval) {
+    return capsule_set_string(cp, retval.c_str());
+}
+
+int64_t serialize(capsule* cp, const std::string&& retval) {
     return capsule_set_string(cp, retval.c_str());
 }
 

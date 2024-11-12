@@ -20,7 +20,7 @@ pub(crate) fn component_factory_tokenstream(function_ident: syn::Ident, factory_
     quote!{
        #[no_mangle]
         pub unsafe extern "Rust" fn #factory_name_ident() -> JuizResult<ContainerProcessFactoryStruct> {
-            env_logger::init();
+            // env_logger::init();
             Ok(juiz_sdk::container_process_factory(#manifest_function_name_ident(), #function_ident))
         }
     }.into()

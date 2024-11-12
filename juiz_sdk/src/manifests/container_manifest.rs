@@ -1,5 +1,7 @@
 
 
+use std::fmt::Display;
+
 use anyhow::Context;
 
 use crate::prelude::*;
@@ -12,11 +14,24 @@ pub struct ContainerManifest {
     pub language: String,
     pub type_name: String,
     pub factory: String, 
+    pub arguments: Vec<ArgumentManifest>,
     pub description: Description,
     pub parent_type_name: Option<String>,
     pub parent_name: Option<String>,
     pub processes: Vec<ProcessManifest>,
     pub args: Value,
+}
+
+impl Display for ContainerManifest {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("ContainerManifest(\"{}\", \"{}\", processes=[", self.type_name, self.language, ))?;
+        for p in self.processes.iter() {
+            f.write_fmt(format_args!("{}, ", p))?;
+        }
+        f.write_str("])")?;
+
+        Ok(())
+    }
 }
 
 
@@ -40,6 +55,7 @@ impl ContainerManifest {
             parent_name: None,
             processes: Vec::new(),
             args: jvalue!({}),
+            arguments: Vec::new(),
         }
     }
 
@@ -54,6 +70,7 @@ impl ContainerManifest {
             parent_name: None,
             processes: Vec::new(),
             args: jvalue!({}),
+            arguments: Vec::new(),
         }
     }
 
@@ -83,18 +100,56 @@ impl ContainerManifest {
     }
 
     pub fn add_process(mut self, process_manifest: ProcessManifest) -> Self {
-       
+        // println!("add_process({})", process_manifest);
         self.processes.push( 
             process_manifest
                 .container_name(self.name.as_ref().map(|s|{s.clone()}))
                 .container_type(Some(self.type_name.clone()))
         );
+        // println!("cm: {}", self);
         self
     }
 
     pub fn factory(mut self, factory: &str) -> Self {
         self.factory = factory.to_owned();
         self
+    }
+    
+    pub fn add_arg(mut self, arg: ArgumentManifest) -> Self {
+        self.arguments.push(arg);
+        self
+    }
+
+    /// ```
+    /// use juiz_core::prelude::*;
+    /// let manifest = ProcessManifest::new("hoge_type")
+    ///   .description("hoge manifest")
+    ///   .add_int_arg("arg0", "int_arg", 1.into());
+    /// assert_eq!(manifest.arguments[0].name, "arg0");
+    /// assert_eq!(manifest.arguments[0].type_name.as_str(), "int");
+    /// ```
+    pub fn add_int_arg(self, name: &str, description: &str, default: i64) -> Self {
+        self.add_arg(ArgumentManifest::new_int(name, default).description(description))
+    }
+
+        /// ```
+    /// use juiz_core::prelude::*;
+    /// let manifest = ProcessManifest::new("hoge_type")
+    ///   .description("hoge manifest")
+    ///   .add_float_arg("arg1", "float_arg", 1.0.into());
+    /// assert_eq!(manifest.arguments[0].name, "arg1");
+    /// assert_eq!(manifest.arguments[0].type_name.as_str(), "float");
+    /// ```
+    pub fn add_float_arg(self, name: &str, description: &str, default: f64) -> Self {
+        self.add_arg(ArgumentManifest::new_float(name, default).description(description))
+    }
+
+    pub fn add_object_arg(self, name: &str, description: &str, default: Value) -> Self {
+        self.add_arg(ArgumentManifest::new_object(name, default).description(description))
+    }
+
+    pub fn add_image_arg(self, name: &str, description: &str) -> Self {
+        self.add_arg(ArgumentManifest::new_image(name).description(description))
     }
 
 }
@@ -142,11 +197,26 @@ impl TryFrom<Value> for ContainerManifest {
             },
             Err(_) => {}
         }
+        match obj_get_array(&value, "arguments") {
+            Ok(arg_manifest_values) => {
+                // println!("try_into: {arg_manifest_values:?}");
+                for arg_manifest_value in arg_manifest_values.iter() {
+                    p = p.add_arg(arg_manifest_value.clone().try_into()?);
+                }
+            }
+            Err(_) => {},
+        }
 
         Ok(p)
     }
 }
 
+
+fn arguments_to_array(args: Vec<ArgumentManifest>) -> Value {
+    args.into_iter().map(|arg| -> Value {
+        arg.into()
+    }).collect()
+}
 
 impl Into<Value> for ContainerManifest {
     fn into(self) -> Value {
@@ -154,6 +224,8 @@ impl Into<Value> for ContainerManifest {
             "type_name": self.type_name,
             "language": self.language,
             "description": self.description.to_str(),
+            "arguments": arguments_to_array(self.arguments),
+            "processes": self.processes.iter().map(|p|{ p.clone().into() }).collect::<Vec<Value>>()
         });
         let obj = v.as_object_mut().unwrap();
         if let Some(name) = self.name {

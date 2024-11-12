@@ -74,6 +74,18 @@ impl JuizObjectPlugin {
         }
     }
 
+    pub fn new_rust(filepath: PathBuf) -> JuizResult<JuizObjectPlugin> {
+        Ok(JuizObjectPlugin::Rust(Rc::new(RustPlugin::load(filepath)?)))
+    }
+
+    pub fn new_python(filepath: PathBuf) -> JuizResult<JuizObjectPlugin> {
+        Ok(JuizObjectPlugin::Python(Rc::new(PythonPlugin::load(filepath, None)?)))
+    }
+
+    pub fn new_cpp(filepath: PathBuf, manifest_entry_point: &str) -> JuizResult<JuizObjectPlugin> {
+        Ok(JuizObjectPlugin::Cpp(Rc::new(CppPlugin::new(filepath, manifest_entry_point)?)))
+    }
+
     pub fn profile_full(&self) -> JuizResult<Value> {
         match self {
             JuizObjectPlugin::Rust(p) => p.profile_full(),

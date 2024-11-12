@@ -1,17 +1,36 @@
 
-use crate::value::{obj_get_array, obj_get_str, Value};
+use std::fmt::Display;
+
+use crate::value::{jvalue, obj_get_array, obj_get_str, Value};
 
 use super::{ContainerManifest, Description, ProcessManifest};
 
 
-
-
+#[derive(Debug)]
 pub struct ComponentManifest {
     pub type_name: String,
     pub description: Description,
     pub language: String,
     pub containers: Vec<ContainerManifest>,
     pub processes: Vec<ProcessManifest>,
+}
+
+
+impl Display for ComponentManifest {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+
+        f.write_fmt(format_args!("ComponentManifest(\"{}\", \"{}\", {}, containers=[", self.type_name, self.language, self.description))?;
+        for c in self.containers.iter() {
+            f.write_fmt(format_args!("{},", c))?;
+        }
+        f.write_str("], processes=[")?;
+        for p in self.processes.iter() {
+            f.write_fmt(format_args!("{}, ", p))?;
+        }
+
+        f.write_str("])")?;
+        Ok(())
+    }
 }
 
 impl ComponentManifest {
@@ -40,6 +59,7 @@ impl ComponentManifest {
 
 
     pub fn add_container(mut self, container: ContainerManifest) -> Self {
+        // println!("add_container({})", container);
         self.containers.push(container);
         self
     }
@@ -100,6 +120,14 @@ impl TryFrom<Value> for ComponentManifest {
 
 impl Into<Value> for ComponentManifest {
     fn into(self) -> Value {
-        todo!()
+        let v = jvalue!({
+            "type_name": self.type_name,
+            "language": self.language,
+            "description": self.description.to_str(),
+            "processes": self.processes.iter().map(|c| { c.clone().into() }).collect::<Vec<Value>>(),
+            "containers": self.containers.iter().map(|c| { c.clone().into() }).collect::<Vec<Value>>(),
+        });
+
+        v
     }
 }

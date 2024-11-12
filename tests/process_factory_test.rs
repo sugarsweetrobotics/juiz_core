@@ -9,7 +9,7 @@ mod common;
 
 #[test]
 fn simple_process_create_test() -> JuizResult<()>{
-    let manifest = serde_json::json!({
+    let manifest = jvalue!({
         "type_name" : "increment",
         "arguments" : [
             {

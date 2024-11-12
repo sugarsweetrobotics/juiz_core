@@ -4,6 +4,8 @@ pub mod broker_ptr;
 pub mod broker_factory;
 pub mod broker_factory_impl;
 
+mod core_broker;
+
 pub mod broker_proxy;
 pub mod broker_proxy_factory;
 pub mod broker_factories_wrapper;
@@ -37,3 +39,6 @@ pub use broker_proxy::{
     BrokerBrokerProxy,
     ConnectionBrokerProxy,
 };
+
+
+pub use core_broker::{CoreBroker, CoreBrokerPtr};

@@ -7,7 +7,7 @@
 use std::sync::Arc;
 use juiz_sdk::anyhow;
 
-use crate::connections::ConnectionFactory;
+use crate::connections::{ConnectionFactory, ConnectionFactoryImpl};
 use crate::prelude::*;
 
 use juiz_sdk::utils::check_manifest_before_call;
@@ -43,8 +43,12 @@ pub fn process_from_clousure_new_with_class_name(class_name: JuizObjectClass, ma
     ProcessImpl::new_from_clousure_and_class_name(class_name, manif, func, connection_factory)
 }
      
-pub fn process_new(manif: ProcessManifest, func: ProcessBodyFunctionType, connection_factory: Box<impl ConnectionFactory+'static>) -> JuizResult<impl Process> {
+pub fn process_new_with_connection_factory(manif: ProcessManifest, func: ProcessBodyFunctionType, connection_factory: Box<impl ConnectionFactory+'static>) -> JuizResult<impl Process> {
     ProcessImpl::new_from_fn(manif, func, connection_factory)
+}
+
+pub fn process_new(manif: ProcessManifest, func: ProcessBodyFunctionType) -> JuizResult<impl Process> {
+    process_new_with_connection_factory(manif, func, Box::new(ConnectionFactoryImpl::new()))
 }
     
 

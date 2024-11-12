@@ -8,6 +8,7 @@ juiz::Value manifest() {
 
 CppContainer* create_container(juiz::Value value) {
     int64_t int_value = 0;
+    
     if (value.isObjectValue()) {
         if (value.hasKey("value")) {
             auto objv = value.objectValue();

@@ -262,6 +262,34 @@ impl SystemBrokerProxy for CRUDBrokerProxyHolder {
         cp.insert("profile".to_owned(), profile.into());
         capsule_to_value(self.broker.update("system", "add_mastersystem", cp, HashMap::new())?)
     }
+    
+    fn system_load_process(&mut self, language: String, filepath: String) -> JuizResult<Value> {
+        let mut cp = CapsuleMap::new();
+        cp.insert("filepath".to_owned(), CapsulePtr::from(Value::from(filepath)));
+        cp.insert("language".to_owned(), CapsulePtr::from(Value::from(language)));
+        capsule_to_value(self.broker.update("system", "load_process", cp, HashMap::new())?)
+    }
+
+    fn system_load_container(&mut self, language: String, filepath: String) -> JuizResult<Value> {
+        let mut cp = CapsuleMap::new();
+        cp.insert("filepath".to_owned(), CapsulePtr::from(Value::from(filepath)));
+        cp.insert("language".to_owned(), CapsulePtr::from(Value::from(language)));
+        capsule_to_value(self.broker.update("system", "load_container", cp, HashMap::new())?)
+    }
+
+    fn system_load_container_process(&mut self, language: String, filepath: String) -> JuizResult<Value> {
+        let mut cp = CapsuleMap::new();
+        cp.insert("filepath".to_owned(), CapsulePtr::from(Value::from(filepath)));
+        cp.insert("language".to_owned(), CapsulePtr::from(Value::from(language)));
+        capsule_to_value(self.broker.update("system", "load_container_process", cp, HashMap::new())?)
+    }
+
+    fn system_load_component(&mut self, language: String, filepath: String) -> JuizResult<Value> {
+        let mut cp = CapsuleMap::new();
+        cp.insert("filepath".to_owned(), CapsulePtr::from(Value::from(filepath)));
+        cp.insert("language".to_owned(), CapsulePtr::from(Value::from(language)));
+        capsule_to_value(self.broker.update("system", "load_component", cp, HashMap::new())?)
+    }
 }
 
 impl BrokerBrokerProxy for CRUDBrokerProxyHolder {

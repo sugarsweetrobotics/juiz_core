@@ -11,6 +11,7 @@ use juiz_sdk::utils::yaml_conf_load::yaml_conf_load_with;
 
 use crate::brokers::broker_ptr::BrokerPtr;
 use crate::prelude::*;
+
 use crate::{
     brokers::{
         broker_proxy::SystemBrokerProxy,
@@ -250,7 +251,7 @@ impl System {
         Ok(())
     }
 
-    pub fn run_and_do(&mut self,  func: fn(&mut System) -> JuizResult<()>) -> JuizResult<()> {
+    pub fn run_and_do(&mut self,  func: impl FnOnce(&mut System) -> JuizResult<()>) -> JuizResult<()> {
         log::debug!("System::run_and_do() called");
         // self.setup().context("System::setup() in System::run_and_do() failed.")?;
         log::info!("Juiz System({}) Now Started.", self.store.uuid()?);
@@ -262,7 +263,7 @@ impl System {
         Ok(())
     }
 
-    pub fn run_and_do_once<F>(&mut self, func: F) -> JuizResult<()> where F: FnOnce(&mut System) -> JuizResult<()>  {
+    pub fn run_and_do_once(&mut self, func: impl FnOnce(&mut System) -> JuizResult<()>) -> JuizResult<()>  {
         log::debug!("System::run_and_do_once() called");
         // self.setup().context("System::setup() in System::run_and_do_once() failed.")?;
         log::debug!("Juiz System Now Started.");

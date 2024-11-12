@@ -1,5 +1,5 @@
 
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt::Display};
 use anyhow::anyhow;
 use serde_json::Map;
 use crate::{identifier::identifier_new, prelude::*};
@@ -20,6 +20,14 @@ pub struct ProcessManifest {
     pub subscribes: HashMap<String, TopicManifest>,
     pub container_name: Option<String>,
     pub container_type: Option<String>,
+}
+
+impl Display for ProcessManifest {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("ProcessManifest(\"{}\")", self.type_name))?;
+        
+        Ok(())
+    }
 }
 
 impl ProcessManifest {
@@ -296,6 +304,7 @@ impl Into<Value> for ProcessManifest {
 /// ```
 impl TryFrom<Value> for ProcessManifest {
     fn try_from(value: Value) -> anyhow::Result<Self> {
+        // println!("try_from({value:?})");
         let desc = match obj_get_str(&value, "description") {
             Ok(v) => v,
             Err(_) => ""

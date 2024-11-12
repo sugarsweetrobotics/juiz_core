@@ -152,10 +152,15 @@ impl CapsulePtr {
     }
 
     pub fn lock_as_value<T, F>(&self, func: F) -> JuizResult<T> where F: FnOnce(&Value) -> T{
+        // println!("lock_as_value() called");
         match self.value.lock() {
             Ok(c) => {
+                // println!("locked");
                 match c.as_value() {
-                    Some(v) => Ok(func(v)),
+                    Some(v) => {
+                        // println!("do");
+                        Ok(func(v))
+                    }
                     None => {
                         Err(anyhow::Error::from(JuizError::ValueTypeError { message: format!("lock_as_value() failed. Value is not value-type") }))
                         //todo!()

@@ -32,16 +32,16 @@ use clap::{Parser, Subcommand};
 )]
 struct Args {
     /// Name of the person to greet
-    #[arg(short = 'd', help = "Daemonize JUIZ server. This option automatically enables http server (-b option). If you want to suppress, use -q option.")]
+    #[arg(short = 'd', help = "Daemonize JUIZ server. This option automatically enables http server (-b option). If you want to supress, use -q option.")]
     daemonize: bool,
 
     #[arg(short = 'r', default_value="true", help = "Recursively walk subsystems.")]
     recursive: bool,
 
-    #[arg(short = 'q', default_value="false", help = "Stop HTTP Broker [false|true]. Default(false). This option is used with -d option only. If you use this with -b option, http server will start.")]
+    #[arg(short = 'q', default_value="false", help = "Stop HTTP Broker. Default(false). This option is used with -d option only. If you use this with -b option, http server will start.")]
     stop_http_broker: bool,
 
-    #[arg(short = 'b', help = "Start HTTP Broker [false|true]. Default(false)")]
+    #[arg(short = 'b', help = "Start HTTP Broker. Default(false)")]
     start_http_broker: bool,
 
     #[arg(short = 'f', default_value = "./juiz.conf", help = "Input system definition file path")]
@@ -49,6 +49,33 @@ struct Args {
 
     #[arg(short = 's', help = "Host of server (ex., http://localhost:8000)")]
     server: Option<String>,
+
+    #[arg(long = "process", help = "ProcessModule loader mode.")]
+    process: Option<String>,
+
+    #[arg(long = "container", help = "ContainerModule loader mode.")]
+    container: Option<String>,
+
+    #[arg(long = "container_process", help = "ContainerProcessModule loader mode.")]
+    container_process: Option<String>,
+
+    #[arg(long = "component", help = "ComponentModule loader mode.")]
+    component: Option<String>,
+
+    #[arg(short = 'l', help = "Module Language", default_value="rust")]
+    module_language: String,
+
+    #[arg(short = 'c', help = "Create manually loaded module", default_value="true")]
+    module_create: bool,
+
+    #[arg(short = 'e', help = "Execute manually loaded module once", default_value="false")]
+    module_execute: bool,
+
+    #[arg(long = "print", help = "print output of execute. Use -e option with this.", default_value="false")]
+    module_execute_print: bool,
+
+    #[arg(short = 'm', help = "Print manifest of loaded module", default_value="false")]
+    module_manifest_print: bool,
 
     #[clap(subcommand)]
     subcommand: Option<SubCommands>,
@@ -94,14 +121,199 @@ enum SubCommands {
 }
 
 
-fn do_task_once(_system: &mut System) -> JuizResult<()> {
-    println!("System started once");
+fn do_task_once(system: &mut System, args: Args) -> JuizResult<()> {
+    // println!("System started once");
+    let language = args.module_language;
+    let create = args.module_create;
+    let execute = args.module_execute;
+    let print = args.module_execute_print;
+    let module_manifest_print = args.module_manifest_print;
+    if let Some(process_path) = args.process {
+        let pm: ProcessManifest = system.core_broker().lock_mut()?.system_load_process(language, process_path)?.try_into()?;
+        if module_manifest_print {
+            println!("{pm:?}");
+        }
+        if create {
+            let process_proxy = create_process_by_pm(system, &pm)?;
+            if execute {
+                let v = process_proxy.lock_mut()?.execute()?;
+                if print {
+                    println!("{v:?}");
+                }
+            }
+        }
+    } else if let Some(container_path) = args.container {
+        let cm: ContainerManifest = system.core_broker().lock_mut()?.system_load_container(language.clone(), container_path)?.try_into()?;
+        let mut container_id = None;
+        if module_manifest_print {
+            println!("{cm:?}");
+        }
+        if create {
+            let container_ptr = create_container_by_cm(system, &cm)?;
+            container_id = Some(container_ptr.identifier().clone());
+        }
+        if let Some(container_process_path) = args.container_process {
+            let pm: ProcessManifest = system.core_broker().lock_mut()?.system_load_container_process(language, container_process_path)?.try_into()?;
+            if module_manifest_print {
+                println!("{pm:?}");
+            }
+            if create {
+                let process_proxy = create_container_process_by_cid_and_pm(system, container_id.unwrap(), &pm)?;
+                if execute {
+                    let v = process_proxy.lock_mut()?.execute()?;
+                    if print {
+                        println!("{v:?}");
+                    }
+                }
+            }
+        }
+    } else if let Some(component_path) = args.component {
+        let compm: ComponentManifest = system.core_broker().lock_mut()?.system_load_component(language, component_path)?.try_into()?;
+        if module_manifest_print {
+            println!("{compm:}");
+        }
+        for pm in compm.processes.iter() {
+            let proc = create_process_by_pm(system, pm)?;
+            if execute {
+                let v = proc.lock_mut()?.execute()?;
+                if print {
+                    println!("{v:?}");
+                }
+            }
+        }
+        for cm in compm.containers.iter() {
+            let cont = create_container_by_cm(system, cm)?;
+            let cid = cont.identifier().clone();
+            for pm in cm.processes.iter() {
+                let cproc = create_container_process_by_cid_and_pm(system, cid.clone(), pm)?;
+                if execute {
+                    let v = cproc.lock_mut()?.execute()?;
+                    if print {
+                        println!("{v:?}");
+                    }
+                }
+            }
+        }
+    }
     Ok(())
 }
 
-fn do_task(_system: &mut System) -> JuizResult<()> {
-    println!("System started");
+
+
+fn do_task(system: &mut System, args: Args) -> JuizResult<()> {
+    // println!("System started");
+    let language = args.module_language;
+    let create = args.module_create;
+    let execute = args.module_execute;
+    let print = args.module_execute_print;
+    let module_manifest_print = args.module_manifest_print;
+    if let Some(process_path) = args.process {
+        let pm: ProcessManifest = system.core_broker().lock_mut()?.system_load_process(language, process_path)?.try_into()?;
+        if module_manifest_print {
+            println!("{pm:?}");
+        }
+        if create {
+            let type_name = pm.type_name;
+            let prof = system.core_broker().lock_mut()?.process_create(ProcessManifest::new(type_name.as_str()).name(format!("{}0", type_name).as_str()))?;
+            if execute {
+                let identifier = obj_get_str(&prof, "identifier")?;
+                let process_proxy = system.core_broker().lock()?.worker().process_from_identifier(&identifier.to_owned())?;
+                let v = process_proxy.lock_mut()?.execute()?;
+                if print {
+                    println!("{v:?}");
+                }
+            }
+        }
+    }  else if let Some(container_path) = args.container {
+        let cm: ContainerManifest = system.core_broker().lock_mut()?.system_load_container(language.clone(), container_path)?.try_into()?;
+        let mut container_id = None;
+        if module_manifest_print {
+            println!("{cm:?}");
+        }if create {
+            let type_name = cm.type_name;
+            let name = format!("{}0", type_name);
+            let  mut cp = CapsuleMap::new();
+            cp.insert("name".to_owned(), jvalue!(name).into());
+            cp.insert("type_name".to_owned(), jvalue!(type_name).into());
+            let cont_prof = system.core_broker().lock_mut()?.container_create(cp)?;
+            container_id = Some(obj_get_str(&cont_prof, "identifier")?.to_owned());
+        }
+        if let Some(container_process_path) = args.container_process {
+            let pm: ProcessManifest = system.core_broker().lock_mut()?.system_load_container_process(language, container_process_path)?.try_into()?;
+            if module_manifest_print {
+                println!("{pm:?}");
+            }
+            if create {
+                let type_name = pm.type_name;
+                let prof = system.core_broker().lock_mut()?.container_process_create(&container_id.unwrap(), ProcessManifest::new(type_name.as_str()).name(format!("{}0", type_name).as_str()))?;
+                if execute {
+                    let identifier = obj_get_str(&prof, "identifier")?;
+                    let process_proxy = system.core_broker().lock()?.worker().any_process_from_identifier(&identifier.to_owned())?;
+                    let v = process_proxy.lock_mut()?.execute()?;
+                    if print {
+                        println!("{v:?}");
+                    }
+                }
+            }
+        }
+    } else if let Some(component_path) = args.component {
+        let compm: ComponentManifest = system.core_broker().lock_mut()?.system_load_component(language, component_path)?.try_into()?;
+        if module_manifest_print {
+            println!("{compm:}");
+        }
+        for pm in compm.processes.iter() {
+            if create {
+                let proc = create_process_by_pm(system, pm)?;
+                if execute {
+                    let v = proc.lock_mut()?.execute()?;
+                    if print {
+                        println!("{v:?}");
+                    }
+                }
+            }
+        }
+        for cm in compm.containers.iter() {
+            if create {
+                let cont = create_container_by_cm(system, cm)?;
+                let cid = cont.identifier().clone();
+                for pm in cm.processes.iter() {
+                    let cproc = create_container_process_by_cid_and_pm(system, cid.clone(), pm)?;
+                    if execute {
+                        let v = cproc.lock_mut()?.execute()?;
+                        if print {
+                            println!("{v:?}");
+                        }
+                    }
+                }
+            }
+        }
+    }
     Ok(())
+}
+
+fn create_process_by_pm(system: &mut System, pm: &ProcessManifest) -> JuizResult<ProcessPtr> {
+    let type_name = pm.type_name.clone();
+    let prof = system.core_broker().lock_mut()?.process_create(ProcessManifest::new(type_name.as_str()).name(format!("{}0", type_name).as_str()))?;
+    let pid = Some(obj_get_str(&prof, "identifier")?.to_owned());
+    system.core_broker().lock_mut()?.worker_mut().process_from_identifier(&pid.unwrap())
+}
+
+fn create_container_by_cm(system: &mut System, cm: &ContainerManifest) -> JuizResult<ContainerPtr> {
+    let type_name = cm.type_name.clone();
+    let name = format!("{}0", type_name);
+    let  mut cp = CapsuleMap::new();
+    cp.insert("name".to_owned(), jvalue!(name).into());
+    cp.insert("type_name".to_owned(), jvalue!(type_name).into());
+    let cont_prof = system.core_broker().lock_mut()?.container_create(cp)?;
+    let container_id = Some(obj_get_str(&cont_prof, "identifier")?.to_owned());
+    system.core_broker().lock_mut()?.worker_mut().container_from_identifier(&container_id.unwrap())
+}
+
+fn create_container_process_by_cid_and_pm(system: &mut System, cid: Identifier, pm: &ProcessManifest) -> JuizResult<ProcessPtr> {
+    let type_name = pm.type_name.clone();
+    let prof = system.core_broker().lock_mut()?.container_process_create(&cid, ProcessManifest::new(type_name.as_str()).name(format!("{}0", type_name).as_str()))?;
+    let pid = Some(obj_get_str(&prof, "identifier")?.to_owned());
+    system.core_broker().lock_mut()?.worker_mut().any_process_from_identifier(&pid.unwrap())
 }
 
 fn main() -> () {
@@ -120,25 +332,29 @@ fn do_once() -> JuizResult<()>{
     let manifest_filepath = PathBuf::from(args.filepath.as_str().to_string());
     let working_dir = manifest_filepath.parent().unwrap();
     let server = args.server.clone();
+    // サブコマンドが指定されていない場合は単純に起動。
     if args.subcommand.is_none() {
         if args.daemonize {
-            let s = System::new(manifest)?
+            return System::new(manifest)?
                 .set_working_dir(working_dir)
                 .start_http_broker(flag_start)
-                .setup()?;
-            
-            return s
+                .setup()?
                 .add_subsystem_by_id(server)?
-                .run_and_do(do_task);
+                .run_and_do(|system| { 
+                    do_task(system, args)
+                });
         } else {
             return System::new(manifest)?
                 .set_working_dir(working_dir)
                 .start_http_broker(flag_start)
                 .setup()?
                 .add_subsystem_by_id(server)?
-                .run_and_do_once(do_task_once);
+                .run_and_do_once(|system| {
+                    do_task_once(system, args)
+                });
         }
     }
+    // サブコマンドがある場合
     let command = args.clone().subcommand.unwrap();
     match command {
         SubCommands::Setup{ subcommand } => { 

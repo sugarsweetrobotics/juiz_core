@@ -1,13 +1,14 @@
 
-use std::sync::{Arc, Mutex};
+use std::{env::current_dir, ffi::OsStr, path::PathBuf, sync::{Arc, Mutex}};
 
+use axum::extract::Path;
 use juiz_sdk::{identifier::identifier_from_manifest, utils::manifest_util::{construct_id, id_from_manifest, id_from_manifest_and_class_name, type_name}};
 use uuid::Uuid;
 
-use crate::{connections::connection_builder::connection_builder, containers::{ContainerProcessImpl, ContainerProxy}, ecs::{execution_context_function::ExecutionContextFunction, execution_context_proxy::ExecutionContextProxy}, prelude::*, topics::TopicPtr};
+use crate::{connections::connection_builder::connection_builder, containers::{ContainerProcessImpl, ContainerProxy}, core::system_builder::register_component, ecs::{execution_context_function::ExecutionContextFunction, execution_context_proxy::ExecutionContextProxy}, plugin::JuizObjectPlugin, prelude::*, topics::TopicPtr};
 
-use super::core_store::CoreStore;
-use juiz_sdk::anyhow::anyhow;
+use super::{core_store::CoreStore, system_builder::{register_container_factory, register_container_process_factory, register_process_factory}};
+use juiz_sdk::anyhow::{self, anyhow};
 
 
 
@@ -57,8 +58,6 @@ impl CoreWorker {
         self.process_proxy_from_identifier(&id_from_manifest_and_class_name(manifest, "Process")?)
     }
 
-
-
     pub fn broker_proxy(&self, broker_type_name: &str, broker_name: &str, create_when_not_found: bool) ->JuizResult<Arc<Mutex<dyn BrokerProxy>>> {
         log::trace!("CoreBroker::broker_proxy({broker_type_name}, {broker_name}) called");
         let mut type_name = broker_type_name;
@@ -90,7 +89,6 @@ impl CoreWorker {
         Ok(bp)
     }
 
-
     pub fn broker_proxy_from_manifest(&mut self, manifest: &Value, create_when_not_found: bool) -> JuizResult<Arc<Mutex<dyn BrokerProxy>>> {
         let mut type_name = obj_get_str(manifest, "type_name")?;
         if type_name == "core" {
@@ -107,7 +105,6 @@ impl CoreWorker {
         self.broker_proxy(type_name, name.as_str(), create_when_not_found)
     }
 
-
     pub fn create_process_ref(&mut self, manifest: ProcessManifest) -> JuizResult<ProcessPtr> {
         log::trace!("CoreBroker::create_process_ref(manifest={:?}) called", manifest);
         let arc_pf = self.store().processes.factory(manifest.type_name.as_str())?;
@@ -121,11 +118,40 @@ impl CoreWorker {
         self.store_mut().processes.deregister_by_id(identifier)
     }
 
-
-
-    pub fn create_container_ref(&mut self, type_name: &str, manifest: CapsuleMap) -> JuizResult<ContainerPtr> {
+    pub fn create_container_ref(&mut self, type_name: &str, mut manifest: CapsuleMap) -> JuizResult<ContainerPtr> {
         log::trace!("CoreBroker::create_container(manifest={:?}) called", manifest);
         let arc_pf = self.store().containers.factory(type_name)?.clone();
+        let factory_wrapper_manifest = arc_pf.lock()?.profile_full()?;
+        match obj_get(&factory_wrapper_manifest, "container_factory") {
+            Ok(cont_manif) => {
+                match obj_get_array(cont_manif, "arguments") {
+                    Ok(arg_array) => {
+                        for arg_value in arg_array.iter() {
+                            match obj_get_str(arg_value, "name") {
+                                Ok(name_str) => {
+                                    match obj_get(arg_value, "default") {
+                                        Ok(default_value) => {
+                                            match manifest.get(name_str) {
+                                                Ok(_) => {}
+                                                Err(_) => {
+                                                    let mut cp = CapsulePtr::new();
+                                                    cp.replace_with_value(default_value.clone());
+                                                    manifest.insert(name_str.to_owned(), cp);
+                                                }
+                                            }
+                                        }
+                                        Err(_) => {}
+                                    }
+                                }
+                                Err(_) => {}
+                            }
+                        }
+                    },
+                    Err(_) => {}
+                }
+            }
+            Err(_) => {}
+        }
         let p = arc_pf.lock()?.create_container(self, manifest)?;
         let id = p.identifier().clone();
         Ok(self.store_mut().containers.register(&id, p)?.clone())
@@ -171,7 +197,6 @@ impl CoreWorker {
         log::trace!("destroy_container_process_ref({}) exit", identifier);
         v
     }
-
 
     pub fn container_from_identifier(&mut self, id: &Identifier) -> JuizResult<ContainerPtr> {
         let s = IdentifierStruct::try_from(id.clone())?;
@@ -292,9 +317,6 @@ impl CoreWorker {
         self.store().ecs.get(id)
     }
 
-
-
-
     pub fn ec_proxy_from_identifier(&mut self, identifier: &Identifier) -> JuizResult<Arc<Mutex<dyn ExecutionContextFunction>>> {
         log::info!("CoreBroker::ec_proxy_from_identifier({identifier}) called");
         let id_struct = IdentifierStruct::try_from(identifier.clone())?;
@@ -365,6 +387,75 @@ impl CoreWorker {
         let _connection_profile = connection_builder::connect(topic.process_ptr(), process, arg_name, topic_subscribe_connection_manifest)?;
         Ok(())
     }
+
+    pub fn load_process_factory(&mut self, language: String, filepath: String) -> JuizResult<Value> {
+        log::trace!("load_process_factory({language}, {filepath}) called");
+        let plugin = match language.as_str() {
+            "rust" => JuizObjectPlugin::new_rust(PathBuf::from(filepath))?,
+            "python" => JuizObjectPlugin::new_python(PathBuf::from(filepath))?,
+            "cpp" => JuizObjectPlugin::new_cpp(PathBuf::from(filepath), "manifest")?,
+            _ => {
+                panic!("invalid langauge {language}")
+            }
+        };
+        let proc_factory_ptr = register_process_factory(self, current_dir().map_or_else(|_|{None}, |wd|{Some(wd)}), plugin, "process_factory")?;
+        let p = proc_factory_ptr.lock()?.profile_full()?;
+        Ok(p)
+    }
+
+    pub fn load_container_factory(&mut self, language: String, filepath: String) -> JuizResult<Value> {
+        log::trace!("load_container_factory({language}, {filepath}) called");
+        let plugin = match language.as_str() {
+            "rust" => JuizObjectPlugin::new_rust(PathBuf::from(filepath))?,
+            "python" => JuizObjectPlugin::new_python(PathBuf::from(filepath))?,
+            "cpp" => JuizObjectPlugin::new_cpp(PathBuf::from(filepath), "manifest")?,
+            _ => {
+                panic!("invalid langauge {language}")
+            }
+        };
+        // let plugin = JuizObjectPlugin::new_rust(PathBuf::from(filepath))?;
+        let cont_factory_ptr = register_container_factory(self, current_dir().map_or_else(|_|{None}, |wd|{Some(wd)}), plugin, "container_factory")?;
+        let p = cont_factory_ptr.lock()?.profile_full()?;
+        Ok(p)
+    }
+
+
+    pub fn load_container_process_factory(&mut self, language: String, filepath: String) -> JuizResult<Value> {
+        let plugin = match language.as_str() {
+            "rust" => JuizObjectPlugin::new_rust(PathBuf::from(filepath))?,
+            "python" => JuizObjectPlugin::new_python(PathBuf::from(filepath))?,
+            "cpp" => JuizObjectPlugin::new_cpp(PathBuf::from(filepath), "manifest")?,
+            _ => {
+                panic!("invalid langauge {language}")
+            }
+        };
+        //let plugin = JuizObjectPlugin::new_rust(PathBuf::from(filepath))?;
+        let contproc_factory_ptr = register_container_process_factory(self, current_dir().map_or_else(|_|{None}, |wd|{Some(wd)}), plugin, "container_process_factory")?;
+        let p = contproc_factory_ptr.lock()?.profile_full()?;
+        Ok(p)
+    }
+
+    pub fn load_component(&mut self, language: String, filepath: String) -> JuizResult<Value> {
+        log::trace!("load_component({language}, {filepath}) called");
+        let plugin = match language.as_str() {
+            "rust" => JuizObjectPlugin::new_rust(PathBuf::from(filepath))?,
+            "python" => JuizObjectPlugin::new_python(PathBuf::from(filepath))?,
+            "cpp" => JuizObjectPlugin::new_cpp(PathBuf::from(filepath), "manifest")?,
+            _ => {
+                panic!("invalid langauge {language}")
+            }
+        };
+
+        let cont_manifest = register_component(self, current_dir().map_or_else(|_|{None}, |wd|{Some(wd)}), plugin)?;
+        Ok(cont_manifest.into())
+    }
+}
+
+#[test]
+fn basename_test() {
+    let fps = "./target/debug/increment_process.dylib";
+    let fp = PathBuf::from(fps);
+    assert!(fp.file_stem().unwrap() == "increment_process");
 }
 
 fn precreate_check(manifest: Value) -> JuizResult<Value> {

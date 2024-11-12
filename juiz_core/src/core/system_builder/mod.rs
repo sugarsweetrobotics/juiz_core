@@ -53,3 +53,6 @@ pub(crate) fn setup_topic_synchronization(system: &mut System) -> JuizResult<()>
     })
 }
 
+pub(crate) use processes::register_process_factory;
+pub(crate) use containers::{register_container_factory, register_container_process_factory};
+pub(crate) use components::register_component;

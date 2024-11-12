@@ -3,7 +3,7 @@
 use std::sync::{Arc, Mutex};
 use futures::Future;
 
-use crate::core::CoreBrokerPtr;
+use super::super::core_broker::CoreBrokerPtr;
 use crate::prelude::*;
 use crate::brokers::{Broker, CRUDBroker};
 

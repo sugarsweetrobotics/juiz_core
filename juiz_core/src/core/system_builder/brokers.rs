@@ -3,7 +3,7 @@
 use std::sync::{Arc, Mutex};
 use juiz_sdk::anyhow::Context;
 
-use crate::{brokers::broker_factories_wrapper::BrokerFactoriesWrapper, core::core_broker::CoreBrokerPtr, plugin::{concat_dirname, plugin_name_to_file_name, RustPlugin}, prelude::*};
+use crate::{brokers::broker_factories_wrapper::BrokerFactoriesWrapper, brokers::CoreBrokerPtr, plugin::{concat_dirname, plugin_name_to_file_name, RustPlugin}, prelude::*};
 
 pub(super) fn setup_broker_factories(system: &mut System, manifest: &Value) -> JuizResult<()> {
     log::trace!("system_builder::setup_broker_factories() called");

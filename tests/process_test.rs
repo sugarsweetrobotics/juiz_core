@@ -10,7 +10,7 @@ mod common;
 
 #[test]
 fn no_name_manifest_process_test() -> JuizResult<()> {
-    let p: JuizResult<ProcessManifest> = serde_json::json!({
+    let p: JuizResult<ProcessManifest> = jvalue!({
         "arguments" : [
             {
                 "name": "arg1",
@@ -41,7 +41,7 @@ fn no_name_manifest_process_test() -> JuizResult<()> {
 
 #[test]
 fn no_default_manifest_process_test() -> JuizResult<()>  {
-    let manifest: JuizResult<ProcessManifest> = serde_json::json!({
+    let manifest: JuizResult<ProcessManifest> = jvalue!({
         "name": "hoge",
         "type_name": "increment",
         "arguments": [

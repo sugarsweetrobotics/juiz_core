@@ -55,7 +55,7 @@ impl RustPlugin {
             match self.lib.as_ref().unwrap().get::<T>(symbol_name) {
                 Ok(func) => Ok(func),
                 Err(_) => {
-                    log::error!("RustPlugin::load_symbol({:?}) failed.", symbol_name);
+                    log::error!("RustPlugin::load_symbol({:?}) failed.", std::str::from_utf8(symbol_name));
                     Err(anyhow::Error::from(JuizError::PluginLoadSymbolFailedError{plugin_path:self.path.display().to_string(), symbol_name: std::str::from_utf8(symbol_name)?.to_string()}))
                 }
             }

@@ -23,9 +23,9 @@ use crate::brokers::broker_proxy::{
 
 
 use crate::connections::connection_builder::connection_builder;
-use super::core_worker::CoreWorker;
-use super::subsystem_proxy::SubSystemProxy;
-use super::system_store::SystemStorePtr;
+use crate::core::CoreWorker;
+use crate::core::SubSystemProxy;
+use crate::core::SystemStorePtr;
 
 #[allow(unused)]
 pub struct CoreBroker {
@@ -271,6 +271,29 @@ impl SystemBrokerProxy for CoreBroker {
         self.master_system_proxy = Some(subsystem_proxy);
         Ok(profile)
     }
+    
+    fn system_load_process(&mut self, language: String, filepath: String) -> JuizResult<Value> {
+        log::trace!("system_load_process({language}, {filepath}) called");
+        self.worker_mut().load_process_factory(language, filepath)
+        
+    }
+
+    fn system_load_container(&mut self, language: String, filepath: String) -> JuizResult<Value> {
+        log::trace!("system_load_container({language}, {filepath}) called");
+        self.worker_mut().load_container_factory(language, filepath)
+    }
+
+    fn system_load_container_process(&mut self, language: String, filepath: String) -> JuizResult<Value> {
+        log::trace!("system_load_container_process({language}, {filepath}) called");
+        self.worker_mut().load_container_process_factory(language, filepath)
+        
+    }
+
+    fn system_load_component(&mut self, language: String, filepath: String) -> JuizResult<Value> {
+        log::trace!("system_load_component({language}, {filepath}) called");
+        self.worker_mut().load_component(language, filepath)
+    }
+
 }
 
 

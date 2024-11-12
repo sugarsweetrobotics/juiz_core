@@ -1,4 +1,6 @@
 
+use std::fmt::Display;
+
 use crate::prelude::*;
 
 
@@ -7,6 +9,11 @@ pub struct Description {
     pub text: String
 }
 
+impl Display for Description {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("Description(\"{}\")", self.text))
+    }
+}
 
 impl Description {
     pub fn new(text: &str) -> Self {

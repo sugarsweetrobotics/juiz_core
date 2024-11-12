@@ -53,11 +53,14 @@ fn type_check(arg_type: &ArgumentType, value: &Value) -> JuizResult<()> {
     fn ret_err() -> JuizResult<()> {
         Err(anyhow!(JuizError::ArguemntTypeIsInvalidError {}))
     }
-
+    // println!("type_check({arg_type:?}, {value:?}) called");
     match arg_type {
         ArgumentType::Int => if value.is_i64() {Ok(())} else { ret_err() },
         ArgumentType::Float => if value.is_f64() {Ok(())} else { ret_err() },
-        ArgumentType::String => if value.is_string() {Ok(())} else { ret_err() },
+        ArgumentType::String => if value.is_string() {Ok(())} else { 
+            //println!("Error invalid argument type detected in type_check(value={value:?})");
+            ret_err() 
+        },
         ArgumentType::Object => if value.is_object() {Ok(())} else { ret_err() },
         ArgumentType::Image => if value.is_object() {Ok(())} else { ret_err() },
     }

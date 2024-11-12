@@ -4,7 +4,7 @@ use anyhow::Context;
 
 use juiz_sdk::anyhow;
 use crate::brokers::broker_ptr::BrokerPtr;
-use crate::core::CoreBrokerPtr;
+use super::super::core_broker::CoreBrokerPtr;
 
 
 use crate::prelude::*;

@@ -24,8 +24,7 @@ fn _identifier_from_manifest(manifest: &Value) -> Identifier {
 
 impl<S: 'static> ContainerImpl<S> {
     pub fn new(manifest: ContainerManifest, t: Box<S>) -> JuizResult<Self> {
-        // let type_name = obj_get_str(&manifest, "type_name")?;
-        // let object_name = obj_get_str(&manifest, "name")?;
+        //println!("new(manifest:{manifest:?}");
         Ok(ContainerImpl{
             core: ObjectCore::create(JuizObjectClass::Container("ContainerImpl"), manifest.type_name.to_owned(), manifest.name.as_ref().unwrap().to_owned()),
             manifest, 

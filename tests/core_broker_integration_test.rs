@@ -6,7 +6,7 @@ mod common;
 
 
 fn new_process_factory(cb: &mut CoreBroker) -> JuizResult<ProcessFactoryPtr> {
-    let manifest = serde_json::json!({
+    let manifest = jvalue!({
         "type_name" : "increment",
         "use_memo": true,
         "arguments" : [

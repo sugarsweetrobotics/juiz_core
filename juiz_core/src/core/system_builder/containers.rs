@@ -1,4 +1,6 @@
 
+use std::path::PathBuf;
+
 use juiz_sdk::anyhow::{self, anyhow};
 use crate::{containers::{ContainerFactoryWrapper, ContainerProcessFactoryWrapper}, core::system_builder::topics::{setup_publish_topic, setup_subscribe_topic}, plugin::JuizObjectPlugin, prelude::*};
 
@@ -38,12 +40,13 @@ fn setup_container_factory(system: &System, name: &String, container_profile: &V
         },
         Some(obj) => {
             let language = obj.get("language").and_then(|v| { v.as_str() }).or(Some("rust")).unwrap();
-            let ctr = register_container_factory(system, JuizObjectPlugin::new(language, name, container_profile, manifest_entry_point, option)?, "container_factory")?;
+            
+            let ctr = register_container_factory(system.core_broker().lock_mut()?.worker_mut(), system.get_working_dir(),JuizObjectPlugin::new(language, name, container_profile, manifest_entry_point, option)?, "container_factory")?;
             log::info!("ContainerFactory ({name:}) Loaded");
             when_contains_do(container_profile, "processes", |container_process_profile_map| {
                 for (cp_name, container_process_profile) in get_hashmap(container_process_profile_map)?.iter() {
                     log::debug!(" - ContainerProcessFactory ({cp_name:}) Loading...");
-                    register_container_process_factory(system, JuizObjectPlugin::new(language, cp_name, container_process_profile, manifest_entry_point, option)?, "container_process_factory")?;
+                    register_container_process_factory(system.core_broker().lock_mut()?.worker_mut(), system.get_working_dir(), JuizObjectPlugin::new(language, cp_name, container_process_profile, manifest_entry_point, option)?, "container_process_factory")?;
                     log::info!(" - ContainerProcessFactory ({cp_name:}) Loaded");
                 }
                 Ok(())
@@ -93,23 +96,23 @@ pub(super) fn cleanup_containers(system: &mut System) -> JuizResult<()> {
 
 
 
-pub(super) fn register_container_factory(system: &System, plugin: JuizObjectPlugin, symbol_name: &str) -> JuizResult<ContainerFactoryPtr> {
+pub(crate) fn register_container_factory(core_worker: &mut CoreWorker, working_dir: Option<PathBuf>, plugin: JuizObjectPlugin, symbol_name: &str) -> JuizResult<ContainerFactoryPtr> {
     log::trace!("register_container_factory(symbol_name={symbol_name}) called");
-    let pf = plugin.load_container_factory(system.get_working_dir(), symbol_name)?;
+    let pf = plugin.load_container_factory(working_dir, symbol_name)?;
     let type_name = pf.lock().or_else(|e|{ Err(anyhow!(JuizError::ObjectLockError{target:e.to_string()}) ) })?.type_name().to_owned();
     let wrapper = ContainerFactoryPtr::new(ContainerFactoryWrapper::new(plugin, pf)?);
-    let _result = system.core_broker().lock_mut()?.worker_mut().store_mut().containers.register_factory(type_name.as_str(), wrapper.clone());
+    let _result = core_worker.store_mut().containers.register_factory(type_name.as_str(), wrapper.clone())?;
     log::trace!("register_container_factory() exit");
     Ok(wrapper)
 }
 
 
-pub(super) fn register_container_process_factory(system: &System, plugin: JuizObjectPlugin, symbol_name: &str) -> JuizResult<ContainerProcessFactoryPtr> {
+pub(crate) fn register_container_process_factory(core_worker: &mut CoreWorker, working_dir: Option<PathBuf>, plugin: JuizObjectPlugin, symbol_name: &str) -> JuizResult<ContainerProcessFactoryPtr> {
     log::trace!("register_container_process_factory(symbol_name={symbol_name}) called");
-    let cpf = plugin.load_container_process_factory(system.get_working_dir(), symbol_name)?;
+    let cpf = plugin.load_container_process_factory(working_dir, symbol_name)?;
     let type_name = cpf.lock().or_else(|e| { Err(anyhow!(JuizError::ObjectLockError { target: e.to_string() }))})?.type_name().to_owned();
     let pfw = ContainerProcessFactoryPtr::new(ContainerProcessFactoryWrapper::new(plugin, cpf )?);
-    system.core_broker().lock_mut()?.worker_mut().store_mut().container_processes.register_factory(type_name.as_str(), pfw.clone())?;
+    core_worker.store_mut().container_processes.register_factory(type_name.as_str(), pfw.clone())?;
     log::trace!("register_container_process_factory() exit");
     Ok(pfw)
 }

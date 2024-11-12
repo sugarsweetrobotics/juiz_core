@@ -55,6 +55,16 @@ impl JuizObjectCoreHolder for ProcessFactoryImpl {
 
 
 impl JuizObject for ProcessFactoryImpl {
+    fn profile_full(&self) -> JuizResult<Value> {
+        let mut v = self.core.profile_full()?;
+        let vv = self.manifest.arguments.iter().map(|v|{ v.clone().into() }).collect::<Vec<Value>>();
+        obj_merge_mut(&mut v, &jvalue!({
+            "arguments": vv,
+            "language": self.manifest.language,
+        }))?;
+        //obj_merge_mut(&mut v, &self.manifest.clone().into())?;
+        Ok(v)
+    }
 }
 
 impl ProcessFactory for ProcessFactoryImpl {

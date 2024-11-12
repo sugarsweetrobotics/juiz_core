@@ -2,7 +2,8 @@ use std::{ops::Deref, sync::{mpsc::{self, Sender}, Arc, Mutex}, time::Duration};
 
 use juiz_sdk::anyhow;
 
-use crate::{core::CoreBrokerPtr, prelude::*};
+use super::super::core_broker::CoreBrokerPtr;
+use crate::{prelude::*};
 use crate::brokers::create_messenger_broker_factory;
 use crate::brokers::{BrokerFactory, MessengerBrokerCore, MessengerBrokerCoreFactory};
 

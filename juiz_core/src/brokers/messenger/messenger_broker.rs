@@ -4,7 +4,8 @@ use tokio::runtime;
 
 use juiz_sdk::anyhow;
 
-use crate::{core::CoreBrokerPtr, prelude::*};
+use super::super::core_broker::CoreBrokerPtr;
+use crate::{prelude::*};
 use crate::brokers::Broker;
 use std::sync::atomic::Ordering::SeqCst;
 

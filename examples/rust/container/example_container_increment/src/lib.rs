@@ -3,6 +3,11 @@ use juiz_sdk::prelude::*;
 
 #[juiz_container_process(
     container_type = "example_container"
+    arguments = {
+        default = {
+            arg1 = 1
+        }
+    }
 )]
 fn increment_function(container: &mut ContainerImpl<ExampleContainer>, arg1: i64) -> JuizResult<Capsule> {
     container.value = container.value + arg1;

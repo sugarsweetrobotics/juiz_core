@@ -62,7 +62,18 @@ impl JuizObjectCoreHolder for ContainerProcessFactoryImpl {
     }
 }
 
-impl JuizObject for ContainerProcessFactoryImpl {}
+impl JuizObject for ContainerProcessFactoryImpl {
+    fn profile_full(&self) -> JuizResult<Value> {
+        let mut v = self.core.profile_full()?;
+        let vv = self.manifest.arguments.iter().map(|v|{ v.clone().into() }).collect::<Vec<Value>>();
+        obj_merge_mut(&mut v, &jvalue!({
+            "arguments": vv,
+            "language": self.manifest.language,
+        }))?;
+        //obj_merge_mut(&mut v, &self.manifest.clone().into())?;
+        Ok(v)
+    }
+}
 
 
 pub fn bind_container_function<T: 'static >(function: impl Fn(&mut ContainerImpl<T>, CapsuleMap) -> JuizResult<Capsule> + 'static) -> BindedContainerFunctionType {

@@ -15,49 +15,48 @@ pub struct ExampleComponentContainer {
 
 #[juiz_component_container]
 fn example_component_container(initial_value: i64) -> JuizResult<Box<ExampleComponentContainer>> {
+    println!("example_component_container({initial_value}) called");
     Ok(Box::new(ExampleComponentContainer{value: initial_value}))
 }
 
 
-#[juiz_component_container_process(
-    container_type = "example_component_container"
-)]
+#[juiz_component_container_process( container_type = "example_component_container" )]
 fn example_component_container_get(container: &mut ContainerImpl<ExampleComponentContainer>) -> JuizResult<Capsule> {
+    println!("example_component_container_get()");
     Ok(jvalue!(container.value).into())
 }
 
-#[juiz_component_container_process(
-    container_type = "example_component_container"
-)]
+#[juiz_component_container_process( container_type = "example_component_container" )]
 fn example_component_container_increment(container: &mut ContainerImpl<ExampleComponentContainer>) -> JuizResult<Capsule> {
+    println!("example_component_container_increment()");
     container.value = container.value + 1;
     Ok(jvalue!(container.value).into())
 }   
 
-#[juiz_component_container_process(
-    container_type = "example_component_container"
+#[juiz_component_container_process( container_type = "example_component_container" 
+   arguments = {
+      default = {
+        arg1 = 1
+      }
+   }
 )]
 fn example_component_container_add(container: &mut ContainerImpl<ExampleComponentContainer>, arg1: i64) -> JuizResult<Capsule> {
+    println!("example_component_container_add({arg1})");
     container.value = container.value + arg1;
     Ok(jvalue!(container.value).into())
 }
 
 juiz_component_manifest!(
-    container_name = "example_component"
+    component_name = "example_component"
     containers = {
         example_component_container = [
             example_component_container_get,
-            // example_component_container_increment,
-            // example_component_container_add
+            example_component_container_increment,
+            example_component_container_add
         ]
-        
     }
-    // container_processes = [
-    //     example_component_container_get,
-    //     example_component_container_increment,
-    //     example_component_container_add.
-    // ],
     processes = [
+        
         example_component_increment
     ]
 );

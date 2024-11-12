@@ -42,10 +42,12 @@ impl JuizObject for ContainerProcessFactoryWrapper {
             JuizObjectPlugin::Python(p) => p.profile_full().unwrap(),
             JuizObjectPlugin::Cpp(p) => p.profile_full().unwrap(),
         };
-        
+        let container_prof = self.container_process_factory.lock()?.profile_full()?;
+        let lang = obj_get_str(&container_prof, "language")?.to_owned();
         Ok(obj_merge(self.core.profile_full()?.try_into()?, &jvalue!({
             "plugin": prof,
-            "container_process_factory": self.container_process_factory.lock()?.profile_full()?,
+            "language": lang,
+            "container_process_factory": container_prof,
             //container_processes: RefCell<Vec<Arc<Mutex<dyn ContainerProcess>>>>
         }))?.into())
     }
