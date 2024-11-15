@@ -131,6 +131,8 @@ pub trait ContainerProcessBrokerProxy {
     fn container_process_call(&self, id: &Identifier, _args: CapsuleMap) -> JuizResult<CapsulePtr>;
 
     fn container_process_execute(&self, id: &Identifier) -> JuizResult<CapsulePtr>;
+
+    fn container_process_p_apply(&mut self, id: &Identifier, arg_name: &str, value: CapsulePtr) -> JuizResult<CapsulePtr>;
 }
 
 pub trait ExecutionContextBrokerProxy {

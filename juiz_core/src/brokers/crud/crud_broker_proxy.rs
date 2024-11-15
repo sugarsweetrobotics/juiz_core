@@ -133,6 +133,13 @@ impl ContainerProcessBrokerProxy for CRUDBrokerProxyHolder {
         capsule_to_value(self.broker.delete("container_process", "destroy", param(&[("identifier", identifier)]))?)
 
     }
+    
+    fn container_process_p_apply(&mut self, id: &Identifier, arg_name: &str, value: CapsulePtr) -> JuizResult<CapsulePtr> {
+        let mut map = CapsuleMap::new();
+        map.insert("arg_name".to_owned(), jvalue!(arg_name).into());
+        map.insert("value".to_owned(), value);
+        self.broker.update("container_process", "p_apply", map, param(&[("identifier", id)]))
+    }
 }
 
 
@@ -220,7 +227,7 @@ impl ProcessBrokerProxy for CRUDBrokerProxyHolder {
         let mut map = CapsuleMap::new();
         map.insert("arg_name".to_owned(), jvalue!(arg_name).into());
         map.insert("value".to_owned(), value);
-        self.broker.update("process", "bind", map, param(&[("identifier", id)]))
+        self.broker.update("process", "p_apply", map, param(&[("identifier", id)]))
     }
     
     fn process_create(&mut self, manifest: ProcessManifest) -> JuizResult<Value> {

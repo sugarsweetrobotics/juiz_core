@@ -480,6 +480,10 @@ impl ContainerProcessBrokerProxy for CoreBroker {
         log::trace!("container_process_destroy({}) called", identifier);
         self.worker_mut().destroy_container_process_ref(identifier)
     }
+    
+    fn container_process_p_apply(&mut self, id: &Identifier, arg_name: &str, value: CapsulePtr) -> JuizResult<CapsulePtr> {
+        Ok(self.worker().store().container_processes.get(id)?.lock_mut()?.p_apply(arg_name, value)?.into())
+    }
 }
 
 impl BrokerBrokerProxy for CoreBroker {

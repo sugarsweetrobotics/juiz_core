@@ -22,7 +22,7 @@ use filesystem::*;
 use cv_cvt_color::*;
 
 juiz_component_manifest!(
-    container_name = "juiz_opencv"
+    component_name = "juiz_opencv"
     containers = {
         video_capture = [
             video_capture_get,

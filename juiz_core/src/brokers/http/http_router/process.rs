@@ -89,6 +89,25 @@ _query: Query<IdentifierQuery>,
 Json(_body): Json<Value>) {
 }
 
+
+#[allow(unused)]
+#[utoipa::path(
+    patch,
+    path = "/api/process/p_apply",
+    params(
+        IdentifierQuery
+    ),
+    request_body = Value,
+    responses(
+        (status = 200, description = "System")
+    ),
+    tag = "universal.process",
+)]
+pub fn p_apply_dummy(
+_query: Query<IdentifierQuery>,
+Json(_body): Json<Value>) {
+}
+
 #[allow(unused)]
 #[utoipa::path(
     delete,
@@ -115,6 +134,7 @@ _query: Query<IdentifierQuery>) {
         execute_dummy,
         delete_dummy,
         create_dummy,
+        p_apply_dummy,
     ),
     components(schemas(
     ))

@@ -148,6 +148,10 @@ impl ContainerManifest {
         self.add_arg(ArgumentManifest::new_object(name, default).description(description))
     }
 
+    pub fn add_string_arg(self, name: &str, description: &str, default: &str) -> Self {
+        self.add_arg(ArgumentManifest::new_string(name, default).description(description))
+    }
+
     pub fn add_image_arg(self, name: &str, description: &str) -> Self {
         self.add_arg(ArgumentManifest::new_image(name).description(description))
     }

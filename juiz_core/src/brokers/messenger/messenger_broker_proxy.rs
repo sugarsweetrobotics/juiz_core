@@ -357,7 +357,7 @@ impl ProcessBrokerProxy for MessengerBrokerProxy {
     
     fn process_p_apply(&mut self, id: &Identifier, arg_name: &str, value: CapsulePtr) -> JuizResult<CapsulePtr> {
         let arg = vec!(("arg_name", jvalue!(arg_name)), ("value", capsule_to_value(value)?));
-        self.update_by_id("process", "bind", arg.into(), id)
+        self.update_by_id("process", "p_apply", arg.into(), id)
     }
     
     fn process_create(&mut self, manifest: ProcessManifest) -> JuizResult<Value> {
@@ -412,6 +412,11 @@ impl ContainerProcessBrokerProxy for MessengerBrokerProxy {
     
     fn container_process_destroy(&mut self, identifier: &Identifier) -> JuizResult<Value> {
         capsule_to_value(self.delete_by_id("container_process", "destroy", identifier)?)
+    }
+    
+    fn container_process_p_apply(&mut self, id: &Identifier, arg_name: &str, value: CapsulePtr) -> JuizResult<CapsulePtr> {
+        let arg = vec!(("arg_name", jvalue!(arg_name)), ("value", capsule_to_value(value)?));
+        self.update_by_id("container_process", "p_apply", arg.into(), id)
     }
 }
 

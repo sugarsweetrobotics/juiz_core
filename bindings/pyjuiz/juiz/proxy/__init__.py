@@ -231,6 +231,8 @@ class ProcessProxy(ObjectProxy):
     def execute(self):
         return self.system.crud.update(self._cn, 'execute', {}, {'identifier': self._id})
     
+    def p_apply(self, arg_name: str, value: dict): 
+        return self.system.crud.update(self._cn, 'p_apply', {'arg_name': arg_name, 'value': value}, {'identifier': self._id})
 
 class ContainerProxy(ObjectProxy):
         
@@ -283,6 +285,9 @@ class ContainerProcessProxy(ObjectProxy):
     def __init__(self, system_proxy, identifier):
         super().__init__(system_proxy, 'container_process', identifier)    
 
+    def __repr__(self):
+        return f'ContainerProcess("{self.identifier()}")'
+
     def call(self, *args, **kwargs):
         if len(args) == 1:
             body = args[0]
@@ -298,8 +303,9 @@ class ContainerProcessProxy(ObjectProxy):
     def execute(self):
         return self.system.crud.update(self._cn, 'execute', {}, {'identifier': self._id})
 
-    def __repr__(self):
-        return f'ContainerProcess("{self.identifier()}")'
+    def p_apply(self, arg_name: str, value: dict): 
+        return self.system.crud.update(self._cn, 'p_apply', {'arg_name': arg_name, 'value': value}, {'identifier': self._id})
+
 
 class IdentifierStruct(object):
 

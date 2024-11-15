@@ -281,6 +281,13 @@ pub(crate) fn update_callback_container() -> ClassCallbackContainerType {
         let id = args.get_param("identifier").ok_or_else(||{anyhow::Error::from(JuizError::CRUDBrokerCanNotParameterFunctionError { key_name: "identifier".to_owned() })})?;
         cb.lock()?.process_execute(id)
     });
+    proc_cbs.insert("p_apply", |cb, args| {
+        log::trace!("update_callback_container()/anonymous func() for 'process/p_apply' called");
+        let id = args.get_param("identifier").ok_or_else(||{anyhow::Error::from(JuizError::CRUDBrokerCanNotParameterFunctionError { key_name: "identifier".to_owned() })})?;
+        let value = args.get("value")?;
+        let arg_name = args.get("arg_name")?.extract_value()?.as_str().and_then(|s|{Some(s.to_owned())}).ok_or(anyhow!(JuizError::ArgumentError { message: "arg_name value is required".to_owned() }))?;
+        cb.lock_mut()?.process_p_apply(id, arg_name.as_str(), value)
+    });
     update_cb_container.insert("process", proc_cbs);
 
 
@@ -294,6 +301,13 @@ pub(crate) fn update_callback_container() -> ClassCallbackContainerType {
         log::trace!("update_callback_container()/anonymous func() for 'container_process/execute' called");
         let id = args.get_param("identifier").ok_or_else(||{anyhow::Error::from(JuizError::CRUDBrokerCanNotParameterFunctionError { key_name: "identifier".to_owned() })})?;
         cb.lock()?.container_process_execute(id)
+    });
+    cont_proc_cbs.insert("p_apply", |cb, args| {
+        log::trace!("update_callback_container()/anonymous func() for 'container_process/p_apply' called");
+        let id = args.get_param("identifier").ok_or_else(||{anyhow::Error::from(JuizError::CRUDBrokerCanNotParameterFunctionError { key_name: "identifier".to_owned() })})?;
+        let value = args.get("value")?;
+        let arg_name = args.get("arg_name")?.extract_value()?.as_str().and_then(|s|{Some(s.to_owned())}).ok_or(anyhow!(JuizError::ArgumentError { message: "arg_name value is required".to_owned() }))?;
+        cb.lock_mut()?.container_process_p_apply(id, arg_name.as_str(), value)
     });
     update_cb_container.insert("container_process", cont_proc_cbs);
 
