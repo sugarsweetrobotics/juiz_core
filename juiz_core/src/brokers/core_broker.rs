@@ -2,6 +2,7 @@
 
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard};
+use std::io;
 use juiz_sdk::anyhow::{self, anyhow, Context};
 use juiz_sdk::identifier::connection_identifier_split;
 use juiz_sdk::utils::check_corebroker_manifest;
@@ -141,15 +142,33 @@ impl SystemBrokerProxy for CoreBroker {
     }
     
     fn system_filesystem_list(&self, path_buf: PathBuf) -> JuizResult<Value> {
-        let entries = std::fs::read_dir(path_buf)?
-            .map(|res| res.map(|e| {
-                jvalue!({
-                    "path": e.path().to_str().unwrap(),
-                    "is_dir": e.path().is_dir()
-                })
-            }).or::<JuizError>(Ok(jvalue!("Error"))).unwrap())
-            .collect::<Vec<Value>>();
-        Ok(jvalue!(entries))
+        if path_buf.is_relative() {
+            let cwd = std::env::current_dir()?;
+            let mut entries = std::fs::read_dir(path_buf.clone())?
+                .map(|res| res.map(|e| {
+                    jvalue!({
+                        "path": cwd.join(e.path().to_str().unwrap()),
+                        "is_dir": e.path().is_dir()
+                    })
+                }).or::<JuizError>(Ok(jvalue!("Error"))).unwrap())
+                .collect::<Vec<Value>>();
+            entries.push(jvalue!({
+                //"path": ".",
+                "is_dir": true,
+                "path": std::env::current_dir()?.join(path_buf)
+            }));  
+            Ok(entries.into())
+        } else {
+            let entries = std::fs::read_dir(path_buf.clone())?
+                .map(|res| res.map(|e| {
+                    jvalue!({
+                        "path": e.path().to_str().unwrap(),
+                        "is_dir": e.path().is_dir()
+                    })
+                }).or::<JuizError>(Ok(jvalue!("Error"))).unwrap())
+                .collect::<Vec<Value>>();
+            Ok(entries.into())
+        }
     }
     
     /// サブシステムの追加
@@ -275,7 +294,6 @@ impl SystemBrokerProxy for CoreBroker {
     fn system_load_process(&mut self, language: String, filepath: String) -> JuizResult<Value> {
         log::trace!("system_load_process({language}, {filepath}) called");
         self.worker_mut().load_process_factory(language, filepath)
-        
     }
 
     fn system_load_container(&mut self, language: String, filepath: String) -> JuizResult<Value> {
@@ -286,7 +304,6 @@ impl SystemBrokerProxy for CoreBroker {
     fn system_load_container_process(&mut self, language: String, filepath: String) -> JuizResult<Value> {
         log::trace!("system_load_container_process({language}, {filepath}) called");
         self.worker_mut().load_container_process_factory(language, filepath)
-        
     }
 
     fn system_load_component(&mut self, language: String, filepath: String) -> JuizResult<Value> {

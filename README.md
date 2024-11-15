@@ -431,6 +431,10 @@ cargo run -- --process ./target/debug/libtalker.dylib -e
 ```
 デフォルトのbinとしてjuizコマンドが登録されているのでcargo runで実行される。
 
+-dオプションをつけると、実行後にサーバーを立ててそのまま待機をする。
+この状態ならばhttp://localhost:8000/docsをブラウザで開くと、swagger-uiを使ったテストを行うことができる。
+これについては後述する。
+
 ### ContainerおよびContainerProcessを試す。
 Rustで作ったContainerとContainerProcessがそれぞれ、./target/debug/my_container.dylibと./target/debug/my_container_process.dylibであった場合、以下のコマンドで単体のコンテナプロセスを実行できる。
 ```terminal

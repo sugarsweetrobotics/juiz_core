@@ -132,14 +132,14 @@ class SystemProxy():
         
     def processes(self):
         ps = self.crud.read('process', 'list')
-        self._processes = [ProcessProxy(self, pid) for pid in ps]
+        self._processes = [ProcessProxy.new(self, pid) for pid in ps]
         return self._processes.copy()
 
     def process(self, id):
         ps = self.crud.read('process', 'list')
         for pid in ps:
             if pid == id:
-                return ProcessProxy(self, pid)
+                return ProcessProxy.new(self, pid)
         return None            
         
     def containers(self, update=False):
@@ -160,6 +160,7 @@ class SystemProxy():
             self._container_processes = [ContainerProcessProxy(self, p) for p in ps]
         return self._container_processes
 
+    
 class ObjectProxy(object):
     
     def __init__(self, system_proxy, class_name, identifier):
@@ -167,7 +168,9 @@ class ObjectProxy(object):
         self._id = identifier
         self._cn = class_name
         self._profile = None
-
+        self._name = id_to_name(identifier) if identifier is not None else None
+        self._type_name = None
+        
     def profile_full(self, update=False):
         if self._profile is None or update:
             self._profile = self.system.crud.read(self._cn, 'profile_full', {'identifier': self._id})
@@ -175,14 +178,44 @@ class ObjectProxy(object):
 
     def identifier(self, update=False):
         return self._id
+    
+    def name(self):
+        if self._name is None:
+            self._name = id_to_name(self._id)
+        return self._name
+    
+    def type_name(self):
+        if self._type_name is None:
+            self._type_name = id_to_type_name(self._id)
+        return self._type_name
+        
 
     def destroy(self):
         return self._system_proxy.delete('/api/' + self._class_name + '/destroy?identifier=' + self._identifier)
 
 class ProcessProxy(ObjectProxy):
-    def __init__(self, system_proxy, identifier):
-        super().__init__(system_proxy, 'process', identifier)    
-
+    def __init__(self, name, host, port, protocol='http'):
+        if protocol is None:
+            super().__init__(None, 'process', None)
+            self._name = name
+        elif protocol == 'http':
+            super().__init__(SystemProxy(HttpProxy(host,port)), 'process', None)
+            self._name = None
+            for p in self.system.processes():
+                if p.name() == name:
+                    self._id = p.identifier()
+                    return
+            
+    def __repr__(self):
+        return f'ProcessProxy("{self.identifier()}")'
+    
+    @classmethod
+    def new(cls, system_proxy, identifier):
+        p = ProcessProxy(None, None, None, protocol=None)
+        p.system = system_proxy
+        p._id = identifier
+        return p
+    
     def call(self, *args, **kwargs):
         if len(args) == 1:
             body = args[0]
@@ -191,18 +224,35 @@ class ProcessProxy(ObjectProxy):
         else:
             body = kwargs
         return self.system.crud.update(self._cn, 'call', body, {'identifier': self._id})
+    
+    def __call__(self, *args, **kwargs):
+        return self.call(*args, **kwargs)
 
     def execute(self):
         return self.system.crud.update(self._cn, 'execute', {}, {'identifier': self._id})
     
-    def __repr__(self):
-        return f'ProcessProxy("{self.identifier()}")'
 
 class ContainerProxy(ObjectProxy):
-    def __init__(self, system_proxy, identifier):
-        super().__init__(system_proxy, 'container', identifier)    
-        self._profile = self.profile_full()
-
+        
+    def __init__(self, name, host, port, protocol='http'):
+        if protocol is None:
+            super().__init__(None, 'container', None)
+            self._name = name
+        elif protocol == 'http':
+            super().__init__(SystemProxy(HttpProxy(host,port)), 'container', None)
+            self._name = None
+            for c in self.system.contaienrs():
+                if c.name() == name:
+                    self._id = c.identifier()
+                    return
+                
+    @classmethod
+    def new(cls, system_proxy, identifier):
+        p = ContainerProxy()
+        p.system = system_proxy
+        p._id = identifier
+        return p
+    
     def __repr__(self):
         return f'ContainerProxy("{self.identifier()}")'
     
@@ -215,7 +265,18 @@ class ContainerProxy(ObjectProxy):
         for pid in pids:
             if pid == id:
                 return ContainerProcessProxy(self.system, pid)
-        return None            
+        return None          
+    
+    def __getattr__(self, name):
+        # search process by name:
+        ps = self.processes()
+        for p in ps:
+            if p.type_name == name:
+                return p
+        for p in ps:
+            if p.name()  == name:
+                return p
+        raise AttributeError(self, name)
     
 
 class ContainerProcessProxy(ObjectProxy):
@@ -231,6 +292,9 @@ class ContainerProcessProxy(ObjectProxy):
             body = kwargs
         return self.system.crud.update(self._cn, 'call', body, {'identifier': self._id})
 
+    def __call__(self, *args, **kwargs):
+        return self.call(*args, **kwargs)
+    
     def execute(self):
         return self.system.crud.update(self._cn, 'execute', {}, {'identifier': self._id})
 
@@ -258,3 +322,25 @@ class IdentifierStruct(object):
 
     def __repr__(self):
         return f'IdentifierStruct(broker_type="{self.broker_type}",broker_name="{self.broker_name}",class_name="{self.class_name}",type_name="{self.type_name}",name="{self.name}")'
+
+
+def id_to_name(id: str):
+    if id.find('://') > 0: # 通常IDフォーマット。プロトコルあり
+        # print('id=', id)
+        broker_type, id_body = id.split('://')
+        broker_name, class_name, name_and_type = id_body.split('/')
+        name, type_name = name_and_type.split('::')
+        return name
+    
+
+def id_to_type_name(id: str):
+    if id.find('://') > 0: # 通常IDフォーマット。プロトコルあり
+        # print('id=', id)
+        broker_type, id_body = id.split('://')
+        broker_name, class_name, name_and_type = id_body.split('/')
+        name, type_name = name_and_type.split('::')
+        return type_name
+
+if __name__ == '__main__':
+    i = 'core://core/process/hoge_process_name0::hoge_process'
+    print(id_to_name(i))
