@@ -2,7 +2,7 @@
 
 ## 概要
 
-JUIZ (ジュイス) はロボットをネットワーク分散システム的に開発するためのミドルウェアおよびソフトウェアプラットフォームの総称です。
+JUIZ (ジュイス) はロボットをネットワーク分散システム的に開発するためのミドルウェアおよびソフトウェアプラットフォームの呼称です。
 JUIZを使うことで、複数の言語でネットワーク分散的に動作する複数のソフトウェアを結合して、一つのソフトウェアサービスのように動作させることができます。
 同様のソフトウェアプラットフォームとしてROSやOpenRTM-aist、naoqiがありますが、これらとはソフトウェアモジュールのプログラミングモデルや利用形態において一線を画す革新的なソフトウェアになっていると自負していますが、ysugaひとりで作っていることもあって、ミッションクリティカルなタスクへの利用はお控えください。
 
@@ -423,21 +423,91 @@ def example_container_python_get(container):
     return container.value
 ```
 
+### Componentの実装
+コンポーネントは、Process, Container, ContainerProcessを一つのプロジェクトで一斉に作り配布する方法である。
+
+
+#### RustでのComponentの実装方法
+```rust
+use juiz_sdk::prelude::*;
+
+#[juiz_component_process]
+fn example_component_increment(arg1: i64) -> JuizResult<Capsule> {
+    log::trace!("increment_process({:?}) called", arg1);
+    return Ok(jvalue!(arg1+1).into());
+}
+
+#[repr(Rust)]
+pub struct ExampleComponentContainer {
+    pub value: i64
+}
+
+#[juiz_component_container]
+fn example_component_container(initial_value: i64) -> JuizResult<Box<ExampleComponentContainer>> {
+    println!("example_component_container({initial_value}) called");
+    Ok(Box::new(ExampleComponentContainer{value: initial_value}))
+}
+
+#[juiz_component_container_process( container_type = "example_component_container" )]
+fn example_component_container_get(container: &mut ContainerImpl<ExampleComponentContainer>) -> JuizResult<Capsule> {
+    println!("example_component_container_get()");
+    Ok(jvalue!(container.value).into())
+}
+
+#[juiz_component_container_process( container_type = "example_component_container" )]
+fn example_component_container_increment(container: &mut ContainerImpl<ExampleComponentContainer>) -> JuizResult<Capsule> {
+    println!("example_component_container_increment()");
+    container.value = container.value + 1;
+    Ok(jvalue!(container.value).into())
+}   
+
+#[juiz_component_container_process( container_type = "example_component_container" 
+   arguments = {
+      default = {
+        arg1 = 1
+      }
+   }
+)]
+fn example_component_container_add(container: &mut ContainerImpl<ExampleComponentContainer>, arg1: i64) -> JuizResult<Capsule> {
+    println!("example_component_container_add({arg1})");
+    container.value = container.value + arg1;
+    Ok(jvalue!(container.value).into())
+}
+
+juiz_component_manifest!(
+    component_name = "example_component"
+    containers = {
+        example_component_container = [
+            example_component_container_get,
+            example_component_container_increment,
+            example_component_container_add
+        ]
+    }
+    processes = [
+        example_component_increment
+    ]
+);
+```
+
+#### C++でのComponentの実装
+
+
 ## 機能要素の単体実行方法
 juizクレートをビルドするとjuizコマンドが生成される。このコマンドを使う。
 
 ### Processを試す。
 たとえば、RustでつくったProcessがtarget/debug/libtalker.dylibだった場合、以下のコマンドで単体プロセスが実行できる。
 ```terminal
-juiz --process target/debug/libtalker.dylib -l rust -e
+juiz --process target/debug/libtalker.dylib -l rust -e -1
 ```
 --processオプションで生成物を指定する。Pythonなら.pyファイル、C++ならば.dllや.so, .dylibなどのバイナリである。
 -lオプションは言語を指定する。rust|cpp|pythonの3つから選び、デフォルトはrustであるので例の場合は"-l rust"は省略が可能なオプションである。
 -eオプションはロードしたプロセスを一つ、自動で名前をつけて実体化し、デフォルトの引数を使ってexecuteする。
+-1オプションで、ロードしたモジュール一つにつき、一つのインスタンスを作成する。
 
 このjuizクレートの中で試すなら、以下のように行う
 ```terminal
-cargo run -- --process ./target/debug/libtalker.dylib -e
+cargo run -- --process ./target/debug/libtalker.dylib -e -1
 ```
 デフォルトのbinとしてjuizコマンドが登録されているのでcargo runで実行される。
 
@@ -448,10 +518,13 @@ cargo run -- --process ./target/debug/libtalker.dylib -e
 ### ContainerおよびContainerProcessを試す。
 Rustで作ったContainerとContainerProcessがそれぞれ、./target/debug/my_container.dylibと./target/debug/my_container_process.dylibであった場合、以下のコマンドで単体のコンテナプロセスを実行できる。
 ```terminal
-juiz --container ./target/debug/my_container.dylib --container_process ./target/debug/my_container_process.dylib -l rust -e 
+juiz --container ./target/debug/my_container.dylib --container_process ./target/debug/my_container_process.dylib -l rust -e -1
 ```
 --containerでコンテナのファイルを、--container_processでコンテナプロセスのバイナリを指定する。
 -lで言語を指定するのも同じであり、-eオプションも同じ効果である。
+-1オプションで、ロードしたモジュール一つにつき、一つのインスタンスを作成する。
+この方法ではただ一のコンテナのみインスタンスにできる。コンテナプロセスは、そのコンテナのプロセスとして結びつけられる。
+
 
 ## 設定ファイルの中身
 複数の成果物を一気に読み込む場合は設定ファイルを記述するのが簡単である。

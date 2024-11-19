@@ -128,7 +128,14 @@ impl CapsulePtr {
                 }
             },
             Err(e) => {
-                e.lock().and_then(|v| { Ok(v.as_image().unwrap().clone()) }).or_else(|_e| { Err(anyhow::Error::from(JuizError::MutexLockFailedError { error: "".to_owned() })) })
+                e.lock().or(Err(anyhow::Error::from(JuizError::MutexLockFailedError { error: "".to_owned() })))
+                .and_then(|v| { 
+                    if let Some(img) = v.as_image() {
+                        Ok(img.clone())
+                    } else {
+                        Err(anyhow!(JuizError::ValueTypeError { message: format!("value must be image, but {:?}", v) }))
+                    }
+                })
             }
         }
     }
@@ -384,6 +391,16 @@ impl TryInto<u64> for CapsulePtr {
     }
 }
 
+impl TryInto<Vec<Value>> for CapsulePtr {
+    type Error = anyhow::Error;
+
+    fn try_into(self) -> Result<Vec<Value>, Self::Error> {
+        let val = self.lock_as_value(|v| -> JuizResult<Vec<Value>> {
+            Ok(v.as_array().ok_or_else(|| {anyhow!(JuizError::ValueTypeError { message: "TryInto<Vec<Value>> for CapsulePtr failed.".to_owned() })})?.clone())
+        })??;
+        Ok(val)
+    }
+}
 impl TryInto<Vec<i64>> for CapsulePtr {
     type Error = anyhow::Error;
 

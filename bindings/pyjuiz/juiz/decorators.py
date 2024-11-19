@@ -1,9 +1,10 @@
 import datetime
 import inspect
 import functools
+import io
 
 from .juiz import *
-
+from PIL.Image import Image
 class JuizProcessArgumentUnknownTypeError(Exception): pass
 class JuizContainerArgumentUnknownTypeError(Exception): pass
 
@@ -78,7 +79,7 @@ class JuizProcess(object):
         return self._manifest.into_value()
         
     def __call__(self, *args, **kwargs):
-        return self.__proc(*args, **kwargs)
+        return convert_process_result(self.__proc(*args, **kwargs))
     
 @allow_no_arg_decorator
 def juiz_process(process_function, description="Default Description"):
@@ -149,6 +150,9 @@ class JuizContainer(object):
 def juiz_container(constructor_function, description="Default Description"):
     return JuizContainer(constructor_function)
 
+@allow_no_arg_decorator
+def juiz_component_container(constructor_function, description="Default Description"):
+    return JuizContainer(constructor_function)
 
 class JuizContainerProcess(object):
     def __init__(self, proc, container_type):
@@ -210,8 +214,19 @@ class JuizContainerProcess(object):
         return self._manifest.into_value()
         
     def __call__(self, *args, **kwargs):
-        return self.__proc(*args, **kwargs)
+        return convert_process_result(self.__proc(*args, **kwargs))
+
+def convert_process_result(retval):
+    # if isinstance(retval, Image):
+    #     output = io.BytesIO()
+    #     retval.save(output, format='PNG')
+    #     return output.getvalue() # Hex Data
+    return retval
 
 @allow_no_arg_decorator
 def juiz_container_process(constructor_function, container_type:str, description="Default Description"):
+    return JuizContainerProcess(constructor_function, container_type)
+
+@allow_no_arg_decorator
+def juiz_component_container_process(constructor_function, container_type:str, description="Default Description"):
     return JuizContainerProcess(constructor_function, container_type)

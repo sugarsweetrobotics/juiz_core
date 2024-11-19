@@ -90,7 +90,26 @@ members = [
     "examples/rust/component/example_component", 
     "brokers/qmp_broker",
 
-    "tutorial/rust/talker_listener/talker"
+    "tutorial/rust/talker_listener/talker",
+
+
+    "juiz_sdk/test_packages/a_arg_proc",
+    "juiz_sdk/test_packages/aa_arg_proc",
+    "juiz_sdk/test_packages/fa_arg_proc",
+    "juiz_sdk/test_packages/ia_arg_proc",
+    "juiz_sdk/test_packages/b_arg_proc",
+    "juiz_sdk/test_packages/bb_arg_proc",
+    "juiz_sdk/test_packages/bbb_arg_proc",
+    "juiz_sdk/test_packages/i_arg_proc",
+    "juiz_sdk/test_packages/ii_arg_proc",
+    "juiz_sdk/test_packages/iii_arg_proc",
+    "juiz_sdk/test_packages/f_arg_proc",
+    "juiz_sdk/test_packages/ff_arg_proc",
+    "juiz_sdk/test_packages/fff_arg_proc",
+    "juiz_sdk/test_packages/s_arg_proc",
+    "juiz_sdk/test_packages/ss_arg_proc",
+    "juiz_sdk/test_packages/sss_arg_proc",
+    "juiz_sdk/test_packages/img_arg_proc",
 ]
 default-members = [
     ".",
@@ -112,4 +131,23 @@ default-members = [
     #"examples/rust/container/example_container_stack",
     #"examples/rust/container/example_container_stack_get",
     "brokers/qmp_broker",
+
+
+    # "juiz_sdk/test_packages/a_arg_proc",
+    # "juiz_sdk/test_packages/aa_arg_proc",
+    # "juiz_sdk/test_packages/fa_arg_proc",
+    # "juiz_sdk/test_packages/ia_arg_proc",
+    # "juiz_sdk/test_packages/b_arg_proc",
+    # "juiz_sdk/test_packages/bb_arg_proc",
+    # "juiz_sdk/test_packages/bbb_arg_proc",
+    # "juiz_sdk/test_packages/i_arg_proc",
+    # "juiz_sdk/test_packages/ii_arg_proc",
+    # "juiz_sdk/test_packages/iii_arg_proc",
+    # "juiz_sdk/test_packages/f_arg_proc",
+    # "juiz_sdk/test_packages/ff_arg_proc",
+    # "juiz_sdk/test_packages/fff_arg_proc",
+    # "juiz_sdk/test_packages/s_arg_proc",
+    # "juiz_sdk/test_packages/ss_arg_proc",
+    # "juiz_sdk/test_packages/sss_arg_proc",
+    # "juiz_sdk/test_packages/img_arg_proc",
 ]

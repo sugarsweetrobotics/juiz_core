@@ -81,6 +81,18 @@ public:
     return *this;
   }
 
+  ProcessManifest add_array_arg(const std::string& name, const std::string& description) {
+    auto arr = juiz::Value::list();
+    arguments_.push_back(ArgumentManifest("array", name, description, arr));
+    return *this;
+  }
+
+  ProcessManifest add_object_arg(const std::string& name, const std::string& description) {
+    auto v = juiz::Value::object();
+    arguments_.push_back(ArgumentManifest("object", name, description, v));
+    return *this;
+  }
+
   ProcessManifest use_memo(const bool use_memo) {
     use_memo_ = use_memo;
     return *this;
@@ -181,7 +193,7 @@ public:
         {"language", language_},
         {"description", description_},
         {"factory", factory_},
-        {"args", args_}
+        {"arguments", args_}
     };
     if (name_) {
         v["name"] = juiz::Value{name_.value()};

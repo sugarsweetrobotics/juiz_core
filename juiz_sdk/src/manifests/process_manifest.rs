@@ -123,6 +123,17 @@ impl ProcessManifest {
         self.arguments.push(arg);
         self
     }
+    /// ```
+    /// use juiz_core::prelude::*;
+    /// let manifest = ProcessManifest::new("hoge_type")
+    ///   .description("hoge manifest")
+    ///   .add_bool_arg("arg0", "boolt_arg", false.into());
+    /// assert_eq!(manifest.arguments[0].name, "arg0");
+    /// assert_eq!(manifest.arguments[0].type_name.as_str(), "bool");
+    /// ```
+    pub fn add_bool_arg(self, name: &str, description: &str, default: bool) -> Self {
+        self.add_arg(ArgumentManifest::new_bool(name, default).description(description))
+    }
 
     /// ```
     /// use juiz_core::prelude::*;
@@ -146,6 +157,10 @@ impl ProcessManifest {
     /// ```
     pub fn add_float_arg(self, name: &str, description: &str, default: f64) -> Self {
         self.add_arg(ArgumentManifest::new_float(name, default).description(description))
+    }
+
+    pub fn add_array_arg(self, name: &str, description: &str, default: Vec<Value>) -> Self {
+        self.add_arg(ArgumentManifest::new_array(name, default).description(description))
     }
 
     pub fn add_object_arg(self, name: &str, description: &str, default: Value) -> Self {

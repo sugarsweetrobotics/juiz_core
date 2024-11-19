@@ -144,14 +144,14 @@ class SystemProxy():
         
     def containers(self, update=False):
         ps = self.crud.read('container', 'list')
-        self._containers = [ContainerProxy(self, pid) for pid in ps]
+        self._containers = [ContainerProxy.new(self, pid) for pid in ps]
         return self._containers
 
     def container(self, id):
         cs = self.crud.read('container', 'list')
         for pid in cs:
             if pid == id:
-                return ContainerProxy(self, pid)
+                return ContainerProxy.new(self, pid)
         return None            
     
     def container_processes(self, update=False):
@@ -243,14 +243,15 @@ class ContainerProxy(ObjectProxy):
         elif protocol == 'http':
             super().__init__(SystemProxy(HttpProxy(host,port)), 'container', None)
             self._name = None
-            for c in self.system.contaienrs():
-                if c.name() == name:
+            for c in self.system.containers():
+                print(c.type_name(), name)
+                if c.type_name() == name:
                     self._id = c.identifier()
                     return
                 
     @classmethod
     def new(cls, system_proxy, identifier):
-        p = ContainerProxy()
+        p = ContainerProxy(None, None, None, protocol=None)
         p.system = system_proxy
         p._id = identifier
         return p
@@ -259,11 +260,11 @@ class ContainerProxy(ObjectProxy):
         return f'ContainerProxy("{self.identifier()}")'
     
     def processes(self):
-        pids = self._profile['processes']
+        pids = self.profile_full()['processes']
         return [ContainerProcessProxy(self.system, pid) for pid in pids]
         
     def process(self, id):
-        pids = self._profile['processes']
+        pids = self.profile_full()['processes']
         for pid in pids:
             if pid == id:
                 return ContainerProcessProxy(self.system, pid)
@@ -273,7 +274,7 @@ class ContainerProxy(ObjectProxy):
         # search process by name:
         ps = self.processes()
         for p in ps:
-            if p.type_name == name:
+            if p.type_name() == name:
                 return p
         for p in ps:
             if p.name()  == name:

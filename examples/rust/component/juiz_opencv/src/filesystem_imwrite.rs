@@ -7,6 +7,11 @@ use crate::filesystem::*;
 
 #[juiz_component_container_process(
     container_type = "filesystem"
+    arguments = {
+        default = {
+            file_name = "default_filename.png"
+        }
+    }
 )]
 fn filesystem_imwrite(_container: &mut ContainerImpl<CvFilesystem>, img: DynamicImage, file_name: String) -> JuizResult<Capsule> {
     println!("imwrite_function(file_name={file_name:})");

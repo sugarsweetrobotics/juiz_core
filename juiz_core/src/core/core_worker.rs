@@ -414,7 +414,7 @@ impl CoreWorker {
             }
         };
         // let plugin = JuizObjectPlugin::new_rust(PathBuf::from(filepath))?;
-        let cont_factory_ptr = register_container_factory(self, current_dir().map_or_else(|_|{None}, |wd|{Some(wd)}), plugin, "container_factory")?;
+        let cont_factory_ptr = register_container_factory(self, current_dir().map_or_else(|_|{None}, |wd|{Some(wd)}), plugin, "container_factory", None)?;
         let p = cont_factory_ptr.lock()?.profile_full()?;
         Ok(p)
     }
@@ -430,7 +430,7 @@ impl CoreWorker {
             }
         };
         //let plugin = JuizObjectPlugin::new_rust(PathBuf::from(filepath))?;
-        let contproc_factory_ptr = register_container_process_factory(self, current_dir().map_or_else(|_|{None}, |wd|{Some(wd)}), plugin, "container_process_factory")?;
+        let contproc_factory_ptr = register_container_process_factory(self, current_dir().map_or_else(|_|{None}, |wd|{Some(wd)}), plugin, "container_process_factory", None)?;
         let p = contproc_factory_ptr.lock()?.profile_full()?;
         Ok(p)
     }

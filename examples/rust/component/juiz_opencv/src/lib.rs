@@ -19,6 +19,7 @@ use video_capture_readandget::*;
 use window::*;
 use window_show::*;
 use filesystem::*;
+use filesystem_imwrite::*;
 use cv_cvt_color::*;
 
 juiz_component_manifest!(
@@ -33,7 +34,7 @@ juiz_component_manifest!(
             window_show,
         ],
         filesystem = [
-
+            filesystem_imwrite,
         ]
     },
     processes = [

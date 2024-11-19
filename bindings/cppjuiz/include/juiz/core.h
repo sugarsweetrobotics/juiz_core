@@ -4,6 +4,7 @@
 
 #ifdef __cplusplus
 #include <cstdint>
+#include <vector>
 #include "value.h"
 
 extern "C" {
@@ -43,6 +44,7 @@ int capsule_ptr_lock_as_value(capsule_ptr* cp, void callback(value*));
 
 int capsule_ptr_lock_as_value_with_arg(capsule_ptr* cp, int64_t callback(void*, value*), void*);
 
+
 int value_is_int(value* v);
 int value_get_int(value* v, int64_t* int_value);
 int value_is_uint(value* v);
@@ -53,6 +55,7 @@ int value_is_string(value* v);
 int value_get_string(value* v, char** char_value);
 int value_is_object(value* v);
 int value_object_foreach(value* v, void callback(void*, const char* key, value* v), void*);
+
 value* value_object_get_value(value*, const char* key);
 int value_is_bool(value* v);
 int value_get_bool(value* v, int* bool_value);

@@ -1,6 +1,7 @@
 all:
 	cd increment_process; make
 	cd decrement_process; make
+	cd add_process; make
 	cd talker_cpp; make
 	cd listener_cpp;make 
 clean:

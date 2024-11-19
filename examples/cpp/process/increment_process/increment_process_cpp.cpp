@@ -1,16 +1,13 @@
 
 #include "juiz/juiz.h"
 
-juiz::Value manifest() {
+auto manifest() {
     return ProcessManifest{"increment_process_cpp"}
-        .add_int_arg("arg1", "test_argument", 1)
-        .into_value();
+        .add_int_arg("arg1", "test_argument", 1);
 }
 
-std::optional<int64_t> increment_process(juiz::CapsuleMap cm) {
-    auto a = cm.get_int("arg1");
-    return a + 1;
+std::optional<int64_t> increment_process(int64_t arg1) {
+    return arg1 + 1;
 }
 
 PROCESS_FACTORY(manifest, increment_process);
-

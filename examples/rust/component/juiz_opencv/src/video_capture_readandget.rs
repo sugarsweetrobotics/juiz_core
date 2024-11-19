@@ -10,6 +10,7 @@ use cv_convert::TryFromCv;
     container_type = "video_capture"
 )]
 fn video_capture_readandget(container: &mut ContainerImpl<CvVideoCapture>) -> JuizResult<Capsule> {
+    println!("video_capture_readandget() called");
     let mut frame : Mat = Mat::default();
     let mut dst: Mat = Mat::default();
     container.camera.read(&mut frame)?;

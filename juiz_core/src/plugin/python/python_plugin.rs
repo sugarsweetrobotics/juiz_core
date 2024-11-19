@@ -1,6 +1,7 @@
 
 use std::{collections::HashMap, fs, path::PathBuf, sync::Arc};
-use pyo3::{prelude::*, types::{PyDict, PyFloat, PyFunction, PyInt, PyList, PyNone, PySet, PyString, PyTuple}};
+use image::ImageFormat;
+use pyo3::{prelude::*, types::{PyByteArray, PyBytes, PyDict, PyFloat, PyFunction, PyInt, PyList, PyNone, PySet, PyString, PyTuple}};
 use juiz_sdk::serde_json::Map;
 use juiz_sdk::anyhow::{self, anyhow};
 use crate::{containers::{bind_container_function, container_factory_create, container_process_factory_create_from_trait}, prelude::*, processes::process_factory_create_from_trait};
@@ -139,10 +140,13 @@ if not "{path_str:}" in sys.path:
     //     )?))
     // }
 
-    pub fn load_container_process_factory(&self, working_dir: Option<PathBuf>, symbol_name: &str) -> JuizResult<ContainerProcessFactoryPtr> {
+    pub fn load_container_process_factory(&self, working_dir: Option<PathBuf>, symbol_name: &str, type_name_opt: Option<&str>) -> JuizResult<ContainerProcessFactoryPtr> {
         log::trace!("PythonPlugin({:?})::load_container_process_factory(symbol_name='{symbol_name}') called", self.path);
         self.init_path(working_dir.clone())?;
-        let type_name = self.path.file_stem().unwrap().to_str().unwrap();
+        let type_name = match type_name_opt {
+            Some(v) => v,
+            None => self.path.file_stem().unwrap().to_str().unwrap()
+        };
         // self.load_container_process_factory_with_manifest(working_dir.clone(), cp_profile.clone(), symbol_name)
         let fullpath = working_dir.unwrap_or(env!("CARGO_MANIFEST_DIR").into()).join(self.path.clone());
         let mut manifest = jvalue!({});
@@ -192,10 +196,14 @@ if not "{path_str:}" in sys.path:
     // }
 
 
-    pub fn load_container_factory(&self, working_dir: Option<PathBuf>, symbol_name: &str) -> JuizResult<ContainerFactoryPtr> {
+    pub fn load_container_factory(&self, working_dir: Option<PathBuf>, symbol_name: &str, type_name_opt: Option<&str>) -> JuizResult<ContainerFactoryPtr> {
         log::trace!("PythonPlugin({:?})::load_container_factory(symbol_name='{symbol_name}') called", self.path);
         
-        let type_name = self.path.file_stem().unwrap().to_str().unwrap();
+        let type_name = match type_name_opt {
+            Some(v) => v,
+            None => self.path.file_stem().unwrap().to_str().unwrap()
+        };
+        //let type_name = ;
         let fullpath = working_dir.unwrap_or(env!("CARGO_MANIFEST_DIR").into()).join(self.path.clone());
         let mut manifest = jvalue!({});
         let py_app = fs::read_to_string(fullpath.clone()).unwrap();
@@ -239,6 +247,7 @@ if not "{path_str:}" in sys.path:
     }
 
     pub fn load_component_manifest(&self, working_dir: Option<PathBuf>) -> JuizResult<ComponentManifest> {
+        log::trace!("load_component_manifest() called");
         self.get_manifest_with_name(working_dir, "component_manifest")?.try_into()
     }
 }
@@ -395,7 +404,7 @@ pub fn python_process_call(py: Python, entry_point: &Py<PyAny>, pytuple: pyo3::B
                 todo!()
             } else {
                 // println!("pyany_to_value: {object:?}");
-                pyany_to_value(object)?.into()
+                pyany_to_capsule(object)?.into()
             })
         },
         Err(e) => {
@@ -453,11 +462,70 @@ pub fn pyany_to_value(value: &PyAny) -> PyResult<Value> {
         Ok(Value::Null)
     } else {
         let pytype = value.get_type();
-        println!("pytype: {pytype:?}");
-        log::error!("Error for pyany_to_value. Error({pytype:?} is not available)");
-        todo!()
+        if pytype.to_string() == "PIL.Image.Iage" {
+            todo!()
+        } else {
+            println!("pytype: {pytype:?}");
+            log::error!("Error for pyany_to_value. Error({pytype:?} is not available)");
+            todo!("PythonのProcessの値としてjuizが対応していないタイプが渡されました。")
+        }
     }
 }
+
+
+pub fn pyany_to_capsule(value: &PyAny) -> PyResult<Capsule> {
+    if value.is_instance_of::<PyString>() {
+        Ok(Value::from(value.extract::<String>()?).into())
+    } else if value.is_instance_of::<PyFloat>() {
+        Ok(Value::from(value.extract::<f64>()?).into())
+    } else if value.is_instance_of::<PyInt>() {
+        Ok(Value::from(value.extract::<i64>()?).into())
+    } else if value.is_instance_of::<PyList>() {
+        pylist_to_capsule(value.extract::<&PyList>()?)
+    } else if value.is_instance_of::<PyTuple>() {
+        pytuple_to_capsule(value.extract::<&PyTuple>()?)
+    } else if value.is_instance_of::<PySet>() {
+        pyset_to_capsule(value.extract::<&PySet>()?)
+    } else if value.is_instance_of::<PyDict>() {
+        pydict_to_capsule(value.extract::<&PyDict>()?)
+    } else if value.is_instance_of::<PyNone>() {
+        Ok(Value::Null.into())
+    } else {
+        let pytype = value.get_type();
+        if pytype.to_string() == "<class 'PIL.Image.Image'>" {
+            let image = Python::with_gil(|py| -> PyResult<DynamicImage> {
+                let app_code = r"
+import io
+
+def convert_img(img):
+    output = io.BytesIO()
+    img.save(output, format='PNG')
+    return output.getvalue() # Hex Data
+";
+                let module = PyModule::from_code_bound(py, &app_code.to_owned(), "", "")?;
+                let byte_output = module.getattr("convert_img")?.into_py(py).call1(py, PyTuple::new_bound(py, vec![value]))?.extract::<&PyBytes>(py)?;
+                match image::load_from_memory_with_format(byte_output.as_bytes(), ImageFormat::Png) {
+                    Ok(i) => Ok(i),
+                    Err(e) =>  {
+                        log::error!("Image load from memmory error. Error: {e:?}");
+                        panic!()
+                    }
+                }
+            })?;
+
+            
+            println!("pytype: {pytype:?}");
+            //log::error!("Error for pyany_to_capsule. Error({pytype:?} is not available)");
+            //todo!("PythonのProcessの値として画像型が渡されましたが、未対応です。juizが対応していないタイプが渡されました。")
+            Ok(image.into())
+        } else {
+            println!("pytype: {:?}", pytype.get_type());
+            log::error!("Error for pyany_to_capsule. Error({pytype:?} is not available)");
+            todo!("PythonのProcessの値としてjuizが対応していないタイプが渡されました。")
+        }
+    }
+}
+
 
 fn pylist_to_value(pylist: &PyList) -> PyResult<Value> {
     let mut vec: Vec<Value> = Vec::new();
@@ -487,4 +555,35 @@ pub fn pydict_to_value(pydict: &PyDict) -> PyResult<Value> {
         map.insert(key.extract::<String>()?, pyany_to_value(value)?);
     }
     Ok(jvalue!(map))
+}
+
+
+fn pylist_to_capsule(pylist: &PyList) -> PyResult<Capsule> {
+    let mut vec: Vec<Value> = Vec::new();
+    for value in pylist.into_iter() {
+        vec.push(pyany_to_value(value)?);
+    }
+    Ok(vec.into())
+}
+fn pytuple_to_capsule(pytuple: &PyTuple) -> PyResult<Capsule> {
+    let mut vec: Vec<Value> = Vec::new();
+    for value in pytuple.into_iter() {
+        vec.push(pyany_to_value(value)?);
+    }
+    Ok(vec.into())
+}
+fn pyset_to_capsule(pyset: &PySet) -> PyResult<Capsule> {
+    let mut vec: Vec<Value> = Vec::new();
+    for value in pyset.into_iter() {
+        vec.push(pyany_to_value(value)?);
+    }
+    Ok(vec.into())
+}
+
+pub fn pydict_to_capsule(pydict: &PyDict) -> PyResult<Capsule> {
+    let mut map: HashMap<String, Value> = HashMap::new();
+    for (key, value) in pydict.into_iter() {
+        map.insert(key.extract::<String>()?, pyany_to_value(value)?);
+    }
+    Ok(jvalue!(map).into())
 }

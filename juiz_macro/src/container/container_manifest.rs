@@ -1,7 +1,3 @@
-
-
-use std::collections::HashMap;
-
 use quote::{format_ident, quote};
 use serde_json::json;
 use crate::proc_macro::TokenStream;
@@ -23,7 +19,7 @@ pub(crate) fn component_manifest_tokenstream(proc_type_str: String) -> TokenStre
     }.into()
 }
 
-pub(crate) fn construct_manif_tokenstream(function_name: String, manifest_attr: &serde_json::Value, arg_map: &HashMap<TypePath, syn::Ident>) -> TokenStream {
+pub(crate) fn construct_manif_tokenstream(function_name: String, manifest_attr: &serde_json::Value, arg_map: &Vec<(TypePath, syn::Ident)>) -> TokenStream {
     // attr変数から読み取った値からdescriptionを取得
     let description = manifest_attr.as_object().unwrap().get("description").and_then(|v| { Some(v.clone()) }).or(Some(json!(format!("Default description of Container({function_name})")))).unwrap().as_str().unwrap().to_owned();
     // ここでmanifestデータの基本データを作成する部分
@@ -109,7 +105,7 @@ pub(crate) fn construct_manif_tokenstream(function_name: String, manifest_attr: 
 }
 
 
-pub(crate) fn component_construct_manif_tokenstream(function_name: String, manifest_attr: &serde_json::Value, arg_map: &HashMap<TypePath, syn::Ident>, factory_name: String) -> TokenStream {
+pub(crate) fn component_construct_manif_tokenstream(function_name: String, manifest_attr: &serde_json::Value, arg_map: &Vec<(TypePath, syn::Ident)>, factory_name: String) -> TokenStream {
     // attr変数から読み取った値からdescriptionを取得
     let description = manifest_attr.as_object().unwrap().get("description").and_then(|v| { Some(v.clone()) }).or(Some(json!(format!("Default description of Container({function_name})")))).unwrap().as_str().unwrap().to_owned();
     // ここでmanifestデータの基本データを作成する部分

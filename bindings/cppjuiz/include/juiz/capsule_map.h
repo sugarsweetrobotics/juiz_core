@@ -86,6 +86,18 @@ namespace juiz {
             }
             return std::string(iv);
         }
+
+        std::vector<juiz::Value> get_array(const std::string& name) const {
+            capsule_ptr* ptr = NULL;
+            if (capsule_map_get_capsule(this->_pmap, name.c_str(), &ptr) != JUIZ_OK) {
+                throw ValueNotFoundError();
+            }
+            std::vector<juiz::Value> val;
+            if (capsule_ptr_get_array(ptr, val) != JUIZ_OK) {
+                throw ValueNotFoundError();
+            }
+            return val;
+        }
     };
 
     int64_t __set_value_obj_value(const Value* src_v, value* val);
@@ -207,3 +219,23 @@ namespace juiz {
 
 
 }// namespace juiz
+
+
+void _get_array_callback_foreach(void* pval, value* v) {
+    std::vector<juiz::Value> &val = *(static_cast<std::vector<juiz::Value>*>(pval));
+    val.emplace_back(juiz::into_value(v));
+}
+int64_t _get_array_callback(void* pval, value* v) {
+    //std::vector<juiz::Value> &val = *(static_cast<std::vector<juiz::Value>*>(pval));
+    if (value_array_foreach(v, _get_array_callback_foreach, pval) != JUIZ_OK) {
+        throw juiz::ValueConvertError();
+    }
+    return JUIZ_OK;
+}
+
+int capsule_ptr_get_array(capsule_ptr* cp, std::vector<juiz::Value>& array) {
+    std::vector<juiz::Value> val;
+    if( capsule_ptr_lock_as_value_with_arg(cp, _get_array_callback, &val) != JUIZ_OK) {
+        throw juiz::ValueConvertError();
+    }
+}

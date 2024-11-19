@@ -18,6 +18,7 @@ pub(crate) fn juiz_process_inner(attr: TokenStream, item: TokenStream) -> TokenS
     // ここで全部 CapsuleMapにしてしまう。元の引数のデータはarg_mapで受け取る
     let arg_map = change_argument_to_capsule_map(&mut ast);
 
+    // println!("arg_map!: {arg_map:?}");
     // このあとclearしちゃうのでまずbodyを保存。
     let body: TokenStream = get_body_tokenstream(&ast);
 

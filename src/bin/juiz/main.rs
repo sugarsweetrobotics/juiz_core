@@ -65,8 +65,12 @@ struct Args {
     #[arg(short = 'l', help = "Module Language", default_value="rust")]
     module_language: String,
 
-    #[arg(short = 'c', help = "Create manually loaded module", default_value="true")]
+    #[arg(short = '1', long = "c1", help = "Create one instance for evely manually loaded module", default_value="false")]
     module_create: bool,
+
+    #[arg(short = 'c', long = "create", value_delimiter=',', help = "Pass typeName to create one instance for evely manually loaded module")]
+    create_instance: Vec<String>,
+
 
     #[arg(short = 'e', help = "Execute manually loaded module once", default_value="false")]
     module_execute: bool,
@@ -124,21 +128,34 @@ enum SubCommands {
 fn do_task_once(system: &mut System, args: Args) -> JuizResult<()> {
     // println!("System started once");
     let language = args.module_language;
-    let create = args.module_create;
+    let create_every = args.module_create;
     let execute = args.module_execute;
     let print = args.module_execute_print;
     let module_manifest_print = args.module_manifest_print;
+    let create_instance = args.create_instance;
     if let Some(process_path) = args.process {
         let pm: ProcessManifest = system.core_broker().lock_mut()?.system_load_process(language, process_path)?.try_into()?;
         if module_manifest_print {
             println!("{pm:?}");
         }
-        if create {
+        if create_every {
             let process_proxy = create_process_by_pm(system, &pm)?;
             if execute {
                 let v = process_proxy.lock_mut()?.execute()?;
                 if print {
                     println!("{v:?}");
+                }
+            }
+        } else {
+            for create_type_name in create_instance.iter() {
+                if pm.type_name == create_type_name.as_str() {
+                    let process_proxy = create_process_by_pm(system, &pm)?;
+                    if execute {
+                        let v = process_proxy.lock_mut()?.execute()?;
+                        if print {
+                            println!("{v:?}");
+                        }
+                    }
                 }
             }
         }
@@ -148,21 +165,43 @@ fn do_task_once(system: &mut System, args: Args) -> JuizResult<()> {
         if module_manifest_print {
             println!("{cm:?}");
         }
-        if create {
+        if create_every {
             let container_ptr = create_container_by_cm(system, &cm)?;
             container_id = Some(container_ptr.identifier().clone());
+        } else {
+            for create_type_name in create_instance.iter() {
+                if cm.type_name == create_type_name.as_str() {
+                    let container_ptr = create_container_by_cm(system, &cm)?;
+                    container_id = Some(container_ptr.identifier().clone());
+                    break;
+                }
+            }
         }
         if let Some(container_process_path) = args.container_process {
             let pm: ProcessManifest = system.core_broker().lock_mut()?.system_load_container_process(language, container_process_path)?.try_into()?;
             if module_manifest_print {
                 println!("{pm:?}");
             }
-            if create {
+            if create_every {
                 let process_proxy = create_container_process_by_cid_and_pm(system, container_id.unwrap(), &pm)?;
                 if execute {
                     let v = process_proxy.lock_mut()?.execute()?;
                     if print {
                         println!("{v:?}");
+                    }
+                }
+            } else {
+                if let Some(cid) = container_id {
+                    for create_type_name in create_instance.iter() {
+                        if pm.type_name == create_type_name.as_str() {
+                            let process_proxy = create_container_process_by_cid_and_pm(system, cid.clone(), &pm)?;
+                            if execute {
+                                let v = process_proxy.lock_mut()?.execute()?;
+                                if print {
+                                    println!("{v:?}");
+                                }
+                            }
+                        }
                     }
                 }
             }

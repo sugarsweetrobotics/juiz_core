@@ -16,11 +16,12 @@ pub struct ExecutionContextHolder{
     thread_handle: Option<tokio::task::JoinHandle<JuizResult<()>>>,
     tokio_runtime: runtime::Runtime,
     end_flag: Arc<Mutex<AtomicBool>>,
+    auto_start: bool,
 }
 
 impl ExecutionContextHolder {
 
-    pub fn new(type_name: &str, ec: Arc<RwLock<dyn ExecutionContext>>) -> JuizResult<Arc<Mutex<ExecutionContextHolder>>> {
+    pub fn new(type_name: &str, ec: Arc<RwLock<dyn ExecutionContext>>, auto_start: bool) -> JuizResult<Arc<Mutex<ExecutionContextHolder>>> {
         Ok(Arc::new(Mutex::new(
             ExecutionContextHolder { 
                 object_core: ObjectCore::create(JuizObjectClass::ExecutionContext("ExecutionContext"), 
@@ -31,6 +32,7 @@ impl ExecutionContextHolder {
                 tokio_runtime: runtime::Builder::new_multi_thread().thread_name("execution_context_holder").worker_threads(4).enable_all().build().unwrap(),
                 thread_handle: None,
                 end_flag: Arc::new(Mutex::new(AtomicBool::from(false))),
+                auto_start,
              }
         )))
     }
@@ -143,6 +145,9 @@ impl JuizObject for ExecutionContextHolder {
 
         let cv = juiz_lock(&self.core)?.profile()?;
         obj_merge_mut(&mut v, &cv)?;
+        obj_merge_mut(&mut v, &jvalue!({
+            "auto_start": self.auto_start
+        }));
         Ok(v.into())
     }
 }

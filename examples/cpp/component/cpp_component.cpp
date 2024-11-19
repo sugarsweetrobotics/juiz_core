@@ -1,10 +1,5 @@
 
-#include <stdlib.h>
-#include <stdio.h>
 #include <iostream>
-#include <vector>
-
-#include <cstdint>
 #include "juiz/juiz.h"
 
 class CppContainer {
@@ -12,7 +7,6 @@ public:
     int64_t value;
     CppContainer(int64_t v) : value(v) {}
 };
-
 
 extern "C" {
     CppContainer* create_example_cpp_container(value* manifest);
@@ -65,11 +59,11 @@ int64_t example_container_process_increment(CppContainer* container, capsule_map
     }
 }
 
-int64_t (*create_example_cpp_container_get())(CppContainer*, capsule_map*,capsule*) {
+int64_t (*create_example_cpp_container_get())(CppContainer*, capsule_map*, capsule*) {
     return example_container_process_get;
 }
 
-int64_t (*create_example_cpp_container_increment())(CppContainer*, capsule_map*,capsule*) {
+int64_t (*create_example_cpp_container_increment())(CppContainer*, capsule_map*, capsule*) {
     return example_container_process_increment;
 }
 

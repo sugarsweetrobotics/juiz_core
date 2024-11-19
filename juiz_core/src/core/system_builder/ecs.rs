@@ -45,20 +45,20 @@ pub(super) fn setup_ecs(system: &mut System, manifest: &Value) -> JuizResult<()>
                 }
             }
         };
-        match obj_get(p, "auto_start") {
-            Err(_) => {},
-            Ok(auto_start_obj) => {
-                log::trace!("start ec setup for {auto_start_obj}");
-                match auto_start_obj.as_bool() {
-                    Some(flag) => {
-                        if flag {
-                            juiz_lock(&ec)?.start()?;
-                        }
-                    }
-                    None => {},
-                }
-            }
-        };
+        // match obj_get(p, "auto_start") {
+        //     Err(_) => {},
+        //     Ok(auto_start_obj) => {
+        //         log::trace!("start ec setup for {auto_start_obj}");
+        //         match auto_start_obj.as_bool() {
+        //             Some(flag) => {
+        //                 if flag {
+        //                     juiz_lock(&ec)?.start()?;
+        //                 }
+        //             }
+        //             None => {},
+        //         }
+        //     }
+        // };
     } 
     Ok(())
 }

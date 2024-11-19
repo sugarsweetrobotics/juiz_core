@@ -10,7 +10,7 @@ use crate::util::parse_arg_map;
 
 use super::parse_arg_map_skip_first;
 
-pub(crate) fn change_argument_to_capsule_map(ast: &mut ItemFn) -> HashMap<TypePath, syn::Ident> {
+pub(crate) fn change_argument_to_capsule_map(ast: &mut ItemFn) -> Vec<(TypePath, syn::Ident)> {
     // ここで引数の名前と型名のリストを受け取っておく
     let arg_map = parse_arg_map(ast);
 

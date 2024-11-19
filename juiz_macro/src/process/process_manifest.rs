@@ -1,8 +1,4 @@
-
-
-use std::collections::HashMap;
-
-use quote::{format_ident, quote};
+use quote::{format_ident, quote, ToTokens};
 use serde_json::json;
 use crate::proc_macro::TokenStream;
 use syn::TypePath;
@@ -25,7 +21,7 @@ pub(crate) fn component_manifest_tokenstream(proc_type_str: String) -> TokenStre
 }
 
 
-fn construct_manif_inner(function_name: String, manifest_attr: &serde_json::Value, arg_map: &HashMap<TypePath, syn::Ident>) -> proc_macro2::TokenStream {
+fn construct_manif_inner(function_name: String, manifest_attr: &serde_json::Value, arg_map: &Vec<(TypePath, syn::Ident)>) -> proc_macro2::TokenStream {
     // attr変数から読み取った値からdescriptionを取得
     let description = manifest_attr.as_object().unwrap().get("description").and_then(|v| { Some(v.clone()) }).or(Some(json!(format!("Default description of Process({function_name})")))).unwrap().as_str().unwrap().to_owned();
     
@@ -77,6 +73,40 @@ fn construct_manif_inner(function_name: String, manifest_attr: &serde_json::Valu
                     manif = manif.add_string_arg(#arg_name,  #description, #default_value);
                 }
             },
+            "Vec" => {
+                let arguments = type_path.path.segments.first().unwrap().arguments.clone();
+                // println!("args: {arguments:?}");
+                let vec_element_typename = match arguments.into_token_stream().into_iter().find_map(|v|{ match v {
+                    proc_macro2::TokenTree::Ident(ident) => Some(ident.to_string()),
+                    _ => None,
+                }}) {
+                    None => panic!("Vecの引数が見つかりません"),
+                    Some(v) => v,
+                };
+                match vec_element_typename.as_str() {
+                    "Value" => { // Vec<Value>の場合
+                        construct_manif = quote!{
+                            #construct_manif
+                            manif = manif.add_array_arg(#arg_name, #description, serde_json::from_str("[]").unwrap());
+                        }
+                    }
+                    "f64" => {
+                        construct_manif = quote!{
+                            #construct_manif
+                            manif = manif.add_array_arg(#arg_name, #description, serde_json::from_str("[]").unwrap());
+                        }
+                    }
+                    "i64" => {
+                        construct_manif = quote!{
+                            #construct_manif
+                            manif = manif.add_array_arg(#arg_name, #description, serde_json::from_str("[]").unwrap());
+                        }
+                    }
+                    _ => {
+                        panic!("対応していないVecのElement({vec_element_typename}) です。")
+                    }
+                }
+            }
             "Value" => {
                 let default_value_default = json!({});
                 let default_value = argument_default_value.get(arg_name.as_str()).or( Some(&default_value_default)).unwrap();
@@ -93,7 +123,7 @@ fn construct_manif_inner(function_name: String, manifest_attr: &serde_json::Valu
                 }
             },
             _ => {
-                panic!("[process_manifest.rs]自動マニフェスト生成に失敗。対応するデータ型ではありません。 ({type_name:})")
+                panic!("[process_manifest.rs]自動マニフェスト生成に失敗。対応するデータ型ではありません。 ({type_name:}/(type_path={type_path:?}))")
             }
         }
     }
@@ -101,7 +131,7 @@ fn construct_manif_inner(function_name: String, manifest_attr: &serde_json::Valu
 }
 
 
-pub(crate) fn construct_manif_tokenstream(function_name: String, manifest_attr: &serde_json::Value, arg_map: &HashMap<TypePath, syn::Ident>) -> TokenStream {
+pub(crate) fn construct_manif_tokenstream(function_name: String, manifest_attr: &serde_json::Value, arg_map: &Vec<(TypePath, syn::Ident)>) -> TokenStream {
     
     let construct_manif: proc_macro2::TokenStream = construct_manif_inner(function_name, manifest_attr, arg_map);
 
@@ -114,7 +144,7 @@ pub(crate) fn construct_manif_tokenstream(function_name: String, manifest_attr: 
 
 }
 
-pub(crate) fn component_construct_manif_tokenstream(function_name: String, manifest_attr: &serde_json::Value, arg_map: &HashMap<TypePath, syn::Ident>, factory_name: String) -> TokenStream {
+pub(crate) fn component_construct_manif_tokenstream(function_name: String, manifest_attr: &serde_json::Value, arg_map: &Vec<(TypePath, syn::Ident)>, factory_name: String) -> TokenStream {
     
     let mut construct_manif: proc_macro2::TokenStream = construct_manif_inner(function_name, manifest_attr, arg_map);
     construct_manif = quote!{

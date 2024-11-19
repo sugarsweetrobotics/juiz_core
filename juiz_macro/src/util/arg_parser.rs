@@ -4,18 +4,18 @@
 use std::collections::HashMap;
 use syn::{ItemFn, Type, TypePath};
 
-pub(crate) fn parse_arg_map(ast: &ItemFn) -> HashMap<TypePath, syn::Ident> {
-    let mut arg_map: HashMap<TypePath, syn::Ident> = HashMap::new();
+pub(crate) fn parse_arg_map(ast: &ItemFn) -> Vec<(TypePath, syn::Ident)> {
+    let mut arg_map: Vec<(TypePath, syn::Ident)> = Vec::new();
     for input in ast.sig.inputs.iter() {
         if let syn::FnArg::Typed(pat_type) = input {
-            //println!("Typed: {:?}", pat_type);
+            // println!("Typed: {:?}", pat_type);
             let arg_name = if let syn::Pat::Ident(arg_name) = pat_type.pat.as_ref() {
                 arg_name.ident.clone()
             } else {
                 panic!("引数の名前宣言が不正");
             };
             let _type_name = if let Type::Path(type_path) = pat_type.ty.as_ref() {
-                arg_map.insert(type_path.clone(), arg_name);
+                arg_map.push((type_path.clone(), arg_name));
                 type_path.path.segments.iter().map(|seg| {seg.ident.to_string()}).collect::<Vec<String>>().join("::")
             } else {
                 panic!("引数の型宣言が不正です。 ({pat_type:?})");

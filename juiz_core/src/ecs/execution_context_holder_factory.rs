@@ -1,5 +1,5 @@
 use std::sync::{Arc, Mutex};
-
+use juiz_sdk::anyhow;
 use crate::prelude::*;
 use crate::{plugin::RustPlugin};
 
@@ -28,11 +28,16 @@ impl ExecutionContextHolderFactory {
 
     pub fn create(&self, manifest: Value) -> JuizResult<Arc<Mutex<dyn ExecutionContextFunction>>> {
         let f = juiz_lock(&self.ec_factory)?;
+        let auto_start = match obj_get_bool(&manifest, "auto_start") {
+            Ok(v) => v,
+            Err(_) => false
+        };
         Ok(
             ExecutionContextHolder::new(
                 f.type_name(), 
                 //self.tokio_runtime,
-                f.create(manifest)?
+                f.create(manifest)?, 
+                auto_start
             )?
         )
     }

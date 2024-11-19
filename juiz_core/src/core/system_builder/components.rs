@@ -55,11 +55,11 @@ pub(crate) fn register_component(core_worker: &mut CoreWorker, working_dir: Opti
     let component_manifest = plugin.load_component_manifest(working_dir.clone())?;
     for container_profile in component_manifest.containers.iter() {
         log::debug!(" - ContainerFactory ({container_profile:?}) Loading...");
-        register_container_factory(core_worker, working_dir.clone(), plugin.clone(), container_profile.factory.as_str())?;
+        register_container_factory(core_worker, working_dir.clone(), plugin.clone(), container_profile.factory.as_str(), Some(container_profile.type_name.as_str()))?;
         log::info!(" - ContainerFactory ({container_profile:?}) Loaded");
         for container_process_profile in container_profile.processes.iter() {
             log::debug!(" - ContainerProcessFactory ({container_process_profile:?}) Loading...");
-            register_container_process_factory(core_worker, working_dir.clone(), plugin.clone(), container_process_profile.factory.as_str())?;
+            register_container_process_factory(core_worker, working_dir.clone(), plugin.clone(), container_process_profile.factory.as_str(), Some(container_process_profile.type_name.as_str()))?;
             log::debug!(" - ContainerProcessFactory ({container_process_profile:?}) Loaded");
             
         }

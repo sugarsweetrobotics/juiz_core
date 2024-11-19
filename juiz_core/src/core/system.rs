@@ -132,6 +132,8 @@ impl System {
         system_builder::setup_objects(&mut self, &manifest_copied)?;
 
         system_builder::setup_topic_synchronization(&mut self)?;
+
+        system_builder::setup_ec_activation(&mut self)?;
         log::debug!("System::setup() successfully finished.");
         Ok(self)
     }

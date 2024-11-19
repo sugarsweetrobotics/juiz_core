@@ -1,7 +1,9 @@
 #pragma once
 #include "core.h"
 #include <cstdint>
-
+#include <vector>
+#include <functional>
+#include "process_manifest.h"
 
 extern "C" {
     int64_t process_function_entry_point(capsule_map* cm, capsule* cp);
@@ -75,14 +77,18 @@ int64_t serialize(capsule* cp, const std::string&& retval) {
     return capsule_set_string(cp, retval.c_str());
 }
 
+#include "bind_process.h"
+
 #define PROCESS_FACTORY(manifest_function, process_function) \
 int64_t manifest_entry_point(capsule_ptr* ptr) { \
-    auto v = manifest_function(); \
+    auto v = manifest_function().into_value(); \
     return capsule_ptr_set_value(ptr, v); \
 }\
 int64_t process_entry_point(capsule_map* cm, capsule* cp) {\
     try {\
-        auto return_value = process_function(juiz::CapsuleMap(cm));\
+        auto proc_manif = manifest_function(); \
+        auto binded_process_function = bind_process(proc_manif.arguments_.begin(), std::function(process_function));\
+        auto return_value = binded_process_function(juiz::CapsuleMap(cm));\
         if (!return_value) {\
             return JUIZ_PROCESS_FUNCTION_NULL_OPT_RETURNED;\
         }\
