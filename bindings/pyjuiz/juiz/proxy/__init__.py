@@ -1,5 +1,5 @@
 import httpx
-import json
+import json, io
 from PIL import Image
 from io import BytesIO
 
@@ -74,9 +74,9 @@ class HttpProxy(CRUDProxy):
         url = self._url(class_name, function_name, param_dict)
         return self._post(url, body)
     
-    def update(self, class_name, function_name, body, param_dict={}):
+    def update(self, class_name, function_name, body, param_dict={}, profile=None):
         url = self._url(class_name, function_name, param_dict)
-        return self._patch(url, body)
+        return self._patch(url, body, profile=profile)
     
     def _get(self, url):
         with httpx.Client() as client:
@@ -104,12 +104,30 @@ class HttpProxy(CRUDProxy):
                                    ))
         return None
 
-    def _patch(self, url, data):
+    def _patch(self, url, data, profile=None):
         with httpx.Client() as client:
-            return self._do_response(client.patch(self._base_url + url,
-                                    data=json.dumps(data),
-                                   headers={"Content-Type": "application/json"}
-                                   )) 
+            img_key_value = None
+            serializable_data = {}
+            if isinstance(data, Image.Image):
+                print('prof:', profile)
+            else:
+                for k, v in data.items():
+                    if isinstance(v, Image.Image):
+                        img_key_value = (k, v)
+                    else:
+                        serializable_data[k] = v
+            if img_key_value is not None:
+                output = io.BytesIO()
+                img_key_value[1].save(output, 'PNG')
+                return self._do_response(client.put(self._base_url + url,
+                            # data=json.dumps(serializable_data),
+                            headers={"Content-Type": "multipart/form-data; boundary=+++"},
+                            files={img_key_value[0]: (None, output.getvalue(), "image/png")}))
+            else:
+                return self._do_response(client.patch(self._base_url + url,
+                                        data=json.dumps(data),
+                                    headers={"Content-Type": "application/json"}
+                                    )) 
         return None
 
 class SystemProxy():
@@ -223,7 +241,7 @@ class ProcessProxy(ObjectProxy):
             body = kwargs['body']
         else:
             body = kwargs
-        return self.system.crud.update(self._cn, 'call', body, {'identifier': self._id})
+        return self.system.crud.update(self._cn, 'call', body, {'identifier': self._id}, profile=self._profile)
     
     def __call__(self, *args, **kwargs):
         return self.call(*args, **kwargs)
@@ -244,7 +262,7 @@ class ContainerProxy(ObjectProxy):
             super().__init__(SystemProxy(HttpProxy(host,port)), 'container', None)
             self._name = None
             for c in self.system.containers():
-                print(c.type_name(), name)
+                # print(c.type_name(), name)
                 if c.type_name() == name:
                     self._id = c.identifier()
                     return
@@ -290,19 +308,24 @@ class ContainerProcessProxy(ObjectProxy):
         return f'ContainerProcess("{self.identifier()}")'
 
     def call(self, *args, **kwargs):
+        prof = self.profile_full()
         if len(args) == 1:
-            body = args[0]
+            arg_prof = prof['arguments']
+            body = {
+                arg_prof[0]['name']: args[0]
+            }
+            #body = args[0]
         elif 'body' in kwargs.keys():
             body = kwargs['body']
         else:
             body = kwargs
-        return self.system.crud.update(self._cn, 'call', body, {'identifier': self._id})
+        return self.system.crud.update(self._cn, 'call', body, {'identifier': self._id}, profile=self.profile_full())
 
     def __call__(self, *args, **kwargs):
         return self.call(*args, **kwargs)
     
     def execute(self):
-        return self.system.crud.update(self._cn, 'execute', {}, {'identifier': self._id})
+        return self.system.crud.update(self._cn, 'execute', {}, {'identifier': self._id}, profile=self._profile)
 
     def p_apply(self, arg_name: str, value: dict): 
         return self.system.crud.update(self._cn, 'p_apply', {'arg_name': arg_name, 'value': value}, {'identifier': self._id})

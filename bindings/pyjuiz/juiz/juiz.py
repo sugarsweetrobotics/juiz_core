@@ -1,5 +1,6 @@
 from dataclasses import dataclass, asdict
 from typing import List, Any, Optional
+from PIL.Image import Image
 
 @dataclass
 class ArgumentManifest:
@@ -81,6 +82,9 @@ class ProcessManifest:
         self.add_argument(ArgumentManifest.new("array", name, description, default_value))
         return self
         
+    def add_image_arg(self, name, description, default_value: object):
+        self.add_argument(ArgumentManifest.new("image", name, description, default_value))
+        
     def into_value(self):
         return asdict(self, dict_factory=lambda x: {k: v for (k, v) in x if v is not None})
     
@@ -141,6 +145,10 @@ class ContainerManifest:
     def add_array_arg(self, name, description, default_value: list):
         self.add_argument(ArgumentManifest.new("array", name, description, default_value))
         return self
+    
+    def add_image_arg(self, name, description, default_value: object):
+        self.add_argument(ArgumentManifest.new("image", name, description, default_value))
+        
 @dataclass
 class ComponentManifest:
     type_name: str

@@ -4,7 +4,7 @@ use super::manifest_description::Description;
 use anyhow::anyhow;
 
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum ArgumentType {
     Bool, 
     Int,
@@ -67,7 +67,7 @@ fn type_check(arg_type: &ArgumentType, value: &Value) -> JuizResult<()> {
         ArgumentType::String => if value.is_string() {Ok(())} else { ret_err() },
         ArgumentType::Array => if value.is_array() {Ok(())} else { ret_err() },
         ArgumentType::Object => if value.is_object() {Ok(())} else { ret_err() },
-        ArgumentType::Image => if value.is_object() {Ok(())} else { ret_err() },
+        ArgumentType::Image => if value.is_null() || value.is_object() {Ok(())} else { ret_err() },
     }
 }
 impl ArgumentManifest {
@@ -157,8 +157,17 @@ impl TryFrom<Value> for ArgumentManifest {
     fn try_from(value: Value) -> Result<Self, Self::Error> {
         let name = obj_get_str(&value, "name")?;
         let description = obj_get_str(&value, "description").or::<JuizError>(Ok("")).unwrap();
-        let type_name: ArgumentType = obj_get_str(&value, "type")?.try_into()?;
-        let default_value = obj_get(&value, "default")?;
+        let type_name: ArgumentType = obj_get_str(&value, "type")?.try_into().or_else(|e| {
+            log::error!("TryFrom<Value> for ArgumentManifest::try_from({value:?}) failed. {e}");
+            Err(e)
+        })?;
+        let default_value = obj_get(&value, "default").or_else(|e| {
+            if type_name == ArgumentType::Image {
+                return Ok(&Value::Null);
+            }
+            log::error!("TryFrom<Value> for ArgumentManifest::try_from({value:?}) failed. {e}");
+            Err(e)
+        })?;
         ArgumentManifest::new_with_check(type_name, name, description.into(), default_value.clone())
     }
 }

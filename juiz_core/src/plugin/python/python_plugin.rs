@@ -1,5 +1,5 @@
 
-use std::{collections::HashMap, fs, path::PathBuf, sync::Arc};
+use std::{collections::HashMap, fs, io::{self, BufWriter, Cursor}, path::PathBuf, sync::Arc};
 use image::ImageFormat;
 use pyo3::{prelude::*, types::{PyByteArray, PyBytes, PyDict, PyFloat, PyFunction, PyInt, PyList, PyNone, PySet, PyString, PyTuple}};
 use juiz_sdk::serde_json::Map;
@@ -151,24 +151,27 @@ if not "{path_str:}" in sys.path:
         let fullpath = working_dir.unwrap_or(env!("CARGO_MANIFEST_DIR").into()).join(self.path.clone());
         let mut manifest = jvalue!({});
         let py_app = fs::read_to_string(fullpath.clone()).unwrap();
-        let pyfunc2 = Python::with_gil(|py| -> PyResult<Py<PyAny>> {
-            let module = PyModule::from_code_bound(py, &py_app.to_string(), fullpath.clone().to_str().unwrap(), "")?;
-            // let tuple = module.getattr(symbol_name)?.into_py(py).call0(py)?;
-            // let pytuple = tuple.extract::<&PyTuple>(py)?;
-            // manifest = pyany_to_value(pytuple.get_item(0)?)?;
-            // let pyfunc = pytuple.get_item(1)?.extract::<&PyFunction>()?;
-            // //Ok(tuple)
-
-            let proc_object = module.getattr(type_name)?.into_py(py);// .call0(py)?;
-            // println!("loaded proc_object: {proc_object:?}");
-            //println!("tuple: {:?}", tuple.to_string());
-            //let pytuple = tuple.extract::<&PyTuple>(py)?;
+        let pyfunc2 = match Python::with_gil(|py| -> PyResult<Py<PyAny>> {
+            log::debug!("Python::with_gil({py_app}) for load_Container_process_factory({symbol_name}, {type_name_opt:?}), fullpath={fullpath:?}");
+            let module = PyModule::from_code_bound(py, &py_app.to_owned(), fullpath.clone().to_str().unwrap(), "")?;
+            let proc_object = module.getattr(type_name)?.into_py(py);
             let manifest_object = proc_object.getattr(py, "manifest")?.into_py(py).call0(py)?;
             manifest = pyany_to_value(manifest_object.extract::<&PyAny>(py)?)?;
             let pyfunc = proc_object;
 
             Ok(pyfunc.to_object(py))
-        })?;
+        }) {
+            Ok(v) => Ok(v),
+            Err(e) => {
+                Python::with_gil(|py| { 
+                    log::error!("Python::with_gil() failed. Error({e:?})");
+                    if let Some(tb) = e.traceback_bound(py) {
+                        log::error!("Traceback: {}", tb);
+                    }
+                });
+                Err(e)
+            }
+        }?;
 
         let signature = get_python_function_signature(&pyfunc2)?;
         let function = move |container: &mut ContainerImpl<PythonContainerStruct>, argument: CapsuleMap| -> JuizResult<Capsule> {
@@ -183,7 +186,10 @@ if not "{path_str:}" in sys.path:
             }).or_else(|e| { Err(anyhow!(e)) })
         };
     
-        container_process_factory_create_from_trait(manifest.try_into()?, bind_container_function(function))
+        container_process_factory_create_from_trait(manifest.try_into()?, bind_container_function(function)).or_else(|e| {
+            log::error!("container_process_factory_create_from_trait() failed.");
+            Err(e)
+        })
     
     }
 
@@ -357,8 +363,33 @@ fn capsuleptr_to_pyany(py: Python, value: &CapsulePtr) -> Py<PyAny> {
         return value.lock_as_value(|v| {
             value_to_pyany(py, v)
         }).unwrap();
+    } else if value.is_image().unwrap() {
+        return value.lock_as_image(|img| {
+            image_to_pyany(py, img)
+        }).unwrap()
     }
-    todo!()
+    todo!("capsuleptr_to_pyany failed. CapsulePtr type is not available yet. Value is {value:?}")
+}
+
+fn image_to_pyany(py: Python, image: &DynamicImage) -> Py<PyAny> {
+    let mut buffer = BufWriter::new(Cursor::new(Vec::new()));
+    image.write_to(&mut buffer, ImageFormat::Bmp).unwrap();
+    //image.as_bytes()
+    let w = image.width();
+    let h = image.height();
+    unsafe {
+        let py_app = r"
+import io
+from PIL import Image
+def image_from_bytes(w, h, image_data):
+    # print('image_data', image_data, type(image_data))
+    return Image.frombytes('RGB', (w,h), image_data)
+    # return Image.open(io.BytesIO(image_data))
+";
+        let b = PyBytes::bound_from_ptr(py, image.as_bytes().as_ptr(), image.as_bytes().len());
+        let module = PyModule::from_code_bound(py, &py_app.to_string(), "", "").unwrap();
+        module.getattr("image_from_bytes").unwrap().into_py(py).call1(py, PyTuple::new_bound(py, [w.into_py(py), h.into_py(py), b.into()])).unwrap()
+    }
 }
 
 // pub fn python_process_call(py: Python, entry_point: &Py<PyAny>, arguments: Vec<Py<PyAny>>) -> JuizResult<Capsule> {
@@ -465,7 +496,6 @@ pub fn pyany_to_value(value: &PyAny) -> PyResult<Value> {
         if pytype.to_string() == "PIL.Image.Iage" {
             todo!()
         } else {
-            println!("pytype: {pytype:?}");
             log::error!("Error for pyany_to_value. Error({pytype:?} is not available)");
             todo!("PythonのProcessの値としてjuizが対応していないタイプが渡されました。")
         }
@@ -514,12 +544,12 @@ def convert_img(img):
             })?;
 
             
-            println!("pytype: {pytype:?}");
+            // println!("pytype: {pytype:?}");
             //log::error!("Error for pyany_to_capsule. Error({pytype:?} is not available)");
             //todo!("PythonのProcessの値として画像型が渡されましたが、未対応です。juizが対応していないタイプが渡されました。")
             Ok(image.into())
         } else {
-            println!("pytype: {:?}", pytype.get_type());
+            // println!("pytype: {:?}", pytype.get_type());
             log::error!("Error for pyany_to_capsule. Error({pytype:?} is not available)");
             todo!("PythonのProcessの値としてjuizが対応していないタイプが渡されました。")
         }

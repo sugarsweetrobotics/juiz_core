@@ -21,7 +21,7 @@ opencv4 = []
 [workspace.dependencies]
 anyhow = "1.0.89"
 approx = "*"
-axum = "0.7.7"
+axum = {version="0.7.7", features = ["multipart"]}
 
 
 clap = { version="4.4.10", features = ["derive"] }

@@ -160,6 +160,8 @@ pub enum JuizError {
     #[error("Arc Unwrapping error.")]
     ArcUnwrapError {  },
     
+    #[error("InvalidArgumentError: Invalid argument. Message:'{message}'")]
+    InvalidArgumentError { message: String },
 
     /// --------------------------------
     /// 

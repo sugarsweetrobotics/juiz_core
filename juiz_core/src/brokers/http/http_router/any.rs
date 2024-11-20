@@ -1,10 +1,11 @@
 
 
 use juiz_sdk::anyhow;
+use reqwest::StatusCode;
 use std::{net::SocketAddr, sync::{Arc, Mutex}};
-use axum::{extract::{ConnectInfo, Path, Query, State}, http::HeaderMap, response::IntoResponse, routing, Json, Router};
+use axum::{body::Bytes, extract::{ConnectInfo, Multipart, Path, Query, State}, http::HeaderMap, response::IntoResponse, routing, Json, Router};
 
-use crate::{brokers::http::http_router::FullQuery, prelude::*};
+use crate::{brokers::http::http_router::{multipart_to_capsule_map, FullQuery}, prelude::*};
 use crate::brokers::crud_broker::CRUDBroker;
 
 use super::{json_output_wrap, full_query_to_map};
@@ -39,7 +40,7 @@ pub async fn object_post_handler(
     r
 }
 
-fn body_to_capsule_map(body: Value) -> Result<CapsuleMap, anyhow::Error> {
+fn body_to_capsule_map(body: Value, headers: &HeaderMap) -> Result<CapsuleMap, anyhow::Error> {
     body.try_into()
 }
 
@@ -136,6 +137,7 @@ pub async fn object_patch_handler(
     Path((class_name, function_name)): Path<(String, String)>,
     query: Query<FullQuery>,
     headers: HeaderMap,
+    // multipart: Multipart,
     remote_addr: ConnectInfo<SocketAddr>,
     State(crud_broker): State<Arc<Mutex<CRUDBroker>>>, 
     Json(body): Json<Value>,
@@ -143,11 +145,54 @@ pub async fn object_patch_handler(
     let map = full_query_to_map(&query);
     log::trace!("[PATCH] ({class_name}, {function_name}, {body}, {map:?}) called");
     let v = tokio::task::spawn_blocking(move ||{
-        juiz_lock(&crud_broker).unwrap().update_class(class_name.as_str(), function_name.as_str(), construct_capsule_map(body_to_capsule_map(body)?, "UPDATE", class_name.as_str(), function_name.as_str(), query, headers, remote_addr))
+        juiz_lock(&crud_broker).unwrap().update_class(class_name.as_str(), function_name.as_str(), construct_capsule_map(body_to_capsule_map(body, &headers)?, "UPDATE", class_name.as_str(), function_name.as_str(), query, headers, remote_addr))
     }).await;
     let r = json_output_wrap(v.unwrap());
     r
 }
+
+
+#[utoipa::path(
+    put,
+    path = "/api/{class_name}/{function_name}",
+    params(
+        FullQuery
+    ),
+    request_body(content_type = "multipart/formdata", content = MultiPart),
+    responses(
+        (status = 200, description = "Get object parameter", body = [String])
+    ),
+    tag = "universal.any",
+)]
+pub async fn object_put_handler(
+    Path((class_name, function_name)): Path<(String, String)>,
+    query: Query<FullQuery>,
+    headers: HeaderMap,
+    //multipart: Multipart,
+    remote_addr: ConnectInfo<SocketAddr>,
+    State(crud_broker): State<Arc<Mutex<CRUDBroker>>>, 
+    mut multipart: Multipart,
+) -> impl IntoResponse {
+    let map = full_query_to_map(&query);
+    log::trace!("[PUT] ({class_name}, {function_name}, {map:?}, {multipart:?}) called");
+    match multipart_to_capsule_map(multipart).await {
+        Ok(capsule_map) => {
+            let v = tokio::task::spawn_blocking(move ||{
+                juiz_lock(&crud_broker).unwrap().update_class(class_name.as_str(), function_name.as_str(), construct_capsule_map(capsule_map, "UPDATE", class_name.as_str(), function_name.as_str(), query, headers, remote_addr))
+            }).await;
+            let r = json_output_wrap(v.unwrap());
+            r.into_response()
+        }
+        Err(e) => {
+            log::error!("multipart_to_capsule_map() failed. Err({e:?})");
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(
+                jvalue!({
+                    "message": format!("Internal Server Error:  {:#}, {:}", e, e.to_string())
+                }))).into_response()
+        }
+    }
+}
+
 
 
 #[utoipa::path(
@@ -216,6 +261,7 @@ pub fn object_router(crud_broker: Arc<Mutex<CRUDBroker>>) -> Router {
                 .get(object_get_handler)
                 .delete(object_delete_handler)
                 .post(object_post_handler)
+                .put(object_put_handler)
         )
         .with_state(Arc::clone(&crud_broker))
 }
@@ -227,6 +273,7 @@ pub fn object_router(crud_broker: Arc<Mutex<CRUDBroker>>) -> Router {
         object_patch_handler,
         object_delete_handler,
         object_post_handler,
+        object_put_handler,
     ),
     components(schemas(
     ))

@@ -5,8 +5,8 @@ import io
 
 from .juiz import *
 from PIL.Image import Image
-class JuizProcessArgumentUnknownTypeError(Exception): pass
-class JuizContainerArgumentUnknownTypeError(Exception): pass
+class PyJuizProcessArgumentUnknownTypeError(Exception): pass
+class PyJuizContainerArgumentUnknownTypeError(Exception): pass
 
 def allow_no_arg_decorator(decorator_function):
     def wrapper(*args, **kwargs):
@@ -45,7 +45,7 @@ class JuizProcess(object):
                 elif isinstance(param_default, dict):
                     param_type = dict
                 else:
-                    raise JuizProcessArgumentUnknownTypeError()
+                    raise PyJuizProcessArgumentUnknownTypeError()
             if param_default is inspect._empty:
                 if param_type == int:
                     param_default = 0
@@ -59,8 +59,10 @@ class JuizProcess(object):
                     param_default = False
                 elif param_type == str:
                     param_default = ""
+                elif param_type == Image:
+                    param_default =  None
                 else:
-                    raise JuizProcessArgumentUnknownTypeError()
+                    raise PyJuizProcessArgumentUnknownTypeError()
                 
             # print('p:', param.name, param.default, param.kind, param.annotation, param)
             if param_type == int:
@@ -75,6 +77,8 @@ class JuizProcess(object):
                 self._manifest.add_object_arg(param.name, "", param_default)
             elif param_type == list:
                 self._manifest.add_array_arg(param.name, "", param_default)
+            elif param_type == Image:
+                self._manifest.add_image_arg(param.name, "", param_default)
     def manifest(self):
         return self._manifest.into_value()
         
@@ -108,8 +112,10 @@ class JuizContainer(object):
                     param_type = str
                 elif isinstance(param_default, dict):
                     param_type = dict
+                elif isinstance(param_default, Image):
+                    param_type = Image
                 else:
-                    raise JuizProcessArgumentUnknownTypeError()
+                    raise PyJuizProcessArgumentUnknownTypeError()
             if param_default is inspect._empty:
                 if param_type == int:
                     param_default = 0
@@ -123,8 +129,10 @@ class JuizContainer(object):
                     param_default = False
                 elif param_type == str:
                     param_default = ""
+                elif param_type == Image:
+                    param_default =  None
                 else:
-                    raise JuizProcessArgumentUnknownTypeError()
+                    raise PyJuizProcessArgumentUnknownTypeError()
                 
             # print('p:', param.name, param.default, param.kind, param.annotation, param)
             if param_type == int:
@@ -139,7 +147,8 @@ class JuizContainer(object):
                 self._manifest.add_object_arg(param.name, "", param_default)
             elif param_type == list:
                 self._manifest.add_array_arg(param.name, "", param_default)
-                
+            elif param_type == Image:
+                self._manifest.add_image_arg(param.name, "", param_default)
     def manifest(self):
         return self._manifest.into_value()
         
@@ -179,8 +188,10 @@ class JuizContainerProcess(object):
                     param_type = str
                 elif isinstance(param_default, dict):
                     param_type = dict
+                elif isinstance(param_default, Image):
+                    param_type = Image
                 else:
-                    raise JuizProcessArgumentUnknownTypeError()
+                    raise PyJuizProcessArgumentUnknownTypeError()
             if param_default is inspect._empty:
                 if param_type == int:
                     param_default = 0
@@ -194,8 +205,11 @@ class JuizContainerProcess(object):
                     param_default = False
                 elif param_type == str:
                     param_default = ""
+                elif param_type == Image:
+                    param_default = None
                 else:
-                    raise JuizProcessArgumentUnknownTypeError()
+                    print('Param Type Unknown:', param_type)
+                    raise PyJuizProcessArgumentUnknownTypeError()
                 
             # print('p:', param.name, param.default, param.kind, param.annotation, param)
             if param_type == int:
@@ -210,6 +224,8 @@ class JuizContainerProcess(object):
                 self._manifest.add_object_arg(param.name, "", param_default)
             elif param_type == list:
                 self._manifest.add_array_arg(param.name, "", param_default)
+            elif param_type == Image:
+                self._manifest.add_image_arg(param.name, "", param_default)
     def manifest(self):
         return self._manifest.into_value()
         

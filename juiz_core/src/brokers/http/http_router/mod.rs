@@ -1,11 +1,13 @@
 
 use std::collections::HashMap;
-
+use image::EncodableLayout;
+use juiz_sdk::anyhow::anyhow;
 use std::path::PathBuf;
 use std::sync::{Mutex, Arc};
 // use crate::prelude::*;
 use crate::brokers::CRUDBroker;
 
+use axum::extract::Multipart;
 use axum::http::HeaderValue;
 
 #[cfg(feature="opencv4")]
@@ -290,6 +292,55 @@ fn capsule_ptr_to_response(v: CapsulePtr) -> axum::http::Response<Body>  {
     }
 }
 
+
+
+pub async fn multipart_to_capsule_map(mut multipart: Multipart) -> JuizResult<CapsuleMap> {
+    let mut cm = CapsuleMap::new();
+
+    loop {
+        match multipart.next_field().await {
+            Ok(opt_field) => {
+                if let Some(field) =  opt_field {
+                    // log::trace!(" - field: {:?}", field);
+                    if field.name().is_none() {
+                        log::error!("Multipart/FormData does not have 'field_name' field. This can not be handled.");
+                        return Err(anyhow!(JuizError::InvalidArgumentError{message:"Multipart/FormData does not have 'fieldname' field. This can not be handled.".to_owned()}))
+                    }
+                    let field_name = field.name().unwrap().to_owned();
+                    match field.content_type() {
+                        Some(content_type) => {
+                            match content_type {
+                                "image/png" => {
+                                    match image::load_from_memory_with_format(field.bytes().await.unwrap().as_bytes(), image::ImageFormat::Png) {
+                                        Ok(img) => {
+                                            cm.insert(field_name, img.into());
+                                        }
+                                        Err(_) => todo!(),
+                                    }
+                                }
+                                _ => {
+                                    log::error!("Multipart/FormData does not have available 'content-type' field ({content_type}). This can not be handled.");
+                                    return Err(anyhow!(JuizError::InvalidArgumentError{message:format!("Multipart/FormData does not have available 'content-type' field ({content_type}). This can not be handled.")}))
+                                }
+                            }
+                        },
+                        None => {
+                            log::error!("Multipart/FormData does not have 'content-type' field. This can not be handled.");
+                            return Err(anyhow!(JuizError::InvalidArgumentError{message:"Multipart/FormData does not have 'content-type' field. This can not be handled.".to_owned()}))
+                        }
+                    }
+                } else {
+                    break;
+                }
+            },
+            Err(e) => {
+                log::error!("Multipart parse error. {e:?}");
+                return Err(anyhow!(JuizError::InvalidArgumentError{message:format!("Multipart/FormData parsing error. Err({e}).")}))
+            }
+        }
+    }
+    Ok(cm)
+}
 
 #[derive(OpenApi)]
 #[openapi(
