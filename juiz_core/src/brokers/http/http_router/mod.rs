@@ -318,6 +318,12 @@ pub async fn multipart_to_capsule_map(mut multipart: Multipart) -> JuizResult<Ca
                                         Err(_) => todo!(),
                                     }
                                 }
+                                "application/json" => {
+                                    let ft = field.text().await;
+                                    println!("match ({field_name}, {:?})", ft);
+                                    let v = serde_json::Value::from(ft.unwrap().as_str());
+                                    cm.insert(field_name,v.into());
+                                }
                                 _ => {
                                     log::error!("Multipart/FormData does not have available 'content-type' field ({content_type}). This can not be handled.");
                                     return Err(anyhow!(JuizError::InvalidArgumentError{message:format!("Multipart/FormData does not have available 'content-type' field ({content_type}). This can not be handled.")}))

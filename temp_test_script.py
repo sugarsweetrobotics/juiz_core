@@ -17,7 +17,7 @@ def test_output_image(c):
 
 def test_input_image(c):
     img = Image.open('test_input_image.png')
-    a = c.cv_container_set_img(img)
+    a = c.cv_container_set_img(img, 3)
     img = c.cv_container_get_img()
     img.save('test_output_image.png', 'PNG')
 

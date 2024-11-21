@@ -109,7 +109,8 @@ class HttpProxy(CRUDProxy):
             img_key_value = None
             serializable_data = {}
             if isinstance(data, Image.Image):
-                print('prof:', profile)
+                #print('prof:', profile)
+                pass
             else:
                 for k, v in data.items():
                     if isinstance(v, Image.Image):
@@ -119,10 +120,15 @@ class HttpProxy(CRUDProxy):
             if img_key_value is not None:
                 output = io.BytesIO()
                 img_key_value[1].save(output, 'PNG')
+                files = {}
+                for k, v in serializable_data.items():
+                    files[k] = (None, v, "application/json")
+                files[img_key_value[0]] = (None, output.getvalue(), "image/png")
                 return self._do_response(client.put(self._base_url + url,
                             # data=json.dumps(serializable_data),
                             headers={"Content-Type": "multipart/form-data; boundary=+++"},
-                            files={img_key_value[0]: (None, output.getvalue(), "image/png")}))
+                            #files={img_key_value[0]: (None, output.getvalue(), "image/png")}))
+                            files=files))
             else:
                 return self._do_response(client.patch(self._base_url + url,
                                         data=json.dumps(data),
@@ -318,7 +324,16 @@ class ContainerProcessProxy(ObjectProxy):
         elif 'body' in kwargs.keys():
             body = kwargs['body']
         else:
-            body = kwargs
+            body = {}
+            args_prof = prof['arguments']
+            for a, a_prof in zip(args, args_prof):
+                if isinstance(a, Image.Image):
+                    body[a_prof['name']] = a
+                else:
+                    body[a_prof['name']] = json.dumps(a)
+            for k, v in kwargs.items():
+                body[k] = v
+            #body = kwargs
         return self.system.crud.update(self._cn, 'call', body, {'identifier': self._id}, profile=self.profile_full())
 
     def __call__(self, *args, **kwargs):

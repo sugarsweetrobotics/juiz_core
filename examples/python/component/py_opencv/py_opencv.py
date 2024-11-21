@@ -34,7 +34,7 @@ def cv_container_get_img(component):
     return pil_image
 
 @juiz.juiz_component_container_process( container_type="cv_container" )
-def cv_container_set_img(component, img: Image.Image):
+def cv_container_set_img(component, img: Image.Image, dummy_arg: int=0):
     component._img = np.array(img)
     return True
 
