@@ -66,7 +66,7 @@ pub(crate) fn register_component(core_worker: &mut CoreWorker, working_dir: Opti
     }
     for process_manifest in component_manifest.processes.iter() {
         log::debug!(" - ProcessFactory ({process_manifest:?}) Loading...");
-        register_process_factory(core_worker, working_dir.clone(), plugin.clone(), process_manifest.factory.as_str())?;
+        register_process_factory(core_worker, working_dir.clone(), plugin.clone(), process_manifest.factory.as_str(), Some(process_manifest.type_name.as_str()))?;
         log::info!(" - ProcessFactory ({process_manifest:?}) Loaded"); 
     }
     Ok(component_manifest)

@@ -2,8 +2,8 @@
 #include "juiz/juiz.h"
 #include "example_container.h"
 
-juiz::Value manifest() {
-    return ContainerManifest("example_container_cpp").into_value();
+auto manifest() {
+    return ContainerManifest("example_container_cpp");
 }
 
 CppContainer* create_container(juiz::Value value) {
@@ -21,13 +21,6 @@ CppContainer* create_container(juiz::Value value) {
     return new CppContainer(int_value);
 }
 
-bool destroy_container(CppContainer* p_container) {
-    if (p_container) {
-        delete p_container;
-        return true;
-    }
-    return false;
-}
 
-CONTAINER_FACTORY(manifest, create_container, destroy_container);
+CONTAINER_FACTORY(manifest, create_container);
 

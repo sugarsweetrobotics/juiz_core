@@ -103,10 +103,15 @@ if not "{path_str:}" in sys.path:
         }
     }
 
-    pub fn load_process_factory(&self, working_dir: Option<PathBuf>, symbol_name: &str) -> JuizResult<ProcessFactoryPtr> {
-        log::trace!("PythonPlugin({:?})::load_process_factory(symbol_name='{symbol_name}') called", self.path);
+    pub fn load_process_factory(&self, working_dir: Option<PathBuf>, symbol_name: &str, type_name_opt: Option<&str>) -> JuizResult<ProcessFactoryPtr> {
+        log::trace!("PythonPlugin({:?})::load_process_factory(symbol_name='{symbol_name}, type_name_opt={type_name_opt:?}') called", self.path);
         self.init_path(working_dir.clone())?;
-        let type_name = self.path.file_stem().unwrap().to_str().unwrap();
+        // let type_name = self.path.file_stem().unwrap().to_str().unwrap();
+        let type_name = match type_name_opt {
+            Some(v) => v,
+            None => self.path.file_stem().unwrap().to_str().unwrap()
+        };
+        
         let fullpath = working_dir.unwrap_or(env!("CARGO_MANIFEST_DIR").into()).join(self.path.clone());
         let mut manifest = jvalue!({});
         let py_app = fs::read_to_string(fullpath.clone()).unwrap();

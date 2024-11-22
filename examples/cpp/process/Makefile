@@ -7,5 +7,6 @@ all:
 clean:
 	cd increment_process; make clean
 	cd decrement_process; make clean
+	cd add_process; make clean
 	cd talker_cpp; make clean
 	cd listener_cpp; make clean

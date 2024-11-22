@@ -94,22 +94,22 @@ impl JuizObjectPlugin {
         }
     }
 
-    pub fn load_process_factory(&self, working_dir: Option<PathBuf>, symbol_name: &str) -> JuizResult<ProcessFactoryPtr> {
+    pub fn load_process_factory(&self, working_dir: Option<PathBuf>, symbol_name: &str, type_name_opt: Option<&str>) -> JuizResult<ProcessFactoryPtr> {
         match self {
             JuizObjectPlugin::Rust(p) => {
                 p.load_process_factory(working_dir, symbol_name)
             },
             JuizObjectPlugin::Python(p) => {
-                p.load_process_factory(working_dir, symbol_name)
+                p.load_process_factory(working_dir, symbol_name, type_name_opt)
             },
             JuizObjectPlugin::Cpp(p) => {
-                p.load_process_factory(working_dir, symbol_name)
+                p.load_process_factory(working_dir, symbol_name, type_name_opt)
             },
         }
     }
 
     pub fn load_container_factory(&self, working_dir: Option<PathBuf>, symbol_name: &str, type_name_opt: Option<&str>) -> JuizResult<ContainerFactoryPtr> {
-        log::trace!("load_container_factory({working_dir:?}, {symbol_name}) called");
+        log::trace!("load_container_factory({working_dir:?}, {symbol_name}, {type_name_opt:?}) called");
         match self {
             JuizObjectPlugin::Rust(p) => {
                 p.load_container_factory(working_dir, symbol_name)
@@ -119,7 +119,7 @@ impl JuizObjectPlugin {
                 p.load_container_factory(working_dir, symbol_name, type_name_opt)
             },
             JuizObjectPlugin::Cpp(p) => {
-                p.load_container_factory(working_dir, "container_factory")
+                p.load_container_factory(working_dir, symbol_name, type_name_opt)
                 //Ok(Arc::new(Mutex::new(CppContainerFactoryImpl::new_with_manifest(p.clone(), container_profile)?)))
             },
         }
@@ -135,7 +135,7 @@ impl JuizObjectPlugin {
                 p.load_container_process_factory(working_dir, symbol_name, type_name_opt)
             },
             JuizObjectPlugin::Cpp(p) => {
-                p.load_container_process_factory(working_dir, symbol_name)
+                p.load_container_process_factory(working_dir, symbol_name, type_name_opt)
                 //Ok(Arc::new(Mutex::new(CppContainerProcessFactoryImpl::new_with_manifest(p.clone(), symbol_name, manifest)?)))
             },
         }

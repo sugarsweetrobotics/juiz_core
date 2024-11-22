@@ -49,7 +49,7 @@ impl ContainerManifest {
             name: None,
             language: "rust".to_owned(),
             type_name: type_name.to_owned(),
-            factory: "component_factory".to_owned(),
+            factory: "container_factory".to_owned(),
             description: "".into(), 
             parent_type_name: None,
             parent_name: None,
@@ -177,6 +177,12 @@ impl TryFrom<Value> for ContainerManifest {
         match obj_get_str(&value, "language") {
             Ok(lang) => {
                 p = p.language(lang);
+            },
+            Err(_) => {}
+        }
+        match obj_get_str(&value, "factory") {
+            Ok(fact) => {
+                p = p.factory(fact);
             },
             Err(_) => {}
         }

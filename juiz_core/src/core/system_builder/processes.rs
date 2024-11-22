@@ -29,7 +29,7 @@ fn setup_process_factory(system: &System, name: &String, v: &Value, option: &Val
         Some(obj) => {
             let language = obj.get("language").and_then(|v| { v.as_str() }).or(Some("rust")).unwrap();
             let working_dir = system.get_working_dir();
-            register_process_factory(&mut system.core_broker().lock_mut()?.worker_mut(), working_dir, JuizObjectPlugin::new(language, name, v, manifest_entry_point, option)?, "process_factory")
+            register_process_factory(&mut system.core_broker().lock_mut()?.worker_mut(), working_dir, JuizObjectPlugin::new(language, name, v, manifest_entry_point, option)?, "process_factory", None)
         }
     };
     log::trace!("setup_process_factory() exit");
@@ -67,9 +67,9 @@ pub(super) fn cleanup_processes(system: &mut System) -> JuizResult<()> {
 }
 
 
-pub(crate) fn register_process_factory(core_worker: &mut CoreWorker, working_dir: Option<PathBuf>, plugin: JuizObjectPlugin, symbol_name: &str) -> JuizResult<ProcessFactoryPtr> {
+pub(crate) fn register_process_factory(core_worker: &mut CoreWorker, working_dir: Option<PathBuf>, plugin: JuizObjectPlugin, symbol_name: &str, type_name_opt: Option<&str>) -> JuizResult<ProcessFactoryPtr> {
     log::trace!("register_process_factory() called");
-    let pf = plugin.load_process_factory(working_dir, symbol_name)?;
+    let pf = plugin.load_process_factory(working_dir, symbol_name, type_name_opt)?;
     let type_name = pf.lock().or_else(|e| { Err(JuizError::ObjectLockError { target: e.to_string() })})?.type_name().to_owned();
     let pfw = ProcessFactoryPtr::new(ProcessFactoryWrapper::new(plugin, pf)?);
     core_worker.store_mut().processes.register_factory(type_name.as_str(), pfw.clone())?;

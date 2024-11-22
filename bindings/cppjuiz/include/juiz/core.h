@@ -40,7 +40,12 @@ int capsule_ptr_get_uint(capsule_ptr* cp, uint64_t* val);
 int capsule_ptr_get_bool(capsule_ptr* cp, int64_t* val);
 int capsule_ptr_get_float(capsule_ptr* cp, double* val);
 int capsule_ptr_get_string(capsule_ptr* cp, char** val);
+// int capsule_ptr_get_array(capsule_ptr* cp, char** val);
 int capsule_ptr_lock_as_value(capsule_ptr* cp, void callback(value*));
+
+int capsule_ptr_get_array(capsule_ptr* cp, std::vector<juiz::Value>& array);
+
+int capsule_ptr_get_object(capsule_ptr* cp, std::map<std::string, juiz::Value>& array);
 
 int capsule_ptr_lock_as_value_with_arg(capsule_ptr* cp, int64_t callback(void*, value*), void*);
 

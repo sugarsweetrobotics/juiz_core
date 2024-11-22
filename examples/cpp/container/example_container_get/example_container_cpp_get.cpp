@@ -2,14 +2,12 @@
 #include "juiz/juiz.h"
 #include "example_container.h"
 
-juiz::Value manifest() {
+auto manifest() {
     return ProcessManifest("example_container_cpp_get")
-        .container_type("examlpe_container_cpp")
-        .into_value();
-        
+        .container_type("examlpe_container_cpp");
 }
 
-std::optional<int64_t> example_container_get(CppContainer* container, juiz::CapsuleMap cm) {
+std::optional<int64_t> example_container_get(CppContainer* container) {
     return container->value;
 }
 

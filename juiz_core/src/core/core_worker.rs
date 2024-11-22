@@ -398,7 +398,7 @@ impl CoreWorker {
                 panic!("invalid langauge {language}")
             }
         };
-        let proc_factory_ptr = register_process_factory(self, current_dir().map_or_else(|_|{None}, |wd|{Some(wd)}), plugin, "process_factory")?;
+        let proc_factory_ptr = register_process_factory(self, current_dir().map_or_else(|_|{None}, |wd|{Some(wd)}), plugin, "process_factory", None)?;
         let p = proc_factory_ptr.lock()?.profile_full()?;
         Ok(p)
     }
@@ -440,7 +440,7 @@ impl CoreWorker {
         let plugin = match language.as_str() {
             "rust" => JuizObjectPlugin::new_rust(PathBuf::from(filepath))?,
             "python" => JuizObjectPlugin::new_python(PathBuf::from(filepath))?,
-            "cpp" => JuizObjectPlugin::new_cpp(PathBuf::from(filepath), "manifest")?,
+            "cpp" => JuizObjectPlugin::new_cpp(PathBuf::from(filepath), "component_manifest")?,
             _ => {
                 panic!("invalid langauge {language}")
             }

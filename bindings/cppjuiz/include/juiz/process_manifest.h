@@ -148,7 +148,7 @@ public:
 class ContainerManifest {
 public:
 
-  ContainerManifest(const std::string& type_name): type_name_(type_name), language_("c++") {}
+  ContainerManifest(const std::string& type_name): type_name_(type_name), language_("c++"), factory_("container_factory") {}
 
   ContainerManifest description(const std::string& description) {
     description_ = description;
@@ -167,6 +167,11 @@ public:
 
   ContainerManifest factory(const std::string& fact) {
     factory_ = fact;
+    return *this;
+  }
+  
+  ContainerManifest add_process(const ProcessManifest& process) {
+    processes_.push_back(process);
     return *this;
   }
 
@@ -188,16 +193,90 @@ public:
 
   juiz::Value into_value() const {
     
+    std::vector<juiz::Value> processes;
+    for(auto i = processes_.begin();i != processes_.end();++i) {
+      processes.emplace_back( (*i).into_value() );
+    }
+    
+
     juiz::Value v{
         {"type_name", type_name_},
         {"language", language_},
         {"description", description_},
         {"factory", factory_},
-        {"arguments", args_}
+        {"arguments", args_},
+        {"processes", processes}
     };
     if (name_) {
         v["name"] = juiz::Value{name_.value()};
     }
+
+    return v;
+  }
+};
+
+class ComponentManifest {
+
+public:
+  std::string type_name_;
+  std::vector<ContainerManifest> containers_;
+  std::vector<ProcessManifest> processes_;
+  std::string description_;
+  std::string language_;
+
+public:
+  ComponentManifest(const std::string& type_name): type_name_(type_name), language_("c++") {
+
+  }
+
+public:
+  ComponentManifest description(const std::string& desc) {
+    this->description_ = desc;
+    return *this;
+  }
+
+  ComponentManifest add_container(const ContainerManifest& cont) {
+    this->containers_.push_back(cont);
+    return *this;
+  }
+
+  ComponentManifest add_process(const ProcessManifest& proc) {
+    if (proc.container_type_) {
+      return add_container_process(proc);
+    }
+    this->processes_.push_back(proc);
+    return *this;
+  }
+
+  ComponentManifest add_container_process(const ProcessManifest& proc) {
+    if (!proc.container_type_) {
+      return add_process(proc);
+    }
+    for (auto i = containers_.begin();i != containers_.end(); ++i) {
+      if (i->type_name_ == proc.container_type_.value()) {
+        i->add_process(proc);
+      }
+    }
+    return *this;
+  }
+
+  juiz::Value into_value() const {
+    std::vector<juiz::Value> containers;
+    for(auto i = containers_.begin();i != containers_.end();++i) {
+      containers.emplace_back( (*i).into_value() );
+    }
+    std::vector<juiz::Value> processes;
+    for(auto i = processes_.begin();i != processes_.end();++i) {
+      processes.emplace_back( (*i).into_value() );
+    }
+
+    juiz::Value v{
+        {"type_name", type_name_},
+        {"language", language_},
+        {"description", description_},
+        {"containers", containers},
+        {"processes", processes}
+    };
     return v;
   }
 };

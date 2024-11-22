@@ -241,12 +241,24 @@ class ProcessProxy(ObjectProxy):
         return p
     
     def call(self, *args, **kwargs):
+        prof = self.profile_full()
         if len(args) == 1:
-            body = args[0]
+            arg_prof = prof['arguments']
+            body = {
+                arg_prof[0]['name']: args[0]
+            }
         elif 'body' in kwargs.keys():
             body = kwargs['body']
         else:
-            body = kwargs
+            body = {}
+            args_prof = prof['arguments']
+            for a, a_prof in zip(args, args_prof):
+                if isinstance(a, Image.Image):
+                    body[a_prof['name']] = a
+                else:
+                    body[a_prof['name']] = json.dumps(a)
+            for k, v in kwargs.items():
+                body[k] = v
         return self.system.crud.update(self._cn, 'call', body, {'identifier': self._id}, profile=self._profile)
     
     def __call__(self, *args, **kwargs):

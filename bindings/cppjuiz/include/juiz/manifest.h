@@ -4,6 +4,7 @@
 #include <vector>
 #include <functional>
 #include "process_manifest.h"
+#include "bind_process.h"
 
 extern "C" {
     int64_t process_function_entry_point(capsule_map* cm, capsule* cp);
@@ -50,7 +51,7 @@ int64_t manifest_entry_point(capsule_ptr* ptr) { \
 
 #define DEFINE_COMPONENT_MANIFEST_ENTRY_POINT(manif) \
 int64_t component_manifest_entry_point(capsule_ptr* ptr) { \
-    auto v = manif(); \
+    auto v = manif().into_value(); \
     return capsule_ptr_set_value(ptr, v); \
 }
 
@@ -77,7 +78,6 @@ int64_t serialize(capsule* cp, const std::string&& retval) {
     return capsule_set_string(cp, retval.c_str());
 }
 
-#include "bind_process.h"
 
 #define PROCESS_FACTORY(manifest_function, process_function) \
 int64_t manifest_entry_point(capsule_ptr* ptr) { \
@@ -101,14 +101,14 @@ int64_t process_entry_point(capsule_map* cm, capsule* cp) {\
     }\
 }\
 \
-int64_t (*process_factory_entry_point())(capsule_map*,capsule*) {\
+extern "C" { int64_t (*process_factory_entry_point())(capsule_map*,capsule*) {\
     return process_entry_point;\
-}
+} }\
 
 
-#define CONTAINER_FACTORY(manifest_function, construct_function, destruct_function) \
+#define CONTAINER_FACTORY(manifest_function, construct_function) \
 int64_t manifest_entry_point(capsule_ptr* ptr) { \
-    auto v = manifest_function(); \
+    auto v = manifest_function().into_value(); \
     return capsule_ptr_set_value(ptr, v); \
 }\
 int64_t container_create_entry_point(value* v, void** container_obj) {\
@@ -128,13 +128,16 @@ int64_t (*container_factory_entry_point())(value*, void**) {\
 
 
 #define CONTAINER_PROCESS_FACTORY(container_type_t, manifest_function, process_function) \
+extern "C" {\
 int64_t manifest_entry_point(capsule_ptr* ptr) { \
-    auto v = manifest_function(); \
+    auto v = manifest_function().into_value(); \
     return capsule_ptr_set_value(ptr, v); \
 }\
 int64_t container_process_entry_point(void* container, capsule_map* cm, capsule* cp) {\
     try {\
-        auto return_value = process_function((container_type_t*)(container), juiz::CapsuleMap(cm));\
+        auto proc_manif = manifest_function(); \
+        auto binded_process_function = bind_container_process(proc_manif.arguments_.begin(), std::function(process_function));\
+        auto return_value = binded_process_function((container_type_t*)(container), juiz::CapsuleMap(cm));\
         if (!return_value) {\
             return JUIZ_CONTAINER_PROCESS_FUNCTION_NULL_OPT_RETURNED;\
         }\
@@ -149,11 +152,12 @@ int64_t container_process_entry_point(void* container, capsule_map* cm, capsule*
 \
 int64_t (*container_process_factory_entry_point())(void*, capsule_map*,capsule*) {\
     return container_process_entry_point;\
+}\
 }
 
 
 #define DEFINE_CONTAINER_PROCESS_ENTRY_POINT(container_type, func, deser, ser)\
-\
+extern "C" {\
 int64_t container_process_entry_point(container_type* container, capsule_map* cm, capsule* cp) {\
     try {\
         auto args = deser(juiz::CapsuleMap(cm));\
@@ -171,7 +175,97 @@ int64_t container_process_entry_point(container_type* container, capsule_map* cm
         return JUIZ_VALUE_CONVERTER_ERROR;\
     }\
 }\
-\
 int64_t (*container_process_factory())(container_type*,capsule_map*,capsule*) {\
     return container_process_entry_point;\
+} \
+} \
+
+
+
+#define COMPONENT_PROCESS_FACTORY(manifest, process_function) \
+ProcessManifest process_function##_manifest() {\
+    return manifest.factory( #process_function "_factory" ); \
+} \
+extern "C" {\
+int64_t process_function##_manifest_entry_point(capsule_ptr* ptr) { \
+    auto v = process_function##_manifest().into_value(); \
+    return capsule_ptr_set_value(ptr, v); \
+}\
+int64_t process_function##_entry_point(capsule_map* cm, capsule* cp) {\
+    try {\
+        auto proc_manif = process_function##_manifest(); \
+        auto binded_process_function = bind_process(proc_manif.arguments_.begin(), std::function(process_function));\
+        auto return_value = binded_process_function(juiz::CapsuleMap(cm));\
+        if (!return_value) {\
+            return JUIZ_PROCESS_FUNCTION_NULL_OPT_RETURNED;\
+        }\
+        auto v = return_value.value();\
+        return serialize(cp, v);\
+    } catch (juiz::ValueNotFoundError &e) {\
+        return JUIZ_VALUE_NOT_FOUND_ERROR;\
+    } catch (juiz::ValueConvertError &e) {\
+        return JUIZ_VALUE_CONVERTER_ERROR;\
+    }\
+}\
+int64_t (*process_function##_factory_entry_point())(capsule_map*,capsule*) {\
+    return process_function##_entry_point;\
+} \
+}
+
+#define COMPONENT_CONTAINER_FACTORY(manifest, construct_function) \
+ContainerManifest construct_function##_manifest() {\
+    return manifest.factory( #construct_function "_factory" ); \
+} \
+extern "C" {\
+int64_t construct_function##_manifest_entry_point(capsule_ptr* ptr) { \
+    auto v = construct_function##_manifest().into_value(); \
+    return capsule_ptr_set_value(ptr, v); \
+}\
+int64_t construct_function##_entry_point(value* v, void** container_obj) {\
+    try {\
+        *container_obj = construct_function(juiz::into_value(v));\
+        return JUIZ_OK;\
+    } catch (juiz::ValueNotFoundError &e) {\
+        return JUIZ_VALUE_NOT_FOUND_ERROR;\
+    } catch (juiz::ValueConvertError &e) {\
+        return JUIZ_VALUE_CONVERTER_ERROR;\
+    }\
+}\
+\
+int64_t (* construct_function##_factory_entry_point())(value*, void**) {\
+    return construct_function##_entry_point;\
+}\
+}
+
+
+
+#define COMPONENT_CONTAINER_PROCESS_FACTORY(container_type_t, manifest, process_function) \
+ProcessManifest process_function##_manifest() {\
+    return manifest.factory( #process_function "_factory" ); \
+} \
+extern "C" {\
+int64_t process_function##_manifest_entry_point(capsule_ptr* ptr) { \
+    auto v = process_function##_manifest().into_value(); \
+    return capsule_ptr_set_value(ptr, v); \
+}\
+int64_t process_function##_entry_point(void* container, capsule_map* cm, capsule* cp) {\
+    try {\
+        auto proc_manif = process_function##_manifest(); \
+        auto binded_process_function = bind_container_process(proc_manif.arguments_.begin(), std::function(process_function));\
+        auto return_value = binded_process_function((container_type_t*)(container), juiz::CapsuleMap(cm));\
+        if (!return_value) {\
+            return JUIZ_CONTAINER_PROCESS_FUNCTION_NULL_OPT_RETURNED;\
+        }\
+        auto v = return_value.value();\
+        return serialize(cp, v);\
+    } catch (juiz::ValueNotFoundError &e) {\
+        return JUIZ_VALUE_NOT_FOUND_ERROR;\
+    } catch (juiz::ValueConvertError &e) {\
+        return JUIZ_VALUE_CONVERTER_ERROR;\
+    }\
+}\
+\
+int64_t (*process_function##_factory_entry_point())(void*, capsule_map*,capsule*) {\
+    return process_function##_entry_point;\
+}\
 }

@@ -147,15 +147,27 @@ namespace juiz {
 
     bool boolValue() const;
 
+    bool boolValue(const bool v);
+
     int64_t intValue() const;
+
+    int64_t intValue(const int64_t v);
     
     double doubleValue() const;
     
+    double doubleValue(const double v);
+
     const std::string& stringValue() const;
+
+    const std::string& stringValue(const std::string& v);
 
     const std::map<std::string, Value>& objectValue() const;
 
+    const std::map<std::string, Value>& objectValue(const std::map<std::string, Value>& v);
+
     const std::vector<Value>& listValue() const;
+
+    const std::vector<Value>& listValue(const std::vector<Value>& v);
 
     const std::vector<uint8_t>& byteArrayValue() const { 
       return *bytevalue_;
@@ -709,17 +721,38 @@ bool Value::boolValue() const {
   throw ValueTypeError(std::string("trying bool value acecss. actual ") + getTypeString());
 }
 
+bool Value::boolValue(const bool v) {
+  this->typecode_ = VALUE_TYPE_BOOL;
+  this->boolvalue_ = v;
+  return v;
+}
+
+
 int64_t Value::intValue() const {
   if (isIntValue()) return intvalue_;
   if (isError()) throw ValueTypeError(std::string("trying int64 value acecss. actual Error(") + getErrorMessage() + ")");
   throw ValueTypeError(std::string("trying int value acecss. actual ") + getTypeString());
 }
 
+int64_t Value::intValue(const int64_t v) {
+  this->typecode_ = VALUE_TYPE_INT;
+  this->intvalue_ = v;
+  return v;
+}
+
+
 double Value::doubleValue() const {
   if (isDoubleValue()) return doublevalue_;
   if (isError()) throw ValueTypeError(std::string("trying double value acecss. actual Error(") + getErrorMessage() + ")");
   throw ValueTypeError(std::string("trying double value acecss. actual ") + getTypeString());
 }
+
+double Value::doubleValue(const double v) {
+  this->typecode_ = VALUE_TYPE_DOUBLE;
+  this->doublevalue_ = v;
+  return v;
+}
+
 
 const std::string& Value::stringValue() const {
   if (isStringValue()) return *stringvalue_;
@@ -728,10 +761,11 @@ const std::string& Value::stringValue() const {
   throw ValueTypeError(std::string("trying string value acecss. actual ") + getTypeString());
 }
 
-const std::map<std::string, Value>& Value::objectValue() const {
-  if (isObjectValue()) return *objectvalue_;
-  if (isError()) throw ValueTypeError(std::string("trying object value acecss. actual Error(") + getErrorMessage() + ")");
-  throw ValueTypeError(std::string("trying object value acecss. actual ") + getTypeString());
+const std::string& Value::stringValue(const std::string& v) {
+  this->typecode_ = VALUE_TYPE_STRING;
+  this->stringvalue_ = new std::string();
+  *stringvalue_ = v;
+  return v;
 }
 
 const std::vector<Value>& Value::listValue() const {
@@ -739,6 +773,31 @@ const std::vector<Value>& Value::listValue() const {
   if (isError()) throw ValueTypeError(std::string("trying list value acecss. actual Error(") + getErrorMessage() + ")");
   throw ValueTypeError(std::string("trying list value acecss. actual ") + getTypeString());
 }
+
+const std::vector<Value>& Value::listValue(const std::vector<Value>& v) {
+  this->typecode_ = VALUE_TYPE_LIST;
+  this->listvalue_ = new std::vector<Value>();
+  for(auto i = v.begin();i != v.end(); ++i) {
+    (*listvalue_).push_back(*i);
+  }
+  return v;
+}
+
+const std::map<std::string, Value>& Value::objectValue() const {
+  if (isObjectValue()) return *objectvalue_;
+  if (isError()) throw ValueTypeError(std::string("trying object value acecss. actual Error(") + getErrorMessage() + ")");
+  throw ValueTypeError(std::string("trying object value acecss. actual ") + getTypeString());
+}
+
+const std::map<std::string, Value>& Value::objectValue(const std::map<std::string, Value>& v) {
+  this->typecode_ = VALUE_TYPE_OBJECT;
+  this->objectvalue_ = new std::map<std::string, Value>();
+  for(auto i = v.begin();i != v.end(); ++i) {
+    (*objectvalue_).insert({i->first, i->second});
+  }
+  return v;
+}
+
 
 const Value& Value::at(const std::string& key) const {
   if (isError()) {
