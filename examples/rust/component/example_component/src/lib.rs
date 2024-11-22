@@ -56,7 +56,6 @@ juiz_component_manifest!(
         ]
     }
     processes = [
-        
         example_component_increment
     ]
 );

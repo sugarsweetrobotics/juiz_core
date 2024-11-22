@@ -1,13 +1,15 @@
 
 use juiz_sdk::prelude::*;
 
+
 #[juiz_process(
+    description = "This is listener process."
     arguments = {
         default = {
             arg1 = "Hello, Juiz!"
         }
-        arg1 = {
-            default = "Hello, Juiz!"
+        description = {
+            arg1 = "This message is printed."
         }
     }
 )]

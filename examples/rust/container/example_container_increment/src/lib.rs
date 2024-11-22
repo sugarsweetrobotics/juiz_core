@@ -3,6 +3,7 @@ use juiz_sdk::prelude::*;
 
 #[juiz_container_process(
     container_type = "example_container"
+    description = "Container Process for example_container. This process will add given value to container."
     arguments = {
         default = {
             arg1 = 1
