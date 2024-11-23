@@ -37,4 +37,4 @@ uuid = {workspace = true, features = ["v4"] }
 
 yaml-rust2 = {workspace = true}
 
-juiz_macro = { path = "../juiz_macro" }
+juiz_macro = { version= "0.0.2", path = "../juiz_macro" }
