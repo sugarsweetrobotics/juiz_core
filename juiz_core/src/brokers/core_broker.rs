@@ -2,7 +2,6 @@
 
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard};
-use std::io;
 use juiz_sdk::anyhow::{self, anyhow, Context};
 use juiz_sdk::identifier::connection_identifier_split;
 use juiz_sdk::utils::check_corebroker_manifest;

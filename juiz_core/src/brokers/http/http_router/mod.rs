@@ -10,8 +10,8 @@ use crate::brokers::CRUDBroker;
 use axum::extract::Multipart;
 use axum::http::HeaderValue;
 
-#[cfg(feature="opencv4")]
-use opencv::{core::{Vector, VectorToVec}, imgcodecs::imencode};
+// #[cfg(feature="opencv4")]
+// use opencv::{core::{Vector, VectorToVec}, imgcodecs::imencode};
 
 use tower_http::services::ServeDir;
 use utoipa::{IntoParams, OpenApi};
@@ -224,7 +224,7 @@ pub fn json_output_wrap(result: JuizResult<CapsulePtr>) -> impl IntoResponse {
 }
 
 
-#[cfg(not(feature= "opencv4"))]
+//#[cfg(not(feature= "opencv4"))]
 fn capsule_ptr_to_response(v: CapsulePtr) -> axum::http::Response<Body> {
     use juiz_sdk::image::ImageFormat;
     
@@ -257,40 +257,40 @@ fn capsule_ptr_to_response(v: CapsulePtr) -> axum::http::Response<Body> {
     }
 }
 
-#[cfg(feature= "opencv4")]
-fn capsule_ptr_to_response(v: CapsulePtr) -> axum::http::Response<Body>  {
-    if v.is_value().unwrap() {
-        v.lock_as_value(|value| {
-            let mut r = Json(value).into_response();
-            let hdrs = r.headers_mut();
-            hdrs.append("Cache-Control", HeaderValue::from_str("no-cache").unwrap());
-            r
-        }).unwrap()
-    } else if v.is_mat().unwrap() {
-        v.lock_as_mat(|result| {
-            let mut buf : opencv::core::Vector<u8> = Vector::new();
+// #[cfg(feature= "opencv4")]
+// fn capsule_ptr_to_response(v: CapsulePtr) -> axum::http::Response<Body>  {
+//     if v.is_value().unwrap() {
+//         v.lock_as_value(|value| {
+//             let mut r = Json(value).into_response();
+//             let hdrs = r.headers_mut();
+//             hdrs.append("Cache-Control", HeaderValue::from_str("no-cache").unwrap());
+//             r
+//         }).unwrap()
+//     } else if v.is_mat().unwrap() {
+//         v.lock_as_mat(|result| {
+//             let mut buf : opencv::core::Vector<u8> = Vector::new();
 
-            match imencode(".png", result, &mut buf, &Vector::new()) {
-                Ok(_result) => {
-                    Response::builder()
-                        .extension("png")
-                        .header("Content-Type", "image/png")
-                        .status(StatusCode::OK)
-                        .body(Body::from(buf.to_vec())).unwrap().into_response()
-                },
-                Err(e) => {
-                    Json(jvalue!({
-                        "result": "Error",
-                        "error": format!("{}", e)
-                    })).into_response()
-                },
-            }
+//             match imencode(".png", result, &mut buf, &Vector::new()) {
+//                 Ok(_result) => {
+//                     Response::builder()
+//                         .extension("png")
+//                         .header("Content-Type", "image/png")
+//                         .status(StatusCode::OK)
+//                         .body(Body::from(buf.to_vec())).unwrap().into_response()
+//                 },
+//                 Err(e) => {
+//                     Json(jvalue!({
+//                         "result": "Error",
+//                         "error": format!("{}", e)
+//                     })).into_response()
+//                 },
+//             }
             
-        }).unwrap()
-    } else {
-        Json(jvalue!({})).into_response()
-    }
-}
+//         }).unwrap()
+//     } else {
+//         Json(jvalue!({})).into_response()
+//     }
+// }
 
 
 

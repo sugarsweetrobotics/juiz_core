@@ -3,7 +3,7 @@
 use juiz_sdk::anyhow;
 use reqwest::StatusCode;
 use std::{net::SocketAddr, sync::{Arc, Mutex}};
-use axum::{body::Bytes, extract::{ConnectInfo, Multipart, Path, Query, State}, http::HeaderMap, response::IntoResponse, routing, Json, Router};
+use axum::{extract::{ConnectInfo, Multipart, Path, Query, State}, http::HeaderMap, response::IntoResponse, routing, Json, Router};
 
 use crate::{brokers::http::http_router::{multipart_to_capsule_map, FullQuery}, prelude::*};
 use crate::brokers::crud_broker::CRUDBroker;
@@ -40,7 +40,7 @@ pub async fn object_post_handler(
     r
 }
 
-fn body_to_capsule_map(body: Value, headers: &HeaderMap) -> Result<CapsuleMap, anyhow::Error> {
+fn body_to_capsule_map(body: Value, _headers: &HeaderMap) -> Result<CapsuleMap, anyhow::Error> {
     body.try_into()
 }
 
@@ -171,7 +171,7 @@ pub async fn object_put_handler(
     //multipart: Multipart,
     remote_addr: ConnectInfo<SocketAddr>,
     State(crud_broker): State<Arc<Mutex<CRUDBroker>>>, 
-    mut multipart: Multipart,
+    multipart: Multipart,
 ) -> impl IntoResponse {
     let map = full_query_to_map(&query);
     log::trace!("[PUT] ({class_name}, {function_name}, {map:?}, {multipart:?}) called");

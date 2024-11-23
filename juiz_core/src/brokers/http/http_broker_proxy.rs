@@ -10,8 +10,8 @@ use reqwest::blocking::Response;
 use crate::brokers::{CRUDBrokerProxy, CRUDBrokerProxyHolder};
 use thiserror::Error;
 
-#[cfg(feature="opencv4")]
-use opencv::imgcodecs::*;
+// #[cfg(feature="opencv4")]
+// use opencv::imgcodecs::*;
 
 #[derive(Error, Debug, PartialEq)]
 enum HTTPBrokerError {
@@ -150,15 +150,15 @@ impl CRUDBrokerProxy for HTTPBrokerProxy {
 }
 
 
-#[cfg(feature="opencv4")]
-fn image_png_response_to_capsule_ptr(mut response: Response) -> JuizResult<CapsulePtr> {
-        let mut buf: Vec<u8> = Vec::new();
-        let _result = response.read_to_end(&mut buf)?;
-        Ok(imdecode(&opencv::core::Vector::<u8>::from_iter(buf), IMREAD_COLOR)?.into())
+// #[cfg(feature="opencv4")]
+// fn image_png_response_to_capsule_ptr(mut response: Response) -> JuizResult<CapsulePtr> {
+//         let mut buf: Vec<u8> = Vec::new();
+//         let _result = response.read_to_end(&mut buf)?;
+//         Ok(imdecode(&opencv::core::Vector::<u8>::from_iter(buf), IMREAD_COLOR)?.into())
     
-}
+// }
 
-#[cfg(not(feature="opencv4"))]
+// #[cfg(not(feature="opencv4"))]
 fn image_png_response_to_capsule_ptr(mut response: Response) -> JuizResult<CapsulePtr> {
 
     let mut buf: Vec<u8> = Vec::new();

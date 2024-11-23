@@ -35,18 +35,18 @@ pub struct TopicPtr {
 }
 
 
-#[cfg(feature="opencv4")]
-fn capsule_ptr_to_capsule(v: &CapsulePtr) -> JuizResult<Capsule> {
-    if v.is_value()? {
-        v.lock_as_value(|v| -> Capsule { Capsule::from(v.clone()) } )
-    } else if v.is_mat()? {
-        v.lock_as_mat(|m| -> Capsule { Capsule::from(m.clone()) })
-    } else {
-        Err(anyhow!(JuizError::ArgumentError { message: "CapsulePtr is not available for Topic".to_owned() }))
-    }
-}
+// #[cfg(feature="opencv4")]
+// fn capsule_ptr_to_capsule(v: &CapsulePtr) -> JuizResult<Capsule> {
+//     if v.is_value()? {
+//         v.lock_as_value(|v| -> Capsule { Capsule::from(v.clone()) } )
+//     } else if v.is_mat()? {
+//         v.lock_as_mat(|m| -> Capsule { Capsule::from(m.clone()) })
+//     } else {
+//         Err(anyhow!(JuizError::ArgumentError { message: "CapsulePtr is not available for Topic".to_owned() }))
+//     }
+// }
 
-#[cfg(not(feature="opencv4"))]
+// #[cfg(not(feature="opencv4"))]
 fn capsule_ptr_to_capsule(v: &CapsulePtr) -> JuizResult<Capsule> {
     if v.is_value()? {
         v.lock_as_value(|v| -> Capsule { Capsule::from(v.clone()) } )

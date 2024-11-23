@@ -1,13 +1,13 @@
 
-use std::{collections::HashMap, fs, io::{self, BufWriter, Cursor}, path::PathBuf, sync::Arc};
+use std::{collections::HashMap, fs, io::{BufWriter, Cursor}, path::PathBuf, sync::Arc};
 use image::ImageFormat;
-use pyo3::{prelude::*, types::{PyByteArray, PyBytes, PyDict, PyFloat, PyFunction, PyInt, PyList, PyNone, PySet, PyString, PyTuple}};
+use pyo3::{prelude::*, types::{PyBytes, PyDict, PyFloat, PyInt, PyList, PyNone, PySet, PyString, PyTuple}};
 use juiz_sdk::serde_json::Map;
 use juiz_sdk::anyhow::{self, anyhow};
 use crate::{containers::{bind_container_function, container_factory_create, container_process_factory_create_from_trait}, prelude::*, processes::process_factory_create_from_trait};
 
-#[cfg(feature="opencv4")]
-use crate::opencv::prelude::*;
+// #[cfg(feature="opencv4")]
+// use crate::opencv::prelude::*;
 
 pub struct PythonPlugin {
     path: PathBuf,
@@ -410,27 +410,27 @@ def image_from_bytes(w, h, image_data):
 // }
 
 
-#[cfg(feature="opencv4")]
-pub fn python_process_call(py: Python, entry_point: &Py<PyAny>, pytuple: pyo3::Bound<PyTuple>) -> JuizResult<Capsule> {
-    match entry_point.call1(py, pytuple) {
-        Ok(v) => {
-            let object = v.extract::<&PyAny>(py)?;
-            Ok(if check_object_is_ndarray(&py, object) {
-                pyany_to_mat(py, object).unwrap()
-            } else {
-                pyany_to_value(object)?.into()
-            })
-        },
-        Err(e) => {
-            let trace_str = e.traceback_bound(py).and_then(|trace| { Some(format!("{:}", trace.format().unwrap())) }).or(Some("".to_owned())).unwrap();
-            log::error!("Error in Python::with_gil for ContainerProcess.call(). Error({e:}). Traceback: {trace_str:}");
-            Err(anyhow!(e))
-        },
-    }
+// #[cfg(feature="opencv4")]
+// pub fn python_process_call(py: Python, entry_point: &Py<PyAny>, pytuple: pyo3::Bound<PyTuple>) -> JuizResult<Capsule> {
+//     match entry_point.call1(py, pytuple) {
+//         Ok(v) => {
+//             let object = v.extract::<&PyAny>(py)?;
+//             Ok(if check_object_is_ndarray(&py, object) {
+//                 pyany_to_mat(py, object).unwrap()
+//             } else {
+//                 pyany_to_value(object)?.into()
+//             })
+//         },
+//         Err(e) => {
+//             let trace_str = e.traceback_bound(py).and_then(|trace| { Some(format!("{:}", trace.format().unwrap())) }).or(Some("".to_owned())).unwrap();
+//             log::error!("Error in Python::with_gil for ContainerProcess.call(). Error({e:}). Traceback: {trace_str:}");
+//             Err(anyhow!(e))
+//         },
+//     }
 
-}
+// }
 
-#[cfg(not(feature="opencv4"))]
+// #[cfg(not(feature="opencv4"))]
 pub fn python_process_call(py: Python, entry_point: &Py<PyAny>, pytuple: pyo3::Bound<PyTuple>) -> JuizResult<Capsule> {
     match entry_point.call1(py, pytuple) {
         Ok(v) => {
@@ -453,31 +453,31 @@ pub fn python_process_call(py: Python, entry_point: &Py<PyAny>, pytuple: pyo3::B
 }
 
 
-#[cfg(feature="opencv4")]
-fn pytuple_to_mat(pytuple: &PyTuple) -> JuizResult<Capsule> {
-    let shape = pytuple.get_item(0)?.extract::<&PyTuple>()?.into_iter().map(|v|{v.extract::<i32>().unwrap()}).collect::<Vec<i32>>();
-    Ok(opencv::core::Mat::new_rows_cols_with_data(
-        shape[0] * shape[2],
-        shape[1],
-        pytuple.get_item(1)?.extract::<&PyBytes>()?.as_bytes()
-    )?.reshape(3, shape[0])?.try_clone()?.into())
-}
+// #[cfg(feature="opencv4")]
+// fn pytuple_to_mat(pytuple: &PyTuple) -> JuizResult<Capsule> {
+//     let shape = pytuple.get_item(0)?.extract::<&PyTuple>()?.into_iter().map(|v|{v.extract::<i32>().unwrap()}).collect::<Vec<i32>>();
+//     Ok(opencv::core::Mat::new_rows_cols_with_data(
+//         shape[0] * shape[2],
+//         shape[1],
+//         pytuple.get_item(1)?.extract::<&PyBytes>()?.as_bytes()
+//     )?.reshape(3, shape[0])?.try_clone()?.into())
+// }
 
 
-#[cfg(feature="opencv4")]
-pub fn pyany_to_mat(py: Python, object: &PyAny) -> JuizResult<Capsule> {
-    let py_app = r#"
-import cv2
-def to_tuple(mat):
-    return (mat.shape, mat.data.tobytes())
-    "#;
-    let symbol_name = "to_tuple";
-    let module = PyModule::from_code_bound(py, &py_app, "", "").or_else(|e| { Err(anyhow!(e))})?;
-    let func: Py<PyAny> = module.getattr(symbol_name)?.into();
-    let result = func.call1(py, PyTuple::new_bound(py,[object]))?;
-    //log::error!("pyany_to_mat, resultis {result:?}/{:}", result.to_string());
-    pytuple_to_mat(result.extract::<&PyTuple>(py)?)
-}
+// // #[cfg(feature="opencv4")]
+// pub fn pyany_to_mat(py: Python, object: &PyAny) -> JuizResult<Capsule> {
+//     let py_app = r#"
+// import cv2
+// def to_tuple(mat):
+//     return (mat.shape, mat.data.tobytes())
+//     "#;
+//     let symbol_name = "to_tuple";
+//     let module = PyModule::from_code_bound(py, &py_app, "", "").or_else(|e| { Err(anyhow!(e))})?;
+//     let func: Py<PyAny> = module.getattr(symbol_name)?.into();
+//     let result = func.call1(py, PyTuple::new_bound(py,[object]))?;
+//     //log::error!("pyany_to_mat, resultis {result:?}/{:}", result.to_string());
+//     pytuple_to_mat(result.extract::<&PyTuple>(py)?)
+// }
 
 pub fn pyany_to_value(value: &PyAny) -> PyResult<Value> {
     if value.is_instance_of::<PyString>() {

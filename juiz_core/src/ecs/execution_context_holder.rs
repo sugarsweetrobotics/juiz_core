@@ -147,7 +147,7 @@ impl JuizObject for ExecutionContextHolder {
         obj_merge_mut(&mut v, &cv)?;
         obj_merge_mut(&mut v, &jvalue!({
             "auto_start": self.auto_start
-        }));
+        }))?;
         Ok(v.into())
     }
 }

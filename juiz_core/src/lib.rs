@@ -1,5 +1,5 @@
-
-
+//! juizを使ったアプリケーション開発のための機能パッケージ。機能要素を開発するだけなら`juiz_sdk`で済む。
+//! 
 
 mod core;
 mod plugin;
@@ -21,12 +21,11 @@ pub use ecs::{ExecutionContext, ExecutionContextCore, ExecutionContextFactory, e
 
 // Re export 
 
-#[cfg(feature="opencv4")]
-pub use opencv;
+// #[cfg(feature="opencv4")]
+// pub use opencv;
 
 pub use tokio;
 pub use futures;
-
 pub use juiz_sdk::anyhow;
 pub use juiz_sdk::log;
 pub use juiz_sdk::env_logger;
