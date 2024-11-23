@@ -2,7 +2,7 @@
 name = "juiz_meta"
 version = "0.4.0"
 edition = "2021"
-default-run = "juiz"
+default-run = "juizd"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
@@ -11,7 +11,7 @@ clap = { version="4.4.10", features = ["derive"] }
 juiz_core = { path = "./juiz_core/" }
 
 [[bin]]
-name = "juiz"
+name = "juizd"
 path = "src/bin/juiz/main.rs"
 
 [features]
@@ -73,6 +73,7 @@ members = [
     "juiz_macro",
     "juiz_sdk",
     "juiz_core",
+    "juiz_app",
     "ecs/timer_ec",
     "ecs/one_shot_ec", 
     "ecs/main_loop_ec",
@@ -116,6 +117,7 @@ default-members = [
     "juiz_macro",
     "juiz_sdk",
     "juiz_core",
+    "juiz_app",
     "ecs/timer_ec",
     "ecs/one_shot_ec", 
     "ecs/main_loop_ec",
