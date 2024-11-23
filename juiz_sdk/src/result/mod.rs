@@ -1,4 +1,5 @@
-
+//! 関数の成功・失敗、エラーの定義
+//! 
 
 mod error;
 mod result;

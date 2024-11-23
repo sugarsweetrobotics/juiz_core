@@ -1,3 +1,6 @@
+//! プロセスやコンテナのバイナリの機能記述 (マニフェスト) に関する機能パッケージ
+//! 
+
 mod process_manifest;
 mod container_manifest;
 mod argument_manifest;

@@ -1,4 +1,5 @@
-
+//! これ一つで使えるようにしたいぞ宣言
+//! 
 
 
 pub use crate::{
@@ -7,7 +8,6 @@ pub use crate::{
         IdentifierStruct,
         connection_identifier_new,
     },
-    // object::JuizObject,
     manifests::{
         ArgumentManifest, ArgumentType, 
         ProcessManifest,
@@ -16,41 +16,6 @@ pub use crate::{
         ComponentManifest,
         TopicManifest,
     },
-    // processes::{
-    //     Process,
-    //     ProcessFactory, 
-    //     ProcessFactoryPtr, 
-    //     ProcessPtr,
-    //     ProcessProxy,
-    //     process_new,
-    //     process_factory_create,
-    //     //create_process_factory
-    // },
-    // containers::{
-    //     Container,
-    //     ContainerImpl,
-    //     ContainerFactory,
-    //     ContainerFactoryPtr,
-    //     ContainerProcessFactory,
-    //     ContainerProcessFactoryPtr,
-    //     ContainerPtr,
-    //     container_factory_create,
-    //     container_process_factory_create,
-    // },
-    // brokers::{
-    //     Broker,
-    //     BrokerPtr,
-    //     BrokerFactory,
-    //     BrokerProxy,
-    //     BrokerProxyFactory,   
-    //     SystemBrokerProxy,
-    //     ProcessBrokerProxy,
-    //     ContainerBrokerProxy,
-    //     ContainerProcessBrokerProxy,
-    //     ExecutionContextBrokerProxy,
-    //     BrokerBrokerProxy,
-    //     ConnectionBrokerProxy,     
-    // },
     value::{
         jvalue, Value, 
         Capsule, 
@@ -74,12 +39,6 @@ pub use crate::{
         value_to_capsule,
         value_merge,
     }, 
-    // core:: {
-    //     System,
-    //     CoreBroker,
-    //     CoreBrokerPtr,
-    //     CoreWorker,
-    // },
     result:: {
         JuizResult,
         JuizError,
@@ -126,19 +85,12 @@ pub use crate::{
         JuizObjectCoreHolder, 
         JuizObjectClass,
         ObjectCore},
-    // plugin::{
-    //     ContainerStackFactoryImpl,
-    //     container_stack_factory_create
-    // },
-    // connections::connect,
-    // utils::juiz_lock,
     log,
     image::DynamicImage,
-    
 };
 
 pub use image;
 
-pub use juiz_macro::*;
+pub use juiz_macro::{juiz_process, juiz_container, juiz_container_process, juiz_component_process, juiz_component_container, juiz_component_container_process, juiz_component_manifest};
 pub use serde_json;
 pub use env_logger;

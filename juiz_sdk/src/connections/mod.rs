@@ -1,3 +1,6 @@
+//! プロセスの接続に関する機能パッケージ
+//! 
+
 pub mod connection;
 
 pub mod destination_connection;

@@ -2,8 +2,8 @@
 
 use std::{collections::HashMap, mem::swap};
 
-#[cfg(feature="opencv4")]
-use opencv::core::Mat;
+// #[cfg(feature="opencv4")]
+// use opencv::core::Mat;
 
 use image::DynamicImage;
 use serde_json::Map;
@@ -14,8 +14,8 @@ pub enum CapsuleValue {
     Empty(()),
     Value(Value),
 
-    #[cfg(feature="opencv4")]    
-    Mat(Mat),
+    // #[cfg(feature="opencv4")]    
+    // Mat(Mat),
     Image(DynamicImage),
 }
 
@@ -23,10 +23,10 @@ impl From<Value> for CapsuleValue {
     fn from(value: Value) -> Self { Self::Value( value ) }
 }
 
-#[cfg(feature="opencv4")]
-impl From<Mat> for CapsuleValue {
-    fn from(value: Mat) -> Self { Self::Mat( value ) }
-}
+// #[cfg(feature="opencv4")]
+// impl From<Mat> for CapsuleValue {
+//     fn from(value: Mat) -> Self { Self::Mat( value ) }
+// }
 
 impl From<DynamicImage> for CapsuleValue {
     fn from(value: DynamicImage) -> Self { Self::Image( value ) }
@@ -71,21 +71,21 @@ impl CapsuleValue {
     }
     
 
-    #[cfg(feature="opencv4")]
-    pub fn is_mat(&self) -> bool {
-        match self {
-            Self::Mat(_) => return true, 
-            _ => return false
-        }
-    }
+    // #[cfg(feature="opencv4")]
+    // pub fn is_mat(&self) -> bool {
+    //     match self {
+    //         Self::Mat(_) => return true, 
+    //         _ => return false
+    //     }
+    // }
 
-    #[cfg(feature="opencv4")]
-    pub fn as_mat(&self) -> Option<&Mat> {
-        match self {
-            Self::Mat(v) => Some(v),
-            _ => None
-        }
-    }
+    // #[cfg(feature="opencv4")]
+    // pub fn as_mat(&self) -> Option<&Mat> {
+    //     match self {
+    //         Self::Mat(v) => Some(v),
+    //         _ => None
+    //     }
+    // }
 
     pub fn is_image(&self) -> bool {
         match self {
@@ -174,15 +174,15 @@ impl TryFrom<Capsule> for Value {
     }
 }
 
-#[cfg(feature="opencv4")]
-impl From<Mat> for Capsule {
-    fn from(mat_value: Mat) -> Self {
-        Self{
-            value: CapsuleValue::from(mat_value),
-            option: HashMap::new(),
-        }
-    }
-}
+// #[cfg(feature="opencv4")]
+// impl From<Mat> for Capsule {
+//     fn from(mat_value: Mat) -> Self {
+//         Self{
+//             value: CapsuleValue::from(mat_value),
+//             option: HashMap::new(),
+//         }
+//     }
+// }
 
 impl From<DynamicImage> for Capsule {
     fn from(img_value: DynamicImage) -> Self {
@@ -218,11 +218,11 @@ impl Capsule {
 
     pub fn to_value(self) -> Option<Value> { self.value.to_value() }
 
-    #[cfg(feature="opencv4")]
-    pub fn is_mat(&self) -> bool { self.value.is_mat() }
+    // #[cfg(feature="opencv4")]
+    // pub fn is_mat(&self) -> bool { self.value.is_mat() }
 
-    #[cfg(feature="opencv4")]
-    pub fn as_mat(&self) -> Option<&opencv::core::Mat> { self.value.as_mat() }
+    // #[cfg(feature="opencv4")]
+    // pub fn as_mat(&self) -> Option<&opencv::core::Mat> { self.value.as_mat() }
 
     pub fn is_image(&self) -> bool { self.value.is_image() }
 

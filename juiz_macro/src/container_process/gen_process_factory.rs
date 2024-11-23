@@ -7,7 +7,7 @@ pub(crate) fn factory_tokenstream(function_ident: syn::Ident) -> proc_macro::Tok
        #[no_mangle]
         pub unsafe extern "Rust" fn container_process_factory() -> JuizResult<ContainerProcessFactoryStruct> {
             env_logger::init();
-            Ok(juiz_sdk::container_process_factory(manifest2(), #function_ident))
+            Ok(juiz_sdk::factory::container_process_factory(manifest2(), #function_ident))
         }
     }.into()
 }
@@ -21,7 +21,7 @@ pub(crate) fn component_factory_tokenstream(function_ident: syn::Ident, factory_
        #[no_mangle]
         pub unsafe extern "Rust" fn #factory_name_ident() -> JuizResult<ContainerProcessFactoryStruct> {
             // env_logger::init();
-            Ok(juiz_sdk::container_process_factory(#manifest_function_name_ident(), #function_ident))
+            Ok(juiz_sdk::factory::container_process_factory(#manifest_function_name_ident(), #function_ident))
         }
     }.into()
 }

@@ -1,4 +1,6 @@
-
+//! juizにおける各オブジェクトのベースとなるtrait
+//! 
+//! 
 use crate::prelude::*;
 use crate::identifier::identifier_new;
 

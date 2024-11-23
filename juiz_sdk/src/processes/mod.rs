@@ -1,4 +1,5 @@
-
+//! プロセスに関する機能パッケージ
+//! 
 
 pub mod process;
 pub mod process_ptr;

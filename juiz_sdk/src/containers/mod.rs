@@ -1,4 +1,5 @@
-
+//! コンテナに関する機能の宣言パッケージ
+//! 
 
 pub mod container;
 pub mod container_ptr;

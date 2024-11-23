@@ -1,15 +1,13 @@
 [package]
 name = "juiz_sdk"
-version = "0.0.1"
+version = "0.0.2"
 edition = "2021"
+description = "SDK definitions for juiz functional elements crate."
+license = "WTFPL"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [lib]
 crate-type = ["cdylib", "lib"]
-
-[features]
-default = []
-opencv4 = []
 
 [dependencies]
 anyhow = {workspace = true}

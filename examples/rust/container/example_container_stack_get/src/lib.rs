@@ -24,5 +24,5 @@ pub unsafe extern "Rust" fn container_process_factory() -> JuizResult<ContainerP
     let manifest = ProcessManifest::new("example_container_stack_get")
         .description("Example(get)")
         .container(ExampleContainerStack::manifest());
-    Ok(juiz_sdk::container_process_factory(manifest, get_function))
+    Ok(juiz_sdk::factory::container_process_factory(manifest, get_function))
 }

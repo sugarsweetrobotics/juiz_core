@@ -1,3 +1,7 @@
+//! juiz関連オブジェクトのfactoryに関する機能パッケージ
+//! 
+//! 
+
 use std::sync::Arc;
 use anyhow::anyhow;
 use crate::{containers::ContainerImpl, prelude::*};

@@ -1,3 +1,6 @@
+//! juizにおけるオブジェクトのユニークな識別子に関する定義
+//! 
+
 use crate::prelude::*;
 use anyhow::anyhow;
 pub type Identifier = String;

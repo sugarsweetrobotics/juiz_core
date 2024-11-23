@@ -1,3 +1,7 @@
+//! juizで使うデータ型に関する機能パッケージ
+//! 
+//! 
+//! juiz内部ではデータはCapsuleというデータ型で表現されます。これはserde_json::ValueとImageの直積です。
 
 
 pub mod value;

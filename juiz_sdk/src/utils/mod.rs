@@ -1,3 +1,6 @@
+//! 各所で使うパターンコードを集めたパッケージ
+//! 
+
 pub mod manifest_util;
 pub mod manifest_checker;
 pub mod sync_util;
