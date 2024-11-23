@@ -46,4 +46,4 @@ utoipa-rapidoc = {workspace = true, features = ["axum"] }
 
 yaml-rust2 = {workspace = true}
 
-juiz_sdk = { path = "../juiz_sdk/" }
+juiz_sdk = { version="0.0.2", path = "../juiz_sdk/" }
