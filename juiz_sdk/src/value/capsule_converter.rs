@@ -273,7 +273,7 @@ pub unsafe extern "C" fn capsule_get_string(capsule: *mut Capsule, v: *mut *cons
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn capsule_set_string(capsule: *mut Capsule, v: *const i8) -> i64 {
+pub unsafe extern "C" fn capsule_set_string(capsule: *mut Capsule, v: *const std::os::raw::c_char) -> i64 {
     let cap = capsule.as_mut().unwrap();
     cap.replace_value(jvalue!(CStr::from_ptr(v).to_str().unwrap()).into());
     JUIZ_OK

@@ -25,6 +25,12 @@ pub fn plugin_name_to_file_name(name: &str) -> String {
     "lib".to_owned() + name + ".dylib"
 }
 
+
+#[cfg(target_os = "linux")]
+pub fn plugin_name_to_file_name(name: &str) -> String {
+    "lib".to_owned() + name + ".so"
+}
+
 #[cfg(target_os = "windows")]
 pub fn plugin_name_to_file_name(name: &str) -> String {
     name.to_owned() + ".dll"

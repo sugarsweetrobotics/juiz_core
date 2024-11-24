@@ -88,7 +88,7 @@ pub unsafe extern "C" fn capsule_ptr_set_bool(capsule_ptr: *mut CapsulePtr, v: i
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn capsule_ptr_set_string(capsule_ptr: *mut CapsulePtr, v: *const i8) -> i64 {
+pub unsafe extern "C" fn capsule_ptr_set_string(capsule_ptr: *mut CapsulePtr, v: *const std::os::raw::c_char) -> i64 {
     let c = capsule_ptr.as_mut().unwrap();
     c.replace_with_value(jvalue!(CStr::from_ptr(v).to_str().unwrap()));
     JUIZ_OK
