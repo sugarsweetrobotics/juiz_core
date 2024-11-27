@@ -91,7 +91,7 @@ members = [
     "examples/rust/component/example_component", 
     "brokers/qmp_broker",
 
-    "tutorial/rust/talker_listener/talker",
+    #"tutorial/rust/talker_listener/talker",
 
 
     "juiz_sdk/test_packages/a_arg_proc",
