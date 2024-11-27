@@ -2,7 +2,7 @@
 #include "juiz/juiz.h"
 
 auto manifest() {
-    return ProcessManifest{"iadd_process_cpp"}
+    return ProcessManifest{"add_process_cpp"}
         .add_int_arg("arg1", "test_argument", 1)
         .add_int_arg("arg2", "test_argument", 1);
 }
