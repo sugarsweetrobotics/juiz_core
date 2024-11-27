@@ -1,5 +1,0 @@
-all:
-	cd examples/cpp; make
-
-clean:
-	cd examples/cpp; make clean

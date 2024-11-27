@@ -2,21 +2,8 @@
 name = "juiz_meta"
 version = "0.4.0"
 edition = "2021"
-default-run = "juizd"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[dependencies]
-home = "0.5.9"
-clap = { version="4.4.10", features = ["derive"] }
-juiz_core = { path = "./juiz_core/" }
-
-[[bin]]
-name = "juizd"
-path = "src/bin/juiz/main.rs"
-
-[features]
-default = []
-opencv4 = []
 
 [workspace.dependencies]
 anyhow = "1.0.89"
