@@ -12,6 +12,10 @@ include_directories(${PROJECT_HOME}/${JUIZ_HEADER_DIR})
 
 link_directories(${PROJECT_HOME}/target/debug)
 
+if (WIN32)
+set(CMAKE_LINK_LIBRARY_SUFFIX .dll.lib)
+endif (WIN32)
+
 add_subdirectory(process)
 add_subdirectory(container)
 add_subdirectory(component)

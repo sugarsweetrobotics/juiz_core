@@ -6,22 +6,38 @@
 #include "process_manifest.h"
 #include "bind_process.h"
 
-extern "C" {
-    int64_t process_function_entry_point(capsule_map* cm, capsule* cp);
-    int64_t manifest_entry_point(capsule_ptr* ptr);
-    int64_t component_manifest_entry_point(capsule_ptr* ptr);
-    int64_t process_entry_point(capsule_map* cm, capsule* cp);
-    int64_t process_entry_point(capsule_map* cm, capsule* cp);
-    int64_t (*process_factory_entry_point())(capsule_map*,capsule*);
 
-    int64_t (*container_factory_entry_point())(value*, void**);
-    int64_t (*container_process_factory_entry_point())(void*, capsule_map*,capsule*);
+#if WIN32
+
+#ifdef _WINDLL
+#define JUIZ_API __declspec(dllexport)
+#else
+#define JUIZ_API __declspec(dllimport) 
+#endif
+
+#else
+#define JUIZ_API
+
+#endif
+
+
+
+extern "C" {
+    JUIZ_API int64_t process_function_entry_point(capsule_map* cm, capsule* cp);
+    JUIZ_API int64_t manifest_entry_point(capsule_ptr* ptr);
+    JUIZ_API int64_t component_manifest_entry_point(capsule_ptr* ptr);
+    JUIZ_API int64_t process_entry_point(capsule_map* cm, capsule* cp);
+    JUIZ_API int64_t process_entry_point(capsule_map* cm, capsule* cp);
+    JUIZ_API int64_t (*process_factory_entry_point())(capsule_map*,capsule*);
+
+    JUIZ_API int64_t (*container_factory_entry_point())(value*, void**);
+    JUIZ_API int64_t (*container_process_factory_entry_point())(void*, capsule_map*,capsule*);
 
 }
 
 #define DEFINE_PROCESS_ENTRY_POINT(func, deser, ser)\
 \
-int64_t process_entry_point(capsule_map* cm, capsule* cp) {\
+JUIZ_API int64_t process_entry_point(capsule_map* cm, capsule* cp) {\
     try {\
         auto args = deser(juiz::CapsuleMap(cm));\
         if (!args) {\
@@ -37,7 +53,7 @@ int64_t process_entry_point(capsule_map* cm, capsule* cp) {\
     }\
 }\
 \
-int64_t (*process_factory())(capsule_map*,capsule*) {\
+JUIZ_API int64_t (*process_factory())(capsule_map*,capsule*) {\
     return process_entry_point;\
 }
 
@@ -80,11 +96,11 @@ int64_t serialize(capsule* cp, const std::string&& retval) {
 
 
 #define PROCESS_FACTORY(manifest_function, process_function) \
-int64_t manifest_entry_point(capsule_ptr* ptr) { \
+JUIZ_API int64_t manifest_entry_point(capsule_ptr* ptr) { \
     auto v = manifest_function().into_value(); \
     return capsule_ptr_set_value(ptr, v); \
 }\
-int64_t process_entry_point(capsule_map* cm, capsule* cp) {\
+JUIZ_API int64_t process_entry_point(capsule_map* cm, capsule* cp) {\
     try {\
         auto proc_manif = manifest_function(); \
         auto binded_process_function = bind_process(proc_manif.arguments_.begin(), std::function(process_function));\
@@ -101,17 +117,17 @@ int64_t process_entry_point(capsule_map* cm, capsule* cp) {\
     }\
 }\
 \
-extern "C" { int64_t (*process_factory_entry_point())(capsule_map*,capsule*) {\
+extern "C" { JUIZ_API int64_t (*process_factory_entry_point())(capsule_map*,capsule*) {\
     return process_entry_point;\
 } }\
 
 
 #define CONTAINER_FACTORY(manifest_function, construct_function) \
-int64_t manifest_entry_point(capsule_ptr* ptr) { \
+JUIZ_API int64_t manifest_entry_point(capsule_ptr* ptr) { \
     auto v = manifest_function().into_value(); \
     return capsule_ptr_set_value(ptr, v); \
 }\
-int64_t container_create_entry_point(value* v, void** container_obj) {\
+JUIZ_API int64_t container_create_entry_point(value* v, void** container_obj) {\
     try {\
         *container_obj = construct_function(juiz::into_value(v));\
         return JUIZ_OK;\
@@ -122,18 +138,18 @@ int64_t container_create_entry_point(value* v, void** container_obj) {\
     }\
 }\
 \
-int64_t (*container_factory_entry_point())(value*, void**) {\
+extern "C" { JUIZ_API int64_t (*container_factory_entry_point())(value*, void**) {\
     return container_create_entry_point;\
-}
+} }
 
 
 #define CONTAINER_PROCESS_FACTORY(container_type_t, manifest_function, process_function) \
 extern "C" {\
-int64_t manifest_entry_point(capsule_ptr* ptr) { \
+JUIZ_API int64_t manifest_entry_point(capsule_ptr* ptr) { \
     auto v = manifest_function().into_value(); \
     return capsule_ptr_set_value(ptr, v); \
 }\
-int64_t container_process_entry_point(void* container, capsule_map* cm, capsule* cp) {\
+JUIZ_API int64_t container_process_entry_point(void* container, capsule_map* cm, capsule* cp) {\
     try {\
         auto proc_manif = manifest_function(); \
         auto binded_process_function = bind_container_process(proc_manif.arguments_.begin(), std::function(process_function));\
@@ -150,7 +166,7 @@ int64_t container_process_entry_point(void* container, capsule_map* cm, capsule*
     }\
 }\
 \
-int64_t (*container_process_factory_entry_point())(void*, capsule_map*,capsule*) {\
+JUIZ_API int64_t (*container_process_factory_entry_point())(void*, capsule_map*,capsule*) {\
     return container_process_entry_point;\
 }\
 }
@@ -187,11 +203,11 @@ ProcessManifest process_function##_manifest() {\
     return manifest.factory( #process_function "_factory" ); \
 } \
 extern "C" {\
-int64_t process_function##_manifest_entry_point(capsule_ptr* ptr) { \
+JUIZ_API int64_t process_function##_manifest_entry_point(capsule_ptr* ptr) { \
     auto v = process_function##_manifest().into_value(); \
     return capsule_ptr_set_value(ptr, v); \
 }\
-int64_t process_function##_entry_point(capsule_map* cm, capsule* cp) {\
+JUIZ_API int64_t process_function##_entry_point(capsule_map* cm, capsule* cp) {\
     try {\
         auto proc_manif = process_function##_manifest(); \
         auto binded_process_function = bind_process(proc_manif.arguments_.begin(), std::function(process_function));\
@@ -207,7 +223,7 @@ int64_t process_function##_entry_point(capsule_map* cm, capsule* cp) {\
         return JUIZ_VALUE_CONVERTER_ERROR;\
     }\
 }\
-int64_t (*process_function##_factory_entry_point())(capsule_map*,capsule*) {\
+JUIZ_API int64_t (*process_function##_factory_entry_point())(capsule_map*,capsule*) {\
     return process_function##_entry_point;\
 } \
 }
@@ -217,11 +233,11 @@ ContainerManifest construct_function##_manifest() {\
     return manifest.factory( #construct_function "_factory" ); \
 } \
 extern "C" {\
-int64_t construct_function##_manifest_entry_point(capsule_ptr* ptr) { \
+JUIZ_API int64_t construct_function##_manifest_entry_point(capsule_ptr* ptr) { \
     auto v = construct_function##_manifest().into_value(); \
     return capsule_ptr_set_value(ptr, v); \
 }\
-int64_t construct_function##_entry_point(value* v, void** container_obj) {\
+JUIZ_API int64_t construct_function##_entry_point(value* v, void** container_obj) {\
     try {\
         *container_obj = construct_function(juiz::into_value(v));\
         return JUIZ_OK;\
@@ -232,7 +248,7 @@ int64_t construct_function##_entry_point(value* v, void** container_obj) {\
     }\
 }\
 \
-int64_t (* construct_function##_factory_entry_point())(value*, void**) {\
+JUIZ_API int64_t (* construct_function##_factory_entry_point())(value*, void**) {\
     return construct_function##_entry_point;\
 }\
 }
@@ -244,11 +260,11 @@ ProcessManifest process_function##_manifest() {\
     return manifest.factory( #process_function "_factory" ); \
 } \
 extern "C" {\
-int64_t process_function##_manifest_entry_point(capsule_ptr* ptr) { \
+JUIZ_API int64_t process_function##_manifest_entry_point(capsule_ptr* ptr) { \
     auto v = process_function##_manifest().into_value(); \
     return capsule_ptr_set_value(ptr, v); \
 }\
-int64_t process_function##_entry_point(void* container, capsule_map* cm, capsule* cp) {\
+JUIZ_API int64_t process_function##_entry_point(void* container, capsule_map* cm, capsule* cp) {\
     try {\
         auto proc_manif = process_function##_manifest(); \
         auto binded_process_function = bind_container_process(proc_manif.arguments_.begin(), std::function(process_function));\
@@ -265,7 +281,7 @@ int64_t process_function##_entry_point(void* container, capsule_map* cm, capsule
     }\
 }\
 \
-int64_t (*process_function##_factory_entry_point())(void*, capsule_map*,capsule*) {\
+JUIZ_API int64_t (*process_function##_factory_entry_point())(void*, capsule_map*,capsule*) {\
     return process_function##_entry_point;\
 }\
 }
