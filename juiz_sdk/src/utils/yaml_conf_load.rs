@@ -69,6 +69,12 @@ fn yaml_vec_to_value(yv: Vec<Yaml>) -> JuizResult<Value> {
 }
 
 pub fn yaml_conf_load(filepath: String) -> JuizResult<Value> {
+    yaml_conf_load_inner(filepath).or::<anyhow::Error>(Ok(
+        serde_json::json!({})
+    ))
+}
+
+fn yaml_conf_load_inner(filepath: String) -> JuizResult<Value> {
     let yaml_string = fs::read_to_string(filepath)?;
     let yaml_value = YamlLoader::load_from_str(&yaml_string)?;
     yaml_vec_to_value(yaml_value)
