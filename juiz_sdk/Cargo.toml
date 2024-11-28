@@ -1,6 +1,6 @@
 [package]
 name = "juiz_sdk"
-version = "0.0.4"
+version = "0.0.5"
 edition = "2021"
 description = "SDK definitions for juiz functional elements crate."
 license = "WTFPL"
@@ -37,4 +37,4 @@ uuid = {workspace = true, features = ["v4"] }
 
 yaml-rust2 = {workspace = true}
 
-juiz_macro = { version= "0.0.2", path = "../juiz_macro" }
+juiz_macro = { version= "0.0.3", path = "../juiz_macro" }
