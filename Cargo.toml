@@ -8,8 +8,8 @@ edition = "2021"
 [workspace.dependencies]
 
 juiz_macro = {version="0.0.4", path="juiz_macro"}
-juiz_sdk = {version="0.0.6", path="juiz_macro"}
-
+juiz_sdk = {version="0.0.6", path="juiz_sdk"}
+juiz_core = {version="0.0.4", path="juiz_core"}
 
 anyhow = "1.0.89"
 approx = "0.5.1"
