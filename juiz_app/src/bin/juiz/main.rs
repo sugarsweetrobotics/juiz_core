@@ -9,6 +9,7 @@ mod container;
 mod container_process;
 
 use std::path::PathBuf;
+use std::time::Duration;
 
 use execution_context::{on_execution_context, EcSubCommands};
 use container::{on_container, ContSubCommands};
@@ -37,8 +38,12 @@ struct Args {
     #[arg(short = 'd', help = "Daemonize JUIZ server. This option automatically enables http server (-b option). If you want to supress, use -q option.")]
     daemonize: bool,
 
-    #[arg(short = 'r', default_value="true", help = "Recursively walk subsystems.")]
+    #[arg(short = 'w', default_value="true", help = "Recursively walk subsystems.")]
     recursive: bool,
+
+
+    #[arg(short = 'r', default_value="None", help = "Ratio of periodical execution. If this option is set, created object will periodically executed under the ratio you set [Hz]")]
+    ratio: Option<f64>,
 
     #[arg(short = 'q', default_value="false", help = "Stop HTTP Broker. Default(false). This option is used with -d option only. If you use this with -b option, http server will start.")]
     stop_http_broker: bool,
@@ -131,8 +136,12 @@ fn do_task_once(system: &mut System, args: Args) -> JuizResult<()> {
     // println!("System started once");
     let language = args.module_language;
     let create_every = args.module_create;
-    let execute = args.module_execute;
-    let print = args.module_execute_print;
+    let ratio = args.ratio;
+    let execute = if ratio.is_some() {
+        true
+    } else {
+        args.module_execute
+    };let print = args.module_execute_print;
     let module_manifest_print = args.module_manifest_print;
     let create_instance = args.create_instance;
     if let Some(process_path) = args.process {
@@ -245,7 +254,12 @@ fn do_task(system: &mut System, args: Args) -> JuizResult<()> {
     // println!("System started");
     let language = args.module_language;
     let create = args.module_create;
-    let execute = args.module_execute;
+    let ratio = args.ratio;
+    let execute = if ratio.is_some() {
+        true
+    } else {
+        args.module_execute
+    };
     let print = args.module_execute_print;
     let module_manifest_print = args.module_manifest_print;
     if let Some(process_path) = args.process {
@@ -259,9 +273,23 @@ fn do_task(system: &mut System, args: Args) -> JuizResult<()> {
             if execute {
                 let identifier = obj_get_str(&prof, "identifier")?;
                 let process_proxy = system.core_broker().lock()?.worker().process_from_identifier(&identifier.to_owned())?;
-                let v = process_proxy.lock_mut()?.execute()?;
-                if print {
-                    println!("{v:?}");
+                if let Some(ratio_hz) = ratio {
+                    let duration = Duration::from_secs_f64(1.0 / ratio_hz);
+                    loop {
+                        // let ratio_sec = (1.0 / ratio_hz).floor() as u64;
+                        // let ratio_nanosec = ((1.0 / ratio_hz).fract() * 1000000000) as u64;
+
+                        std::thread::sleep(duration);
+                        let v = process_proxy.lock_mut()?.execute()?;
+                        if print {
+                            println!("{v:?}");
+                        }
+                    }
+                } else {
+                    let v = process_proxy.lock_mut()?.execute()?;
+                    if print {
+                        println!("{v:?}");
+                    }
                 }
             }
         }
@@ -290,9 +318,20 @@ fn do_task(system: &mut System, args: Args) -> JuizResult<()> {
                 if execute {
                     let identifier = obj_get_str(&prof, "identifier")?;
                     let process_proxy = system.core_broker().lock()?.worker().any_process_from_identifier(&identifier.to_owned())?;
-                    let v = process_proxy.lock_mut()?.execute()?;
-                    if print {
-                        println!("{v:?}");
+                    if let Some(ratio_hz) = ratio {
+                        let duration = Duration::from_secs_f64(1.0 / ratio_hz);
+                        loop {
+                            std::thread::sleep(duration);
+                            let v = process_proxy.lock_mut()?.execute()?;
+                            if print {
+                                println!("{v:?}");
+                            }
+                        }
+                    } else {
+                        let v = process_proxy.lock_mut()?.execute()?;
+                        if print {
+                            println!("{v:?}");
+                        }
                     }
                 }
             }
@@ -302,32 +341,58 @@ fn do_task(system: &mut System, args: Args) -> JuizResult<()> {
         if module_manifest_print {
             println!("{compm:}");
         }
-        for pm in compm.processes.iter() {
-            if create {
-                let proc = create_process_by_pm(system, pm)?;
-                if execute {
-                    let v = proc.lock_mut()?.execute()?;
-                    if print {
-                        println!("{v:?}");
-                    }
-                }
-            }
-        }
-        for cm in compm.containers.iter() {
-            if create {
-                let cont = create_container_by_cm(system, cm)?;
-                let cid = cont.identifier().clone();
-                for pm in cm.processes.iter() {
-                    let cproc = create_container_process_by_cid_and_pm(system, cid.clone(), pm)?;
+        let mut procs: Vec<ProcessPtr> = Vec::new();
+        let mut conts: Vec<ContainerPtr> = Vec::new();
+        let mut cont_procs: Vec<ProcessPtr> = Vec::new();
+        loop {
+            for pm in compm.processes.iter() {
+                if create {
+                    let proc = create_process_by_pm(system, pm)?;
+                    procs.push(proc.clone());
                     if execute {
-                        let v = cproc.lock_mut()?.execute()?;
+                        let v = proc.lock_mut()?.execute()?;
                         if print {
                             println!("{v:?}");
                         }
                     }
                 }
             }
-        }
+            for cm in compm.containers.iter() {
+                if create {
+                    let cont = create_container_by_cm(system, cm)?;
+                    conts.push(cont.clone());
+                    let cid = cont.identifier().clone();
+                    for pm in cm.processes.iter() {
+                        let cproc = create_container_process_by_cid_and_pm(system, cid.clone(), pm)?;
+                        cont_procs.push(cproc.clone());
+                        if execute {
+                            let v = cproc.lock_mut()?.execute()?;
+                            if print {
+                                println!("{v:?}");
+                            }
+                        }
+                    }
+                }
+            }
+            if let Some(ratio_hz) = ratio {
+                let duration = Duration::from_secs_f64(1.0 / ratio_hz);
+                std::thread::sleep(duration);
+                for p in procs.iter() {
+                    let v = p.lock_mut()?.execute()?;
+                    if print {
+                        println!("{v:?}");
+                    }
+                }
+                for cp in cont_procs.iter() {
+                    let v = cp.lock_mut()?.execute()?;
+                    if print {
+                        println!("{v:?}");
+                    }
+                }
+            } else {
+                break;
+            }
+        }// loop
     }
     Ok(())
 }
@@ -373,9 +438,11 @@ fn do_once() -> JuizResult<()>{
     let manifest_filepath = PathBuf::from(args.filepath.as_str().to_string());
     let working_dir = manifest_filepath.parent().unwrap();
     let server = args.server.clone();
+    let ratio = args.ratio;
     // サブコマンドが指定されていない場合は単純に起動。
     if args.subcommand.is_none() {
-        if args.daemonize {
+        //let daemonize = ratio.is_some() || args.daemonize;
+        if args.daemonize || ratio.is_some() {
             return System::new(manifest)?
                 .set_working_dir(working_dir)
                 .start_http_broker(flag_start)
