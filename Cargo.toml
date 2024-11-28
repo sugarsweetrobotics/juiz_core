@@ -7,7 +7,9 @@ edition = "2021"
 
 [workspace.dependencies]
 
-juiz_macro = {version="0.0.3", path="juiz_macro"}
+juiz_macro = {version="0.0.4", path="juiz_macro"}
+
+
 anyhow = "1.0.89"
 approx = "0.5.1"
 axum = {version="0.7.7", features = ["multipart"]}
