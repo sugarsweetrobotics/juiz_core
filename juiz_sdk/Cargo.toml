@@ -9,16 +9,17 @@ license = "WTFPL"
 [lib]
 crate-type = ["cdylib", "lib"]
 
+[dev-dependencies]
+approx = {workspace = true}
+
 [dependencies]
 anyhow = {workspace = true}
-approx = {workspace = true}
-axum = {workspace = true}
-
-clap = { version="4.4.10", features = ["derive"] }
+# axum = {workspace = true}
+# clap = { version="4.4.10", features = ["derive"] }
 
 env_logger = {workspace = true}
-futures = {workspace = true}
-home = {workspace = true}
+# futures = {workspace = true}
+# home = {workspace = true}
 image = {workspace = true}
 image-stream = {workspace = true}
 
@@ -37,4 +38,4 @@ uuid = {workspace = true, features = ["v4"] }
 
 yaml-rust2 = {workspace = true}
 
-juiz_macro = { version= "0.0.3", path = "../juiz_macro" }
+juiz_macro = { workspace = true }
