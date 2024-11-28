@@ -4,6 +4,8 @@ use quote::{format_ident, quote};
 pub(crate) fn factory_tokenstream(function_ident: syn::Ident) -> proc_macro::TokenStream {
     // まず土台となる関数定義
     quote!{
+        // use juiz_sdk::factory::process_factory;
+
         #[no_mangle]
         pub unsafe extern "Rust" fn process_factory() -> JuizResult<ProcessFactoryStruct> {
             env_logger::init();
@@ -18,6 +20,8 @@ pub(crate) fn component_factory_tokenstream(function_ident: syn::Ident, factory_
     let manifest_function_name_ident = format_ident!("{}", function_ident.to_string() + "_manifest");
     // まず土台となる関数定義
     quote!{
+        // use juiz_sdk::factory::process_factory;
+        
         #[no_mangle]
         pub unsafe extern "Rust" fn #factory_name_ident() -> JuizResult<ProcessFactoryStruct> {
             // env_logger::init();
