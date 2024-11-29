@@ -30,6 +30,7 @@ async fn on_start(broker_manifest: Value, crud_broker: Arc<Mutex<CRUDBroker>>) -
             axum::serve(listener, app_new(crud_broker, static_filepaths).into_make_service_with_connect_info::<SocketAddr>()).await.unwrap();
         },
         Err(e) => {
+            // TODO: ここで同じポートにすでにhttpがあったら、スレーブになってそこに接続する
             log::error!("on_start(broker_manifest='{broker_manifest:}') failed. Error({e})");
             return ();
         },

@@ -42,7 +42,7 @@ struct Args {
     recursive: bool,
 
 
-    #[arg(short = 'r', default_value="None", help = "Ratio of periodical execution. If this option is set, created object will periodically executed under the ratio you set [Hz]")]
+    #[arg(short = 'r', default_value=None, help = "Ratio of periodical execution. If this option is set, created object will periodically executed under the ratio you set [Hz]")]
     ratio: Option<f64>,
 
     #[arg(short = 'q', default_value="false", help = "Stop HTTP Broker. Default(false). This option is used with -d option only. If you use this with -b option, http server will start.")]
