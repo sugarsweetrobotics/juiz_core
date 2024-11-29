@@ -1,4 +1,5 @@
-use std::{net::SocketAddr, path::PathBuf, sync::{Arc, Mutex}};
+use std::{io::ErrorKind, net::SocketAddr, path::PathBuf, sync::{Arc, Mutex}};
+//use axum::extract::path::ErrorKind;
 use tokio::net::TcpListener;
 
 use super::super::core_broker::CoreBrokerPtr;
@@ -8,12 +9,19 @@ use crate::brokers::CRUDBroker;
 
 use super::http_router::app_new;
 
+fn into_address(host: &str, port: i64) -> String {
+    return format!("{:}:{:}", host, port);
+}
+fn check_server_is_juiz(host: &str, port: i64) -> bool {
+    return true;
+}
+
 async fn on_start(broker_manifest: Value, crud_broker: Arc<Mutex<CRUDBroker>>) -> () {
     // log::trace!("http_broker::on_start(broker_manifest={broker_manifest:}) called");
     let host = obj_get_str(&broker_manifest, "host").or::<&str>(Ok("0.0.0.0") ).unwrap();
-    let port  = obj_get_i64(&broker_manifest, "port").or::<i64>( Ok(8080)).unwrap();
-    let address = format!("{:}:{:}", host, port);
-    log::info!("http_broker::on_start(address={address}, {broker_manifest:?})) called");
+    let mut port  = obj_get_i64(&broker_manifest, "port").or::<i64>( Ok(8080)).unwrap();
+    //let address = format!("{:}:{:}", host, port);
+    log::info!("http_broker::on_start(host={host}, port={port}, {broker_manifest:?})) called");
     let static_filepaths: Option<Vec<(String, PathBuf)>> = match obj_get_obj(&broker_manifest, "static_filepaths") {
         Ok(v) => {
             Some(v.iter().map(|(s, val)| {
@@ -25,18 +33,33 @@ async fn on_start(broker_manifest: Value, crud_broker: Arc<Mutex<CRUDBroker>>) -
             None
         }
     };
-    match TcpListener::bind( address ).await {
-        Ok(listener) => {
-            axum::serve(listener, app_new(crud_broker, static_filepaths).into_make_service_with_connect_info::<SocketAddr>()).await.unwrap();
-        },
-        Err(e) => {
-            // TODO: ここで同じポートにすでにhttpがあったら、スレーブになってそこに接続する
-            log::error!("on_start(broker_manifest='{broker_manifest:}') failed. Error({e})");
-            return ();
-        },
-    }
+
+    loop {
+        let address = into_address(host, port);
+        log::info!("-- connecting (host={host}, port={port}, {broker_manifest:?})) called");
+        match TcpListener::bind( address ).await {
+            Ok(listener) => {
+                log::trace!("http_broker::on_start() exit");
+                return axum::serve(listener, app_new(crud_broker, static_filepaths).into_make_service_with_connect_info::<SocketAddr>()).await.unwrap();
+            },
+            Err(e) => {
+                if e.kind() == ErrorKind::AddrInUse {
+                    // check server is juiz?
+                    if !check_server_is_juiz(host, port) {
+                        log::error!("on_start(broker_manifest='{broker_manifest:}') failed. Error({e:?}, {e})");
+                        return ();
+                    }
+                    port = port + 1;
+                } else {
+                    // TODO: ここで同じポートにすでにhttpがあったら、スレーブになってそこに接続する
+                    log::error!("on_start(broker_manifest='{broker_manifest:}') failed. Error({e:?}, {e})");
+                    return ();
+                }
+            },
+        }
+    }// loop
 //    axum::serve(TcpListener::bind( address ).await.unwrap(), app_new(crud_broker)).await.unwrap();
-    log::trace!("http_broker::on_start() exit");
+    
 }
 
 

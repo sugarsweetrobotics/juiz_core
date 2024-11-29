@@ -65,6 +65,9 @@ impl CRUDBroker {
         })
     }
 
+    fn reserve_master_broker(&mut self, master_host: &str, master_port: &str, broker_type_name: &str) {
+        log::
+    }
 
     fn on_update(&self, class_name:&str, function_name:&str, cp: CapsuleMap, opt_remote_addr: Option<SocketAddr>) -> JuizResult<CapsulePtr>{
         log::trace!("on_update({cp:?}) called");
