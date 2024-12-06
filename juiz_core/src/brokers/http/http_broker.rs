@@ -1,4 +1,5 @@
 use std::{io::ErrorKind, net::SocketAddr, path::PathBuf, sync::{Arc, Mutex}};
+use juiz_sdk::anyhow;
 //use axum::extract::path::ErrorKind;
 use tokio::net::TcpListener;
 
@@ -39,19 +40,42 @@ async fn on_start(broker_manifest: Value, crud_broker: Arc<Mutex<CRUDBroker>>) -
         log::info!("-- connecting (host={host}, port={port}, {broker_manifest:?})) called");
         match TcpListener::bind( address ).await {
             Ok(listener) => {
+
+                let new_broker_name = format!("127.0.0.1:{:}", port);
+                juiz_lock(&crud_broker).unwrap().update_broker_name(new_broker_name.as_str());
+
                 log::trace!("http_broker::on_start() exit");
                 return axum::serve(listener, app_new(crud_broker, static_filepaths).into_make_service_with_connect_info::<SocketAddr>()).await.unwrap();
             },
             Err(e) => {
                 if e.kind() == ErrorKind::AddrInUse {
+                    // TODO: ここで同じポートにすでにhttpがあったら、スレーブになってそこに接続する
                     // check server is juiz?
                     if !check_server_is_juiz(host, port) {
+                        // ポートを占有しているサーバーはJUIZではない。
                         log::error!("on_start(broker_manifest='{broker_manifest:}') failed. Error({e:?}, {e})");
                         return ();
                     }
+                    match juiz_lock(&crud_broker) {
+                        Ok(mut b) => {
+                            log::warn!("{host}:{port} is already occupied by JUIZ. This server is reserved as master server.");
+                            let _result = b.reserve_master_broker(jvalue!({
+                                "host": "127.0.0.1",
+                                "port": port,
+                                "broker_type": "http",
+                                "broker_name": format!("127.0.0.1:{port}"),
+                            })).or_else(|e| {
+                                log::error!("CRUDBroker.reserve_master_broker() failed. Err({e}). This is ignored.");
+                                Err(e)
+                            });
+                        },
+                        Err(_) => {
+                            log::error!("CRUDBroker lock failed. Err:{e:?}");
+                            panic!()
+                        }
+                    }
                     port = port + 1;
                 } else {
-                    // TODO: ここで同じポートにすでにhttpがあったら、スレーブになってそこに接続する
                     log::error!("on_start(broker_manifest='{broker_manifest:}') failed. Error({e:?}, {e})");
                     return ();
                 }

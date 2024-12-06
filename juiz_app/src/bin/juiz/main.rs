@@ -42,7 +42,7 @@ struct Args {
     recursive: bool,
 
 
-    #[arg(short = 'r', default_value=None, help = "Ratio of periodical execution. If this option is set, created object will periodically executed under the ratio you set [Hz]")]
+    #[arg(short = 'r', help = "Ratio of periodical execution. If this option is set, created object will periodically executed under the ratio you set [Hz]")]
     ratio: Option<f64>,
 
     #[arg(short = 'q', default_value="false", help = "Stop HTTP Broker. Default(false). This option is used with -d option only. If you use this with -b option, http server will start.")]
@@ -54,8 +54,8 @@ struct Args {
     #[arg(short = 'f', default_value = "./juiz.conf", help = "Input system definition file path")]
     filepath: String,
 
-    #[arg(short = 's', help = "Host of server (ex., http://localhost:8000)")]
-    server: Option<String>,
+    #[arg(short = 's', long = "server", default_value = "http://localhost:8000", help = "Host of server (ex., http://localhost:8000)")]
+    server: String,
 
     #[arg(long = "process", help = "ProcessModule loader mode.")]
     process: Option<String>,
@@ -447,7 +447,7 @@ fn do_once() -> JuizResult<()>{
                 .set_working_dir(working_dir)
                 .start_http_broker(flag_start)
                 .setup()?
-                .add_subsystem_by_id(server)?
+                //.add_subsystem_by_id(Some(server))?
                 .run_and_do(|system| { 
                     do_task(system, args)
                 });
@@ -456,7 +456,7 @@ fn do_once() -> JuizResult<()>{
                 .set_working_dir(working_dir)
                 .start_http_broker(flag_start)
                 .setup()?
-                .add_subsystem_by_id(server)?
+                //.add_subsystem_by_id(Some(server))?
                 .run_and_do_once(|system| {
                     do_task_once(system, args)
                 });

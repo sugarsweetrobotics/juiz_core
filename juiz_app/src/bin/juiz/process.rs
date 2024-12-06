@@ -67,12 +67,12 @@ pub(crate) fn on_process_inner(manifest: Value, working_dir: &Path, subcommand: 
                 .set_working_dir(working_dir)
                 .start_http_broker(args.start_http_broker)
                 .setup()?
-                .add_subsystem_by_id(server.clone())?
+                .add_systemproxy_by_id(Some(server.clone()))?
                 .run_and_do_once( |system| { 
                 if any_process {
-                    on_any_process_list(system, server, recursive)
+                    on_any_process_list(system, Some(server), recursive)
                 } else {
-                    on_process_list(system, server, recursive)
+                    on_process_list(system, Some(server), recursive)
                 } 
             }) 
         },
@@ -81,7 +81,7 @@ pub(crate) fn on_process_inner(manifest: Value, working_dir: &Path, subcommand: 
                 .set_working_dir(working_dir)
                 .start_http_broker(args.start_http_broker)
                 .setup()?
-                .add_subsystem_by_id(server.clone())?
+                .add_systemproxy_by_id(Some(server.clone()))?
                 .run_and_do_once( |system| { 
                 on_process_info(system, identifier)
             }) 
@@ -91,7 +91,7 @@ pub(crate) fn on_process_inner(manifest: Value, working_dir: &Path, subcommand: 
                 .set_working_dir(working_dir)
                 .start_http_broker(args.start_http_broker)
                 .setup()?
-                .add_subsystem_by_id(server.clone())?
+                .add_systemproxy_by_id(Some(server.clone()))?
                 .run_and_do_once( |system| { 
                 on_process_call(system, identifier, argument, fileout)
             }) 

@@ -38,6 +38,12 @@ impl SystemStore {
             "broker_proxies": self.broker_proxies.keys().collect::<Vec<&String>>()
         }))
     }
+
+    pub fn register_broker(&mut self, broker: BrokerPtr) -> JuizResult<BrokerPtr> {
+        let type_name = broker.lock()?.type_name().to_owned();
+        self.brokers.insert(type_name.clone(), broker.clone());
+        Ok(broker)
+    }
 }
 
 #[derive(Clone)]

@@ -54,7 +54,7 @@ impl Process for ProcessProxy {
     fn call(&self, args: CapsuleMap) -> JuizResult<CapsulePtr> {
         let id = self.identifier();
         log::trace!("ProcessProxy({id})::call() called");
-        let result = juiz_lock(&self.broker_proxy)?.any_process_call(self.identifier(), args);
+        let result = juiz_lock(&self.broker_proxy)?.any_process_call(&self.identifier(), args);
         log::trace!(" - return: {result:?}");
         return result;
     }
@@ -85,12 +85,12 @@ impl Process for ProcessProxy {
 
     fn notify_connected_from<'b>(&'b mut self, source: ProcessPtr, arg_name: &str, manifest: Value) -> JuizResult<Value> {
         log::trace!("ProcessProxy::notify_connected_from() called");
-        juiz_lock(&self.broker_proxy)?.process_notify_connected_from(source.identifier(), arg_name, self.identifier(), manifest)
+        juiz_lock(&self.broker_proxy)?.process_notify_connected_from(source.identifier(), arg_name, &self.identifier(), manifest)
     }
 
     fn try_connect_to(&mut self, destination: ProcessPtr, arg_name: &str,manifest: Value) -> JuizResult<Value> {
         log::trace!("ProcessProxy::try_connect_to() called");
-        juiz_lock(&self.broker_proxy)?.process_try_connect_to(self.identifier(), arg_name, destination.identifier(), manifest)
+        juiz_lock(&self.broker_proxy)?.process_try_connect_to(&self.identifier(), arg_name, destination.identifier(), manifest)
     }
 
     fn source_connections(&self) -> JuizResult<Vec<&Box<dyn SourceConnection>>> {
@@ -103,7 +103,7 @@ impl Process for ProcessProxy {
 
 
     fn p_apply(&mut self, arg_name: &str, value: CapsulePtr) -> JuizResult<CapsulePtr> {
-        juiz_lock(&self.broker_proxy)?.process_p_apply(self.identifier(), arg_name, value)
+        juiz_lock(&self.broker_proxy)?.process_p_apply(&self.identifier(), arg_name, value)
     }
     
     fn purge(&mut self) -> JuizResult<()> {

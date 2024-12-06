@@ -39,7 +39,7 @@ impl JuizObject for ContainerProxy {
     fn profile_full(&self) -> JuizResult<Value> {
         let id = self.identifier();
         log::trace!("ContainerProxy({id})::profile_full() called");
-        juiz_lock(&self.broker_proxy)?.container_profile_full(self.identifier())
+        juiz_lock(&self.broker_proxy)?.container_profile_full(&self.identifier())
     }
 }
 

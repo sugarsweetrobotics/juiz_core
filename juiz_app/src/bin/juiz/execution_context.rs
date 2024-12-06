@@ -50,9 +50,10 @@ pub(crate) fn on_ec_inner(_manifest: Value, working_dir: &Path, subcommand: EcSu
                 .set_working_dir(working_dir)
                 .start_http_broker(args.start_http_broker)
                 .setup()?
+                .add_systemproxy_by_id(Some(server.clone()))?
                 .run_and_do_once( |system| { 
                 
-                    on_ec_list(system, server, recursive)
+                    on_ec_list(system, Some(server), recursive)
                 
             }) 
         },
@@ -65,9 +66,10 @@ pub(crate) fn on_ec_inner(_manifest: Value, working_dir: &Path, subcommand: EcSu
                 .set_working_dir(working_dir)
                 .start_http_broker(args.start_http_broker)
                 .setup()?
+                .add_systemproxy_by_id(Some(server.clone()))?
                 .run_and_do_once( |system| { 
                 
-                    on_ec_start(system, server, identifier)
+                    on_ec_start(system, Some(server), identifier)
                 
             }) 
         },

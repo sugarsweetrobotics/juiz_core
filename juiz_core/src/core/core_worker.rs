@@ -10,18 +10,26 @@ use super::{core_store::CoreStore, system_builder::{register_container_factory, 
 use juiz_sdk::anyhow::anyhow;
 
 
-
+// #[derive(Debug)]
 pub struct CoreWorker {
     store: CoreStore,
     system_uuid: Uuid,
 }
 
-
-
 impl CoreWorker {
-    pub fn new(uuid: Uuid) -> Self {
-        CoreWorker{store: CoreStore::new(), system_uuid: uuid}
+    pub fn new(uuid: Uuid, manifest: Value) -> Self {
+        CoreWorker{store: CoreStore::new(manifest), system_uuid: uuid}
     }
+
+    pub fn manifest(&self) -> Value {
+        self.store.manifest()
+    }
+
+    pub fn manifest_mut(&mut self) -> &mut Value {
+        self.store.manifest_mut()
+    }
+
+    
 
     pub fn store(&self) -> &CoreStore {
         &self.store
@@ -29,6 +37,29 @@ impl CoreWorker {
 
     pub fn store_mut(&mut self) -> &mut CoreStore {
         &mut self.store
+    }
+
+    pub fn get_opt_mut(&mut self) -> &mut Value {
+        self.store_mut().get_opt_mut()
+    }
+
+    pub fn reserve_master_broker(&mut self, master_info: Value) -> JuizResult<()> {
+        log::trace!("reserve_master_broker({master_info:}) called");
+        match self.store_mut().manifest_mut().as_object_mut() {
+            Some(manif) => {
+                if manif.contains_key("mastersystem") {
+                    log::warn!("manifest already contains master system information. Reservation is skipped.");
+                } else {
+                    log::debug!("Master system ({master_info:}) is reserved.");
+                    manif.insert("mastersystem".to_owned(), master_info);
+                }
+            }
+            None => {
+                log::error!("reserve_master_broker() failed. Can not get manifest map value.");
+                panic!()
+            }
+        }
+        Ok(())
     }
 
     pub fn process_from_identifier(&self, id: &Identifier) -> JuizResult<ProcessPtr> {
@@ -186,7 +217,7 @@ impl CoreWorker {
         log::trace!("CoreBroker::destroy_container_process_ref(identifier={}) called", identifier);
         let process = self.store_mut().container_processes.deregister_by_id(identifier)?;
         let c = process.downcast_and_then(|cp: &ContainerProcessImpl| {
-            self.store().containers.get(cp.identifier())
+            self.store().containers.get(&cp.identifier())
         })??;
         //let c = self.store().containers.get(con_id)?;
         c.lock_mut()?.purge_process(identifier)?;

@@ -212,14 +212,14 @@ pub trait BrokerProxy : Send + JuizObject + SystemBrokerProxy + ProcessBrokerPro
         Ok(value_merge(processes, &container_processes)?.into())
     }
 
-    fn any_process_profile_full(&self, id: &Identifier) -> JuizResult<Value> {
+    fn any_process_profile_full(&self, id: Identifier) -> JuizResult<Value> {
         log::info!("BrokerProxy::any_process_profile_full({id}) called");
         let id_struct = IdentifierStruct::try_from(id.clone())?;
         log::info!("id_struct{:?}", id_struct);        
         if id_struct.class_name == "Process" {
-            return self.process_profile_full(id)
+            return self.process_profile_full(&id)
         }
-        self.container_process_profile_full(id)
+        self.container_process_profile_full(&id)
     }
 
     fn any_process_call(&self, id: &Identifier, args: CapsuleMap) -> JuizResult<CapsulePtr> {

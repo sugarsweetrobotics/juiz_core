@@ -2,6 +2,7 @@
 
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard};
+use std::time::Duration;
 use juiz_sdk::anyhow::{self, anyhow, Context};
 use juiz_sdk::identifier::connection_identifier_split;
 use juiz_sdk::utils::check_corebroker_manifest;
@@ -28,6 +29,7 @@ use crate::core::SubSystemProxy;
 use crate::core::SystemStorePtr;
 
 #[allow(unused)]
+// #[derive(Debug)]
 pub struct CoreBroker {
     core: ObjectCore,
     manifest: Value,
@@ -63,7 +65,7 @@ impl CoreBroker {
     pub fn new(manifest: Value, system_store: SystemStorePtr) -> JuizResult<CoreBroker> {
         let uuid = system_store.uuid()?;
         Ok(CoreBroker{
-            worker: CoreWorker::new(uuid), 
+            worker: CoreWorker::new(uuid, manifest.clone()), 
             core: ObjectCore::create(JuizObjectClass::BrokerProxy("CoreBroker"), "core", "core"),
             manifest: check_corebroker_manifest(manifest)?,
             master_system_proxy: None, 
@@ -71,7 +73,6 @@ impl CoreBroker {
             system_store
         })
     }
-
 
     pub fn worker(&self) -> &CoreWorker {
         &self.worker
@@ -107,6 +108,12 @@ impl CoreBroker {
 
     pub fn create_broker_proxy(&self, broker_manifest: Value) -> JuizResult<Arc<Mutex<dyn BrokerProxy>>> {
         self.system_store.create_broker_proxy(self.worker(), &broker_manifest)
+    }
+
+    pub fn reserve_master_broker(&mut self, master_info: Value) -> JuizResult<()> {
+        log::trace!("reserve_master_broker({master_info:}) called");
+        // let broker_type = obj_get_str(&master_info, "broker_type");
+        self.worker_mut().reserve_master_broker(master_info)
     }
 }
 
@@ -175,15 +182,36 @@ impl SystemBrokerProxy for CoreBroker {
     /// 
     /// 
     fn system_add_subsystem(&mut self, profile: Value) -> JuizResult<Value> {
-        log::trace!("system_add_subsystem({profile}) called");
-        let bp = self.system_store.create_broker_proxy(self.worker(), &profile)?;
-        let uuid_value = bp.lock().or_else(|_e|{
-            Err(anyhow!(JuizError::ObjectLockError { target: "system_store".to_owned() }))
-        }).and_then(|b|{ 
-            b.system_uuid() 
-        })?;
-        log::trace!("uuid_value: {uuid_value:?}");
-        // 相手のuuid
+        log::debug!("system_add_subsystem({profile}) called");
+        // 相手方のBrokerProxyを作成
+        //let bp = self.system_store.create_broker_proxy(self.worker(), &profile)?;
+        // 相手のUUIDを得る。
+        let (confirmation_request, uuid_value, bp) = match profile.as_object().unwrap().get("mastersystem") {
+            Some(msv) => {
+                log::debug!("found uuid in the passed profile");
+                let bp = self.system_store.create_broker_proxy(self.worker(), &msv)?;
+                match msv.as_object().unwrap().get("uuid") {
+                    Some(v) => {
+                        Ok((true, v.clone(), bp))
+                    }
+                    None => Err(anyhow!(JuizError::InvalidArgumentError { message: "system_add_subsystem failed".to_owned() }))
+                }
+            }
+            None => {
+                log::debug!("Not found uuid in the passed profile");
+
+                let bp = self.system_store.create_broker_proxy(self.worker(), &profile)?;
+                let v = bp.lock().or_else(|_e|{
+                    Err(anyhow!(JuizError::ObjectLockError { target: "system_store".to_owned() }))
+                }).and_then(|b|{ 
+                    let v = b.system_uuid()?;
+                   Ok(v)
+                })?;
+                Ok((false, v, bp))
+            }
+        }?;
+        log::debug!("add_subsystem requested by System(uuid_value: {uuid_value:?})");
+        // 相手のuuidをUuid型に変換
         let uuid_str = uuid_value.as_str().unwrap();
         let uuid: Uuid = Uuid::parse_str(uuid_str).unwrap();
         // ここですでにuuidが登録されているかを確認する。
@@ -193,17 +221,20 @@ impl SystemBrokerProxy for CoreBroker {
                 return Err(anyhow!(JuizError::ObjectAlreadyRegisteredError{message: format!("system_add_subsystem failed. Subsystem(uuid={uuid}) has already added.")}));
             }
         }
+        // さらにサブシステムのサブシステムまでこれから登録するUUIDがあるかみようとするけど、これは無意味かも。
+        // ループ構造ができないようにする責任は設計者にある
         for subsystem_proxy in self.subsystem_proxies.iter() {
             let ss = subsystem_proxy.subsystems()?;
             log::warn!("WARNING: SUBSYSTEM's SUBSYSTEM mining.... But this is useless...");
             log::warn!("value is {ss:}");
         }
 
-
+        // 自分のUUID
         let my_uuid = self.system_store.uuid()?;
-        self.worker_mut().store_mut().broker_proxies.register(bp.clone())?;
+        self.worker_mut().store_mut().broker_proxies.register(bp.clone())?; // 作った相手方のBrokerProxyを自分に登録しておく
         let subsystem_proxy = SubSystemProxy::new(uuid, bp.clone())?;
         let ssprofile = juiz_lock(&subsystem_proxy.broker_proxy())?.profile_full().context("subsystem_proxy.broker_proxy().profile_full() in system_add_subsystem")?;
+        // 相手方がどのIPアドレスを辿ってきたかがaccessed_broker_idでわかる
         let _accessed_broker_id = match profile.as_object() {
             Some(obj) => {
                 match obj.get("accessed_broker_id") {
@@ -217,32 +248,43 @@ impl SystemBrokerProxy for CoreBroker {
         };
         log::info!("Subsystem = {}", ssprofile);
         //log::info!("accessed_broker_id = {}", accessed_broker_id);
+
+        // 相手にこちら側のBrokerの名前を教えるために検索
         let broker_type = ssprofile.as_object().unwrap().get("type_name").unwrap().as_str().unwrap();
         let mut broker_name: Option<String> = None;
         for (_type_name, prof) in self.worker().store().brokers_profile_full()?.as_object().unwrap().iter() {
             let broker_broker_type = prof.as_object().unwrap().get("type_name").unwrap().as_str().unwrap();
+            log::trace!("system includes broker ({broker_broker_type})");
             if broker_broker_type == broker_type {
                 broker_name = Some(prof.as_object().unwrap().get("name").unwrap().as_str().unwrap().to_owned());
             }
         }
+        if broker_name.is_none() {
+            log::error!("Broker (type={broker_type}) can not be found.");
+            return Err(anyhow!(JuizError::InvalidArgumentError { message: "system_add_subsystem() failed. Invalid argument".to_owned() }))
+        }
         
-        // 相手にmaster側のproxyのbrokerのタイプや名前を教える
-        let master_profile = jvalue!({
-            "subsystem": {
-                "uuid": my_uuid.to_string(),
-                "broker_type": broker_type,
-                "broker_name": broker_name.unwrap(),
-            }
-        });
-        log::info!("master_profile: {master_profile:}");
-        let _ = subsystem_proxy.broker_proxy().lock().or_else(|_e|{
-            Err(anyhow!(JuizError::ObjectLockError { target: "system_proxy".to_owned() }))
-        }).and_then(|mut bp|{
-            bp.system_add_mastersystem(master_profile)
-        }).or_else(|e|{
-            log::error!("subsystem_proxy.broker_proxy().system_add_mastersystem() failed. Error: {e:?}");
-            Err(e)
-        })?;
+        // 確認のためのリクエストでなければ
+        if !confirmation_request {
+            // 相手にmaster側のproxyのbrokerのタイプや名前を教える
+            let master_profile = jvalue!({
+                "subsystem": {
+                    "uuid": my_uuid.to_string(),
+                    "broker_type": broker_type,
+                    "broker_name": broker_name.unwrap(),
+                }
+            });
+            log::info!("master_profile: {master_profile:}");
+            let _ = subsystem_proxy.broker_proxy().lock().or_else(|_e|{
+                Err(anyhow!(JuizError::ObjectLockError { target: "system_proxy".to_owned() }))
+            }).and_then(|mut bp|{
+                bp.system_add_mastersystem(master_profile)
+            }).or_else(|e|{
+                log::error!("subsystem_proxy.broker_proxy().system_add_mastersystem() failed. Error: {e:?}");
+                Err(e)
+            })?;
+        }
+        // 最後にサブシステムのProxyを登録しておく。
         self.subsystem_proxies.push(subsystem_proxy);
         Ok(profile)
     }
@@ -263,18 +305,43 @@ impl SystemBrokerProxy for CoreBroker {
                         let id_str = IdentifierStruct::new_broker(broker_type, broker_name);
                         self.system_store.create_broker_proxy(self.worker(), &id_str.to_broker_manifest())
                     },
-                    None => Err(anyhow!(JuizError::InvalidIdentifierError { message: "".to_owned() }))
+                    None => {
+                        log::error!(" - no record 'subsystem' in request argument for add_mastersystem()");
+                        Err(anyhow!(JuizError::InvalidIdentifierError { message: "".to_owned() }))
+                    } 
                 }
             },
-            None => Err(anyhow!(JuizError::ValueIsNotObjectError { value: profile.clone() }))
+            None => {
+
+                log::error!(" - the request argument for add_mastersystem() is not object type.");
+                Err(anyhow!(JuizError::ValueIsNotObjectError { value: profile.clone() }))
+            }
         }?;
         let uuid_value: Value = match obj_get_obj(&profile, "subsystem")?.get("uuid") {
-            Some(v) => Ok(v.clone()),
+            Some(v) =>  {
+                log::trace!(" - subsystem uuid is {:?}", v);
+                Ok(v.clone())
+            },
             None => {
+                log::trace!(" - no uuid found in request. This is the first request. Send subsystem add_subsystem request.");
                 let my_uuid = self.system_store.uuid()?;
+                std::thread::sleep(Duration::from_secs_f64(3.0));
+                let bprof = bp.lock().unwrap().profile_full()?;
+                let broker_type_name = bprof.as_object().unwrap().get("type_name").unwrap().as_str().unwrap();
+                let broker_prof = self.broker_list(false)?.as_array().unwrap().iter().find(|x| {
+                    let idstruct: IdentifierStruct = IdentifierStruct::from_broker_identifier(&x.as_str().unwrap().to_owned()).unwrap();
+                    log::debug!(" --- {:?}", idstruct);
+                    idstruct.broker_type_name == broker_type_name
+                }).unwrap().clone();
+                log::trace!(" - broker_profile:{broker_prof:?}");
+                let idstruct: IdentifierStruct = IdentifierStruct::from_broker_identifier(&broker_prof.as_str().unwrap().to_owned()).unwrap();
+                    
+                let broker_name = idstruct.object_name;
                 juiz_lock(&bp)?.system_add_subsystem(jvalue!({
                     "mastersystem": {
-                        "uuid": my_uuid.to_string()
+                        "uuid": my_uuid.to_string(),
+                        "type_name": broker_type_name,
+                        "name": broker_name,
                     }
                 }))?;
                 juiz_lock(&bp)?.system_uuid()
@@ -347,6 +414,7 @@ impl ProcessBrokerProxy for CoreBroker {
         match ids.as_array_mut() {
             Some(ids_arr) => {
                 for ssp in self.subsystem_proxies.iter() {
+                    log::trace!(" - process_list for subsystem({ssp:})");
                     let plist = juiz_lock(&ssp.broker_proxy())?.process_list(recursive)?;
                     for v in get_array(&plist)?.iter() {
                         let id = v.as_str().unwrap();

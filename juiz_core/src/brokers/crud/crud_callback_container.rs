@@ -187,7 +187,7 @@ pub(crate) fn update_callback_container() -> ClassCallbackContainerType {
 
     let mut system_callbacks = CallbackContainerType::new();
     system_callbacks.insert("add_subsystem", |cb, args| {
-        log::trace!("system_callbacks['add_subsystem'] called with args {args:?}");
+        log::debug!("system_callbacks['add_subsystem'] called with args {args:?}");
         let param = args.get_params();
         let  mut manif: Value = args.get("profile")?.extract_value()?;
         match manif.as_object_mut() {
@@ -201,7 +201,13 @@ pub(crate) fn update_callback_container() -> ClassCallbackContainerType {
             }
             None => {}
         }
-        Ok(value_to_capsule(cb.lock_mut()?.system_add_subsystem(manif)?))
+        Ok(value_to_capsule( match cb.lock_mut()?.system_add_subsystem(manif) {
+            Ok(v) => Ok(v),
+            Err(e) => {
+                log::error!("system_add_subsystem() failed. Error: {e:}");
+                Err(e)
+            }
+        }?))
     });
     system_callbacks.insert("add_mastersystem", |cb, args| {
         log::trace!("system_callbacks['add_mastersystem'] called with args {args:?}");

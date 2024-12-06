@@ -12,6 +12,7 @@ use std::sync::atomic::Ordering::SeqCst;
 use super::super::crud_broker::CRUDBroker;
 
 #[allow(dead_code)]
+// #[derive(Debug)]
 pub struct MessengerBroker {
     core: ObjectCore, 
     thread_handle: Option<tokio::task::JoinHandle<()>>,
@@ -32,11 +33,16 @@ pub trait MessengerBrokerCoreFactory {
 impl MessengerBroker {
 
     pub fn new<'a>(impl_class_name: &'static str, type_name: &'a str, object_name: &'a str, core_broker: CoreBrokerPtr, messenger: Arc<Mutex<dyn MessengerBrokerCore>> ) -> JuizResult<Self>{
+        let manifest = jvalue!({
+            "class_name": impl_class_name.to_string(),
+            "type_name": type_name,
+            "name": object_name
+        });
         Ok(MessengerBroker{
                 core: ObjectCore::create(JuizObjectClass::Broker(impl_class_name), type_name, object_name),
                 thread_handle: None,
                 messenger_core: messenger,
-                crud_broker: Arc::new(Mutex::new(CRUDBroker::new(core_broker.clone())?)),
+                crud_broker: Arc::new(Mutex::new(CRUDBroker::new(core_broker.clone(), manifest)?)),
                 end_flag: Arc::new(Mutex::new(AtomicBool::from(false))),
                 //tokio_runtime: Some(runtime::Builder::new_multi_thread().enable_all().build().unwrap()),
                 tokio_runtime: Some(tokio::runtime::Builder::new_multi_thread().thread_name("messenger_broker").worker_threads(4).enable_all().build().unwrap()), 

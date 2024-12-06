@@ -64,10 +64,13 @@ impl CRUDBrokerProxyHolder {
         for vid in get_array(id_array)?.iter() {
             let id = vid.as_str().ok_or(anyhow!(JuizError::ValueIsNotStringError{}))?.to_owned();
             let mut id_struct = IdentifierStruct::try_from(id)?;
-            id_struct.broker_type_name = self.type_name().to_owned();
-            id_struct.broker_name = self.name().to_owned();
+            if id_struct.broker_type_name == "core" {
+                id_struct.broker_type_name = self.type_name().to_owned();
+                id_struct.broker_name = self.name().to_owned();
+            }
             ids.push(id_struct.into());
         }
+        log::error!("convert_identifier_name({ids:?})");
         Ok(jvalue!(ids))
     }
 
@@ -187,7 +190,7 @@ impl ProcessBrokerProxy for CRUDBrokerProxyHolder {
     }
 
     fn process_list(&self, recursive:bool) -> JuizResult<Value> {
-        log::trace!("CRUDBrokerProxyHolder::process_list() called");
+        log::error!("CRUDBrokerProxyHolder({})::process_list() called", self.name());
         let mut param: HashMap<String, String> = HashMap::new();
         param.insert("recursive".to_owned(), recursive.to_string());
         let v = self.broker.read("process", "list", param)?;

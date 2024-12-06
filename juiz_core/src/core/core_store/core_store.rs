@@ -9,8 +9,9 @@ use crate::ecs::{execution_context_function::ExecutionContextFunction, execution
 
 use juiz_sdk::anyhow::{self, anyhow};
 
-
+// #[derive(Debug)]
 pub struct CoreStore {
+    manifest: Value,
     broker_factories_manifests: HashMap<Identifier, Value>,
     brokers_manifests: HashMap<Identifier, Value>,
     pub topics: HashMap<Identifier, TopicPtr>,
@@ -24,8 +25,9 @@ pub struct CoreStore {
 
 
 impl CoreStore {
-    pub fn new() -> CoreStore {
+    pub fn new(manifest: Value) -> CoreStore {
         CoreStore{
+            manifest,
             brokers_manifests: HashMap::new(),
             broker_proxies: BufferObjectCollection::new("broker_proxy"),
             broker_factories_manifests: HashMap::new(),
@@ -37,6 +39,24 @@ impl CoreStore {
             //container_processes: RwObjectCollection::new("container_process"), 
             container_processes: ObjectCollection::new("container_process"), 
             ecs: MutexObjectCollection::new("ecs"),
+        }
+    }
+
+    pub fn manifest(&self) -> Value {
+        self.manifest.clone()
+    }
+
+    pub fn manifest_mut(&mut self) -> &mut Value {
+        &mut self.manifest
+    }
+
+    pub fn get_opt_mut(&mut self) -> &mut Value {
+        let manif_obj = self.manifest.as_object_mut().unwrap();
+        if manif_obj.contains_key("option") {
+            manif_obj.get_mut("option").unwrap()
+        } else {
+            manif_obj.insert("option".to_owned(), jvalue!({}));
+            manif_obj.get_mut("option").unwrap()        
         }
     }
 
@@ -124,13 +144,12 @@ impl CoreStore {
     }
 
     pub fn processes_profile_full(&self) -> JuizResult<Value> {
+        log::trace!("process_profile_full() called");
         self.processes.objects().iter().map(|(_k, c)| {
-            c.lock()
-                .and_then(|co| { 
-                    let id = co.identifier().clone();
-                    Ok((id, co.profile_full()?))
-                })
-            } ).collect()
+            c.lock().and_then(|co| { 
+                let id = co.identifier().clone();
+                Ok((id, co.profile_full()?))
+            })} ).collect()
      }
 
     pub fn containers_profile_full(&self) -> JuizResult<Value> {

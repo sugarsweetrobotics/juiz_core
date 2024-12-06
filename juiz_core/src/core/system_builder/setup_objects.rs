@@ -1,7 +1,7 @@
 
 use juiz_sdk::anyhow::Context;
 
-use crate::{core::system_builder::subsystems::setup_subsystems, prelude::*};
+use crate::{core::system_builder::subsystems::{setup_mastersystem, setup_subsystems}, prelude::*};
 use crate::core::system_builder::{brokers::{setup_broker_proxies, setup_brokers}, connections::setup_connections, containers::setup_containers, ecs::setup_ecs, http_broker::{setup_http_broker, setup_http_broker_factory}, local_broker::{setup_local_broker, setup_local_broker_factory}, processes::setup_processes};
 
 pub(crate) fn setup_objects(system: &mut System, manifest: &Value) -> JuizResult<()> {
@@ -47,8 +47,17 @@ pub(crate) fn setup_objects(system: &mut System, manifest: &Value) -> JuizResult
         setup_broker_proxies(system, v).context("system_builder::setup_broker_proxies in System::setup() failed.")
     })?;
 
-    let _ =  when_contains_do(&manifest, "subsystems", |v| {
+    // ここでbrokerがスタートした時にマニフェストが更新されている可能性があるので最新版を取得
+    system.wait_brokers_started()?;
+    let manifest_updated = system.core_broker().lock()?.worker().manifest();
+    log::trace!("manifest_updated: {manifest_updated:?}");
+
+    let _ =  when_contains_do(&manifest_updated, "subsystems", |v| {
         setup_subsystems(system, v).context("system_builder::setup_subsystems in System::setup() failed.")
+    })?;
+
+    let _ =  when_contains_do(&manifest_updated, "mastersystem", |v| {
+        setup_mastersystem(system, v).context("system_builder::setup_mastersystem in System::setup() failed.")
     })?;
 
     let _ = when_contains_do(&manifest_copied, "ecs", |v| {

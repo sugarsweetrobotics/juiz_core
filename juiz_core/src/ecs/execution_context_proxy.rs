@@ -48,7 +48,7 @@ impl JuizObject for ExecutionContextProxy {
     fn profile_full(&self) -> JuizResult<Value> {
         let id = self.identifier();
         log::trace!("ProcessProxy({id})::profile_full() called");
-        juiz_lock(&self.broker_proxy)?.ec_profile_full(self.identifier())
+        juiz_lock(&self.broker_proxy)?.ec_profile_full(&self.identifier())
     }
 }
 
@@ -57,7 +57,7 @@ impl ExecutionContextFunction for ExecutionContextProxy {
     fn start(&mut self) -> JuizResult<Value> {
         let id = self.identifier();
         log::trace!("ExecutionContextProxy({id})::start() called");
-        juiz_lock(&self.broker_proxy)?.ec_start(self.identifier())
+        juiz_lock(&self.broker_proxy)?.ec_start(&self.identifier())
     }
 
     fn stop(&mut self) -> JuizResult<Value> {

@@ -26,3 +26,18 @@ fn setup_subsystem(system: &System, manifest: &Value) -> JuizResult<()> {
     })?;
     Ok(())
 }
+
+pub(super) fn setup_mastersystem(system: &System, manifest: &Value) -> JuizResult<()> { 
+    log::debug!("setup_mastersystem({manifest}) called");
+    // let broker_proxy = system.create_broker_proxy(manifest)?;
+    // broker_proxy.lock().or_else(|e| { Err(anyhow!(JuizError::ObjectLockError { target: "core_broker".to_owned() }))})?
+    //     .system_add_subsystem(manifest)
+    let info = jvalue!({
+        "subsystem": manifest
+    });
+    system.core_broker().lock_mut()?.system_add_mastersystem(info).or_else(|e| {
+        log::error!("system.add_mastersystem(manifest={manifest}) failed. Error: {e:?}");
+        Err(e)
+    })?;
+    Ok(())
+}

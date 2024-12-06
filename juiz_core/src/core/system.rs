@@ -26,7 +26,6 @@ type SpinCallbackFunctionType = dyn Fn() -> JuizResult<()>;
 #[allow(dead_code)]
 pub struct System {
     core: ObjectCore,
-    manifest: Value,
     core_broker: CoreBrokerPtr,
     store: SystemStorePtr,
     sleep_time: Duration,
@@ -66,7 +65,7 @@ impl System {
         let store = SystemStorePtr::new(SystemStore::new());
         Ok(System {
             core: ObjectCore::create(JuizObjectClass::System("System"), "system", "system"),
-            manifest: updated_manifest.clone(),
+            //manifest: updated_manifest.clone(),
             core_broker: CoreBrokerPtr::new(CoreBroker::new(jvalue!({"type_name": "CoreBroker", "name": "core_broker"}), store.clone())?),
             sleep_time: time::Duration::from_millis(100),
             store,
@@ -121,8 +120,8 @@ impl System {
 
     pub fn setup(mut self) -> JuizResult<Self> {
         log::trace!("System::setup() called");
-        let manifest_copied = self.manifest.clone();
-        log::debug!(" - manifest: {:}", self.manifest);
+        let manifest_copied = self.core_broker().lock()?.worker().manifest();
+        log::debug!(" - manifest: {:}", manifest_copied);
         let option = self.get_opt();
         //log::info!("option: {option:}");
         let _ = when_contains_do_mut(&manifest_copied, "plugins", |v| {
@@ -140,6 +139,28 @@ impl System {
 
     fn cleanup(&mut self) -> JuizResult<()> {
         system_builder::cleanup_objects(self)
+    }
+
+
+    pub fn add_systemproxy_by_id(self, id_opt: Option<Identifier>) -> JuizResult<Self> {
+        log::trace!("add_systemproxy_by_id(id={id_opt:?})");
+        if id_opt.is_none() {
+            return Ok(self);
+        }
+        let id = id_opt.unwrap();
+        let id_struct = IdentifierStruct::new_broker_id(id.clone())?;
+        let profile = id_struct.to_broker_manifest();
+        let broker_type_name = id_struct.broker_type_name;
+        let broker_name = id_struct.broker_name;
+        let create_when_not_found = true;
+        match self.core_broker().lock_mut().unwrap().worker_mut().broker_proxy(broker_type_name.as_str(), broker_name.as_str(), create_when_not_found) {
+            Ok(_) => {},
+            Err(e) => {
+                log::error!("Error in add_systemproxy_by_id(id={id:?}). Error({e:})");
+                return Err(anyhow!(e));
+            }
+        } 
+        Ok(self)
     }
 
     pub fn add_subsystem_by_id(self, id_opt: Option<Identifier>) -> JuizResult<Self> {
@@ -160,16 +181,54 @@ impl System {
         Ok(self)
     }
 
-    pub fn start_brokers(&self) -> JuizResult<()> {
-        self.store.lock()?.brokers.iter().map(|(type_name, broker)| {
-            log::info!("starting Broker({type_name:})");
-            broker.lock_mut()?.start()
-        }).collect::<JuizResult<Vec<()>>>()?;
+    pub fn start_brokers(&mut self) -> JuizResult<()> {
+        match self.store.lock_mut() {
+            Ok(mut store) => {
+                let profs = store.brokers.iter().map(|(type_name, broker)| {
+                    log::info!("starting Broker({type_name:})");
+                    //store.register_broker(broker.clone());
+                    let p = match broker.lock_mut() {
+                        Ok(mut b) =>{
+                            b.start()?;
+                            log::error!("Broker STARTED ({type_name:?})");
+                            
+                            Ok((b.profile_full()?, broker.clone()))
+                        }
+                        Err(e) => {
+                            log::error!("Broker({type_name:}) lock failed. Error({e:?})");
+                            Err(anyhow!(JuizError::ObjectLockError { target: format!("Broker({type_name})") }))
+                        }
+                    }?;
+                    std::thread::sleep(Duration::from_millis(1000));
+                    Ok(p)
+                }).collect::<JuizResult<Vec<(Value, BrokerPtr)>>>()?;
+                //let mut core_store = ;
+                profs.into_iter().for_each(|(v, b)| {
+                    let type_name = v.as_object().unwrap().get("type_name").unwrap().as_str().unwrap().to_owned();
+                    let _ = self.core_broker().lock_mut().unwrap().worker_mut().store_mut().register_broker_manifest(type_name.as_str(), v)
+                        .or_else(|e| {
+                    //.register_broker(b).or_else(|e| {
+                        log::error!("Store::register_broker({type_name}) failed. Error({e:?})");
+                        Err(e)
+                    });
+                    //log::info!("new broker ({v}) registered");
+                });
+                Ok(())
+            },
+            Err(e) => {
+                Err(e)
+            }
+        }
+    }
+
+    pub fn wait_brokers_started(&self) -> JuizResult<()> {
+        // std::thread::sleep(Duration::from_secs_f64(3.0));
         Ok(())
     }
 
     fn get_opt(&self) -> Value {
-        let manif_obj = self.manifest.as_object().unwrap();
+        let manif_copied = self.core_broker().lock().unwrap().worker().manifest();
+        let manif_obj = manif_copied.as_object().unwrap();
         if manif_obj.contains_key("option") {
             manif_obj.get("option").unwrap().clone()
         } else {
@@ -177,22 +236,19 @@ impl System {
         }
     }
 
-    fn get_opt_mut(&mut self) -> &mut Value {
-        let manif_obj = self.manifest.as_object_mut().unwrap();
-        if manif_obj.contains_key("option") {
-            manif_obj.get_mut("option").unwrap()
-        } else {
-            manif_obj.insert("option".to_owned(), jvalue!({}));
-            manif_obj.get_mut("option").unwrap()        
-        }
-    }
-
-    pub fn start_http_broker(mut self, flag_start: bool) -> Self {
-        let opt_value = self.get_opt_mut().as_object_mut().unwrap();
-        if opt_value.contains_key("http_broker") {
-            opt_value.get_mut("http_broker").unwrap().as_object_mut().unwrap().insert("start".to_owned(), jvalue!(flag_start));
-        } else {
-            opt_value.insert("http_broker".to_owned(), jvalue!({"start": flag_start}));
+    pub fn start_http_broker(self, flag_start: bool) -> Self {
+        match self.core_broker().lock_mut() {
+            Ok(mut cb) => {
+                let opt_value = cb.worker_mut().get_opt_mut().as_object_mut().unwrap();
+                if opt_value.contains_key("http_broker") {
+                    opt_value.get_mut("http_broker").unwrap().as_object_mut().unwrap().insert("start".to_owned(), jvalue!(flag_start));
+                } else {
+                    opt_value.insert("http_broker".to_owned(), jvalue!({"start": flag_start}));
+                };
+            }
+            Err(_) => {
+                panic!()
+            }
         };
         self
     }
@@ -309,15 +365,18 @@ impl System {
         let bf = self.broker_factories_wrapper(type_name)?;
         let b = juiz_lock(&bf)?.create_broker(&manifest).context("BrokerFactoriesWrapper.create_broker() failed in System::create_broker()")?;
         self.register_broker(b)
+//        Ok(b)
     }
 
-    pub(crate) fn register_broker(&mut self, broker: BrokerPtr) -> JuizResult<BrokerPtr> {
-        let type_name = broker.lock()?.type_name().to_owned();
-        log::trace!("System::register_broker(type_name={type_name:}) called");
-        self.store.lock_mut()?.brokers.insert(type_name.clone(), broker.clone());
-        let p: Value  = broker.lock()?.profile_full()?.try_into()?;
-        self.core_broker().lock_mut()?.worker_mut().store_mut().register_broker_manifest(type_name.as_str(), p)?;
-        Ok(broker)
+    pub(crate) fn register_broker(&self, broker: BrokerPtr) -> JuizResult<BrokerPtr> {
+        //let type_name = broker.lock()?.type_name().to_owned();
+        //log::info!("System::register_broker(type_name={type_name:}) called");
+        //self.store.lock_mut()?.brokers.insert(type_name.clone(), broker.clone());
+        //let p: Value  = broker.lock()?.profile_full()?.try_into()?;
+        self.store.lock_mut()?.register_broker(broker)
+        //log::info!(" - profile: {p}");
+        //self.core_broker().lock_mut()?.worker_mut().store_mut().register_broker_manifest(type_name.as_str(), p)?;
+       //Ok(broker)
     }
 
     pub fn create_broker_proxy(&mut self, manifest: &Value) -> JuizResult<Arc<Mutex<dyn BrokerProxy>>> {
@@ -335,7 +394,7 @@ impl System {
     }
 
     pub fn process_list(&self, recursive: bool) -> JuizResult<Vec<Value>> {
-        log::trace!("System::process_list() called");
+        log::trace!("System::process_list({recursive}) called");
         let mut local_processes = self.core_broker().lock()?.worker().store().processes_profile_full()?.as_object().unwrap().values().into_iter().map(|v|{v.clone()}).collect::<Vec<Value>>();
         if recursive {
             for (_, proxy) in self.core_broker().lock()?.worker().store().broker_proxies.objects().iter() {

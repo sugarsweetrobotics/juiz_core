@@ -1,6 +1,7 @@
 
 
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
 use futures::Future;
 
 use super::super::core_broker::CoreBrokerPtr;
@@ -15,19 +16,21 @@ pub struct CRUDBrokerHolder<F, Fut> where F: Fn(Value, Arc<Mutex<CRUDBroker>>) -
     thread_handle: Option<tokio::task::JoinHandle<()>>,
     tokio_runtime: runtime::Runtime,
     on_start_function: F,
-    manifest: Value,
+    identifier: String,
+    //manifest: Value,
 }
 
 impl<F, Fut> CRUDBrokerHolder<F, Fut> where F: Fn(Value, Arc<Mutex<CRUDBroker>>) -> Fut + Send + Sync + Copy + 'static, Fut: Future<Output=()>+ Send + 'static {
     pub fn new(impl_class_name: &'static str, type_name: &'static str, core_broker: CoreBrokerPtr, on_start_function: F, manifest: Value) -> JuizResult<Self> {
         let object_name = obj_get_str(&manifest, "name")?;
         Ok(CRUDBrokerHolder{
+            identifier: "".to_owned(),
             core: ObjectCore::create(JuizObjectClass::Broker(impl_class_name), type_name, object_name), 
-            crud_broker: Arc::new(Mutex::new(CRUDBroker::new(core_broker)?)),
+            crud_broker: Arc::new(Mutex::new(CRUDBroker::new(core_broker, manifest)?)),
             thread_handle: None,
             tokio_runtime: runtime::Builder::new_multi_thread().enable_all().build().unwrap(),
             on_start_function,
-            manifest,
+            //manifest,
         })
     }
 }
@@ -37,8 +40,25 @@ impl<F, Fut> JuizObjectCoreHolder for CRUDBrokerHolder<F, Fut>  where F: Fn(Valu
         &self.core
     }
 }
-impl<F, Fut> JuizObject for CRUDBrokerHolder<F, Fut>  where F: Fn(Value, Arc<Mutex<CRUDBroker>>) -> Fut + Send + Sync + Copy + 'static, Fut: Future<Output=()>+ Send + 'static {}
 
+impl<F, Fut> JuizObject for CRUDBrokerHolder<F, Fut>  where F: Fn(Value, Arc<Mutex<CRUDBroker>>) -> Fut + Send + Sync + Copy + 'static, Fut: Future<Output=()>+ Send + 'static {
+    fn identifier(&self) -> Identifier {
+        log::error!("CRUDBrokerHolder::identifier() called");
+        self.crud_broker.lock().unwrap().identifier()
+    }
+
+    fn profile_full(&self) -> JuizResult<Value>{
+        log::error!("CRUDBrokerHolder::profile_full() called");
+        let name = self.crud_broker.lock().unwrap().name();
+        let identifier = self.crud_broker.lock().unwrap().identifier();
+        Ok(jvalue!({
+            "identifier": identifier,
+            "class_name": self.class_name().as_str(),
+            "type_name": self.type_name(),
+            "name": name,
+        }).into())
+    }
+}
 
 impl<F, Fut> Broker for CRUDBrokerHolder<F, Fut>  where F: Fn(Value, Arc<Mutex<CRUDBroker>>) -> Fut + Send + Sync + Copy + 'static, Fut: Future<Output=()>+ Send + 'static {
 
@@ -47,13 +67,15 @@ impl<F, Fut> Broker for CRUDBrokerHolder<F, Fut>  where F: Fn(Value, Arc<Mutex<C
         log::trace!("CRUDBrokerHolder::start(type_name={type_name}) called");
         
         let crud = self.crud_broker.clone();
-        let manifest = self.manifest.clone();
+
+        let manifest = self.crud_broker.lock().unwrap().manifest();
         let on_start = self.on_start_function;//.take().unwrap();
         self.thread_handle = Some(self.tokio_runtime.spawn(
             async move  {
                 on_start(manifest, crud).await;
             }
         ));
+        std::thread::sleep(Duration::from_secs_f64(3.0));
         log::trace!("CRUDBrokerHolder::start(type_name={type_name}) exit");
         Ok(())
     }

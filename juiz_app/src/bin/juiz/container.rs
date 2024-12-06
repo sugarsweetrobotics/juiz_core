@@ -48,13 +48,16 @@ pub(crate) fn on_container_inner(manifest: Value, working_dir: &Path, subcommand
             .set_working_dir(working_dir)
             .start_http_broker(args.start_http_broker)
             .setup()?
-            .run_and_do_once( |system| { on_container_list(system, server, recursive) }) 
+            .add_systemproxy_by_id(Some(server.clone()))?
+            .run_and_do_once( |system| { on_container_list(system, Some(server), recursive) }) 
         },
         ContSubCommands::Info { identifier } => {
+            let server = args.server;
             System::new(manifest)?
             .set_working_dir(working_dir)
             .start_http_broker(args.start_http_broker)
             .setup()?
+            .add_systemproxy_by_id(Some(server.clone()))?
             .run_and_do_once( |system| { 
                 on_container_info(system, identifier)
             }) 

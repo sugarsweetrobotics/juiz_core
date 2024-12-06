@@ -1,4 +1,4 @@
-use std::sync::{Arc, Mutex};
+use std::{fmt::Display, sync::{Arc, Mutex}};
 
 use uuid::Uuid;
 
@@ -10,6 +10,12 @@ pub struct SubSystemProxy {
     uuid: Uuid, 
     broker_proxy: Arc<Mutex<dyn BrokerProxy>>,
     profile: Value,
+}
+
+impl Display for SubSystemProxy {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("SubSystemProxy(uuid={}, broker={})", self.uuid.to_string(), self.profile))
+    }
 }
 
 #[allow(unused)]

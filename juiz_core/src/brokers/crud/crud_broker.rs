@@ -5,9 +5,12 @@ use crate::prelude::*;
 use super::super::core_broker::CoreBrokerPtr;
 use super::crud_callback_container::{create_callback_container, delete_callback_container, read_callback_container, update_callback_container, ClassCallbackContainerType};
 
+//#[derive(Debug)]
 pub struct CRUDBroker {
     core_broker: CoreBrokerPtr,
-
+    identifier: Identifier,
+    _name: String,
+    manifest: Value,
     create_callback_container: ClassCallbackContainerType, //HashMap<&'static str, FnType>
     read_callback_container: ClassCallbackContainerType, //HashMap<&'static str, FnType>
     update_callback_container: ClassCallbackContainerType, //HashMap<&'static str, FnType>
@@ -56,17 +59,45 @@ fn extract_method_parameters<'a>(args: &'a CapsuleMap) -> JuizResult<(&'a str, &
 // }
 
 impl CRUDBroker {
-    pub fn new(core_broker: CoreBrokerPtr) -> JuizResult<CRUDBroker> {
+    pub fn new(core_broker: CoreBrokerPtr, manifest: Value) -> JuizResult<CRUDBroker> {
+        let broker_name = manifest.as_object().unwrap().get("name").unwrap().as_str().unwrap();
+        let broker_type = manifest.as_object().unwrap().get("type_name").unwrap().as_str().unwrap();
+        let id = format!("core://core/Broker/{broker_name}::{broker_type}");
         Ok(CRUDBroker{core_broker, 
+            identifier: id,
+            _name: broker_name.to_owned(),
             create_callback_container: create_callback_container(), 
             read_callback_container: read_callback_container(),
             update_callback_container: update_callback_container(),
-            delete_callback_container: delete_callback_container()
+            delete_callback_container: delete_callback_container(),
+            manifest
         })
     }
 
-    fn reserve_master_broker(&mut self, master_host: &str, master_port: &str, broker_type_name: &str) {
-        log::
+    pub fn name(&self) -> String {
+        self._name.clone()
+    }
+
+    pub fn identifier(&self) -> Identifier {
+        self.identifier.clone()
+    }
+
+    pub fn manifest(&self) -> Value {
+        self.manifest.clone()
+    }
+
+    pub fn update_broker_name(&mut self, name: &str) -> () {
+        log::error!("update_broker_name({name}) called");
+        self._name = name.to_owned();
+        self.manifest.as_object_mut().unwrap().insert("name".to_owned(), name.into());
+        let broker_name = self.manifest.as_object().unwrap().get("name").unwrap().as_str().unwrap();
+        let broker_type = self.manifest.as_object().unwrap().get("type_name").unwrap().as_str().unwrap();
+        self.identifier = format!("core://core/Broker/{broker_name}::{broker_type}");
+    }
+
+    pub fn reserve_master_broker(&mut self, master_info: Value) -> JuizResult<()> {
+        log::trace!("reserve_master_broker({master_info:}) called");
+        self.core_broker.lock_mut()?.reserve_master_broker(master_info)
     }
 
     fn on_update(&self, class_name:&str, function_name:&str, cp: CapsuleMap, opt_remote_addr: Option<SocketAddr>) -> JuizResult<CapsulePtr>{

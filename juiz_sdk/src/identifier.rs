@@ -187,6 +187,35 @@ impl IdentifierStruct {
             }
         }    
     }
+
+    pub fn from_broker_identifier(identifier: &Identifier) -> JuizResult<Self> {
+        match regex::Regex::new(r"^(.+?)://(.+?)/(.+?)/(.+?)::(.+?)$") {
+            Ok(re) => {
+                match re.captures(identifier) {
+                    Some(caps) => {
+                        //let class_name = caps[3].to_owned();
+                        let broker_type_name = caps[5].to_owned();
+                        let broker_name = caps[4].to_owned();
+                        // let broker_name = caps[2].to_owned();
+                        //let broker_type_name = caps[1].to_owned();
+                        Ok(IdentifierStruct{ 
+                            identifier: identifier.clone(), 
+                            class_name: "broker".to_owned(), 
+                            type_name: broker_type_name.clone(), 
+                            object_name: broker_name.clone(), 
+                            broker_name, 
+                            broker_type_name
+                        })
+                    },
+                    None => {
+                        log::error!("digest_identifier error. Invalid Identifier ({identifier}).");
+                        return Err(anyhow!(JuizError::InvalidIdentifierError{message: identifier.to_owned()}))
+                    },
+                }
+            }
+            Err(e) => Err(anyhow!(e))
+        }    
+    }
 }
 
 
