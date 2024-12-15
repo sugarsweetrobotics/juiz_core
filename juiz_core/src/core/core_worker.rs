@@ -1,7 +1,7 @@
 
-use std::{env::current_dir, path::PathBuf, sync::{Arc, Mutex}};
+use std::{collections::HashMap, env::current_dir, path::PathBuf, sync::{Arc, Mutex}};
 
-use juiz_sdk::{identifier::identifier_from_manifest, utils::manifest_util::{construct_id, id_from_manifest, id_from_manifest_and_class_name, type_name}};
+use juiz_sdk::{connections::ConnectionManifest, identifier::{connection_identifier_split, identifier_from_manifest}, utils::manifest_util::{construct_id, id_from_manifest, id_from_manifest_and_class_name, type_name}};
 use uuid::Uuid;
 
 use crate::{connections::connection_builder::connection_builder, containers::{ContainerProcessImpl, ContainerProxy}, core::system_builder::register_component, ecs::{execution_context_function::ExecutionContextFunction, execution_context_proxy::ExecutionContextProxy}, plugin::JuizObjectPlugin, prelude::*, topics::TopicPtr};
@@ -62,47 +62,57 @@ impl CoreWorker {
         Ok(())
     }
 
-    pub fn process_from_identifier(&self, id: &Identifier) -> JuizResult<ProcessPtr> {
+    pub fn process_from_identifier(&self, id: &Identifier, create_when_not_found: bool) -> JuizResult<ProcessPtr> {
         let s = IdentifierStruct::try_from(id.clone())?;
         if s.broker_type_name == "core" {
             return Ok(self.store().processes.get(id)?.clone());
         }
-        self.process_proxy_from_identifier(id)
+        self.process_proxy_from_identifier(id, create_when_not_found)
     }
 
     pub fn process_from_typename_and_name(&self, type_name: &str, name: &str) -> JuizResult<ProcessPtr> {
         Ok(self.store().processes.get(&construct_id("Process", type_name, name, "core", "core"))?.clone())
     }
 
-    pub fn process_proxy_from_identifier(&self, identifier: &Identifier) -> JuizResult<ProcessPtr> {
-        log::info!("CoreBroker::process_proxy_from_identifier({identifier}) called");
+    pub fn process_proxy_from_identifier(&self, identifier: &Identifier, create_when_not_found: bool) -> JuizResult<ProcessPtr> {
+        log::trace!("process_proxy_from_identifier({identifier}) called");
         let id_struct = IdentifierStruct::try_from(identifier.clone())?;
         if id_struct.broker_name == "core" && id_struct.broker_type_name == "core" {
-            return self.process_from_identifier(identifier)
+            return self.process_from_identifier(identifier, create_when_not_found)
         }
-        let broker_proxy = self.broker_proxy(&id_struct.broker_type_name, &id_struct.broker_name, false)?;
+        let broker_proxy = self.broker_proxy(&id_struct.broker_type_name, &id_struct.broker_name, create_when_not_found)?;
         Ok(ProcessProxy::new(JuizObjectClass::Process("ProcessProxy"),identifier, broker_proxy)?)
     }
 
-    pub fn process_proxy_from_manifest(&mut self, manifest: &Value) -> JuizResult<ProcessPtr> {
-        self.process_proxy_from_identifier(&id_from_manifest_and_class_name(manifest, "Process")?)
+    pub fn process_proxy_from_manifest(&mut self, manifest: &Value, create_when_not_found: bool) -> JuizResult<ProcessPtr> {
+        self.process_proxy_from_identifier(&id_from_manifest_and_class_name(manifest, "Process")?, create_when_not_found)
     }
 
+    /// BrokerProxyを作成、もしくはキャッシュから読み出す
+    /// 
+    /// # Arguments
+    /// * `broker_type_name` - 
+    /// * `broker_name` - 
+    /// * `create_when_not_found ` - 
+    /// 
     pub fn broker_proxy(&self, broker_type_name: &str, broker_name: &str, create_when_not_found: bool) ->JuizResult<Arc<Mutex<dyn BrokerProxy>>> {
-        log::trace!("CoreBroker::broker_proxy({broker_type_name}, {broker_name}) called");
+        log::trace!("broker_proxy({broker_type_name}, {broker_name}, {create_when_not_found}) called");
         let mut type_name = broker_type_name;
         if type_name == "core" { type_name = "local"; }
 
         let identifier = "core://core/BrokerProxy/".to_string() + broker_name + "::" + broker_type_name;
+        log::trace!("Searching broker_proxy({identifier})....");
         match self.store().broker_proxies.get(&identifier) {
             Ok(bp) => return Ok(bp),
             Err(_) => {}
         };
         
-        log::warn!("broker_proxy({broker_type_name}, {broker_name}) can not find broker_proxy. creating....");
         if !create_when_not_found {
-            return Err(anyhow!(JuizError::ObjectCanNotFoundByIdError { id: format!("{broker_type_name}://{broker_name}") }));
+            log::error!("broker_proxy({broker_type_name}, {broker_name}) can not find broker_proxy.");
+            return Err(anyhow!(JuizError::ObjectCanNotFoundByIdError { id: identifier }));
         }
+
+        log::warn!("broker_proxy({broker_type_name}, {broker_name}) can not find broker_proxy. creating....");
         let manifest = jvalue!({
             "type_name": type_name,
             "name": broker_name
@@ -275,18 +285,18 @@ impl CoreWorker {
         self.container_process_from_id(&id_from_manifest_and_class_name(manifest, "ContainerProcess")?)
     }
 
-    pub fn any_process_from_identifier(&self, id: &Identifier) -> JuizResult<ProcessPtr> {
-        self.process_from_identifier(id).or_else(|_| { self.container_process_from_id(id) })
+    pub fn any_process_from_identifier(&self, id: &Identifier, create_when_not_found: bool) -> JuizResult<ProcessPtr> {
+        self.process_from_identifier(id, create_when_not_found).or_else(|_| { self.container_process_from_id(id) })
     }
 
     pub fn any_process_from_typename_and_name(&self, type_name: &str, name: &str) -> JuizResult<ProcessPtr> {
         self.process_from_typename_and_name(type_name, name).or_else(|_| {self.container_process_from_typename_and_name(type_name, name)})
     }
 
-    pub fn any_process_from_manifest(&self, manifest: &Value) -> JuizResult<ProcessPtr> {
+    pub fn any_process_from_manifest(&self, manifest: &Value, create_when_not_found: bool) -> JuizResult<ProcessPtr> {
         match id_from_manifest(manifest) {
             Ok(id) => {
-                return self.any_process_from_identifier(&id);
+                return self.any_process_from_identifier(&id, create_when_not_found);
             },
             Err(_) => {
                 let type_name = obj_get_str(manifest, "type_name")?;
@@ -312,19 +322,19 @@ impl CoreWorker {
     }
 
 
-    pub fn any_process_proxy_from_identifier(&mut self, identifier: &Identifier) -> JuizResult<ProcessPtr> {
+    pub fn any_process_proxy_from_identifier(&mut self, identifier: &Identifier, create_when_not_found: bool) -> JuizResult<ProcessPtr> {
         log::trace!("CoreBroker::any_process_proxy_from_identifier({identifier}) called");
         let mut id_struct = IdentifierStruct::try_from(identifier.clone())?;
-        let p = self.process_proxy_from_identifier(&id_struct.set_class_name("Process").to_identifier());
+        let p = self.process_proxy_from_identifier(&id_struct.set_class_name("Process").to_identifier(), create_when_not_found);
         if p.is_ok() {
             return p;
         }
         self.container_process_proxy_from_identifier(&id_struct.set_class_name("ContainerProcess").to_identifier())
     }
 
-    pub fn any_process_proxy_from_manifest(&mut self, manifest: &Value) -> JuizResult<ProcessPtr> {
+    pub fn any_process_proxy_from_manifest(&mut self, manifest: &Value, create_when_not_found: bool) -> JuizResult<ProcessPtr> {
         let identifier = identifier_from_manifest("core", "core", "Process", manifest)?;
-        self.any_process_proxy_from_identifier(&identifier)
+        self.any_process_proxy_from_identifier(&identifier, create_when_not_found)
     }
 
     
@@ -402,19 +412,33 @@ impl CoreWorker {
 
     fn connect_to_topic(&mut self, process: ProcessPtr, topic: TopicPtr) -> JuizResult<()> {
         log::error!("connect_to_topic");
-        let topic_publish_connection_manifest = jvalue!({
-            "type": "push",
-        });
-        let _connection_profile = connection_builder::connect(process, topic.process_ptr(), &"input".to_owned(), topic_publish_connection_manifest)?;
+        // let topic_publish_connection_manifest = jvalue!({
+        //     "type": "push",
+        // });
+        let topic_publish_connection_manifest = ConnectionManifest::new(
+            ConnectionType::Push,
+            process.identifier().clone(),
+            "input".to_owned(),
+            topic.process_ptr().identifier().clone(),
+            None,            
+        );
+        let _connection_profile = connection_builder::connect(process, topic.process_ptr(), topic_publish_connection_manifest)?;
         Ok(())
     }
 
     fn connect_from_topic(&mut self, process: ProcessPtr, arg_name: &String, topic: TopicPtr) -> JuizResult<()> {
         log::error!("connect_from_topic");
-        let topic_subscribe_connection_manifest = jvalue!({
-            "type": "push",
-        });
-        let _connection_profile = connection_builder::connect(topic.process_ptr(), process, arg_name, topic_subscribe_connection_manifest)?;
+        // let topic_subscribe_connection_manifest = jvalue!({
+        //     "type": "push",
+        // });
+        let topic_subscribe_connection_manifest = ConnectionManifest::new(
+            ConnectionType::Push,
+            topic.process_ptr().identifier().clone(),
+            "input".to_owned(),
+            process.identifier().clone(),
+            None,            
+        );
+        let _connection_profile = connection_builder::connect(topic.process_ptr(), process, topic_subscribe_connection_manifest)?;
         Ok(())
     }
 
@@ -479,6 +503,53 @@ impl CoreWorker {
         let cont_manifest = register_component(self, current_dir().map_or_else(|_|{None}, |wd|{Some(wd)}), plugin)?;
         Ok(cont_manifest.into())
     }
+
+    pub fn create_connection(&mut self, connection_manifest: ConnectionManifest) -> JuizResult<ConnectionManifest> {
+        log::trace!("CoreWorker::create_connection({connection_manifest}) called");
+        let source = self.any_process_proxy_from_identifier(&connection_manifest.source_process_id, true)?;
+        let destination = self.any_process_proxy_from_identifier(&connection_manifest.destination_process_id, true)?;
+        Ok(connection_builder::connect(source, destination, connection_manifest)?.into())
+    }
+
+    pub fn connection_profile_full(&self, identifier: Identifier, create_when_not_found: bool) -> JuizResult<Value> {
+        let (source_id, destination_id, _arg_name) = connection_identifier_split(identifier.clone())?;
+        
+        let dst_proc = self.any_process_from_identifier(&destination_id, create_when_not_found)?;
+        for con in dst_proc.lock()?.source_connections()?.into_iter() {
+            if con.identifier() == identifier {
+                return con.profile_full()
+            }
+        }
+        let src_proc = self.any_process_from_identifier(&source_id, create_when_not_found)?;
+        for con in src_proc.lock()?.destination_connections()?.into_iter() {
+            if con.identifier() == identifier {
+                return con.profile_full()
+            }
+        }
+        Err(anyhow!(JuizError::ConnectionCanNotBeFoundError{identifier}))
+    }
+
+    pub fn connection_profile_list(&self) -> JuizResult<Vec<Value>> {
+        let mut value_map: HashMap<String, Value> = HashMap::new();
+        for (_k, p) in self.store().processes.objects().into_iter() {
+            for sc in p.lock()?.source_connections()? {
+                value_map.insert(sc.identifier().clone(), sc.profile_full()?.try_into()?);
+            }
+            for dc in p.lock()?.destination_connections()? {
+                value_map.insert(dc.identifier().clone(), dc.profile_full()?.try_into()?);
+            }
+        }
+        for (_k, p) in self.store().container_processes.objects().into_iter() {
+            for sc in p.lock()?.source_connections()? {
+                value_map.insert(sc.identifier().clone(), sc.profile_full()?.try_into()?);
+            }
+            for dc in p.lock()?.destination_connections()? {
+                value_map.insert(dc.identifier().clone(), dc.profile_full()?.try_into()?);
+            }
+        }
+        Ok(value_map.values().map(|v|{v.clone()}).collect::<Vec<Value>>())
+    }
+
 }
 
 #[test]

@@ -102,6 +102,7 @@ pub(crate) fn register_container_factory(core_worker: &mut CoreWorker, working_d
     let type_name = pf.lock().or_else(|e|{ Err(anyhow!(JuizError::ObjectLockError{target:e.to_string()}) ) })?.type_name().to_owned();
     let wrapper = ContainerFactoryPtr::new(ContainerFactoryWrapper::new(plugin, pf)?);
     let _result = core_worker.store_mut().containers.register_factory(type_name.as_str(), wrapper.clone())?;
+    log::debug!("ContainerFactory(type_name={type_name}) registered");
     log::trace!("register_container_factory() exit");
     Ok(wrapper)
 }
@@ -113,6 +114,7 @@ pub(crate) fn register_container_process_factory(core_worker: &mut CoreWorker, w
     let type_name = cpf.lock().or_else(|e| { Err(anyhow!(JuizError::ObjectLockError { target: e.to_string() }))})?.type_name().to_owned();
     let pfw = ContainerProcessFactoryPtr::new(ContainerProcessFactoryWrapper::new(plugin, cpf )?);
     core_worker.store_mut().container_processes.register_factory(type_name.as_str(), pfw.clone())?;
+    log::debug!("ContainerProcessFactory(type_name={type_name}) registered");
     log::trace!("register_container_process_factory() exit");
     Ok(pfw)
 }

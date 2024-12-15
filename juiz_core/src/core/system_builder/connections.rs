@@ -9,7 +9,7 @@ pub(super) fn setup_connections(system: &System, manifest: &Value) -> JuizResult
         let dstv = obj_get_obj(c, "destination")?;
         //let p_type_name = obj_get_str(c, "type_name")?;
         log::debug!("Connection ({:?}->{:?}) Creating...", srcv, dstv);
-        match connection_builder::create_connection(system, &c) {
+        match connection_builder::create_connection(system, c.clone().try_into()?) {
             Ok(c) => {
                 log::info!("Connection ({:?}->{:?}) Created", srcv, dstv);
                 Ok(c)

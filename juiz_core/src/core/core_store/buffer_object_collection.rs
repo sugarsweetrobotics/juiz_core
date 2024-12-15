@@ -71,7 +71,7 @@ impl<T, TF> BufferObjectCollection<T, TF> where T: JuizObject + ?Sized, TF: Juiz
             Some(p) => Ok(Arc::clone(p)),
             None => {
                 log::trace!("StoreWorker({})::get(id={:?}) failed.", self.name, id);
-                log::trace!(" - CoreStore includes processes[");
+                log::trace!(" - CoreStore includes objects[");
                 for (k, _v) in self.objects.borrow().iter() {
                     log::trace!("    - {:?}", k);
                 }

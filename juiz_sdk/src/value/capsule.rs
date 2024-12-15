@@ -1,6 +1,6 @@
 
 
-use std::{collections::HashMap, mem::swap};
+use std::{collections::HashMap, fmt::Display, mem::swap};
 
 // #[cfg(feature="opencv4")]
 // use opencv::core::Mat;
@@ -19,6 +19,19 @@ pub enum CapsuleValue {
     Image(DynamicImage),
 }
 
+impl Display for CapsuleValue {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            CapsuleValue::Empty(_) => { f.write_fmt(format_args!("Empty"))},
+            CapsuleValue::Value(value) => {
+                f.write_fmt(format_args!("Value({})", value))
+            }
+            CapsuleValue::Image(_dynamic_image) => {
+                f.write_fmt(format_args!("DynamicImage"))
+            }
+        }
+    }
+}
 impl From<Value> for CapsuleValue {
     fn from(value: Value) -> Self { Self::Value( value ) }
 }
@@ -123,6 +136,15 @@ pub struct Capsule {
     option: HashMap<String, String>,
 }
 
+impl Display for Capsule {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("(value:{}, option: [", self.value))?;
+        for (k, v) in self.option.iter() {
+            f.write_fmt(format_args!("{k}:{v},"))?;
+        }
+        f.write_str("])")
+    }
+}
 
 impl From<Value> for Capsule {
     fn from(mut value: Value) -> Self {

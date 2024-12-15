@@ -43,12 +43,12 @@ impl<F, Fut> JuizObjectCoreHolder for CRUDBrokerHolder<F, Fut>  where F: Fn(Valu
 
 impl<F, Fut> JuizObject for CRUDBrokerHolder<F, Fut>  where F: Fn(Value, Arc<Mutex<CRUDBroker>>) -> Fut + Send + Sync + Copy + 'static, Fut: Future<Output=()>+ Send + 'static {
     fn identifier(&self) -> Identifier {
-        log::error!("CRUDBrokerHolder::identifier() called");
+        log::trace!("CRUDBrokerHolder::identifier() called");
         self.crud_broker.lock().unwrap().identifier()
     }
 
     fn profile_full(&self) -> JuizResult<Value>{
-        log::error!("CRUDBrokerHolder::profile_full() called");
+        log::trace!("CRUDBrokerHolder::profile_full() called");
         let name = self.crud_broker.lock().unwrap().name();
         let identifier = self.crud_broker.lock().unwrap().identifier();
         Ok(jvalue!({
@@ -75,7 +75,6 @@ impl<F, Fut> Broker for CRUDBrokerHolder<F, Fut>  where F: Fn(Value, Arc<Mutex<C
                 on_start(manifest, crud).await;
             }
         ));
-        std::thread::sleep(Duration::from_secs_f64(3.0));
         log::trace!("CRUDBrokerHolder::start(type_name={type_name}) exit");
         Ok(())
     }
@@ -86,5 +85,20 @@ impl<F, Fut> Broker for CRUDBrokerHolder<F, Fut>  where F: Fn(Value, Arc<Mutex<C
         self.thread_handle.take().unwrap().abort();
         log::trace!("CRUDBrokerHolder::stop(type_name={type_name}) exit");
         Ok(())
+    }
+
+    fn wait_until_started(&mut self, timeout: Duration) -> JuizResult<()> {
+        loop {
+            match self.crud_broker.lock() {
+                Ok(crud) => {
+                    if crud.is_started() {
+                        return Ok(());
+                    }
+                }
+                Err(e) => {
+                    panic!("Error lock is poisoned (Error{e:?})")
+                }
+            }
+        }
     }
 }

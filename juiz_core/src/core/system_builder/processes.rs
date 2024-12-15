@@ -73,6 +73,7 @@ pub(crate) fn register_process_factory(core_worker: &mut CoreWorker, working_dir
     let type_name = pf.lock().or_else(|e| { Err(JuizError::ObjectLockError { target: e.to_string() })})?.type_name().to_owned();
     let pfw = ProcessFactoryPtr::new(ProcessFactoryWrapper::new(plugin, pf)?);
     core_worker.store_mut().processes.register_factory(type_name.as_str(), pfw.clone())?;
+    log::debug!("ProcessFactory(type_name={type_name}) registered");
     log::trace!("register_process_factory() exit");
     Ok(pfw)
 }

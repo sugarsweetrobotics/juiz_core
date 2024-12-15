@@ -1,4 +1,4 @@
-use juiz_sdk::result::JuizResult;
+use juiz_sdk::{connections::ConnectionManifest, result::JuizResult};
 use crate::prelude::*;
 
 
@@ -6,7 +6,7 @@ use crate::prelude::*;
 
 pub trait ConnectionFactory {
 
-    fn create_source_connection(&self, owner_identifier: Identifier, source_process: ProcessPtr, manifest: Value, arg_name: String) -> JuizResult<Box<dyn SourceConnection + 'static>>;
+    fn create_source_connection(&self, source_process: ProcessPtr, connection_manifest: ConnectionManifest) -> Box<dyn SourceConnection>;
 
-    fn create_destination_connection(&self, owner_identifier: &Identifier, destination_process_id: &Identifier, dest_process: ProcessPtr, connection_manifest: Value, arg_name: String) -> JuizResult<Box<dyn DestinationConnection+'static>>;
+    fn create_destination_connection(&self, destination_process: ProcessPtr, connection_manifest: ConnectionManifest) -> Box<dyn DestinationConnection>;
 }

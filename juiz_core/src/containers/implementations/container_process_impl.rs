@@ -1,5 +1,5 @@
 use anyhow::Context;
-use juiz_sdk::anyhow;
+use juiz_sdk::{anyhow, connections::ConnectionManifest};
 
 use crate::prelude::*;
 //use crate::processes::process_from_clousure;
@@ -104,12 +104,12 @@ impl Process for ContainerProcessImpl {
         self.process().unwrap().get_output()
     }
 
-    fn notify_connected_from<'b>(&'b mut self, source: ProcessPtr, connecting_arg: &str, connection_manifest: Value) -> JuizResult<Value> {
-        self.process_mut()?.notify_connected_from(source, connecting_arg, connection_manifest)
+    fn notify_connected_from<'b>(&'b mut self, source: ProcessPtr, connection_manifest: ConnectionManifest) -> JuizResult<ConnectionManifest> {
+        self.process_mut()?.notify_connected_from(source, connection_manifest)
     }
 
-    fn try_connect_to(&mut self, target: ProcessPtr, connect_arg_to: &str, connection_manifest: Value) -> JuizResult<Value> {
-        self.process_mut()?.try_connect_to(target, connect_arg_to, connection_manifest)
+    fn try_connect_to(&mut self, target: ProcessPtr, connection_manifest: ConnectionManifest) -> JuizResult<ConnectionManifest> {
+        self.process_mut()?.try_connect_to(target, connection_manifest)
     }
 
     fn source_connections(&self) -> JuizResult<Vec<&Box<dyn SourceConnection>>> {

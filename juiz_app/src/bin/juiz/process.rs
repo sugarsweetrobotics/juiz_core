@@ -122,7 +122,7 @@ fn on_any_process_list(system: &mut System, _server: Option<String>, recursive: 
 
 fn on_process_info(system: &mut System, id: String) -> JuizResult<()> {
     //println!("processes:");
-    let p = system.core_broker().lock_mut()?.worker_mut().any_process_from_identifier(&id);
+    let p = system.core_broker().lock_mut()?.worker_mut().any_process_from_identifier(&id, true);
     match p {
         Ok(ps) => println!("{:}", ps.lock()?.profile_full()?),
         Err(e) => println!("Error: {e:?}"),
@@ -220,7 +220,7 @@ fn do_with_capsule_ptr(value: CapsulePtr) -> JuizResult<()> {
 
 fn on_process_call(system: &mut System, id: String, arg: String, _fileout: Option<String>) -> JuizResult<()> {
     //println!("processes:");
-    let p = system.core_broker().lock_mut()?.worker_mut().any_process_from_identifier(&id);
+    let p = system.core_broker().lock_mut()?.worker_mut().any_process_from_identifier(&id, true);
     match p {
         Ok(ps) => {
             let argv = load_str(arg.as_str())?;

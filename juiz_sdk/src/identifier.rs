@@ -11,7 +11,7 @@ pub fn identifier_new(broker_type_name: &str, broker_name: &str, class_name: &st
     broker_type_name.to_string() + "://" + broker_name + "/" + class_name + "/" + object_name + "::" + type_name
 }
 
-pub fn connection_identifier_new(source_id: Identifier, destination_id: Identifier, arg_name: &str) -> Identifier {
+pub fn connection_identifier_new(source_id: &Identifier, destination_id: &Identifier, arg_name: &str) -> Identifier {
     "connection://".to_string() + source_id.as_str() + "|" + arg_name + "|" + destination_id.as_str()
 }
 
@@ -36,7 +36,7 @@ mod tests {
         let source_id = "core://core/ContainerProcess/read0::cv_camera_capture_read";
         let destination_id = "core://core/Process/cv_cvt_color0::cv_cvt_color";
         let arg_name = "src";
-        let con_id = connection_identifier_new(source_id.to_owned(), destination_id.to_owned(), arg_name);
+        let con_id = connection_identifier_new(&source_id.to_owned(), &destination_id.to_owned(), arg_name);
         let (sid, did, argn) = connection_identifier_split(con_id)?;
         assert_eq!(source_id, sid);
         assert_eq!(destination_id, did);

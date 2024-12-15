@@ -17,12 +17,17 @@ fn check_server_is_juiz(host: &str, port: i64) -> bool {
     return true;
 }
 
+
 async fn on_start(broker_manifest: Value, crud_broker: Arc<Mutex<CRUDBroker>>) -> () {
-    // log::trace!("http_broker::on_start(broker_manifest={broker_manifest:}) called");
+    tokio::spawn(on_start_inner(broker_manifest, crud_broker) );
+}
+
+async fn on_start_inner(broker_manifest: Value, crud_broker: Arc<Mutex<CRUDBroker>>) -> () {
+    log::trace!("http_broker::on_start(broker_manifest={broker_manifest:}) called");
     let host = obj_get_str(&broker_manifest, "host").or::<&str>(Ok("0.0.0.0") ).unwrap();
     let mut port  = obj_get_i64(&broker_manifest, "port").or::<i64>( Ok(8080)).unwrap();
     //let address = format!("{:}:{:}", host, port);
-    log::info!("http_broker::on_start(host={host}, port={port}, {broker_manifest:?})) called");
+    log::debug!("http_broker::on_start(host={host}, port={port}, {broker_manifest:?})) called");
     let static_filepaths: Option<Vec<(String, PathBuf)>> = match obj_get_obj(&broker_manifest, "static_filepaths") {
         Ok(v) => {
             Some(v.iter().map(|(s, val)| {
@@ -37,13 +42,13 @@ async fn on_start(broker_manifest: Value, crud_broker: Arc<Mutex<CRUDBroker>>) -
 
     loop {
         let address = into_address(host, port);
-        log::info!("-- connecting (host={host}, port={port}, {broker_manifest:?})) called");
+        log::debug!("http_broker is now trying to bind(host={host}, port={port}, {broker_manifest:?}))");
         match TcpListener::bind( address ).await {
             Ok(listener) => {
-
+                log::info!("http_broker is starting with (host={host}, port={port})");
+                crud_broker.lock().unwrap().set_started();
                 let new_broker_name = format!("127.0.0.1:{:}", port);
                 juiz_lock(&crud_broker).unwrap().update_broker_name(new_broker_name.as_str());
-
                 log::trace!("http_broker::on_start() exit");
                 return axum::serve(listener, app_new(crud_broker, static_filepaths).into_make_service_with_connect_info::<SocketAddr>()).await.unwrap();
             },

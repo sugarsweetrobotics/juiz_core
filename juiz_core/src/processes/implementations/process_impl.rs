@@ -11,7 +11,7 @@ use crate::connections::{ConnectionFactory, ConnectionFactoryImpl};
 use crate::prelude::*;
 
 use juiz_sdk::utils::check_manifest_before_call;
-use juiz_sdk::connections::{DestinationConnection, SourceConnection};
+use juiz_sdk::connections::{ConnectionManifest, DestinationConnection, SourceConnection};
 
 //use crate::value::CapsuleMap;
 use super::inlet::Inlet;
@@ -59,7 +59,7 @@ impl ProcessImpl {
     }
 
     pub(crate) fn new_from_clousure_ref_and_class_name(class_name: JuizObjectClass, manifest: ProcessManifest, func: Arc<dyn Fn(CapsuleMap) -> JuizResult<Capsule> + 'static>, connection_factory: Box<impl ConnectionFactory + 'static>) -> JuizResult<Self> {
-        log::debug!("ProcessImpl::new(manifest={:?}) called", manifest);
+        log::debug!("ProcessImpl::new(manifest={}) called", manifest);
         Ok(Self{
             core: ObjectCore::create(class_name, manifest.type_name.clone(), manifest.name.as_ref().unwrap()),
             function: func, 
@@ -203,33 +203,28 @@ impl Process for ProcessImpl {
         self.outlet.memo().clone()
     }
 
-    fn notify_connected_from(&mut self, source: ProcessPtr, connecting_arg: &str, connection_manifest: Value) -> JuizResult<Value> {
+    fn notify_connected_from(&mut self, source: ProcessPtr, connection_manifest: ConnectionManifest) -> JuizResult<ConnectionManifest> {
         log::trace!("ProcessImpl(id={:?}).notify_connected_from(source=Process()) called", self.identifier());
         let id = self.identifier().clone();
-        let con = self.connection_factory.create_source_connection(id, source, connection_manifest.clone(), connecting_arg.to_owned())?;
-        self.inlet_mut(connecting_arg)?.insert(
+        let con = self.connection_factory.create_source_connection(
+            source, connection_manifest.clone());
+        self.inlet_mut(&connection_manifest.arg_name)?.insert(
             con
-            
-            
             );
         log::trace!("ProcessImpl(id={:?}).notify_connected_from(source=Process()) exit", self.identifier());
-        Ok(connection_manifest.into())
+        Ok(connection_manifest)
     }
 
-    fn try_connect_to(&mut self, destination: ProcessPtr, arg_name: &str, connection_manifest: Value) -> JuizResult<Value> {
+    fn try_connect_to(&mut self, destination: ProcessPtr, connection_manifest: ConnectionManifest) -> JuizResult<ConnectionManifest> {
         log::trace!("ProcessImpl(id={:?}).try_connect_to(destination=Process()) called", self.identifier());
-        let destination_id = destination.identifier().clone();
+        // let destination_id = destination.identifier().clone();
         let con = self.connection_factory.create_destination_connection(
-            &self.identifier(), 
-            &destination_id,
-            destination, 
-            connection_manifest.clone(), 
-            arg_name.to_owned())?;
+            destination, connection_manifest.clone());
         self.outlet.insert(
-            arg_name.to_owned(), 
+            connection_manifest.arg_name.clone(), 
             con);
         log::trace!("ProcessImpl(id={:?}).try_connect_to(destination=Process()) exit", self.identifier());
-        Ok(connection_manifest.into())
+        Ok(connection_manifest)
     }
 
     

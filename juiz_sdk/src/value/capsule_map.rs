@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::fmt::{Display, Write};
 use serde_json::Map;
 
 use crate::prelude::*;
@@ -10,6 +11,13 @@ pub struct CapsuleMap {
     map: HashMap<String, CapsulePtr>,
     param: HashMap<String, String>,
 }
+
+impl Display for CapsuleMap {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("(map: {:?}, param: {:?})", self.map, self.param))
+    }
+}
+
 
 impl CapsuleMap {
 
@@ -88,6 +96,7 @@ impl CapsuleMap {
     }
 
 }
+
 
 impl TryFrom<Value> for CapsuleMap {
     type Error = anyhow::Error;

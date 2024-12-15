@@ -7,10 +7,12 @@ mod setup;
 mod default_juiz_conf;
 mod container;
 mod container_process;
+mod connection;
 
 use std::path::PathBuf;
 use std::time::Duration;
 
+use connection::{ConnectionSubCommands, on_connection};
 use execution_context::{on_execution_context, EcSubCommands};
 use container::{on_container, ContSubCommands};
 use container_process::{on_container_process, ContProcSubCommands};
@@ -123,11 +125,18 @@ enum SubCommands {
         subcommand: ContProcSubCommands
     },
 
-    // Container tools
+    // Execution Context tools
     #[clap(arg_required_else_help = false)]
     Ec {
         #[clap(subcommand)]
         subcommand: EcSubCommands
+    },
+
+    // Connection tools
+    #[clap(arg_required_else_help = false)]
+    Connection {
+        #[clap(subcommand)]
+        subcommand: ConnectionSubCommands
     },
 }
 
@@ -272,7 +281,7 @@ fn do_task(system: &mut System, args: Args) -> JuizResult<()> {
             let prof = system.core_broker().lock_mut()?.process_create(ProcessManifest::new(type_name.as_str()).name(format!("{}0", type_name).as_str()))?;
             if execute {
                 let identifier = obj_get_str(&prof, "identifier")?;
-                let process_proxy = system.core_broker().lock()?.worker().process_from_identifier(&identifier.to_owned())?;
+                let process_proxy = system.core_broker().lock()?.worker().process_from_identifier(&identifier.to_owned(), true)?;
                 if let Some(ratio_hz) = ratio {
                     let duration = Duration::from_secs_f64(1.0 / ratio_hz);
                     loop {
@@ -317,7 +326,7 @@ fn do_task(system: &mut System, args: Args) -> JuizResult<()> {
                 let prof = system.core_broker().lock_mut()?.container_process_create(&container_id.unwrap(), ProcessManifest::new(type_name.as_str()).name(format!("{}0", type_name).as_str()))?;
                 if execute {
                     let identifier = obj_get_str(&prof, "identifier")?;
-                    let process_proxy = system.core_broker().lock()?.worker().any_process_from_identifier(&identifier.to_owned())?;
+                    let process_proxy = system.core_broker().lock()?.worker().any_process_from_identifier(&identifier.to_owned(), true)?;
                     if let Some(ratio_hz) = ratio {
                         let duration = Duration::from_secs_f64(1.0 / ratio_hz);
                         loop {
@@ -401,7 +410,7 @@ fn create_process_by_pm(system: &mut System, pm: &ProcessManifest) -> JuizResult
     let type_name = pm.type_name.clone();
     let prof = system.core_broker().lock_mut()?.process_create(ProcessManifest::new(type_name.as_str()).name(format!("{}0", type_name).as_str()))?;
     let pid = Some(obj_get_str(&prof, "identifier")?.to_owned());
-    system.core_broker().lock_mut()?.worker_mut().process_from_identifier(&pid.unwrap())
+    system.core_broker().lock_mut()?.worker_mut().process_from_identifier(&pid.unwrap(), true)
 }
 
 fn create_container_by_cm(system: &mut System, cm: &ContainerManifest) -> JuizResult<ContainerPtr> {
@@ -419,7 +428,7 @@ fn create_container_process_by_cid_and_pm(system: &mut System, cid: Identifier, 
     let type_name = pm.type_name.clone();
     let prof = system.core_broker().lock_mut()?.container_process_create(&cid, ProcessManifest::new(type_name.as_str()).name(format!("{}0", type_name).as_str()))?;
     let pid = Some(obj_get_str(&prof, "identifier")?.to_owned());
-    system.core_broker().lock_mut()?.worker_mut().any_process_from_identifier(&pid.unwrap())
+    system.core_broker().lock_mut()?.worker_mut().any_process_from_identifier(&pid.unwrap(), true)
 }
 
 fn main() -> () {
@@ -479,6 +488,9 @@ fn do_once() -> JuizResult<()>{
         },
         SubCommands::Ec { subcommand } => {
             on_execution_context(manifest, working_dir, subcommand, args)
+        },
+        SubCommands::Connection { subcommand } => {
+            on_connection(manifest, working_dir, subcommand, args)
         },
         /* _ => {
             return Ok(())

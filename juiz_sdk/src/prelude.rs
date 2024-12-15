@@ -78,6 +78,7 @@ pub use crate::{
         ConnectionType,
         SourceConnection,
         DestinationConnection,
+        ConnectionManifest,
     },
     object::{
         JuizObject,

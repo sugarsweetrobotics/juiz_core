@@ -1,7 +1,7 @@
 
 
 
-use juiz_sdk::connections::ConnectionType;
+use juiz_sdk::connections::{ConnectionManifest, ConnectionType};
 use crate::prelude::*;
 
 
@@ -18,18 +18,24 @@ pub struct DestinationConnectionImpl{
 
 impl DestinationConnectionImpl {
 
-    pub fn new(owner_identifier: &Identifier, destination_process_id: &Identifier, dest_process: ProcessPtr, connection_manifest: Value, arg_name: String) -> JuizResult<Self> {
-        let manifest = check_connection_manifest(connection_manifest.clone())?;
-        let destination_process_identifier = destination_process_id.clone();// juiz_lock(&dest_process).context("DestinationConnection::new()")?.identifier().clone();
-        log::trace!("DestinationConnectionImpl::new(owner={:}, dest={:}, manifest={:}, arg_name={:}) called", owner_identifier, destination_process_id, manifest, arg_name);
-        Ok(DestinationConnectionImpl{
-            core: ConnectionCore::new("DestinationConnection", 
-                owner_identifier.to_string(), 
-                destination_process_identifier, 
-                arg_name, 
-                &manifest)?,
-            destination_process: dest_process, })
+    pub fn new_from_manifest(connection_manifest: ConnectionManifest,  destination_process: ProcessPtr) -> Self {
+        DestinationConnectionImpl{
+            core: ConnectionCore::new("DestinationConnection",  connection_manifest),
+            destination_process}
     }
+
+    // pub fn new(owner_identifier: &Identifier, destination_process_id: &Identifier, dest_process: ProcessPtr, connection_manifest: Value, arg_name: String) -> JuizResult<Self> {
+    //     let manifest = check_connection_manifest(connection_manifest.clone())?;
+    //     let destination_process_identifier = destination_process_id.clone();// juiz_lock(&dest_process).context("DestinationConnection::new()")?.identifier().clone();
+    //     log::trace!("DestinationConnectionImpl::new(owner={:}, dest={:}, manifest={:}, arg_name={:}) called", owner_identifier, destination_process_id, manifest, arg_name);
+    //     Ok(DestinationConnectionImpl{
+    //         core: ConnectionCore::new("DestinationConnection", 
+    //             owner_identifier.to_string(), 
+    //             destination_process_identifier, 
+    //             arg_name, 
+    //             &manifest)?,
+    //         destination_process: dest_process, })
+    // }
 
 
     fn owner_identifier(&self) -> &Identifier {

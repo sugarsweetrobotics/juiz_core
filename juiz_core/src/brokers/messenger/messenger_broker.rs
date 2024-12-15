@@ -162,4 +162,8 @@ impl Broker for MessengerBroker {
         log::debug!("LocalBroker stopped.");
         Ok(())
     }
+
+    fn wait_until_started(&mut self, _timeout: Duration) -> JuizResult<()> {
+        Ok(())
+    }
 }

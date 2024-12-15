@@ -1,7 +1,7 @@
 use std::{sync::{Arc, Mutex}, time::Duration};
 use anyhow::Context;
 
-use juiz_sdk::anyhow;
+use juiz_sdk::{anyhow, connections::ConnectionManifest};
 use uuid::Uuid;
 use crate::{brokers::broker_proxy::TopicBrokerProxy, prelude::*};
 use crate::brokers::broker_proxy::{BrokerBrokerProxy, ConnectionBrokerProxy, ContainerBrokerProxy, ContainerProcessBrokerProxy, ExecutionContextBrokerProxy};
@@ -323,33 +323,42 @@ impl ProcessBrokerProxy for MessengerBrokerProxy {
         //capsule_to_value(self.read("process", "list")?)
     }
 
-    fn process_try_connect_to(&mut self, source_process_id: &Identifier, arg_name: &str, destination_process_id: &Identifier, manifest: Value) -> JuizResult<Value> {
+
+    fn process_push_by(&self, id: &Identifier, arg_name: String, value: CapsulePtr) -> JuizResult<CapsulePtr> {
+        todo!()
+    }
+
+    fn process_try_connect_to(&mut self, source_process_id: &Identifier, arg_name: &str, destination_process_id: &Identifier, connection_type: String, connection_id: Option<String>) -> JuizResult<Value> {
+        let connection_manifest = ConnectionManifest::new(
+            connection_type.as_str().into(),
+            source_process_id.clone(),
+            arg_name.to_owned(),
+            destination_process_id.clone(),
+            connection_id,
+        );
         let capsule = self.send_recv_and(
             "UPDATE", 
             "process", 
             "try_connect_to", 
-            jvalue!({
-                "source_process_id": source_process_id,
-                "arg_name": arg_name,
-                "destination_process_id": destination_process_id,
-                "manifest": manifest
-            }).try_into()?, 
+            Into::<Value>::into(connection_manifest).try_into()?,
             &[], 
             |value| Ok(value))?;
         capsule_to_value(capsule)
     }
 
-    fn process_notify_connected_from(&mut self, source_process_id: &Identifier, arg_name: &str, destination_process_id: &Identifier, manifest: Value) -> JuizResult<Value> {
+    fn process_notify_connected_from(&mut self, source_process_id: &Identifier, arg_name: &str, destination_process_id: &Identifier, connection_type: String, connection_id: Option<String>) -> JuizResult<Value> {
+        let connection_manifest = ConnectionManifest::new(
+            connection_type.as_str().into(),
+            source_process_id.clone(),
+            arg_name.to_owned(),
+            destination_process_id.clone(),
+            connection_id,
+        );
         let value = self.send_recv_and(
             "UPDATE", 
             "process", 
             "notify_connected_from", 
-            jvalue!({
-                "source_process_id": source_process_id,
-                "arg_name": arg_name,
-                "destination_process_id": destination_process_id,
-                "manifest": manifest
-            }).try_into()?, 
+            Into::<Value>::into(connection_manifest).try_into()?, 
             &[], 
             |value| Ok(value))?;
         capsule_to_value(value)

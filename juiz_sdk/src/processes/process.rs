@@ -2,7 +2,7 @@
 use crate::object::JuizObject;
 use std::fmt::Debug;
 use crate::prelude::*;
-use crate::connections::{DestinationConnection, SourceConnection};
+use crate::connections::{ConnectionManifest, DestinationConnection, SourceConnection};
 use mopa::mopafy;
 
 use super::ProcessPtr;
@@ -44,9 +44,9 @@ pub trait Process : Send + Sync + mopa::Any + JuizObject + 'static {
 
     fn get_output(&self) -> CapsulePtr;
 
-    fn notify_connected_from<'b>(&'b mut self, source: ProcessPtr, connecting_arg: &str, connection_manifest: Value) -> JuizResult<Value>;
+    fn notify_connected_from<'b>(&'b mut self, source: ProcessPtr, connection_manifest: ConnectionManifest) -> JuizResult<ConnectionManifest>;
 
-    fn try_connect_to(&mut self, target: ProcessPtr, connect_arg_to: &str, connection_manifest: Value) -> JuizResult<Value>;
+    fn try_connect_to(&mut self, target: ProcessPtr, connection_manifest: ConnectionManifest) -> JuizResult<ConnectionManifest>;
     
     fn source_connections(&self) -> JuizResult<Vec<&Box<dyn SourceConnection>>>;
 

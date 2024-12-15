@@ -4,6 +4,7 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use std::time::Duration;
 use juiz_sdk::anyhow::{self, anyhow, Context};
+use juiz_sdk::connections::ConnectionManifest;
 use juiz_sdk::identifier::connection_identifier_split;
 use juiz_sdk::utils::check_corebroker_manifest;
 use juiz_sdk::utils::manifest_util::id_from_manifest;
@@ -188,7 +189,7 @@ impl SystemBrokerProxy for CoreBroker {
         // 相手のUUIDを得る。
         let (confirmation_request, uuid_value, bp) = match profile.as_object().unwrap().get("mastersystem") {
             Some(msv) => {
-                log::debug!("found uuid in the passed profile");
+                log::trace!("found uuid in the passed profile");
                 let bp = self.system_store.create_broker_proxy(self.worker(), &msv)?;
                 match msv.as_object().unwrap().get("uuid") {
                     Some(v) => {
@@ -198,7 +199,7 @@ impl SystemBrokerProxy for CoreBroker {
                 }
             }
             None => {
-                log::debug!("Not found uuid in the passed profile");
+                log::trace!("Not found uuid in the passed profile");
 
                 let bp = self.system_store.create_broker_proxy(self.worker(), &profile)?;
                 let v = bp.lock().or_else(|_e|{
@@ -210,7 +211,6 @@ impl SystemBrokerProxy for CoreBroker {
                 Ok((false, v, bp))
             }
         }?;
-        log::debug!("add_subsystem requested by System(uuid_value: {uuid_value:?})");
         // 相手のuuidをUuid型に変換
         let uuid_str = uuid_value.as_str().unwrap();
         let uuid: Uuid = Uuid::parse_str(uuid_str).unwrap();
@@ -246,7 +246,7 @@ impl SystemBrokerProxy for CoreBroker {
             }
             None => ""
         };
-        log::info!("Subsystem = {}", ssprofile);
+        log::info!("Added subsystem({})", ssprofile);
         //log::info!("accessed_broker_id = {}", accessed_broker_id);
 
         // 相手にこちら側のBrokerの名前を教えるために検索
@@ -325,7 +325,6 @@ impl SystemBrokerProxy for CoreBroker {
             None => {
                 log::trace!(" - no uuid found in request. This is the first request. Send subsystem add_subsystem request.");
                 let my_uuid = self.system_store.uuid()?;
-                std::thread::sleep(Duration::from_secs_f64(3.0));
                 let bprof = bp.lock().unwrap().profile_full()?;
                 let broker_type_name = bprof.as_object().unwrap().get("type_name").unwrap().as_str().unwrap();
                 let broker_prof = self.broker_list(false)?.as_array().unwrap().iter().find(|x| {
@@ -351,7 +350,7 @@ impl SystemBrokerProxy for CoreBroker {
         let uuid: Uuid = Uuid::parse_str(uuid_str).unwrap();
         
         self.worker_mut().store_mut().broker_proxies.register(bp.clone())?;
-
+        log::info!("Add mastersystem(uuid={uuid_str})");
         let subsystem_proxy = SubSystemProxy::new(uuid, bp)?;
         self.master_system_proxy = Some(subsystem_proxy);
         Ok(profile)
@@ -386,7 +385,7 @@ impl ProcessBrokerProxy for CoreBroker {
         if idstruct.broker_type_name == "core" {
             self.worker().store().processes.get(id)?.lock()?.call(args)
         } else {
-            self.worker().process_proxy_from_identifier(id)?.lock()?.call(args)
+            self.worker().process_proxy_from_identifier(id, true)?.lock()?.call(args)
         }
     }
 
@@ -396,7 +395,7 @@ impl ProcessBrokerProxy for CoreBroker {
         if idstruct.broker_type_name == "core" {
             self.worker().store().processes.get(id)?.lock()?.execute()
         } else {
-            self.worker().process_proxy_from_identifier(id)?.lock()?.execute()
+            self.worker().process_proxy_from_identifier(id, true)?.lock()?.execute()
         }
     }
 
@@ -429,14 +428,45 @@ impl ProcessBrokerProxy for CoreBroker {
         Ok(ids)
     }
 
-    fn process_try_connect_to(&mut self, source_process_id: &Identifier, arg_name: &str, destination_process_id: &Identifier, manifest: Value) -> JuizResult<Value> {
-        let destination_process = self.worker_mut().any_process_proxy_from_identifier(destination_process_id)?;
-        self.worker_mut().any_process_proxy_from_identifier(source_process_id)?.lock_mut()?.try_connect_to(destination_process, arg_name, manifest)
+
+    fn process_push_by(&self, id: &Identifier, arg_name: String, value: CapsulePtr) -> JuizResult<CapsulePtr> {
+        self.worker().store().processes.get(id)?.lock()?.push_by(arg_name.as_str(), value)
     }
 
-    fn process_notify_connected_from(&mut self, source_process_id: &Identifier, arg_name: &str, destination_process_id: &Identifier, manifest: Value) -> JuizResult<Value> {
-        let source_process = self.worker_mut().any_process_proxy_from_identifier(source_process_id)?;//self.store().processes.get(source_process_id)?;
-        self.worker_mut().any_process_proxy_from_identifier(destination_process_id)?.lock_mut()?.notify_connected_from(source_process, arg_name, manifest)
+    fn process_try_connect_to(&mut self, source_process_id: &Identifier, arg_name: &str, destination_process_id: &Identifier, connection_type: String, connection_id: Option<String>) -> JuizResult<Value> {
+        let mut source_process_id_struct = IdentifierStruct::try_from(source_process_id.clone())?;
+        source_process_id_struct.broker_type_name = "core".to_owned();
+        source_process_id_struct.broker_name = "core".to_owned();
+
+        let connection_manifest = ConnectionManifest::new(
+            connection_type.as_str().into(),
+            source_process_id_struct.to_identifier(),
+            arg_name.to_owned(),
+            destination_process_id.clone(),
+            connection_id,
+        );
+        let destination_process = self.worker_mut().any_process_proxy_from_identifier(destination_process_id, true)?;
+        //self.worker_mut().any_process_proxy_from_identifier(source_process_id)?.lock_mut()?.try_connect_to(destination_process, arg_name, manifest)
+        
+        Ok(self.worker_mut().any_process_proxy_from_identifier(source_process_id, true)?.lock_mut()?.try_connect_to(destination_process, connection_manifest)?.into())
+    }
+
+    fn process_notify_connected_from(&mut self, source_process_id: &Identifier, arg_name: &str, destination_process_id: &Identifier, connection_type: String, connection_id: Option<String>) -> JuizResult<Value> {
+        
+        let mut destination_process_id_struct = IdentifierStruct::try_from(destination_process_id.clone())?;
+        destination_process_id_struct.broker_type_name = "core".to_owned();
+        destination_process_id_struct.broker_name = "core".to_owned();
+
+        let connection_manifest = ConnectionManifest::new(
+            connection_type.as_str().into(),
+            source_process_id.clone(),
+            arg_name.to_owned(),
+            destination_process_id_struct.to_identifier(),
+            connection_id,
+        );
+        let source_process = self.worker_mut().any_process_proxy_from_identifier(source_process_id, true)?;//self.store().processes.get(source_process_id)?;
+        //self.worker_mut().any_process_proxy_from_identifier(destination_process_id)?.lock_mut()?.notify_connected_from(source_process, arg_name, manifest)
+        Ok(self.worker_mut().any_process_proxy_from_identifier(destination_process_id, true)?.lock_mut()?.notify_connected_from(source_process, connection_manifest)?.into())
      }
      
     fn process_p_apply(&mut self, id: &Identifier, arg_name: &str, value: CapsulePtr) -> JuizResult<CapsulePtr> {
@@ -525,7 +555,7 @@ impl ContainerProcessBrokerProxy for CoreBroker {
         if idstruct.broker_type_name == "core" {
             self.worker().store().container_processes.get(id)?.lock()?.call(args)
         } else {
-            self.worker().process_proxy_from_identifier(id)?.lock()?.call(args)
+            self.worker().process_proxy_from_identifier(id, true)?.lock()?.call(args)
         }
     }
 
@@ -534,7 +564,7 @@ impl ContainerProcessBrokerProxy for CoreBroker {
         if idstruct.broker_type_name == "core" {
             self.worker().store().container_processes.get(id)?.lock().with_context(||format!("locking process(id={id:}) in CoreBroker::execute_process() function"))?.execute()
         } else {
-            self.worker().process_proxy_from_identifier(id)?.lock()?.execute()
+            self.worker().process_proxy_from_identifier(id, true)?.lock()?.execute()
         }
     }
  
@@ -770,17 +800,11 @@ impl ExecutionContextBrokerProxy for CoreBroker {
 impl ConnectionBrokerProxy for CoreBroker {
 
     fn connection_list(&self, recursive: bool) -> JuizResult<Value> {
-        let cons = connection_builder::list_connection_profiles(self)?;
+        let cons = self.worker().connection_profile_list()?;
         let mut ids_arr = cons.iter().map(|con_prof| { obj_get(con_prof, "identifier").unwrap().clone() }).collect::<Vec<Value>>();
-    
-        // let mut ids = self.store().containers.list_ids()?;
-        // let ids_arr = ids.as_array_mut().unwrap();
         if recursive {
-            //for (_, proxy ) in self.store().broker_proxies.objects().iter() {
-            for ssp in self.subsystem_proxies.iter() {
-                let proxy = ssp.broker_proxy();
-                
-                let plist = juiz_lock(&proxy)?.connection_list(recursive)?;
+            for subsystem_proxy in self.subsystem_proxies.iter() {
+                let plist = juiz_lock(&subsystem_proxy.broker_proxy())?.connection_list(recursive)?;
                 for v in get_array(&plist)?.iter() {
                     let id = v.as_str().unwrap();
                     ids_arr.push(id.into());
@@ -791,42 +815,12 @@ impl ConnectionBrokerProxy for CoreBroker {
     }
 
     fn connection_profile_full(&self, id: &Identifier) -> JuizResult<Value> {
-        //juiz_lock(&self.store().connections.get(id)?).with_context(||format!("locking ec(id={id:}) in CoreBroker::connection_profile_full() function"))?.profile_full()
-        let (source_id, _destination_id, _arg_name) = connection_identifier_split(id.clone())?;
-        // println!("source_id: {:}", source_id);
-        let result_src_proc = self.worker().store().processes.get(&source_id);
-        if result_src_proc.is_ok() {
-            for src_con in result_src_proc.unwrap().lock()?.source_connections()?.into_iter() {
-                if src_con.identifier().eq(id) {
-                    return src_con.profile_full()
-                }
-            }
-        } else {
-            println!("Can not found process");
-        }
-        let result_src_con_proc = self.worker().store().container_processes.get(&source_id);
-        if result_src_con_proc.is_ok() {
-            //let destination_proc = juiz_lock(&self.store().processes.get(&destination_id)?).with_context(||format!("locking process(id={id:}) in CoreBroker::process_profile_full() function"))?;
-            for dst_con in result_src_con_proc.unwrap().lock()?.destination_connections()?.into_iter() {
-                // println!("con: {:}", dst_con.identifier());
-                if dst_con.identifier().eq(id) {
-                    return dst_con.profile_full()
-                }
-            }
-        } else {
-            println!("Can not found container process");
-
-        }
-        Err(anyhow::Error::from(JuizError::ConnectionCanNotBeFoundError{identifier: id.clone()}))
+        self.worker().connection_profile_full(id.clone(), true)
     }
 
     fn connection_create(&mut self, manifest: Value) -> JuizResult<Value> {
         log::trace!("CoreBroker::connection_create({manifest}) called");
-        let (source_id, destination_id) = check_connection_source_destination(&manifest)?;
-        let source = self.worker_mut().any_process_proxy_from_identifier(&source_id)?;
-        let destination = self.worker_mut().any_process_proxy_from_identifier(&destination_id)?;
-        let arg_name = obj_get_str(&manifest, "arg_name")?;
-        Ok(connection_builder::connect(source, destination, &arg_name.to_string(), manifest)?.into())
+        Ok(self.worker_mut().create_connection(manifest.try_into()?)?.into())
     }
     
     fn connection_destroy(&mut self, _id: &Identifier) -> JuizResult<Value> {

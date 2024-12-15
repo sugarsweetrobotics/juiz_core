@@ -1,7 +1,7 @@
 
 
 use std::sync::{Arc, Mutex};
-use juiz_sdk::anyhow;
+use juiz_sdk::{anyhow, connections::ConnectionManifest};
 use crate::prelude::*;
 use juiz_sdk::prelude::*;
 use crate::brokers::BrokerProxy;
@@ -75,22 +75,22 @@ impl Process for ProcessProxy {
         todo!()
     }
 
-    fn push_by(&self, _arg_name: &str, _value: CapsulePtr) -> JuizResult<CapsulePtr> {
-        todo!()
+    fn push_by(&self, arg_name: &str, value: CapsulePtr) -> JuizResult<CapsulePtr> {
+        juiz_lock(&self.broker_proxy)?.process_push_by(&self.identifier(), arg_name.to_owned(), value)
     }
 
     fn get_output(&self) -> CapsulePtr {
         todo!()
     }
 
-    fn notify_connected_from<'b>(&'b mut self, source: ProcessPtr, arg_name: &str, manifest: Value) -> JuizResult<Value> {
+    fn notify_connected_from<'b>(&'b mut self, source: ProcessPtr, manifest: ConnectionManifest) -> JuizResult<ConnectionManifest> {
         log::trace!("ProcessProxy::notify_connected_from() called");
-        juiz_lock(&self.broker_proxy)?.process_notify_connected_from(source.identifier(), arg_name, &self.identifier(), manifest)
+        juiz_lock(&self.broker_proxy)?.process_notify_connected_from(source.identifier(), manifest.arg_name.clone().as_str(), &manifest.destination_process_id, manifest.connection_type.to_string(), manifest.identifier)?.try_into()
     }
 
-    fn try_connect_to(&mut self, destination: ProcessPtr, arg_name: &str,manifest: Value) -> JuizResult<Value> {
+    fn try_connect_to(&mut self, destination: ProcessPtr, manifest: ConnectionManifest) -> JuizResult<ConnectionManifest> {
         log::trace!("ProcessProxy::try_connect_to() called");
-        juiz_lock(&self.broker_proxy)?.process_try_connect_to(&self.identifier(), arg_name, destination.identifier(), manifest)
+        juiz_lock(&self.broker_proxy)?.process_try_connect_to(&manifest.source_process_id, manifest.arg_name.clone().as_str(), destination.identifier(), manifest.connection_type.to_string(), manifest.identifier)?.try_into()
     }
 
     fn source_connections(&self) -> JuizResult<Vec<&Box<dyn SourceConnection>>> {

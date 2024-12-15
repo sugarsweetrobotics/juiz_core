@@ -15,6 +15,7 @@ pub struct CRUDBroker {
     read_callback_container: ClassCallbackContainerType, //HashMap<&'static str, FnType>
     update_callback_container: ClassCallbackContainerType, //HashMap<&'static str, FnType>
     delete_callback_container: ClassCallbackContainerType, //HashMap<&'static str, FnType>
+    is_started: bool,
 }
 
 fn _resource_name_to_cls_and_id<'a>(resource_name: &'a str, _params: &Vec<String>) -> JuizResult<(&'a str, Identifier)> {
@@ -70,12 +71,25 @@ impl CRUDBroker {
             read_callback_container: read_callback_container(),
             update_callback_container: update_callback_container(),
             delete_callback_container: delete_callback_container(),
-            manifest
+            manifest,
+            is_started: false,
         })
     }
 
     pub fn name(&self) -> String {
         self._name.clone()
+    }
+
+    pub fn is_started(&self) -> bool {
+        self.is_started
+    }
+
+    pub fn set_started(&mut self) -> () {
+        self.is_started = true;
+    }
+
+    pub fn clear_started(&mut self) -> () {
+        self.is_started = false;
     }
 
     pub fn identifier(&self) -> Identifier {
@@ -87,7 +101,7 @@ impl CRUDBroker {
     }
 
     pub fn update_broker_name(&mut self, name: &str) -> () {
-        log::error!("update_broker_name({name}) called");
+        log::trace!("update_broker_name({name}) called");
         self._name = name.to_owned();
         self.manifest.as_object_mut().unwrap().insert("name".to_owned(), name.into());
         let broker_name = self.manifest.as_object().unwrap().get("name").unwrap().as_str().unwrap();
@@ -185,17 +199,21 @@ impl CRUDBroker {
     }
 
     fn call_callback(&self, cb_container: &ClassCallbackContainerType, class_name: &str, function_name:&str, args: CapsuleMap) -> JuizResult<CapsulePtr> {
-        cb_container.get(class_name).and_then(|cbs| {
-            cbs.get(function_name)
-        }).and_then(|cb|{
-            Some(cb(self.core_broker.clone(), args).and_then(|mut capsule|{
-                capsule.set_function_name(function_name)?;
-                capsule.set_class_name(class_name)?;
-                Ok(capsule)
-            }))
-        }).or_else(||{
-            Some(Err(anyhow!(JuizError::CRUDBrokerCanNotFindFunctionError { class_name: class_name.to_owned(), function_name: function_name.to_owned()})))
-        }).unwrap()
+        log::trace!("call_callback({class_name}, {function_name}, {args})");
+        cb_container.get(class_name)
+        .and_then(|cbs| { cbs.get(function_name)})
+        .ok_or(anyhow!(JuizError::CRUDBrokerCanNotFindFunctionError { class_name: class_name.to_owned(), function_name: function_name.to_owned()}))
+        .and_then(|cb|{
+            cb(self.core_broker.clone(), args)
+        }).or_else(|e| {
+            log::error!("Error in call_callback. Error({e})");
+            Err(e)
+        })
+        .and_then( |mut capsule|{
+            capsule.set_function_name(function_name)?;
+            capsule.set_class_name(class_name)?;
+            Ok(capsule)
+        })
     }
     
 }

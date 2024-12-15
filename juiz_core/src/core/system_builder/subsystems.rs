@@ -28,7 +28,7 @@ fn setup_subsystem(system: &System, manifest: &Value) -> JuizResult<()> {
 }
 
 pub(super) fn setup_mastersystem(system: &System, manifest: &Value) -> JuizResult<()> { 
-    log::debug!("setup_mastersystem({manifest}) called");
+    log::trace!("setup_mastersystem({manifest}) called");
     // let broker_proxy = system.create_broker_proxy(manifest)?;
     // broker_proxy.lock().or_else(|e| { Err(anyhow!(JuizError::ObjectLockError { target: "core_broker".to_owned() }))})?
     //     .system_add_subsystem(manifest)

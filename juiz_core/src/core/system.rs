@@ -121,7 +121,7 @@ impl System {
     pub fn setup(mut self) -> JuizResult<Self> {
         log::trace!("System::setup() called");
         let manifest_copied = self.core_broker().lock()?.worker().manifest();
-        log::debug!(" - manifest: {:}", manifest_copied);
+        log::debug!("System is setup with manifest: {:}", manifest_copied);
         let option = self.get_opt();
         //log::info!("option: {option:}");
         let _ = when_contains_do_mut(&manifest_copied, "plugins", |v| {
@@ -185,13 +185,13 @@ impl System {
         match self.store.lock_mut() {
             Ok(mut store) => {
                 let profs = store.brokers.iter().map(|(type_name, broker)| {
-                    log::info!("starting Broker({type_name:})");
+                    log::debug!("starting broker({type_name:})");
                     //store.register_broker(broker.clone());
                     let p = match broker.lock_mut() {
                         Ok(mut b) =>{
                             b.start()?;
-                            log::error!("Broker STARTED ({type_name:?})");
-                            
+                            b.wait_until_started(Duration::from_secs_f64(3.0))?;
+                            log::info!("broker ({type_name:?}) has started");
                             Ok((b.profile_full()?, broker.clone()))
                         }
                         Err(e) => {
@@ -199,19 +199,15 @@ impl System {
                             Err(anyhow!(JuizError::ObjectLockError { target: format!("Broker({type_name})") }))
                         }
                     }?;
-                    std::thread::sleep(Duration::from_millis(1000));
                     Ok(p)
                 }).collect::<JuizResult<Vec<(Value, BrokerPtr)>>>()?;
-                //let mut core_store = ;
                 profs.into_iter().for_each(|(v, b)| {
                     let type_name = v.as_object().unwrap().get("type_name").unwrap().as_str().unwrap().to_owned();
                     let _ = self.core_broker().lock_mut().unwrap().worker_mut().store_mut().register_broker_manifest(type_name.as_str(), v)
                         .or_else(|e| {
-                    //.register_broker(b).or_else(|e| {
                         log::error!("Store::register_broker({type_name}) failed. Error({e:?})");
                         Err(e)
                     });
-                    //log::info!("new broker ({v}) registered");
                 });
                 Ok(())
             },

@@ -4,7 +4,7 @@
 
 export PWD=`pwd`
 export DYLIB=$PWD/target/debug/librust_listener.dylib 
-export RUST_LOG=juiz_core=debug,juiz_core::brokers::http=trace
+export RUST_LOG=juiz_core=debug
 
 
 cd ../../../

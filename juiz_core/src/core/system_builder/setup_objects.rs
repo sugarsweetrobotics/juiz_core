@@ -48,7 +48,7 @@ pub(crate) fn setup_objects(system: &mut System, manifest: &Value) -> JuizResult
     })?;
 
     // ここでbrokerがスタートした時にマニフェストが更新されている可能性があるので最新版を取得
-    system.wait_brokers_started()?;
+    // system.wait_brokers_started()?;
     let manifest_updated = system.core_broker().lock()?.worker().manifest();
     log::trace!("manifest_updated: {manifest_updated:?}");
 

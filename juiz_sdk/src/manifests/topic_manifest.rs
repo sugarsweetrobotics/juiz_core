@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use crate::prelude::*;
 
 use anyhow::anyhow;
@@ -11,6 +13,12 @@ pub struct TopicManifest {
 impl TopicManifest {
     pub fn new(name: &str) -> Self {
         TopicManifest{name: name.to_owned()}
+    }
+}
+
+impl Display for TopicManifest {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("TopicManifest({})", self.name))
     }
 }
 

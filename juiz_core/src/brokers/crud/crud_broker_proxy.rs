@@ -1,6 +1,6 @@
 use std::{collections::HashMap, sync::{Mutex, Arc}};
 
-use juiz_sdk::anyhow::anyhow;
+use juiz_sdk::{anyhow::anyhow, connections::ConnectionManifest};
 use uuid::Uuid;
 
 use crate::{brokers::broker_proxy::TopicBrokerProxy, prelude::*};
@@ -70,7 +70,7 @@ impl CRUDBrokerProxyHolder {
             }
             ids.push(id_struct.into());
         }
-        log::error!("convert_identifier_name({ids:?})");
+        // log::trace!("convert_identifier_name({ids:?})");
         Ok(jvalue!(ids))
     }
 
@@ -200,30 +200,47 @@ impl ProcessBrokerProxy for CRUDBrokerProxyHolder {
         })?
     }
 
-    fn process_try_connect_to(&mut self, source_process_id: &Identifier, arg_name: &str, destination_process_id: &Identifier, manifest: Value) -> JuizResult<Value> {
-        capsule_to_value(self.broker.update(
-            "process", 
-            "try_connect_to", 
-            CapsuleMap::try_from(jvalue!({
-                "source_process_id": source_process_id,
-                "arg_name": arg_name,
-                "destination_process_id": destination_process_id,
-                "manifest": manifest
-            }))?, 
-            HashMap::from([]))?)
+    
+    fn process_push_by(&self, id: &Identifier, arg_name: String, value: CapsulePtr) -> JuizResult<CapsulePtr> {
+        log::trace!("process_push_by({id}, {arg_name}, {value}");
+        let mut cm: CapsuleMap = CapsuleMap::new();
+        cm.insert("value".to_owned(), value);
+        let cap = CapsulePtr::from(Into::<Value>::into(arg_name));
+        cm.insert("arg_name".to_owned(), cap);
+
+        self.broker.update("process", "push_by", cm, param(&[("identifier", id)]))
     }
 
-    fn process_notify_connected_from(&mut self, source_process_id: &Identifier, arg_name: &str, destination_process_id: &Identifier, manifest: Value) -> JuizResult<Value> {
-        capsule_to_value(self.broker.update(
+    fn process_try_connect_to(&mut self, source_process_id: &Identifier, arg_name: &str, destination_process_id: &Identifier, connection_type: String, connection_id: Option<String>) -> JuizResult<Value> {
+        let connection_manifest = ConnectionManifest::new(
+            connection_type.as_str().into(),
+            source_process_id.clone(),
+            arg_name.to_owned(),
+            destination_process_id.clone(),
+            connection_id,
+        );
+        let v: JuizResult<Value> = self.broker.update(
+            "process", 
+            "try_connect_to", 
+            CapsuleMap::try_from(Into::<Value>::into(connection_manifest))?, 
+            HashMap::from([]))?.extract_value();
+        log::debug!("process_try_connect_to({source_process_id}, {arg_name}, {destination_process_id}) returns {v:?}");
+        v
+    }
+
+    fn process_notify_connected_from(&mut self, source_process_id: &Identifier, arg_name: &str, destination_process_id: &Identifier, connection_type: String, connection_id: Option<String>) -> JuizResult<Value> {
+        let connection_manifest = ConnectionManifest::new(
+            connection_type.as_str().into(),
+            source_process_id.clone(),
+            arg_name.to_owned(),
+            destination_process_id.clone(),
+            connection_id,
+        );
+        self.broker.update(
             "process", 
             "notify_connected_from", 
-            CapsuleMap::try_from(jvalue!({
-                "source_process_id": source_process_id,
-                "arg_name": arg_name,
-                "destination_process_id": destination_process_id,
-                "manifest": manifest
-            }))?, 
-            HashMap::from([]))?)
+            CapsuleMap::try_from(Into::<Value>::into(connection_manifest))?, 
+            HashMap::from([]))?.extract_value()
     }
     
     fn process_p_apply(&mut self, id: &Identifier, arg_name: &str, value: CapsulePtr) -> JuizResult<CapsulePtr> {

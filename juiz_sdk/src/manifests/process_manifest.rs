@@ -24,8 +24,25 @@ pub struct ProcessManifest {
 
 impl Display for ProcessManifest {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_fmt(format_args!("ProcessManifest(\"{}\")", self.type_name))?;
-        
+        f.write_str("ProcessManifest(")?;
+        if self.name.is_some() {
+            f.write_fmt(format_args!("{}", self.name.as_ref().unwrap()))?;
+        } else {
+            f.write_str("None")?;
+        }
+        f.write_fmt(format_args!("::{}, args=[", self.type_name.as_str()))?;
+        for a in self.arguments.iter() {
+            f.write_fmt(format_args!("{}, ", a))?;
+        }
+        f.write_fmt(format_args!("], language={}, use_memo={}, publishes=[", self.language, self.use_memo))?;
+        for tm in self.publishes.iter() {
+            f.write_fmt(format_args!("{}, ", tm))?;
+        }
+        f.write_str("], subscribes={")?;
+        for (arg_name, tm) in self.subscribes.iter() {
+            f.write_fmt(format_args!("{}:{}, ", arg_name, tm))?;
+        }
+        f.write_str("})")?;
         Ok(())
     }
 }

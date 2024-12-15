@@ -1,7 +1,7 @@
 
 //pub type CapsulePtr = Arc<Mutex<Capsule>>;
 
-use std::{collections::HashMap, sync::{Arc, Mutex}};
+use std::{collections::HashMap, fmt::Display, sync::{Arc, Mutex}};
 use anyhow::anyhow;
 use image::DynamicImage;
 // #[cfg(feature="opencv4")]
@@ -17,6 +17,11 @@ pub struct CapsulePtr {
     value: Arc<Mutex<Capsule>>,
 }
 
+impl Display for CapsulePtr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("CapsulePtr({})", self.value.lock().unwrap()))
+    }
+}
 impl CapsulePtr {
 
     pub fn new() -> Self {

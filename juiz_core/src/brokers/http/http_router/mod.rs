@@ -369,7 +369,7 @@ pub fn app_new(crud_broker: Arc<Mutex<CRUDBroker>>, static_filepaths: Option<Vec
     api.merge(execution_context::ApiDoc::openapi());
     api.merge(connection::ApiDoc::openapi());
     api.merge(topic::ApiDoc::openapi());
-    log::warn!("static_filepaths: {:?}", static_filepaths);
+    log::trace!("app_new(static_filepaths: {static_filepaths:?}) called");
     let mut r = Router::new()
             .merge(SwaggerUi::new("/docs").url("/api-docs/openapi.json", api))
             .nest("/api/", any::object_router(crud_broker.clone()));

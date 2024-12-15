@@ -1,4 +1,6 @@
 
+use std::fmt::Display;
+
 use crate::prelude::*;
 use super::manifest_description::Description;
 use anyhow::anyhow;
@@ -30,6 +32,12 @@ impl ArgumentType {
     }
 }
 
+impl Display for ArgumentType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
 impl TryFrom<&str> for ArgumentType {
     type Error = anyhow::Error;
 
@@ -55,6 +63,11 @@ pub struct ArgumentManifest {
     pub default: Value
 }
 
+impl Display for ArgumentManifest {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("ArgumentManifest({}::{},default={})", self.name, self.type_name, self.default))
+    }
+}
 fn type_check(arg_type: &ArgumentType, value: &Value) -> JuizResult<()> {
     fn ret_err() -> JuizResult<()> {
         Err(anyhow!(JuizError::ArguemntTypeIsInvalidError {}))

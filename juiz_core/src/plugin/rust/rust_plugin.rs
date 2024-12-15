@@ -35,8 +35,7 @@ impl RustPlugin {
                         },
                         Err(_) => None
                     };
-                
-                    log::debug!("RustPlugin::load({:?}) loaded", path);
+                    log::info!("RustPlugin::load({:?}) loaded", path);
                     Ok(RustPlugin{lib:Some(lib), 
                         plugin_manager,
                         path})
@@ -63,6 +62,7 @@ impl RustPlugin {
     }
 
     pub fn load_process_factory(&self, _working_dir: Option<PathBuf>, symbol_name: &str) -> JuizResult<ProcessFactoryPtr> {
+        log::trace!("load_process_factory({_working_dir:?}, symbol_name={symbol_name}) called");
         type SymbolType = libloading::Symbol<'static, unsafe extern "Rust" fn() -> JuizResult<ProcessFactoryStruct>>;
         unsafe {
             let symbol = self.load_symbol::<SymbolType>(symbol_name.as_bytes())?;
@@ -72,6 +72,7 @@ impl RustPlugin {
     }
 
     pub fn load_container_factory(&self, _working_dir: Option<PathBuf>, symbol_name: &str) -> JuizResult<ContainerFactoryPtr> {
+        log::trace!("load_container_factory({_working_dir:?}, symbol_name={symbol_name}) called");
         type SymbolType = libloading::Symbol<'static, unsafe extern "Rust" fn() -> JuizResult<ContainerFactoryStruct>>;
         unsafe {
             let symbol = self.load_symbol::<SymbolType>(symbol_name.as_bytes())?;
@@ -81,6 +82,7 @@ impl RustPlugin {
     }
 
     pub fn load_container_process_factory(&self, _working_dir: Option<PathBuf>, symbol_name: &str) -> JuizResult<ContainerProcessFactoryPtr> {
+        log::trace!("load_container_process_factory({_working_dir:?}, symbol_name={symbol_name}) called");
         type SymbolType = libloading::Symbol<'static, unsafe extern "Rust" fn() -> JuizResult<ContainerProcessFactoryStruct>>;
         unsafe {
             let symbol = self.load_symbol::<SymbolType>(symbol_name.as_bytes())?;
@@ -90,6 +92,7 @@ impl RustPlugin {
     }
 
     pub fn load_component_manifest(&self) -> JuizResult<ComponentManifest> {
+        log::trace!("load_component_manifest() for RustPlugin(path={:?}) called", self.path);
         type ComponentProfileFunctionSymbolType<'a> = libloading::Symbol<'a, unsafe extern "Rust" fn() -> ComponentManifest>;
         let symbol = self.load_symbol::<ComponentProfileFunctionSymbolType>(b"component_manifest")?;
         Ok(unsafe {
@@ -98,6 +101,7 @@ impl RustPlugin {
     }
 
     pub fn load_broker_factory(&self, system: &mut System, ) -> JuizResult<Arc<Mutex<dyn BrokerFactory>>> {
+        log::trace!("load_broker_factory() for RustPlugin(path={:?}) called", self.path);
         //log::trace!("BrokerFactory (type_name={:?}) created.", juiz_lock(&bf)?.type_name());
         type BrokerFactorySymbolType<'a> = libloading::Symbol<'a, unsafe extern "Rust" fn(CoreBrokerPtr) -> JuizResult<Arc<Mutex<dyn BrokerFactory>>>>;
         let symbol_bf = self.load_symbol::<BrokerFactorySymbolType>(b"broker_factory")?;
@@ -107,6 +111,7 @@ impl RustPlugin {
     }
 
     pub fn load_broker_proxy_factory(&self, _system: &mut System,) -> JuizResult<Arc<Mutex<dyn BrokerProxyFactory>>> {
+        log::trace!("load_broker_proxy_factory() for RustPlugin(path={:?}) called", self.path);
         type BrokerProxyFactorySymbolType<'a> = libloading::Symbol<'a, unsafe extern "Rust" fn() -> JuizResult<Arc<Mutex<dyn BrokerProxyFactory>>>>;
         let symbol_bpf = self.load_symbol::<BrokerProxyFactorySymbolType>(b"broker_proxy_factory")?;
         unsafe {
