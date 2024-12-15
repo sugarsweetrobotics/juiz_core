@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::fmt::{Display, Write};
+use std::fmt::Display;
 use serde_json::Map;
 
 use crate::prelude::*;

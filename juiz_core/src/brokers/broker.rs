@@ -1,5 +1,5 @@
 
-use std::{fmt::Debug, time::Duration};
+use std::time::Duration;
 
 use crate::prelude::*;
 

@@ -1,6 +1,5 @@
 
 use crate::object::JuizObject;
-use std::fmt::Debug;
 use crate::prelude::*;
 use crate::connections::{ConnectionManifest, DestinationConnection, SourceConnection};
 use mopa::mopafy;

@@ -14,4 +14,4 @@ path = "src/bin/juiz/main.rs"
 [dependencies]
 clap = {workspace = true}
 home = {workspace = true}
-juiz_core = { workspace = true, path="../juiz_core" }
+juiz_core = { workspace = true }

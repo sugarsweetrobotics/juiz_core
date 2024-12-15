@@ -426,7 +426,7 @@ impl CoreWorker {
         Ok(())
     }
 
-    fn connect_from_topic(&mut self, process: ProcessPtr, arg_name: &String, topic: TopicPtr) -> JuizResult<()> {
+    fn connect_from_topic(&mut self, process: ProcessPtr, _arg_name: &String, topic: TopicPtr) -> JuizResult<()> {
         log::error!("connect_from_topic");
         // let topic_subscribe_connection_manifest = jvalue!({
         //     "type": "push",

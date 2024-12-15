@@ -12,11 +12,9 @@ use juiz_sdk::utils::yaml_conf_load::yaml_conf_load_with;
 use crate::brokers::broker_ptr::BrokerPtr;
 use crate::prelude::*;
 
-use crate::{
-    brokers::{
+use crate::brokers::{
         broker_proxy::SystemBrokerProxy,
-        broker_factories_wrapper::BrokerFactoriesWrapper},
-};
+        broker_factories_wrapper::BrokerFactoriesWrapper};
 
 use super::system_builder;
 use super::system_store::{SystemStore, SystemStorePtr};
@@ -61,7 +59,7 @@ impl System {
 
     pub fn new(manifest: Value) -> JuizResult<System> {
         let checked_manifest = check_system_manifest(manifest)?;
-        let updated_manifest:Value = merge_home_manifest(checked_manifest)?;
+        let _updated_manifest:Value = merge_home_manifest(checked_manifest)?;
         let store = SystemStorePtr::new(SystemStore::new());
         Ok(System {
             core: ObjectCore::create(JuizObjectClass::System("System"), "system", "system"),
@@ -149,7 +147,7 @@ impl System {
         }
         let id = id_opt.unwrap();
         let id_struct = IdentifierStruct::new_broker_id(id.clone())?;
-        let profile = id_struct.to_broker_manifest();
+        let _profile = id_struct.to_broker_manifest();
         let broker_type_name = id_struct.broker_type_name;
         let broker_name = id_struct.broker_name;
         let create_when_not_found = true;
@@ -183,7 +181,7 @@ impl System {
 
     pub fn start_brokers(&mut self) -> JuizResult<()> {
         match self.store.lock_mut() {
-            Ok(mut store) => {
+            Ok(store) => {
                 let profs = store.brokers.iter().map(|(type_name, broker)| {
                     log::debug!("starting broker({type_name:})");
                     //store.register_broker(broker.clone());
@@ -201,7 +199,7 @@ impl System {
                     }?;
                     Ok(p)
                 }).collect::<JuizResult<Vec<(Value, BrokerPtr)>>>()?;
-                profs.into_iter().for_each(|(v, b)| {
+                profs.into_iter().for_each(|(v, _b)| {
                     let type_name = v.as_object().unwrap().get("type_name").unwrap().as_str().unwrap().to_owned();
                     let _ = self.core_broker().lock_mut().unwrap().worker_mut().store_mut().register_broker_manifest(type_name.as_str(), v)
                         .or_else(|e| {

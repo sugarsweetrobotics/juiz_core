@@ -1,5 +1,4 @@
 use std::{io::ErrorKind, net::SocketAddr, path::PathBuf, sync::{Arc, Mutex}};
-use juiz_sdk::anyhow;
 //use axum::extract::path::ErrorKind;
 use tokio::net::TcpListener;
 
@@ -13,7 +12,7 @@ use super::http_router::app_new;
 fn into_address(host: &str, port: i64) -> String {
     return format!("{:}:{:}", host, port);
 }
-fn check_server_is_juiz(host: &str, port: i64) -> bool {
+fn check_server_is_juiz(_host: &str, _port: i64) -> bool {
     return true;
 }
 

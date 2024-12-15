@@ -3,7 +3,7 @@
 pub mod connection_builder {
 
     use crate::prelude::*;
-    use std::collections::HashMap;
+    
     use juiz_sdk::{anyhow::{anyhow, Context}, connections::ConnectionManifest};
 
     ///

@@ -1,7 +1,7 @@
-use std::{collections::HashMap, fmt::Display};
+use std::fmt::Display;
 use anyhow::anyhow;
 use serde_json::{json, Map};
-use crate::{prelude::Identifier, result::{JuizError, JuizResult}, value::{CapsuleMap, CapsulePtr, Value}};
+use crate::{prelude::Identifier, result::{JuizError, JuizResult}, value::{CapsuleMap, Value}};
 
 use super::connection_type::ConnectionType;
 

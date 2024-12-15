@@ -1,6 +1,5 @@
 
-use crate::prelude::*;
-use crate::object::{JuizObject, JuizObjectClass, ObjectCore};
+use crate::object::JuizObject;
 use super::connection_type::ConnectionType;
 use super::connection_core::ConnectionCore;
 

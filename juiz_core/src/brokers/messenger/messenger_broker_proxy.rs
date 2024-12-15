@@ -325,7 +325,19 @@ impl ProcessBrokerProxy for MessengerBrokerProxy {
 
 
     fn process_push_by(&self, id: &Identifier, arg_name: String, value: CapsulePtr) -> JuizResult<CapsulePtr> {
-        todo!()
+        log::trace!("process_push_by({id}, {arg_name}, {value}");
+        let mut cm: CapsuleMap = CapsuleMap::new();
+        cm.insert("value".to_owned(), value);
+        let cap = CapsulePtr::from(Into::<Value>::into(arg_name));
+        cm.insert("arg_name".to_owned(), cap);
+        self.send_recv_and(
+            "UPDATE", 
+            "process", 
+            "push_by", 
+            cm,
+            &[], 
+            |value| Ok(value))
+        
     }
 
     fn process_try_connect_to(&mut self, source_process_id: &Identifier, arg_name: &str, destination_process_id: &Identifier, connection_type: String, connection_id: Option<String>) -> JuizResult<Value> {

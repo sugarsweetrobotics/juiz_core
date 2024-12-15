@@ -205,7 +205,7 @@ impl Process for ProcessImpl {
 
     fn notify_connected_from(&mut self, source: ProcessPtr, connection_manifest: ConnectionManifest) -> JuizResult<ConnectionManifest> {
         log::trace!("ProcessImpl(id={:?}).notify_connected_from(source=Process()) called", self.identifier());
-        let id = self.identifier().clone();
+        let _id = self.identifier().clone();
         let con = self.connection_factory.create_source_connection(
             source, connection_manifest.clone());
         self.inlet_mut(&connection_manifest.arg_name)?.insert(

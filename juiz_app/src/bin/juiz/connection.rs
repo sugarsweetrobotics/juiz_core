@@ -3,7 +3,6 @@
 
 
 use std::path::Path;
-use juiz_core::utils::yaml_conf_load;
 use juiz_core::log;
 
 use juiz_core::prelude::*;
@@ -56,7 +55,7 @@ pub(crate) fn on_connection(manifest: Value, working_dir: &Path, subcommand: Con
 
 pub(crate) fn on_connection_inner(manifest: Value, working_dir: &Path, subcommand: ConnectionSubCommands, args: Args) -> JuizResult<()> {
     let server = args.server.clone();
-    let recursive = args.recursive;
+    // let recursive = args.recursive;
     match subcommand {
         ConnectionSubCommands::Create { connection_type, source, arg_name, destination} => {
             log::trace!("connection connect command is selected. args={args:?}");

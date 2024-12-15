@@ -1,15 +1,16 @@
 
 
 use std::sync::{Arc, Mutex};
-use std::time::Duration;
+use std::time::{self, Duration};
 use futures::Future;
 
 use super::super::core_broker::CoreBrokerPtr;
 use crate::prelude::*;
 use crate::brokers::{Broker, CRUDBroker};
 
+use juiz_sdk::anyhow::anyhow;
 use tokio::runtime;
-
+#[allow(unused)]
 pub struct CRUDBrokerHolder<F, Fut> where F: Fn(Value, Arc<Mutex<CRUDBroker>>) -> Fut + Send + Sync + Copy + 'static, Fut: Future<Output=()>+ Send + 'static {
     core: ObjectCore,
     crud_broker: Arc<Mutex<CRUDBroker>>,
@@ -88,11 +89,18 @@ impl<F, Fut> Broker for CRUDBrokerHolder<F, Fut>  where F: Fn(Value, Arc<Mutex<C
     }
 
     fn wait_until_started(&mut self, timeout: Duration) -> JuizResult<()> {
+        let start_time = time::Instant::now();
         loop {
             match self.crud_broker.lock() {
                 Ok(crud) => {
                     if crud.is_started() {
                         return Ok(());
+                    } 
+
+                    let duration = start_time.elapsed();
+                    if duration > timeout {
+                        log::error!("wait_until_started failed. Timeout");
+                        return Err(anyhow!(JuizError::TimeoutError{}))
                     }
                 }
                 Err(e) => {

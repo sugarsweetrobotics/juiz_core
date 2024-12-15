@@ -2,12 +2,9 @@
 
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard};
-use std::time::Duration;
-use juiz_sdk::anyhow::{self, anyhow, Context};
+use juiz_sdk::anyhow::{anyhow, Context};
 use juiz_sdk::connections::ConnectionManifest;
-use juiz_sdk::identifier::connection_identifier_split;
 use juiz_sdk::utils::check_corebroker_manifest;
-use juiz_sdk::utils::manifest_util::id_from_manifest;
 use uuid::Uuid;
 use crate::prelude::*;
 
@@ -24,7 +21,6 @@ use crate::brokers::broker_proxy::{
 };
 
 
-use crate::connections::connection_builder::connection_builder;
 use crate::core::CoreWorker;
 use crate::core::SubSystemProxy;
 use crate::core::SystemStorePtr;
@@ -828,35 +824,35 @@ impl ConnectionBrokerProxy for CoreBroker {
     }
 }
 
-fn check_if_both_side_is_on_same_host(source_id: Identifier, destination_id: Identifier) -> JuizResult<(Identifier, Identifier)> {
-    log::trace!("check_if_both_side_is_on_same_host({source_id}, {destination_id}) called");
-    let mut source_id_struct = IdentifierStruct::try_from(source_id)?;
-    let mut destination_id_struct = IdentifierStruct::try_from(destination_id)?;
-    if (source_id_struct.broker_name == destination_id_struct.broker_name) &&
-        (source_id_struct.broker_type_name == destination_id_struct.broker_type_name) {
-        source_id_struct.broker_name = "core".to_owned();
-        source_id_struct.broker_type_name = "core".to_owned();
-        destination_id_struct.broker_name = "core".to_owned();
-        destination_id_struct.broker_type_name = "core".to_owned();
-    }
-    Ok((source_id_struct.to_identifier(), destination_id_struct.to_identifier()))
-}
+// fn check_if_both_side_is_on_same_host(source_id: Identifier, destination_id: Identifier) -> JuizResult<(Identifier, Identifier)> {
+//     log::trace!("check_if_both_side_is_on_same_host({source_id}, {destination_id}) called");
+//     let mut source_id_struct = IdentifierStruct::try_from(source_id)?;
+//     let mut destination_id_struct = IdentifierStruct::try_from(destination_id)?;
+//     if (source_id_struct.broker_name == destination_id_struct.broker_name) &&
+//         (source_id_struct.broker_type_name == destination_id_struct.broker_type_name) {
+//         source_id_struct.broker_name = "core".to_owned();
+//         source_id_struct.broker_type_name = "core".to_owned();
+//         destination_id_struct.broker_name = "core".to_owned();
+//         destination_id_struct.broker_type_name = "core".to_owned();
+//     }
+//     Ok((source_id_struct.to_identifier(), destination_id_struct.to_identifier()))
+// }
 
-fn check_connection_source_destination(manifest: &Value) -> JuizResult<(Identifier, Identifier)> {
-    let source = obj_get(manifest, "source")?;
-    let destination = obj_get(manifest, "destination")?;
+// fn check_connection_source_destination(manifest: &Value) -> JuizResult<(Identifier, Identifier)> {
+//     let source = obj_get(manifest, "source")?;
+//     let destination = obj_get(manifest, "destination")?;
 
-    let source_id_result = obj_get_str(source, "identifier");
-    let destination_id_result = obj_get_str(destination, "identifier");
+//     let source_id_result = obj_get_str(source, "identifier");
+//     let destination_id_result = obj_get_str(destination, "identifier");
     
-    // まずIDが両方ともあったら、brokerが同じものを指していたらcore/coreに直して接続する
-    if source_id_result.is_ok() && destination_id_result.is_ok() {
-        return check_if_both_side_is_on_same_host(source_id_result.unwrap().to_owned(), destination_id_result.unwrap().to_owned());
-    }
+//     // まずIDが両方ともあったら、brokerが同じものを指していたらcore/coreに直して接続する
+//     if source_id_result.is_ok() && destination_id_result.is_ok() {
+//         return check_if_both_side_is_on_same_host(source_id_result.unwrap().to_owned(), destination_id_result.unwrap().to_owned());
+//     }
 
-    // IDがない場合はProcessかContainerProcessかが曖昧だが一旦Processで
-    return Ok((id_from_manifest(source)?, id_from_manifest(destination)?))
-}
+//     // IDがない場合はProcessかContainerProcessかが曖昧だが一旦Processで
+//     return Ok((id_from_manifest(source)?, id_from_manifest(destination)?))
+// }
 
 impl BrokerProxy for CoreBroker {
 

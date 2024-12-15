@@ -2,9 +2,6 @@
 
 use std::fmt::Display;
 
-use crate::prelude::*;
-
-
 #[derive(Debug, PartialEq, Clone)]
 pub enum ConnectionType {
     Pull,
@@ -42,17 +39,17 @@ impl Display for ConnectionType {
     }
 }
 
-fn connection_type_from(typ_str_result: JuizResult<&str>) -> JuizResult<ConnectionType> {
-    if typ_str_result.is_err() {
-        return Ok(ConnectionType::Push);
-    }
-    let typ_str = typ_str_result.unwrap();
-    match typ_str {
-        "pull" => Ok(ConnectionType::Pull),
-        "push" => Ok(ConnectionType::Push),
-        _ => {
-            Err(anyhow::Error::from(JuizError::ConnectionTypeError { type_string: typ_str.to_string() }))
-        }
-    }
-}
+// fn connection_type_from(typ_str_result: JuizResult<&str>) -> JuizResult<ConnectionType> {
+//     if typ_str_result.is_err() {
+//         return Ok(ConnectionType::Push);
+//     }
+//     let typ_str = typ_str_result.unwrap();
+//     match typ_str {
+//         "pull" => Ok(ConnectionType::Pull),
+//         "push" => Ok(ConnectionType::Push),
+//         _ => {
+//             Err(anyhow::Error::from(JuizError::ConnectionTypeError { type_string: typ_str.to_string() }))
+//         }
+//     }
+// }
 
