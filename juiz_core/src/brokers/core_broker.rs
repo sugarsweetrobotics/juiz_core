@@ -796,17 +796,28 @@ impl ExecutionContextBrokerProxy for CoreBroker {
 impl ConnectionBrokerProxy for CoreBroker {
 
     fn connection_list(&self, recursive: bool) -> JuizResult<Value> {
+        log::trace!("connection_list(recursive={recursive}) called");
         let cons = self.worker().connection_profile_list()?;
         let mut ids_arr = cons.iter().map(|con_prof| { obj_get(con_prof, "identifier").unwrap().clone() }).collect::<Vec<Value>>();
         if recursive {
             for subsystem_proxy in self.subsystem_proxies.iter() {
                 let plist = juiz_lock(&subsystem_proxy.broker_proxy())?.connection_list(recursive)?;
+                //println!("plist: {}", plist);
                 for v in get_array(&plist)?.iter() {
                     let id = v.as_str().unwrap();
                     ids_arr.push(id.into());
                 }
             }
+            // for (_id, broker_proxy) in self.worker().store().broker_proxies.objects().iter() {
+            //     let plist = juiz_lock(broker_proxy)?.connection_list(true)?;
+            //     println!("plist: {}", plist);
+            //     for v in get_array(&plist)?.iter() {
+            //         let id = v.as_str().unwrap();
+            //         ids_arr.push(id.into());
+            //     }
+            // }
         }
+        println!("ids_arr: {:?}", ids_arr);
         Ok(jvalue!(ids_arr))
     }
 

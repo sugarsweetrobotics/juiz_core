@@ -77,6 +77,7 @@ fn construct_url(base_url: &String, class_name: &str, function_name: &str, param
 
 impl CRUDBrokerProxy for HTTPBrokerProxy {
     fn create(&self, class_name: &str, function_name: &str, payload: Value, param: std::collections::HashMap<String, String>) -> JuizResult<CapsulePtr> {
+        log::trace!("HTTPBrokerProxy({}).create({class_name:}, {function_name}, {payload}, {param:?}) called", self.base_url);
         let client = reqwest::blocking::Client::new();
         match client.post(construct_url(&self.base_url, class_name, function_name, &param))
             .json(&payload)
@@ -93,6 +94,7 @@ impl CRUDBrokerProxy for HTTPBrokerProxy {
     }
 
     fn delete(&self, class_name: &str, function_name: &str, param: std::collections::HashMap<String, String>) -> JuizResult<CapsulePtr> {
+        log::trace!("HTTPBrokerProxy({}).delete({class_name:}, {function_name}, {param:?}) called", self.base_url);
         let client = reqwest::blocking::Client::new();
         match client.delete(construct_url(&self.base_url, class_name, function_name, &param)).send() {
             Err(e) => Err(anyhow::Error::from(e)),
@@ -119,7 +121,7 @@ impl CRUDBrokerProxy for HTTPBrokerProxy {
                 let value = response.json::<Value>().map_err(|e| anyhow::Error::from(e))?;
                 log::trace!("HTTPBrokerProxy.read({}) Response = {value:?}", self.base_url);
                 let return_value = Ok(value.into());
-                log::trace!("HTTPBrokerProxy.read({}) returns {return_value:?}", self.base_url);
+                //log::trace!("HTTPBrokerProxy.read({}) returns {return_value:?}", self.base_url);
                 return_value
             }
         }

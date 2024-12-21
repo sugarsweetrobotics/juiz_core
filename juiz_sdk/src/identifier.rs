@@ -15,10 +15,13 @@ pub fn connection_identifier_new(source_id: &Identifier, destination_id: &Identi
     "connection://".to_string() + source_id.as_str() + "|" + arg_name + "|" + destination_id.as_str()
 }
 
+/// ConnectionID -> (SourceID, DestinationID, arg_name)
 pub fn connection_identifier_split(connection_id: Identifier) -> JuizResult<(String, String, String)> {
+    log::trace!("connection_identifier_split({connection_id}) called");
     //todo!("not implemented connection_identifier_split");
     let tokens = connection_id[13..].split('|').collect::<Vec<&str>>();
     if tokens.len() != 3 {
+        log::error!("connection_identifier_split({connection_id}) failed. The number of split tokens by '|' is not three but {}", tokens.len());
         return Err(anyhow::Error::from(JuizError::InvalidConnectionIdentifierError{identifier: connection_id}));
     }
     Ok((tokens[0].to_owned(), tokens[2].to_owned(), tokens[1].to_owned()))
@@ -189,6 +192,7 @@ impl IdentifierStruct {
     }
 
     pub fn from_broker_identifier(identifier: &Identifier) -> JuizResult<Self> {
+        log::trace!("IdentifierStruct::from_broker_identifier({identifier}) called");
         match regex::Regex::new(r"^(.+?)://(.+?)/(.+?)/(.+?)::(.+?)$") {
             Ok(re) => {
                 match re.captures(identifier) {
@@ -208,7 +212,7 @@ impl IdentifierStruct {
                         })
                     },
                     None => {
-                        log::error!("digest_identifier error. Invalid Identifier ({identifier}).");
+                        log::error!("IdentifierStruct::from_broker_identifier({identifier}) failed. digest_identifier error. Invalid Identifier ({identifier}).");
                         return Err(anyhow!(JuizError::InvalidIdentifierError{message: identifier.to_owned()}))
                     },
                 }

@@ -3,14 +3,14 @@ use std::{collections::HashMap, path::PathBuf, str::FromStr};
 use juiz_sdk::anyhow::{self, anyhow};
 use uuid::Uuid;
 
-use super::super::core_broker::CoreBrokerPtr;
+use super::{super::core_broker::CoreBrokerPtr, CRUDBroker};
 use crate::{brokers::broker_proxy::{BrokerBrokerProxy, ConnectionBrokerProxy, ContainerBrokerProxy, ContainerProcessBrokerProxy, ExecutionContextBrokerProxy, ProcessBrokerProxy, SystemBrokerProxy, TopicBrokerProxy}, prelude::*};
 use juiz_sdk::value::{CapsuleMap, value_to_capsule};
 
 
 
 
-pub type CBFnType = fn(CoreBrokerPtr, CapsuleMap)->JuizResult<CapsulePtr>;
+pub type CBFnType = fn(&CRUDBroker, CoreBrokerPtr, CapsuleMap)->JuizResult<CapsulePtr>;
 pub type CallbackContainerType = HashMap<&'static str, CBFnType>;
 pub type ClassCallbackContainerType = HashMap<&'static str, CallbackContainerType>;
 
@@ -27,10 +27,10 @@ pub(crate) fn create_callback_container() -> ClassCallbackContainerType {
         //return args.get("map")?.try_into().or_else(|e|{Err(anyhow::Error::from(e))})
     }
 
-    let mut create_cb_container: HashMap<&str, HashMap<&str, fn(CoreBrokerPtr, CapsuleMap) -> Result<CapsulePtr, anyhow::Error>>> = ClassCallbackContainerType::new();
+    let mut create_cb_container: HashMap<&str, HashMap<&str, CBFnType>> = ClassCallbackContainerType::new();
 
     let mut process_callbacks = CallbackContainerType::new();
-    process_callbacks.insert("create",  |cb, args| {
+    process_callbacks.insert("create",  |crud, cb, args| {
         log::debug!("[CREATE] process/create called");
         Ok(cb.lock_mut()?.process_create(extract_create_parameter(args)?.try_into()?)?.into())}
     );
@@ -38,7 +38,7 @@ pub(crate) fn create_callback_container() -> ClassCallbackContainerType {
 
 
     let mut container_callbacks = CallbackContainerType::new();
-    container_callbacks.insert("create",  |cb, args| {
+    container_callbacks.insert("create",  |crud, cb, args| {
         log::debug!("[CREATE] container/create called");
        Ok(cb.lock_mut()?.container_create(extract_create_parameter(args)?.try_into()?)?.into())}
     );
@@ -46,7 +46,7 @@ pub(crate) fn create_callback_container() -> ClassCallbackContainerType {
 
 
     let mut container_process_callbacks = CallbackContainerType::new();
-    container_process_callbacks.insert("create",  |cb, args| {
+    container_process_callbacks.insert("create",  |crud, cb, args| {
         log::debug!("[CREATE] container_process/create called");
         let id = args.get_param("identifier").ok_or_else(||{anyhow!(JuizError::CRUDBrokerCanNotParameterFunctionError { key_name: "identifier".to_owned() })})?;
         Ok(cb.lock_mut()?.container_process_create(&id.clone(), extract_create_parameter(args)?.try_into()?)?.into())}
@@ -55,14 +55,14 @@ pub(crate) fn create_callback_container() -> ClassCallbackContainerType {
 
 
     let mut ec_callbacks = CallbackContainerType::new();
-    ec_callbacks.insert("create",  |cb, args| {
+    ec_callbacks.insert("create",  |crud, cb, args| {
         log::debug!("[CREATE] ec/create called");
         Ok(cb.lock_mut()?.ec_create(&extract_create_parameter(args)?)?.into())}
     );
     create_cb_container.insert("execution_context", ec_callbacks);
 
     let mut connection_callbacks = CallbackContainerType::new();
-    connection_callbacks.insert("create",  |cb, args| {
+    connection_callbacks.insert("create",  |crud, cb, args| {
         log::debug!("[CREATE] connection/create called");
         Ok(cb.lock_mut()?.connection_create(extract_create_parameter(args)?)?.into())}
     );
@@ -75,15 +75,15 @@ pub(crate) fn create_callback_container() -> ClassCallbackContainerType {
 pub(crate) fn read_callback_container() -> ClassCallbackContainerType {
     let mut read_cb_container = ClassCallbackContainerType::new();
     let mut system_callbacks = CallbackContainerType::new();
-    system_callbacks.insert("profile_full", |cb, _args| {
+    system_callbacks.insert("profile_full", |crud, cb, _args| {
         log::debug!("[READ  ] system/profile_full called");
         Ok(value_to_capsule(cb.lock()?.system_profile_full()?))
     });
-    system_callbacks.insert("uuid", |cb, _args| {
+    system_callbacks.insert("uuid", |crud, cb, _args| {
         log::debug!("[READ  ] system/uuid called");
         Ok(value_to_capsule(cb.lock()?.system_uuid()?))
     });
-    system_callbacks.insert("filesystem_list", |cb, _args| {
+    system_callbacks.insert("filesystem_list", |crud, cb, _args| {
         log::debug!("[READ  ] system/filesystem_list called");
         let param = _args.get_params();
         let mut path = ".".to_owned();
@@ -95,12 +95,12 @@ pub(crate) fn read_callback_container() -> ClassCallbackContainerType {
     read_cb_container.insert("system", system_callbacks);
 
     let mut broker_cbs = CallbackContainerType::new();
-    broker_cbs.insert("profile_full", |cb, args| {
+    broker_cbs.insert("profile_full", |crud, cb, args| {
         log::debug!("[READ  ] broker/profile_full called");
         let id = args.get_param("identifier").ok_or_else(||{anyhow::Error::from(JuizError::CRUDBrokerCanNotParameterFunctionError { key_name: "identifier".to_owned() })})?;
         Ok(value_to_capsule(cb.lock()?.broker_profile_full(id)?))
     });
-    broker_cbs.insert("list", |cb, args| {
+    broker_cbs.insert("list", |crud, cb, args| {
         log::debug!("[READ  ] broker/list called");
         let recursive_str = args.get_param("recursive").and_then(|v|{Some(v.clone())}).or_else(||{Some("false".to_owned())}).unwrap();
         let recursive: bool = FromStr::from_str(recursive_str.as_str())?;
@@ -109,7 +109,7 @@ pub(crate) fn read_callback_container() -> ClassCallbackContainerType {
     read_cb_container.insert("broker", broker_cbs);
 
     let mut topic_cbs = CallbackContainerType::new();
-    topic_cbs.insert("list", |cb, _args| {
+    topic_cbs.insert("list", |_crud, cb, _args| {
         log::debug!("[READ  ] topic/list called");
         Ok(value_to_capsule(cb.lock()?.topic_list()?))
     });
@@ -117,12 +117,12 @@ pub(crate) fn read_callback_container() -> ClassCallbackContainerType {
 
 
     let mut proc_cbs = CallbackContainerType::new();
-    proc_cbs.insert("profile_full", |cb, args| {
+    proc_cbs.insert("profile_full", |_crud,cb, args| {
         log::debug!("[READ  ] process/profile_full called");
         let id = args.get_param("identifier").ok_or_else(||{anyhow::Error::from(JuizError::CRUDBrokerCanNotParameterFunctionError { key_name: "identifier".to_owned() })})?;
         Ok(value_to_capsule(cb.lock()?.process_profile_full(id)?))
     });
-    proc_cbs.insert("list", |cb, args| {
+    proc_cbs.insert("list", |_crud,cb, args| {
         log::debug!("[READ  ] process/list called");
         let recursive_str = args.get_param("recursive").and_then(|v|{Some(v.clone())}).or_else(||{Some("false".to_owned())}).unwrap();
         let recursive: bool = FromStr::from_str(recursive_str.as_str())?;
@@ -132,12 +132,12 @@ pub(crate) fn read_callback_container() -> ClassCallbackContainerType {
 
 
     let mut cont_cbs = CallbackContainerType::new();
-    cont_cbs.insert("profile_full", |cb, args| {
+    cont_cbs.insert("profile_full", |_crud,cb, args| {
         log::debug!("[READ  ] container/profile_full called");
         let id = args.get_param("identifier").ok_or_else(||{anyhow::Error::from(JuizError::CRUDBrokerCanNotParameterFunctionError { key_name: "identifier".to_owned() })})?;
         Ok(value_to_capsule(cb.lock()?.container_profile_full(id)?))
     });
-    cont_cbs.insert("list", |cb, args| {
+    cont_cbs.insert("list", |_crud,cb, args| {
         log::debug!("[READ  ] container/list called");
         let recursive_str = args.get_param("recursive").and_then(|v|{Some(v.clone())}).or_else(||{Some("false".to_owned())}).unwrap();
         let recursive: bool = FromStr::from_str(recursive_str.as_str())?;
@@ -146,12 +146,12 @@ pub(crate) fn read_callback_container() -> ClassCallbackContainerType {
     read_cb_container.insert("container", cont_cbs);
     
     let mut cpro_cbs = CallbackContainerType::new();
-    cpro_cbs.insert("profile_full", |cb, args| {
+    cpro_cbs.insert("profile_full", |_crud,cb, args| {
         log::debug!("[READ  ] container_process/profile_full called");
         let id = args.get_param("identifier").ok_or_else(||{anyhow::Error::from(JuizError::CRUDBrokerCanNotParameterFunctionError { key_name: "identifier".to_owned() })})?;
         Ok(value_to_capsule(cb.lock()?.container_process_profile_full(id)?))
     });
-    cpro_cbs.insert("list", |cb, args| {
+    cpro_cbs.insert("list", |_crud,cb, args| {
         log::debug!("[READ  ] container_process/list called");
         let recursive_str = args.get_param("recursive").and_then(|v|{Some(v.clone())}).or_else(||{Some("false".to_owned())}).unwrap();
         let recursive: bool = FromStr::from_str(recursive_str.as_str())?;
@@ -161,12 +161,12 @@ pub(crate) fn read_callback_container() -> ClassCallbackContainerType {
     
 
     let mut con_cbs = CallbackContainerType::new();
-    con_cbs.insert("profile_full", |cb, args| {
+    con_cbs.insert("profile_full", |_crud,cb, args| {
         log::debug!("[READ  ] connection/profile_full called");
         let id = args.get_param("identifier").ok_or_else(||{anyhow::Error::from(JuizError::CRUDBrokerCanNotParameterFunctionError { key_name: "identifier".to_owned() })})?;
         Ok(value_to_capsule(cb.lock()?.connection_profile_full(id)?))
     });
-    con_cbs.insert("list", |cb, args| {
+    con_cbs.insert("list", |_crud,cb, args| {
         log::debug!("[READ  ] connection/list called");
         let recursive_str = args.get_param("recursive").and_then(|v|{Some(v.clone())}).or_else(||{Some("false".to_owned())}).unwrap();
         let recursive: bool = FromStr::from_str(recursive_str.as_str())?;
@@ -176,18 +176,18 @@ pub(crate) fn read_callback_container() -> ClassCallbackContainerType {
     
 
     let mut ec_cbs = CallbackContainerType::new();
-    ec_cbs.insert("profile_full", |cb, args| {
+    ec_cbs.insert("profile_full", |_crud,cb, args| {
         log::debug!("[READ  ] ec/profile_full called");
         let id = args.get_param("identifier").ok_or_else(||{anyhow::Error::from(JuizError::CRUDBrokerCanNotParameterFunctionError { key_name: "identifier".to_owned() })})?;
         Ok(value_to_capsule(cb.lock()?.ec_profile_full(id)?))
     });
-    ec_cbs.insert("list", |cb, args| {
+    ec_cbs.insert("list", |_crud,cb, args| {
         log::debug!("[READ  ] ec/list called");
         let recursive_str = args.get_param("recursive").and_then(|v|{Some(v.clone())}).or_else(||{Some("false".to_owned())}).unwrap();
         let recursive: bool = FromStr::from_str(recursive_str.as_str())?;
         Ok(value_to_capsule(cb.lock()?.ec_list(recursive)?))
     });
-    ec_cbs.insert("get_state", |cb, args| {
+    ec_cbs.insert("get_state", |_crud,cb, args| {
         log::debug!("[READ  ] ec/get_state called");
         let id = args.get_param("identifier").ok_or_else(||{anyhow::Error::from(JuizError::CRUDBrokerCanNotParameterFunctionError { key_name: "identifier".to_owned() })})?;
         Ok(value_to_capsule(cb.lock()?.ec_get_state(id)?))
@@ -203,7 +203,7 @@ pub(crate) fn update_callback_container() -> ClassCallbackContainerType {
     let mut update_cb_container = ClassCallbackContainerType::new();
 
     let mut system_callbacks = CallbackContainerType::new();
-    system_callbacks.insert("add_subsystem", |cb, args| {
+    system_callbacks.insert("add_subsystem", |_crud,cb, args| {
         log::debug!("[UPDATE] system/add_subsystem called");
         let param = args.get_params();
         let  mut manif: Value = args.get("profile")?.extract_value()?;
@@ -226,7 +226,7 @@ pub(crate) fn update_callback_container() -> ClassCallbackContainerType {
             }
         }?))
     });
-    system_callbacks.insert("add_mastersystem", |cb, args| {
+    system_callbacks.insert("add_mastersystem", |_crud,cb, args| {
         log::debug!("[UPDATE] system/add_mastersystem called");
         let param = args.get_params();
         let  mut manif: Value = args.get("profile")?.extract_value()?;
@@ -243,7 +243,7 @@ pub(crate) fn update_callback_container() -> ClassCallbackContainerType {
         }
         Ok(value_to_capsule(cb.lock_mut()?.system_add_mastersystem(manif)?))
     });
-    system_callbacks.insert("load_process", |cb, args| {
+    system_callbacks.insert("load_process", |_crud, cb, args| {
         log::debug!("[UPDATE] system/load_process called");
         let filepath=  match args.get("filepath")?.extract_value()?.as_str() {
             Some(fp_str) => Ok(fp_str.to_owned()),
@@ -255,7 +255,7 @@ pub(crate) fn update_callback_container() -> ClassCallbackContainerType {
         }?;
         Ok(value_to_capsule(cb.lock_mut()?.system_load_process(language, filepath)?))
     });    
-    system_callbacks.insert("load_container", |cb, args| {
+    system_callbacks.insert("load_container", |_crud, cb, args| {
         log::debug!("[UPDATE] system/load_container called");
         let filepath=  match args.get("filepath")?.extract_value()?.as_str() {
             Some(fp_str) => Ok(fp_str.to_owned()),
@@ -267,7 +267,7 @@ pub(crate) fn update_callback_container() -> ClassCallbackContainerType {
         }?;
         Ok(value_to_capsule(cb.lock_mut()?.system_load_container(language, filepath)?))
     }); 
-    system_callbacks.insert("load_container_process", |cb, args| {
+    system_callbacks.insert("load_container_process", |_crud, cb, args| {
         log::debug!("[UPDATE] system/load_container_process called");
         let filepath=  match args.get("filepath")?.extract_value()?.as_str() {
             Some(fp_str) => Ok(fp_str.to_owned()),
@@ -279,7 +279,7 @@ pub(crate) fn update_callback_container() -> ClassCallbackContainerType {
         }?;
         Ok(value_to_capsule(cb.lock_mut()?.system_load_container_process(language, filepath)?))
     }); 
-    system_callbacks.insert("load_component", |cb, args| {
+    system_callbacks.insert("load_component", |_crud, cb, args| {
         log::debug!("[UPDATE] system/load_component called");
         let filepath=  match args.get("filepath")?.extract_value()?.as_str() {
             Some(fp_str) => Ok(fp_str.to_owned()),
@@ -294,24 +294,24 @@ pub(crate) fn update_callback_container() -> ClassCallbackContainerType {
     update_cb_container.insert("system", system_callbacks);
 
     let mut proc_cbs = CallbackContainerType::new();
-    proc_cbs.insert("call", |cb, args| {
+    proc_cbs.insert("call", |_crud, cb, args| {
         log::debug!("[UPDATE] process/call called");
         let id = args.get_param("identifier").ok_or_else(||{anyhow::Error::from(JuizError::CRUDBrokerCanNotParameterFunctionError { key_name: "identifier".to_owned() })})?.as_str();
         cb.lock()?.process_call(&id.to_owned(), args)
     });
-    proc_cbs.insert("execute", |cb, args| {
+    proc_cbs.insert("execute", |_crud, cb, args| {
         log::debug!("[UPDATE] process/execute called");
         let id = args.get_param("identifier").ok_or_else(||{anyhow::Error::from(JuizError::CRUDBrokerCanNotParameterFunctionError { key_name: "identifier".to_owned() })})?;
         cb.lock()?.process_execute(id)
     });
-    proc_cbs.insert("p_apply", |cb, args| {
+    proc_cbs.insert("p_apply", |_crud, cb, args| {
         log::debug!("[UPDATE] process/p_apply called");
         let id = args.get_param("identifier").ok_or_else(||{anyhow::Error::from(JuizError::CRUDBrokerCanNotParameterFunctionError { key_name: "identifier".to_owned() })})?;
         let value = args.get("value")?;
         let arg_name = args.get("arg_name")?.extract_value()?.as_str().and_then(|s|{Some(s.to_owned())}).ok_or(anyhow!(JuizError::ArgumentError { message: "arg_name value is required".to_owned() }))?;
         cb.lock_mut()?.process_p_apply(id, arg_name.as_str(), value)
     });
-    proc_cbs.insert("try_connect_to", |cb, args| {
+    proc_cbs.insert("try_connect_to", |_crud, cb, args| {
         log::debug!("[UPDATE] process/try_connect_to called");
         let cm: ConnectionManifest = match args.try_into() {
             Ok(cm) => Ok(cm),
@@ -326,7 +326,7 @@ pub(crate) fn update_callback_container() -> ClassCallbackContainerType {
                 cm.connection_type.to_string(), 
                 cm.identifier)?.into())
     });
-    proc_cbs.insert("notify_connected_from", |cb, args| {
+    proc_cbs.insert("notify_connected_from", |_crud,cb, args| {
         log::debug!("[UPDATE] process/notify_connected_from called");
         let cm: ConnectionManifest = match args.try_into() {
             Ok(cm) => Ok(cm),
@@ -341,7 +341,7 @@ pub(crate) fn update_callback_container() -> ClassCallbackContainerType {
                 cm.connection_type.to_string(), 
                 cm.identifier)?.into())
     });
-    proc_cbs.insert("push_by", |cb, args| {
+    proc_cbs.insert("push_by", |_crud,cb, args| {
         log::debug!("[UPDATE] process/push_by called");
         let id = args.get_param("identifier").ok_or_else(||{anyhow::Error::from(JuizError::CRUDBrokerCanNotParameterFunctionError { key_name: "identifier".to_owned() })})?;
         let value = args.get("value")?;
@@ -352,17 +352,17 @@ pub(crate) fn update_callback_container() -> ClassCallbackContainerType {
 
 
     let mut cont_proc_cbs = CallbackContainerType::new();
-    cont_proc_cbs.insert("call", |cb, args| {
+    cont_proc_cbs.insert("call", |_crud,cb, args| {
         log::debug!("[UPDATE] container_process/call called");
         let id = args.get_param("identifier").ok_or_else(||{anyhow::Error::from(JuizError::CRUDBrokerCanNotParameterFunctionError { key_name: "identifier".to_owned() })})?.as_str();
         cb.lock()?.container_process_call(&id.to_owned(), args)
     });
-    cont_proc_cbs.insert("execute", |cb, args| {
+    cont_proc_cbs.insert("execute", |_crud,cb, args| {
         log::debug!("[UPDATE] container_process/execute called");
         let id = args.get_param("identifier").ok_or_else(||{anyhow::Error::from(JuizError::CRUDBrokerCanNotParameterFunctionError { key_name: "identifier".to_owned() })})?;
         cb.lock()?.container_process_execute(id)
     });
-    cont_proc_cbs.insert("p_apply", |cb, args| {
+    cont_proc_cbs.insert("p_apply", |_crud,cb, args| {
         log::debug!("[UPDATE] container_process/p_apply called");
         let id = args.get_param("identifier").ok_or_else(||{anyhow::Error::from(JuizError::CRUDBrokerCanNotParameterFunctionError { key_name: "identifier".to_owned() })})?;
         let value = args.get("value")?;
@@ -372,12 +372,12 @@ pub(crate) fn update_callback_container() -> ClassCallbackContainerType {
     update_cb_container.insert("container_process", cont_proc_cbs);
 
     let mut ec_cbs = CallbackContainerType::new();
-    ec_cbs.insert("start", |cb, args| {
+    ec_cbs.insert("start", |_crud,cb, args| {
         log::debug!("[UPDATE] ec/start called");
         let id = args.get_param("identifier").ok_or_else(||{anyhow::Error::from(JuizError::CRUDBrokerCanNotParameterFunctionError { key_name: "identifier".to_owned() })})?;
         Ok(value_to_capsule(cb.lock_mut()?.ec_start(id)?))
     });
-    ec_cbs.insert("stop", |cb, args| {
+    ec_cbs.insert("stop", |_crud,cb, args| {
         log::debug!("[UPDATE] ec/stop called");
         let id = args.get_param("identifier").ok_or_else(||{anyhow::Error::from(JuizError::CRUDBrokerCanNotParameterFunctionError { key_name: "identifier".to_owned() })})?;
         Ok(value_to_capsule(cb.lock_mut()?.ec_stop(id)?))
@@ -386,7 +386,7 @@ pub(crate) fn update_callback_container() -> ClassCallbackContainerType {
 
 
     let mut topic_cbs = CallbackContainerType::new();
-    topic_cbs.insert("push", |cb, args| {
+    topic_cbs.insert("push", |_crud,cb, args| {
         log::debug!("[UPDATE] topic/push called");
         let topic_name = args.get_param("topic_name").ok_or_else(||{anyhow::Error::from(JuizError::CRUDBrokerCanNotParameterFunctionError { key_name: "topic_name".to_owned() })})?;
         let system_uuid = match args.get_param("system_uuid") {
@@ -401,7 +401,7 @@ pub(crate) fn update_callback_container() -> ClassCallbackContainerType {
         let input = args.get("input")?;
         cb.lock()?.topic_push(topic_name.as_str(), input, system_uuid).and(Ok(CapsulePtr::new()))
     });
-    topic_cbs.insert("request_subscribe", |cb, args| {
+    topic_cbs.insert("request_subscribe", |_crud,cb, args| {
         log::debug!("[UPDATE] topic/request_subscribe called");
         let topic_name = args.get_param("topic_name").ok_or_else(||{anyhow::Error::from(JuizError::CRUDBrokerCanNotParameterFunctionError { key_name: "topic_name".to_owned() })})?;
         let system_uuid = match args.get_param("system_uuid") {
@@ -415,7 +415,7 @@ pub(crate) fn update_callback_container() -> ClassCallbackContainerType {
         };
         cb.lock_mut()?.topic_request_subscribe(topic_name.as_str(), system_uuid).and_then(|v| { Ok(v.into())} )
     });
-    topic_cbs.insert("request_publish", |cb, args| {
+    topic_cbs.insert("request_publish", |_crud,cb, args| {
         log::debug!("[UPDATE] topic/request_publish called");
         let topic_name = args.get_param("topic_name").ok_or_else(||{anyhow::Error::from(JuizError::CRUDBrokerCanNotParameterFunctionError { key_name: "topic_name".to_owned() })})?;
         let system_uuid = match args.get_param("system_uuid") {
@@ -439,7 +439,7 @@ pub(crate) fn delete_callback_container() -> ClassCallbackContainerType {
     let mut delete_cb_container = ClassCallbackContainerType::new();
 
     let mut proc_cbs = CallbackContainerType::new();
-    proc_cbs.insert("destroy", |cb, args| {
+    proc_cbs.insert("destroy", |_crud,cb, args| {
         log::debug!("[UPDATE] process/destroy called");
         let id = args.get_param("identifier").ok_or_else(||{anyhow::Error::from(JuizError::CRUDBrokerCanNotParameterFunctionError { key_name: "identifier".to_owned() })})?.as_str();
         let v = cb.lock_mut()?.process_destroy(&id.to_owned())?;
@@ -448,7 +448,7 @@ pub(crate) fn delete_callback_container() -> ClassCallbackContainerType {
     delete_cb_container.insert("process", proc_cbs);
 
     let mut cont_proc_cbs = CallbackContainerType::new();
-    cont_proc_cbs.insert("destroy", |cb, args| {
+    cont_proc_cbs.insert("destroy", |_crud,cb, args| {
         log::debug!("[UPDATE] container_process/destroy called");
         let id = args.get_param("identifier").ok_or_else(||{anyhow::Error::from(JuizError::CRUDBrokerCanNotParameterFunctionError { key_name: "identifier".to_owned() })})?.as_str();
         let v = cb.lock_mut()?.container_process_destroy(&id.to_owned())?;
@@ -457,7 +457,7 @@ pub(crate) fn delete_callback_container() -> ClassCallbackContainerType {
     delete_cb_container.insert("container_process", cont_proc_cbs);
 
     let mut cont_cbs = CallbackContainerType::new();
-    cont_cbs.insert("destroy", |cb, args| {
+    cont_cbs.insert("destroy", |_crud,cb, args| {
         log::debug!("[UPDATE] container/destroy called");
         let id = args.get_param("identifier").ok_or_else(||{anyhow::Error::from(JuizError::CRUDBrokerCanNotParameterFunctionError { key_name: "identifier".to_owned() })})?.as_str();
         let v = cb.lock_mut()?.container_destroy(&id.to_owned())?;

@@ -10,6 +10,7 @@ pub struct CRUDBroker {
     core_broker: CoreBrokerPtr,
     identifier: Identifier,
     _name: String,
+    _type_name: String, 
     manifest: Value,
     create_callback_container: ClassCallbackContainerType, //HashMap<&'static str, FnType>
     read_callback_container: ClassCallbackContainerType, //HashMap<&'static str, FnType>
@@ -66,6 +67,7 @@ impl CRUDBroker {
         let id = format!("core://core/Broker/{broker_name}::{broker_type}");
         Ok(CRUDBroker{core_broker, 
             identifier: id,
+            _type_name: broker_type.to_owned(),
             _name: broker_name.to_owned(),
             create_callback_container: create_callback_container(), 
             read_callback_container: read_callback_container(),
@@ -78,6 +80,10 @@ impl CRUDBroker {
 
     pub fn name(&self) -> String {
         self._name.clone()
+    }
+
+    pub fn type_name(&self) -> String {
+        self._type_name.clone()
     }
 
     pub fn is_started(&self) -> bool {
@@ -204,9 +210,9 @@ impl CRUDBroker {
         .and_then(|cbs| { cbs.get(function_name)})
         .ok_or(anyhow!(JuizError::CRUDBrokerCanNotFindFunctionError { class_name: class_name.to_owned(), function_name: function_name.to_owned()}))
         .and_then(|cb|{
-            cb(self.core_broker.clone(), args)
+            cb(self, self.core_broker.clone(), args)
         }).or_else(|e| {
-            log::error!("Error in call_callback. Error({e})");
+            log::error!("Error in CRUDBroker::call_callback({class_name}, {function_name}). Error({e})");
             Err(e)
         })
         .and_then( |mut capsule|{

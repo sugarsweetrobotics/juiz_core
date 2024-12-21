@@ -1,11 +1,10 @@
 use std::{collections::HashMap, sync::{Mutex, Arc}};
 
-use juiz_sdk::{anyhow::anyhow, connections::ConnectionManifest};
+use juiz_sdk::{anyhow::anyhow, connections::ConnectionManifest, identifier::connection_identifier_split};
 use uuid::Uuid;
 
 use crate::{brokers::broker_proxy::TopicBrokerProxy, prelude::*};
 use crate::brokers::{broker_proxy::{BrokerBrokerProxy, ConnectionBrokerProxy, ContainerBrokerProxy, ContainerProcessBrokerProxy, ExecutionContextBrokerProxy, ProcessBrokerProxy, SystemBrokerProxy}, BrokerProxy};
-
 
 pub trait CRUDBrokerProxy : Send + Sync {
     fn create(&self, class_name: &str, function_name: &str, payload: Value, param: HashMap<String, String>) -> JuizResult<CapsulePtr>;
@@ -411,9 +410,36 @@ impl TopicBrokerProxy for CRUDBrokerProxyHolder {
 
 impl ConnectionBrokerProxy for CRUDBrokerProxyHolder {
     fn connection_list(&self, recursive: bool) -> JuizResult<Value> {
+        log::trace!("connection_list(recursive={recursive}) called");
         let mut param: HashMap<String, String> = HashMap::new();
         param.insert("recursive".to_owned(), recursive.to_string());
-        capsule_to_value(self.broker.read("connection", "list", param)?)
+        let capsule = self.broker.read("connection", "list", param)?;
+        let connection_list_value = capsule.extract_value()?;
+        log::trace!(" - connection_list value is {connection_list_value}");
+        let id_vec = get_array(&connection_list_value)?.into_iter().map(|v| {
+            let id_str = v.as_str().ok_or(JuizError::ValueIsNotStringError {  })?.to_owned();
+            let (src_id, dst_id, arg_name) = connection_identifier_split(id_str)?;
+            let mut src_id_struct = IdentifierStruct::try_from(src_id)?;
+            let mut dst_id_struct = IdentifierStruct::try_from(dst_id)?;
+            //log::warn!("CONNECTIN: {src_id_struct:?}, {dst_id_struct:?}");
+            if src_id_struct.broker_type_name == "core" {
+                src_id_struct.broker_name = self.broker_name().to_owned();
+                src_id_struct.broker_type_name = self.broker_type().to_owned();
+                //log::warn!(" SRC: {dst_id_struct:?}");
+            }
+            if dst_id_struct.broker_type_name == "core" {
+
+                dst_id_struct.broker_name = self.name().to_owned();
+                dst_id_struct.broker_type_name = self.type_name().to_owned();
+                //log::warn!(" SELF: {self:?}");
+                log::warn!(" DST : {dst_id_struct:?}");
+            }
+            let connection_id = connection_identifier_new(&src_id_struct.to_identifier(), &dst_id_struct.to_identifier(), arg_name.as_str());
+
+            Ok(connection_id)
+        }).collect::<JuizResult<Vec<String>>>()?;
+        Ok(id_vec.into())
+        // Ok(connection_list_value)
     }
 
     fn connection_profile_full(&self, id: &Identifier) -> JuizResult<Value> {

@@ -55,7 +55,7 @@ pub(crate) fn on_connection(manifest: Value, working_dir: &Path, subcommand: Con
 
 pub(crate) fn on_connection_inner(manifest: Value, working_dir: &Path, subcommand: ConnectionSubCommands, args: Args) -> JuizResult<()> {
     let server = args.server.clone();
-    // let recursive = args.recursive;
+    let recursive = true;// args.recursive;
     match subcommand {
         ConnectionSubCommands::Create { connection_type, source, arg_name, destination} => {
             log::trace!("connection connect command is selected. args={args:?}");
@@ -67,12 +67,6 @@ pub(crate) fn on_connection_inner(manifest: Value, working_dir: &Path, subcomman
                 .add_systemproxy_by_id(Some(server.clone()))?
                 .run_and_do_once( |system| { 
                     on_connection_create(system, source, arg_name, destination, connection_type)
-                // if any_process {
-                //     //on_any_process_list(system, Some(server), recursive)
-                // } else {
-                //     //on_process_list(system, Some(server), recursive)
-                // } 
-                    //Ok(())
                 }
             ) 
         },
@@ -101,15 +95,9 @@ pub(crate) fn on_connection_inner(manifest: Value, working_dir: &Path, subcomman
                 .set_working_dir(working_dir)
                 .start_http_broker(args.start_http_broker)
                 .setup()?
-                .add_systemproxy_by_id(Some(server.clone()))?
+                //.add_systemproxy_by_id(Some(server.clone()))?
                 .run_and_do_once( |system| { 
-                    
-                // if any_process {
-                //     //on_any_process_list(system, Some(server), recursive)
-                // } else {
-                //     //on_process_list(system, Some(server), recursive)
-                // } 
-                    Ok(())
+                    on_connection_list(system, server, recursive)
                 }
             ) 
         }
@@ -127,5 +115,21 @@ fn on_connection_create(system: &mut System, source_id: String, arg_name: String
         None,
     );
     system.core_broker().lock_mut()?.connection_create(manifest.into())?;
+    Ok(())
+}
+
+fn on_connection_list(system: &mut System, server: String, recursive: bool) -> JuizResult<()> {
+    log::info!("Connection list");
+    //let con_list = system.core_broker().lock()?.connection_list(recursive)?;
+    let id_struct = IdentifierStruct::new_broker_id(server.clone())?;
+    let proxy = system.create_broker_proxy(&serde_json::json!({
+        "identifier": server,
+        "type_name": id_struct.broker_type_name,
+        "name": id_struct.broker_name,
+    }))?;
+    let con_list = proxy.lock().unwrap().connection_list(true)?;
+
+    //system.core_broker().lock()?.worker().store().broker_proxies.objects().iter()
+    println!("{con_list}");
     Ok(())
 }

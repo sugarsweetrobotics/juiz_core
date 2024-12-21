@@ -530,6 +530,7 @@ impl CoreWorker {
     }
 
     pub fn connection_profile_list(&self) -> JuizResult<Vec<Value>> {
+        log::trace!("connection_profile_list() called");
         let mut value_map: HashMap<String, Value> = HashMap::new();
         for (_k, p) in self.store().processes.objects().into_iter() {
             for sc in p.lock()?.source_connections()? {
