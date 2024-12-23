@@ -1,19 +1,14 @@
 
+use crate::connection_identifier::ConnectionIdentifier;
 use crate::object::JuizObject;
 use super::connection_type::ConnectionType;
 use super::connection_core::ConnectionCore;
 
 
 
-pub trait Connection : JuizObject {
+pub trait Connection {
 
-    fn connection_core(&self) -> &ConnectionCore;
+    fn identifier(&self) -> ConnectionIdentifier;
 
-    fn arg_name(&self) -> &String {
-        self.connection_core().arg_name()
-    }
-
-    fn connection_type(&self) -> ConnectionType {
-        self.connection_core().connection_type()
-    }
+    fn connection_type(&self) -> ConnectionType;
 }

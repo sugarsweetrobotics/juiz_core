@@ -10,9 +10,10 @@ use std::clone::Clone;
 
 use juiz_sdk::connections::{DestinationConnection, Connection, ConnectionCore};
 
-
+#[derive(Clone)]
 pub struct DestinationConnectionImpl{
-    core: ConnectionCore,
+    // core: ConnectionCore,
+    connection_manifest: ConnectionManifest,
     destination_process: ProcessPtr
 }
 
@@ -20,7 +21,8 @@ impl DestinationConnectionImpl {
 
     pub fn new_from_manifest(connection_manifest: ConnectionManifest,  destination_process: ProcessPtr) -> Self {
         DestinationConnectionImpl{
-            core: ConnectionCore::new("DestinationConnection",  connection_manifest),
+            connection_manifest,
+            // core: ConnectionCore::new("DestinationConnection",  connection_manifest),
             destination_process}
     }
 
@@ -38,30 +40,35 @@ impl DestinationConnectionImpl {
     // }
 
 
-    fn owner_identifier(&self) -> &Identifier {
-        self.core.source_identifier()
-    }
+    // fn owner_identifier(&self) -> &Identifier {
+    //     self.core.source_identifier()
+    // }
 
 }
 
-impl JuizObjectCoreHolder for DestinationConnectionImpl {
-    fn core(&self) -> &ObjectCore {
-        self.core.object_core()
-    }
-}
+// impl JuizObjectCoreHolder for DestinationConnectionImpl {
+//     fn core(&self) -> &ObjectCore {
+//         self.core.object_core()
+//     }
+// }
 
 
-impl JuizObject for DestinationConnectionImpl {
+// impl JuizObject for DestinationConnectionImpl {
 
-    fn profile_full(&self) -> JuizResult<Value> {
-        self.core.profile_full()
-    }
+//     fn profile_full(&self) -> JuizResult<Value> {
+//         self.core.profile_full()
+//     }
 
-}
+// }
 
 impl Connection for DestinationConnectionImpl {
-    fn connection_core(&self) -> &ConnectionCore {
-        &self.core
+
+    fn identifier(&self) -> ConnectionIdentifier {
+        self.connection_manifest.clone().into() //identifier.clone()
+    }
+
+    fn connection_type(&self) -> ConnectionType {
+        self.connection_manifest.connection_type.clone()
     }
 }
 
@@ -89,8 +96,3 @@ impl<'a> Debug for DestinationConnectionImpl {
     }
 }
 
-impl Clone for DestinationConnectionImpl {
-    fn clone(&self) -> Self {
-        Self { core: self.core.clone(), destination_process: self.destination_process.clone() }
-    }
-}

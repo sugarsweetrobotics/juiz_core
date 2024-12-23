@@ -29,6 +29,11 @@ pub struct ProcessImpl {
     connection_factory: Box<dyn ConnectionFactory + 'static>,
 }
 
+impl std::fmt::Debug for ProcessImpl {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ProcessImpl").field("core", &self.core).field("manifest", &self.manifest).field("function", &self.function).field("identifier", &self.identifier).field("outlet", &self.outlet).field("inlets", &self.inlets).field("connection_factory", &self.connection_factory).finish()
+    }
+}
 
 // pub fn argument_manifest(process_manifest: &ProcessManifest) -> &Vec<ArgumentManifest> {//JuizResult<&Map<String, Value>>{
 //     // obj_get_obj(process_manifest, "arguments")

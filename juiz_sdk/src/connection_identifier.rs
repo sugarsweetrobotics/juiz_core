@@ -3,7 +3,7 @@ use std::fmt::Display;
 use crate::{connections::destination_connection, prelude::{Connection, Identifier}, result::JuizError};
 
 
-
+#[derive(Debug, Clone)]
 pub struct ConnectionIdentifier {
     pub source_identifier: Identifier,
     pub destination_identifier: Identifier,

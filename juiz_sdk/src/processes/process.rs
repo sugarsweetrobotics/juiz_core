@@ -9,7 +9,7 @@ use super::ProcessPtr;
 pub type ProcessBodyFunctionType = fn(CapsuleMap) -> JuizResult<Capsule>;
 pub type ProcessBodyFunctionTrait = dyn Fn(CapsuleMap) -> JuizResult<Capsule>;
 
-pub trait Process : Send + Sync + mopa::Any + JuizObject + 'static {
+pub trait Process : Send + Sync + mopa::Any + JuizObject + std::fmt::Debug + 'static {
 
     fn call(&self, _args: CapsuleMap) -> JuizResult<CapsulePtr>;
 

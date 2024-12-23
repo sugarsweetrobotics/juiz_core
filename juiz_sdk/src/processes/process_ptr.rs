@@ -14,6 +14,12 @@ pub struct ProcessPtr {
     ptr: Arc<RwLock<dyn Process>>,
 }
 
+impl std::fmt::Debug for ProcessPtr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ProcessPtr").field("identifier", &self.identifier).field("type_name", &self.type_name).field("ptr", &self.ptr.read().unwrap()).finish()
+    }
+}
+
 impl ProcessPtr {
 
     pub fn new(proc: impl Process) -> Self {
