@@ -12,6 +12,12 @@ pub struct ContainerPtr {
     ptr: Arc<RwLock<dyn Container>>,
 }
 
+impl std::fmt::Debug for ContainerPtr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ContainerPtr").field("identifier", &self.identifier).field("type_name", &self.type_name).finish()
+    }
+}
+
 impl ContainerPtr {
 
     pub fn new(container: impl Container) -> Self {

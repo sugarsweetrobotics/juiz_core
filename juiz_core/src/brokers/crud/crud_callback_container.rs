@@ -1,6 +1,6 @@
 use std::{collections::HashMap, path::PathBuf, str::FromStr};
 
-use juiz_sdk::anyhow::{self, anyhow};
+use juiz_sdk::{anyhow::{self, anyhow}, connection_identifier::ConnectionIdentifier, connections::ConnectionProfile};
 use uuid::Uuid;
 
 use super::{super::core_broker::CoreBrokerPtr, CRUDBroker};
@@ -18,6 +18,14 @@ pub type ClassCallbackContainerType = HashMap<&'static str, CallbackContainerTyp
 
 
 pub(crate) fn create_callback_container() -> ClassCallbackContainerType {
+
+    fn extract_connection_create_parameter(args: CapsuleMap) -> JuizResult<ConnectionManifest> {
+        log::debug!("extract_connection_create_param({args:?})");
+        let v = Into::<Value>::into(args);
+        log::debug!(" - value: {v:?}");
+        return v.try_into();
+        //return args.get("map")?.try_into().or_else(|e|{Err(anyhow::Error::from(e))})
+    }
 
     fn extract_create_parameter(args: CapsuleMap) -> JuizResult<Value> {
         log::debug!("extract_create_param({args:?})");
@@ -64,8 +72,9 @@ pub(crate) fn create_callback_container() -> ClassCallbackContainerType {
     let mut connection_callbacks = CallbackContainerType::new();
     connection_callbacks.insert("create",  |crud, cb, args| {
         log::debug!("[CREATE] connection/create called");
-        Ok(cb.lock_mut()?.connection_create(extract_create_parameter(args)?)?.into())}
-    );
+        let con_prof = cb.lock_mut()?.connection_create(extract_connection_create_parameter(args)?)?;
+        Ok(Into::<Value>::into(con_prof).into())
+    });
     create_cb_container.insert("connection", connection_callbacks);
 
     create_cb_container
@@ -164,13 +173,13 @@ pub(crate) fn read_callback_container() -> ClassCallbackContainerType {
     con_cbs.insert("profile_full", |_crud,cb, args| {
         log::debug!("[READ  ] connection/profile_full called");
         let id = args.get_param("identifier").ok_or_else(||{anyhow::Error::from(JuizError::CRUDBrokerCanNotParameterFunctionError { key_name: "identifier".to_owned() })})?;
-        Ok(value_to_capsule(cb.lock()?.connection_profile_full(id)?))
+        Ok(value_to_capsule(cb.lock()?.connection_profile_full(id.clone().try_into()?)?.into()))
     });
     con_cbs.insert("list", |_crud,cb, args| {
         log::debug!("[READ  ] connection/list called");
         let recursive_str = args.get_param("recursive").and_then(|v|{Some(v.clone())}).or_else(||{Some("false".to_owned())}).unwrap();
         let recursive: bool = FromStr::from_str(recursive_str.as_str())?;
-        Ok(value_to_capsule(cb.lock()?.connection_list(recursive)?))
+        Ok(value_to_capsule(cb.lock()?.connection_list(recursive)?.into_iter().map(|v| -> String { v.into() }).collect::<Vec<String>>().into()))
     });
     read_cb_container.insert("connection", con_cbs);
     
@@ -320,11 +329,11 @@ pub(crate) fn update_callback_container() -> ClassCallbackContainerType {
                 Err(e)
             }
         }?;
-        Ok(cb.lock_mut()?.process_try_connect_to(&cm.source_process_id, 
-                cm.arg_name.as_str(), 
-                &cm.destination_process_id, 
+        Ok(cb.lock_mut()?.process_try_connect_to(&cm.source_process_id.clone(), 
+                cm.arg_name.clone().as_str(), 
+                &cm.destination_process_id.clone(), 
                 cm.connection_type.to_string(), 
-                cm.identifier)?.into())
+                Some(Into::<ConnectionIdentifier>::into(cm).into()))?.into())
     });
     proc_cbs.insert("notify_connected_from", |_crud,cb, args| {
         log::debug!("[UPDATE] process/notify_connected_from called");
@@ -335,11 +344,11 @@ pub(crate) fn update_callback_container() -> ClassCallbackContainerType {
                 Err(e)
             }
         }?;
-        Ok(cb.lock_mut()?.process_notify_connected_from(&cm.source_process_id, 
-                cm.arg_name.as_str(), 
-                &cm.destination_process_id, 
+        Ok(cb.lock_mut()?.process_notify_connected_from(&cm.source_process_id.clone(), 
+                cm.arg_name.clone().as_str(), 
+                &cm.destination_process_id.clone(), 
                 cm.connection_type.to_string(), 
-                cm.identifier)?.into())
+                Some(Into::<ConnectionIdentifier>::into(cm).into()))?.into())
     });
     proc_cbs.insert("push_by", |_crud,cb, args| {
         log::debug!("[UPDATE] process/push_by called");

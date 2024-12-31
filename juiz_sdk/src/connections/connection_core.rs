@@ -88,8 +88,6 @@ impl ConnectionCore {
 
     pub fn profile_full(&self) -> JuizResult<Value> {
         Ok(jvalue!({
-            //"identifier": self.core.identifier(),
-           // "identifier": self.identifier,
             "type": self.connection_type().to_string(),
             "arg_name": self.arg_name().to_owned(),
             "destination_identifier": self.destination_identifier().to_owned(),

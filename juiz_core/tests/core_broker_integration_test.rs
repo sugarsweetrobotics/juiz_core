@@ -111,17 +111,14 @@ fn core_broker_process_factory_integration_connection_test() -> JuizResult<()> {
     //assert!(cb.is_in_charge_for_process(&id1));
     //assert!(cb.is_in_charge_for_process(&id2));
     
-
-    let con_result = cb.connection_create(
-         jvalue!({
-            "source": {
-                "identifier": id1
-            },
-            "destination": {
-                "identifier": id2,
-            },
-            "arg_name": "arg1"
-        }));
+    let con_manif = ConnectionManifest::new(
+        ConnectionType::Pull,
+        id1.clone(),
+        "arg1".to_owned(),
+        id2.clone(),
+        None
+    );
+    let con_result = cb.connection_create(con_manif);
     assert!(con_result.is_ok(), "CoreBroker::connect() failed. Error is {:?}", con_result.err());
 
     let retval = cb.process_execute(&id1);

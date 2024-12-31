@@ -1,10 +1,13 @@
 
 use std::fmt::Display;
 
+use serde::{Deserialize, Serialize};
+
 use crate::prelude::*;
 
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all="camelCase")]
 pub struct Description {
     pub text: String
 }

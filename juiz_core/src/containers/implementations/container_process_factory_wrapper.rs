@@ -1,6 +1,8 @@
 use std::cell::RefCell;
 
 
+use juiz_sdk::manifests::ProcessProfile;
+
 use crate::prelude::*;
 use crate::plugin::{JuizObjectPlugin, Plugin};
 
@@ -63,9 +65,10 @@ impl ContainerProcessFactory for ContainerProcessFactoryWrapper {
         Ok(p.clone())
     }
     
-    fn destroy_container_process(&mut self, p: ProcessPtr) -> JuizResult<Value> {
-        let prof = p.lock()?.profile_full()?;
-        let id = obj_get_str(&prof, "identifier")?;
+    fn destroy_container_process(&mut self, p: ProcessPtr) -> JuizResult<ProcessProfile> {
+        let prof = p.lock()?.profile()?;
+        // let id = obj_get_str(&prof, "identifier")?;
+        let id = prof.identifier();
         log::trace!("ContainerProcessFactoryWrapper::destroy_container_process(identifier={}) called", id);
         let index = self.container_processes.borrow().iter().enumerate().find(|r| r.1.lock().unwrap().identifier() == id).unwrap().0;
         self.container_processes.borrow_mut().remove(index);

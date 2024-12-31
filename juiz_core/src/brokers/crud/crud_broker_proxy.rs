@@ -1,6 +1,6 @@
 use std::{collections::HashMap, sync::{Mutex, Arc}};
 
-use juiz_sdk::{anyhow::anyhow, connections::ConnectionManifest, identifier::connection_identifier_split};
+use juiz_sdk::{anyhow::anyhow, connection_identifier::ConnectionIdentifier, connections::{ConnectionManifest, ConnectionProfile}, identifier::connection_identifier_split};
 use uuid::Uuid;
 
 use crate::{brokers::broker_proxy::TopicBrokerProxy, prelude::*};
@@ -409,7 +409,7 @@ impl TopicBrokerProxy for CRUDBrokerProxyHolder {
 }
 
 impl ConnectionBrokerProxy for CRUDBrokerProxyHolder {
-    fn connection_list(&self, recursive: bool) -> JuizResult<Value> {
+    fn connection_list(&self, recursive: bool) -> JuizResult<Vec<ConnectionIdentifier>> {
         log::trace!("connection_list(recursive={recursive}) called");
         let mut param: HashMap<String, String> = HashMap::new();
         param.insert("recursive".to_owned(), recursive.to_string());
@@ -434,24 +434,24 @@ impl ConnectionBrokerProxy for CRUDBrokerProxyHolder {
                 //log::warn!(" SELF: {self:?}");
                 log::warn!(" DST : {dst_id_struct:?}");
             }
-            let connection_id = connection_identifier_new(&src_id_struct.to_identifier(), &dst_id_struct.to_identifier(), arg_name.as_str());
-
-            Ok(connection_id)
-        }).collect::<JuizResult<Vec<String>>>()?;
+            //let connection_id = connection_identifier_new(&src_id_struct.to_identifier(), &dst_id_struct.to_identifier(), arg_name.as_str());
+            Ok(ConnectionIdentifier::new(src_id_struct.to_identifier(), arg_name.as_str(), dst_id_struct.to_identifier()))
+            //Ok(connection_id)
+        }).collect::<JuizResult<Vec<ConnectionIdentifier>>>()?;
         Ok(id_vec.into())
         // Ok(connection_list_value)
     }
 
-    fn connection_profile_full(&self, id: &Identifier) -> JuizResult<Value> {
-        capsule_to_value(self.broker.read("connection", "profile_full", param(&[("identifier", id)]))?)
+    fn connection_profile_full(&self, id: ConnectionIdentifier) -> JuizResult<ConnectionProfile> {
+        capsule_to_value(self.broker.read("connection", "profile_full", param(&[("identifier", id.to_string().as_str())]))?)?.try_into()
     }
 
-    fn connection_create(&mut self, manifest: Value) -> JuizResult<Value> {
-        capsule_to_value(self.broker.create("connection", "create", manifest, HashMap::new())?)
+    fn connection_create(&mut self, manifest: ConnectionManifest) -> JuizResult<ConnectionProfile> {
+        capsule_to_value(self.broker.create("connection", "create", manifest.into(), HashMap::new())?)?.try_into()
     }
     
-    fn connection_destroy(&mut self, id: &Identifier) -> JuizResult<Value> {
-        capsule_to_value(self.broker.delete("connection", "destroy", param(&[("identifier", id)]))?)
+    fn connection_destroy(&mut self, id: ConnectionIdentifier) -> JuizResult<ConnectionProfile> {
+        capsule_to_value(self.broker.delete("connection", "destroy", param(&[("identifier", id.to_string().as_str())]))?)?.try_into()
     }
 }
 

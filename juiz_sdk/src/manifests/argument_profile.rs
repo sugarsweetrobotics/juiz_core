@@ -1,29 +1,41 @@
 
 use std::fmt::Display;
 
+use serde::{Serialize, Deserialize};
+
 use crate::prelude::*;
 use super::manifest_description::Description;
-use serde::{Deserialize, Serialize};
 use super::argument_type::{ArgumentType, type_check};
 
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct ArgumentManifest {
+pub struct ArgumentProfile {
     pub type_name: ArgumentType,
     pub name: String,
     pub description: Description,
     pub default: Value
 }
 
-impl Display for ArgumentManifest {
+impl Display for ArgumentProfile {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_fmt(format_args!("ArgumentManifest({}::{},default={})", self.name, self.type_name, self.default))
+        f.write_fmt(format_args!("ArgumentProfile({}::{},default={})", self.name, self.type_name, self.default))
     }
 }
 
-impl ArgumentManifest {
+impl From<ArgumentManifest> for ArgumentProfile {
+    fn from(value: ArgumentManifest) -> Self {
+        Self {
+            type_name: value.type_name,
+            name: value.name,
+            description: value.description,
+            default: value.default,
+        }
+    }
+}
+impl ArgumentProfile {
 
     pub fn new(type_name: ArgumentType, name: &str, description: Description, default: Value) -> Self {
-        ArgumentManifest {
+        ArgumentProfile {
             type_name,
             name: name.to_owned(),
             description,
@@ -33,7 +45,7 @@ impl ArgumentManifest {
 
     pub fn new_with_check(type_name: ArgumentType, name: &str, description: Description, default: Value) -> JuizResult<Self> {
         type_check(&type_name, &default)?;
-        Ok(ArgumentManifest {
+        Ok(ArgumentProfile {
             type_name,
             name: name.to_owned(),
             description,
@@ -76,7 +88,7 @@ impl ArgumentManifest {
     
 }
 
-// impl Into<Value> for ArgumentManifest {
+// impl Into<Value> for ArgumentProfile {
 //     fn into(self) -> Value {
 //         jvalue!({
 //             "name": self.name,
@@ -87,38 +99,37 @@ impl ArgumentManifest {
 //     }
 // }
 
-// / ```
-// / use juiz_core::prelude::*;
-// / fn main() -> JuizResult<()> {
-// / let arg_value = jvalue!({
-// /   "type": "int",
-// /   "name": "arg0",
-// /   "description": "int arg",
-// /   "default": 1
-// / });
-// / let arg: ArgumentManifest = arg_value.try_into()?;
-// / 
-// / 
-// / Ok(())}
-// / ```
-
-// impl TryFrom<Value> for ArgumentManifest {
+// /// ```
+// /// use juiz_core::prelude::*;
+// /// fn main() -> JuizResult<()> {
+// /// let arg_value = jvalue!({
+// ///   "type": "int",
+// ///   "name": "arg0",
+// ///   "description": "int arg",
+// ///   "default": 1
+// /// });
+// /// let arg: ArgumentProfile = arg_value.try_into()?;
+// /// 
+// /// 
+// /// Ok(())}
+// /// ```
+// impl TryFrom<Value> for ArgumentProfile {
 //     type Error = anyhow::Error;
 
 //     fn try_from(value: Value) -> Result<Self, Self::Error> {
 //         let name = obj_get_str(&value, "name")?;
 //         let description = obj_get_str(&value, "description").or::<JuizError>(Ok("")).unwrap();
 //         let type_name: ArgumentType = obj_get_str(&value, "type")?.try_into().or_else(|e| {
-//             log::error!("TryFrom<Value> for ArgumentManifest::try_from({value:?}) failed. {e}");
+//             log::error!("TryFrom<Value> for ArgumentProfile::try_from({value:?}) failed. {e}");
 //             Err(e)
 //         })?;
 //         let default_value = obj_get(&value, "default").or_else(|e| {
 //             if type_name == ArgumentType::Image {
 //                 return Ok(&Value::Null);
 //             }
-//             log::error!("TryFrom<Value> for ArgumentManifest::try_from({value:?}) failed. {e}");
+//             log::error!("TryFrom<Value> for ArgumentProfile::try_from({value:?}) failed. {e}");
 //             Err(e)
 //         })?;
-//         ArgumentManifest::new_with_check(type_name, name, description.into(), default_value.clone())
+//         ArgumentProfile::new_with_check(type_name, name, description.into(), default_value.clone())
 //     }
 // }

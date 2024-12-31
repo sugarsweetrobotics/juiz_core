@@ -72,7 +72,7 @@ impl<S: 'static> JuizObjectCoreHolder for ContainerImpl<S> {
 impl<S: 'static> JuizObject for ContainerImpl<S> {
     fn profile_full(&self) -> JuizResult<Value> {
         log::trace!("ContainerImpl({})::profile_full() called", self.identifier());
-        let ids = self.processes().iter().map(|p| -> JuizResult<Identifier> { Ok(p.identifier().clone()) }).collect::<JuizResult<Vec<Identifier>>>()?;
+        let ids = self.processes().iter().map(|p| -> JuizResult<Identifier> { Ok(p.identifier().to_string()) }).collect::<JuizResult<Vec<Identifier>>>()?;
         obj_merge(self.core.profile_full()?, &jvalue!({
             "processes": ids}))
     }
@@ -108,7 +108,7 @@ impl<S: 'static> Container for ContainerImpl<S> {
 
     fn register_process(&mut self, p: ProcessPtr) -> JuizResult<ProcessPtr> {
         let id = p.identifier().clone();
-        self.processes.insert(id, p.clone());
+        self.processes.insert(id.to_string(), p.clone());
         Ok(p)
     }
 
@@ -118,7 +118,7 @@ impl<S: 'static> Container for ContainerImpl<S> {
         match self.process(name_or_id) {
             Some(p) => {
                 //let _ = p.write().unwrap().purge()?;
-                let _res = self.processes.remove(p.identifier());
+                let _res = self.processes.remove(&p.identifier().to_string());
                 //log::trace!("ContainerImpl::purge_process({}) result: {:?}", name_or_id, res.is_some());
                 Ok(())
             },

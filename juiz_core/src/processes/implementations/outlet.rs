@@ -11,6 +11,11 @@ pub struct Outlet {
     use_memo: bool,
 }
 
+impl std::fmt::Debug for Outlet {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Outlet").field("name", &self.name).field("output_memo", &self.output_memo).field("use_memo", &self.use_memo).finish()
+    }
+}
 
 impl Outlet {
 
@@ -29,7 +34,7 @@ impl Outlet {
     // }
     pub fn profile_full(&self) -> JuizResult<Value> {
         Ok(jvalue!({
-            "destination_connections": self.destination_connections.iter().map(| (_name, dc) | -> Value { dc.profile_full().unwrap() }).collect::<Vec<Value>>()
+            "destination_connections": self.destination_connections.iter().map(| (_name, dc) | -> Value { dc.profile().into() }).collect::<Vec<Value>>()
         }).into())
     }
 

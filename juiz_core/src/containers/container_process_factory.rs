@@ -2,7 +2,7 @@
 use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use crate::prelude::*;
-use juiz_sdk::anyhow::anyhow;
+use juiz_sdk::{anyhow::anyhow, manifests::ProcessProfile};
 /// ContainerProcessを生成するためのFactoryクラスのtrait
 /// 
 pub trait ContainerProcessFactory : JuizObject + 'static {
@@ -11,7 +11,7 @@ pub trait ContainerProcessFactory : JuizObject + 'static {
     /// 
     fn create_container_process(&self, container: ContainerPtr, manifest: ProcessManifest) -> JuizResult<ProcessPtr>;
 
-    fn destroy_container_process(&mut self, p: ProcessPtr) -> JuizResult<Value>;
+    fn destroy_container_process(&mut self, p: ProcessPtr) -> JuizResult<ProcessProfile>;
 }
 
 // pub type ContainerProcessFactoryPtr = Arc<Mutex<dyn ContainerProcessFactory>>;

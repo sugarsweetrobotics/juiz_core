@@ -3,7 +3,8 @@
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use juiz_sdk::anyhow::{anyhow, Context};
-use juiz_sdk::connections::ConnectionManifest;
+use juiz_sdk::connection_identifier::ConnectionIdentifier;
+use juiz_sdk::connections::{ConnectionManifest, ConnectionProfile};
 use juiz_sdk::utils::check_corebroker_manifest;
 use uuid::Uuid;
 use crate::prelude::*;
@@ -795,43 +796,32 @@ impl ExecutionContextBrokerProxy for CoreBroker {
 
 impl ConnectionBrokerProxy for CoreBroker {
 
-    fn connection_list(&self, recursive: bool) -> JuizResult<Value> {
+    fn connection_list(&self, recursive: bool) -> JuizResult<Vec<ConnectionIdentifier>> {
         log::trace!("connection_list(recursive={recursive}) called");
         let cons = self.worker().connection_profile_list()?;
-        let mut ids_arr = cons.iter().map(|con_prof| { obj_get(con_prof, "identifier").unwrap().clone() }).collect::<Vec<Value>>();
+        let mut ids_arr: Vec<ConnectionIdentifier> = cons.into_iter().map(|con_prof| -> ConnectionIdentifier { Into::<ConnectionIdentifier>::into(con_prof) }).collect();
         if recursive {
             for subsystem_proxy in self.subsystem_proxies.iter() {
                 let plist = juiz_lock(&subsystem_proxy.broker_proxy())?.connection_list(recursive)?;
-                //println!("plist: {}", plist);
-                for v in get_array(&plist)?.iter() {
-                    let id = v.as_str().unwrap();
-                    ids_arr.push(id.into());
+                for v in plist.into_iter() {
+                    ids_arr.push(v);
                 }
             }
-            // for (_id, broker_proxy) in self.worker().store().broker_proxies.objects().iter() {
-            //     let plist = juiz_lock(broker_proxy)?.connection_list(true)?;
-            //     println!("plist: {}", plist);
-            //     for v in get_array(&plist)?.iter() {
-            //         let id = v.as_str().unwrap();
-            //         ids_arr.push(id.into());
-            //     }
-            // }
         }
-        println!("ids_arr: {:?}", ids_arr);
-        Ok(jvalue!(ids_arr))
+        Ok(ids_arr)
     }
 
-    fn connection_profile_full(&self, id: &Identifier) -> JuizResult<Value> {
-        self.worker().connection_profile_full(id.clone(), true)
+    fn connection_profile_full(&self, id: ConnectionIdentifier) -> JuizResult<ConnectionProfile> {
+        self.worker().connection_profile(id, true)
     }
 
-    fn connection_create(&mut self, manifest: Value) -> JuizResult<Value> {
+    fn connection_create(&mut self, manifest: ConnectionManifest) -> JuizResult<ConnectionProfile> {
         log::trace!("CoreBroker::connection_create({manifest}) called");
-        Ok(self.worker_mut().create_connection(manifest.try_into()?)?.into())
+        self.worker_mut().create_connection(manifest)
     }
     
-    fn connection_destroy(&mut self, _id: &Identifier) -> JuizResult<Value> {
-        todo!()
+    fn connection_destroy(&mut self, id: ConnectionIdentifier) -> JuizResult<ConnectionProfile> {
+        self.worker_mut().destroy_connection(id)
     }
 }
 

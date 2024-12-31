@@ -2,7 +2,7 @@ use std::sync::{Arc, RwLock};
 
 use uuid::Uuid;
 use juiz_sdk::anyhow::anyhow;
-use crate::{connections::ConnectionFactoryImpl, core::SubSystemProxy, prelude::*, processes::process_from_clousure_new_with_class_name};
+use crate::{connections::ConnectionFactoryImpl, core::SubSystemProxy, prelude::*, processes::ProcessImpl};
 pub type TopicName = String;
 
 #[derive(Clone)]
@@ -117,7 +117,7 @@ impl TopicPtr {
             topic,
             ptr: ProcessPtr::new(
                 //ProcessImpl::clousure_new_with_class_name(JuizObjectClass::Topic("Topic"), manifest, Box::new(topic_func)).unwrap()))
-                process_from_clousure_new_with_class_name(JuizObjectClass::Topic("Topic"), manifest, topic_func, Box::new(ConnectionFactoryImpl::new())).unwrap())
+                ProcessImpl::new_from_clousure_and_class_name(JuizObjectClass::Topic("Topic"), manifest, topic_func, Box::new(ConnectionFactoryImpl::new())).unwrap())
  
         }
     }
@@ -130,8 +130,8 @@ impl TopicPtr {
         self.ptr.clone()
     }
 
-    pub fn profile_full(&self) -> JuizResult<Value> {
-        self.ptr.lock()?.profile_full()
+    pub fn profile(&self) -> JuizResult<Value> {
+        Ok(self.ptr.lock()?.profile()?.into())
     }
 
     pub fn push(&self, capsule: CapsulePtr, pushed_system_uuid: Option<Uuid>) -> JuizResult<()> {

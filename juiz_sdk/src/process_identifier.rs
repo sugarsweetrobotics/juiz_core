@@ -4,7 +4,7 @@ use anyhow::anyhow;
 
 use crate::result::JuizError;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ProcessIdentifier {
     pub broker_name: String, 
     pub broker_type_name: String,
@@ -44,6 +44,15 @@ impl Display for ProcessIdentifier {
         f.write_fmt(format_args!("ProcessIdentifier({}://{}/{}/{}::{}", self.broker_type_name, self.broker_name, self.class_name, self.name, self.type_name))
     }
 }
+
+impl TryFrom<&str> for ProcessIdentifier {
+    type Error = anyhow::Error;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        value.to_owned().try_into()
+    }
+}
+
 
 impl TryFrom<String> for ProcessIdentifier {
     type Error = anyhow::Error;

@@ -1,5 +1,6 @@
 
 
+use crate::manifests::ProcessProfile;
 use crate::prelude::*;
 use crate::value::*;
 
@@ -99,6 +100,6 @@ fn check_arguments(args_manifest: &Vec<ArgumentManifest>, argument: &CapsuleMap)
     Ok(())
 }
 
-pub fn check_manifest_before_call(manifest: &ProcessManifest, argument: &CapsuleMap) -> JuizResult<()> {
+pub fn check_manifest_before_call(manifest: &ProcessProfile, argument: &CapsuleMap) -> JuizResult<()> {
     check_arguments(&manifest.arguments, argument)
 }

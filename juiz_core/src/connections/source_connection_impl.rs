@@ -7,14 +7,11 @@ use crate::prelude::*;
 use core::fmt::Debug;
 use std::clone::Clone;
 
-use juiz_sdk::{connection_identifier::ConnectionIdentifier, connections::{Connection, ConnectionManifest}};
+use juiz_sdk::{connection_identifier::ConnectionIdentifier, connections::{Connection, ConnectionManifest, ConnectionProfile}};
 
 #[derive(Debug, Clone)]
 pub struct SourceConnectionImpl {
-    // core: ConnectionCore,
-    // connection_type: ConnectionType,
-    // identifier: ConnectionIdentifier,
-    connection_manifest: ConnectionManifest,
+    profile: ConnectionProfile,
     source_process: ProcessPtr,
 }
 
@@ -23,52 +20,24 @@ impl SourceConnectionImpl {
     pub fn new_from_manifest(connection_manifest: ConnectionManifest, source_process: ProcessPtr) -> Self {
         log::trace!("SourceConnectionImpl::new_from_manifest({connection_manifest}) called");
         SourceConnectionImpl{
-            //connection_type: connection_manifest.connection_type.clone(),
-            //identifier: connection_manifest.into(),
-            //core: ConnectionCore::new("SourceConnection", connection_manifest),
-            connection_manifest,
+            profile: connection_manifest.into(),
             source_process}
     }
     
-    // pub fn new(owner_identifier: Identifier, source_process: ProcessPtr, manifest: Value, arg_name: String) -> JuizResult<Self> {
-    //     let source_process_identifier = source_process.identifier().clone();
-    //     log::trace!("SourceConnectionImpl::new(owner={:}, src={:}, manifest={:}, arg_name={:}) called", owner_identifier, source_process_identifier, manifest, arg_name);
-    //     Ok(SourceConnectionImpl{
-    //         core: ConnectionCore::new("SourceConnection", 
-    //             source_process_identifier, 
-    //             owner_identifier, 
-    //             arg_name, 
-    //             &manifest)?,
-    //         source_process})
-    // }
-
-    // fn owner_identifier(&self) -> &Identifier {
-    //     //self.core.destination_identifier()
-        
-    // }
 }
-
-// impl JuizObjectCoreHolder for SourceConnectionImpl {
-//     fn core(&self) -> &ObjectCore {
-//         &self.core.object_core()
-//     }
-// }
-
-// impl JuizObject for SourceConnectionImpl {
-
-//     fn profile_full(&self) -> JuizResult<Value> {
-//         self.core.profile_full()
-//     }
-// }
 
 impl Connection for SourceConnectionImpl {
 
     fn identifier(&self) -> ConnectionIdentifier {
-        self.connection_manifest.clone().into() //identifier.clone()
+        self.profile.clone().into() 
     }
 
     fn connection_type(&self) -> ConnectionType {
-        self.connection_manifest.connection_type.clone()
+        self.profile.connection_type.clone()
+    }
+    
+    fn profile(&self) -> ConnectionProfile {
+        self.profile.clone()
     }
 }
 
@@ -87,22 +56,3 @@ impl SourceConnection for SourceConnectionImpl {
         self.source_process.lock()?.invoke()
     }
 }
-
-// impl<'a> Debug for SourceConnectionImpl {
-//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//         f.debug_struct("SourceConnection").field("source_process", self.source_process.identifier()).field("owner_id", &self.owner_identifier()).finish()
-//     }
-// }
-
-// impl Clone for SourceConnectionImpl {
-//     fn clone(&self) -> Self {
-//         Self { 
-//             core: self.core.clone(), source_process: self.source_process.clone() }
-//     }
-// }
-
-// impl Drop for SourceConnectionImpl {
-//     fn drop(&mut self) {
-//         // self.source_process.borrow_mut().disconnect_to(self.owner_id);
-//     }
-// }//

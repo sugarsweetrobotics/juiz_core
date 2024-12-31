@@ -3,13 +3,10 @@
 
 
 use std::path::Path;
-use juiz_core::log;
-
-use juiz_core::prelude::*;
-
-// #[cfg(feature="opencv4")]
-// use juiz_core::opencv::{imgcodecs::imwrite, core::{Mat, Vector}};
 use clap::Subcommand;
+
+use juiz_core::log;
+use juiz_core::prelude::*;
 
 use crate::Args;
 
@@ -129,7 +126,6 @@ fn on_connection_list(system: &mut System, server: String, recursive: bool) -> J
     }))?;
     let con_list = proxy.lock().unwrap().connection_list(true)?;
 
-    //system.core_broker().lock()?.worker().store().broker_proxies.objects().iter()
-    println!("{con_list}");
+    println!("[{}]", con_list.iter().map(|id| { id.to_string() }).collect::<Vec<String>>().join(","));
     Ok(())
 }

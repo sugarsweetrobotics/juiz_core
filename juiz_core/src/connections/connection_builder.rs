@@ -4,10 +4,10 @@ pub mod connection_builder {
 
     use crate::prelude::*;
     
-    use juiz_sdk::{anyhow::{anyhow, Context}, connections::ConnectionManifest};
+    use juiz_sdk::{anyhow::{anyhow, Context}, connections::{ConnectionManifest, ConnectionProfile}};
 
     ///
-    pub fn create_connection(system: &System, manifest: ConnectionManifest) -> JuizResult<ConnectionManifest> {
+    pub fn create_connection(system: &System, manifest: ConnectionManifest) -> JuizResult<ConnectionProfile> {
         
         log::trace!("connection_builder::create_connection(manifest={:?}) called", manifest);
         let src = system.core_broker().lock()?.worker().any_process_from_identifier(&manifest.source_process_id, true)?;
@@ -19,7 +19,7 @@ pub mod connection_builder {
         ).context("connection_builder::connect()")
     }
     
-    pub fn connect(src: ProcessPtr, dst: ProcessPtr, connection_manifest: ConnectionManifest) -> JuizResult<ConnectionManifest> {
+    pub fn connect(src: ProcessPtr, dst: ProcessPtr, connection_manifest: ConnectionManifest) -> JuizResult<ConnectionProfile> {
         log::trace!("connection_builder::connect({connection_manifest}) called");
         let mut manif_for_source = connection_manifest.clone();
         
@@ -51,7 +51,7 @@ pub mod connection_builder {
         match dst.lock_mut()?.notify_connected_from(src, manif_for_dest) {
             Ok(result) => {
                 log::trace!("destination_connection, connected!");
-                Ok(result)
+                Ok(result.into())
             }
             Err(e) => {
                 log::error!("Process(dist).notify_connected_from() failed. Error({e})");

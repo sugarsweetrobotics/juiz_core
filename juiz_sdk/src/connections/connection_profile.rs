@@ -3,11 +3,11 @@ use anyhow::anyhow;
 use serde_json::{json, Map};
 use crate::{connection_identifier::ConnectionIdentifier, prelude::Identifier, process_identifier::ProcessIdentifier, result::{JuizError, JuizResult}, value::{CapsuleMap, Value}};
 
-use super::connection_type::ConnectionType;
+use super::{connection_type::ConnectionType, ConnectionManifest};
 
 
 #[derive(Clone, Debug)]
-pub struct ConnectionManifest {
+pub struct ConnectionProfile {
     // pub identifier: Option<String>,
     // pub identifier: Option<ConnectionIdentifier>,
     pub connection_type: ConnectionType,
@@ -16,7 +16,7 @@ pub struct ConnectionManifest {
     pub arg_name: String,
 }
 
-impl Into<Value> for ConnectionManifest {
+impl Into<Value> for ConnectionProfile {
     fn into(self) -> Value {
         let mut map: Map<String, Value> = Map::new();
         map.insert("type".to_owned(), self.connection_type.to_string().into());
@@ -30,11 +30,22 @@ impl Into<Value> for ConnectionManifest {
     }
 }
 
-impl TryFrom<CapsuleMap> for ConnectionManifest {
+impl From<ConnectionManifest> for ConnectionProfile {
+    fn from(value: ConnectionManifest) -> Self {
+        Self {
+            connection_type: value.connection_type,
+            source_process_id: value.source_process_id,
+            destination_process_id: value.destination_process_id,
+            arg_name: value.arg_name,
+        }
+    }
+}
+
+impl TryFrom<CapsuleMap> for ConnectionProfile {
     type Error = anyhow::Error;
     
     fn try_from(value: CapsuleMap) -> Result<Self, Self::Error> {
-        Ok(ConnectionManifest {
+        Ok(ConnectionProfile {
             connection_type: value.get_str("type")?.as_str().try_into()?,
             //identifier: value.get_str("identifier").ok(),
             source_process_id: value.get_str("source")?.try_into()?,
@@ -45,7 +56,7 @@ impl TryFrom<CapsuleMap> for ConnectionManifest {
 }
 
 fn err_handle(value: Option<&Value>) -> anyhow::Error {
-    anyhow!(JuizError::InvalidArgumentError{message: format!("Conversion faild Value({value:?}) -> ConnectionManifest.")})
+    anyhow!(JuizError::InvalidArgumentError{message: format!("Conversion faild Value({value:?}) -> ConnectionProfile.")})
 }
             
 
@@ -69,7 +80,7 @@ fn value_to_identifier(value: Option<&Value>) -> JuizResult<String> {
     }
 }
 
-impl TryFrom<Value> for ConnectionManifest {
+impl TryFrom<Value> for ConnectionProfile {
     type Error = anyhow::Error;
 
     fn try_from(value: Value) -> Result<Self, Self::Error> {
@@ -77,7 +88,7 @@ impl TryFrom<Value> for ConnectionManifest {
         match value.as_object() {
             Some(vobj) => {
                 let connection_type = vobj.get("type").or(Some(&json!("push"))).unwrap().as_str().ok_or_else(err_handle)?.to_owned();
-                Ok( ConnectionManifest{
+                Ok( ConnectionProfile{
                     connection_type: ConnectionType::from(connection_type.as_str()),
                     source_process_id: value_to_identifier(vobj.get("source"))?.try_into()?,
                     destination_process_id: value_to_identifier(vobj.get("destination"))?.try_into()?,
@@ -89,7 +100,7 @@ impl TryFrom<Value> for ConnectionManifest {
     }
 }
 
-impl ConnectionManifest {
+impl ConnectionProfile {
 
     pub fn new(connection_type: ConnectionType, source_process_id: ProcessIdentifier, arg_name: String, destination_process_id: ProcessIdentifier) -> Self {
         Self {
@@ -101,14 +112,14 @@ impl ConnectionManifest {
     }
 }
 
-impl Into<ConnectionIdentifier> for ConnectionManifest {
+impl Into<ConnectionIdentifier> for ConnectionProfile {
     fn into(self) -> ConnectionIdentifier {
         ConnectionIdentifier::new(self.source_process_id, self.arg_name.as_str(), self.destination_process_id)
     }
 }
 
-impl Display for ConnectionManifest {
+impl Display for ConnectionProfile {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_fmt(format_args!("ConnectionManifest({}, {}, {}, {})", self.connection_type, self.source_process_id, self.arg_name, self.destination_process_id))
+        f.write_fmt(format_args!("ConnectionProfile({}, {}, {}, {})", self.connection_type, self.source_process_id, self.arg_name, self.destination_process_id))
     }
 }

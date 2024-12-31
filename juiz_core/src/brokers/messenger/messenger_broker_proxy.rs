@@ -1,13 +1,11 @@
 use std::{sync::{Arc, Mutex}, time::Duration};
 use anyhow::Context;
 
-use juiz_sdk::{anyhow, connections::ConnectionManifest};
+use juiz_sdk::{anyhow, connection_identifier::ConnectionIdentifier, connections::{ConnectionManifest, ConnectionProfile}};
 use uuid::Uuid;
 use crate::{brokers::broker_proxy::TopicBrokerProxy, prelude::*};
 use crate::brokers::broker_proxy::{BrokerBrokerProxy, ConnectionBrokerProxy, ContainerBrokerProxy, ContainerProcessBrokerProxy, ExecutionContextBrokerProxy};
 use super::super::broker_proxy::{SystemBrokerProxy, ProcessBrokerProxy};
-
-
 
 
 pub struct MessengerBrokerProxy {
@@ -15,10 +13,6 @@ pub struct MessengerBrokerProxy {
     messenger: Box<dyn MessengerBrokerProxyCore>,
 }
 
-// pub type SenderType = dyn Fn(CapsuleMap) -> JuizResult<()>;
-// pub type ReceiverType = dyn Fn(Duration) -> JuizResult<CapsulePtr>;
-
-// pub struct SendReceivePair(pub Box<SenderType>, pub Box<ReceiverType>);
 pub trait MessengerBrokerProxyCore : Send {
     fn send_and_receive(&self, v: CapsuleMap, timeout: Duration) -> JuizResult<CapsulePtr>;
     fn send_and_receive_output(&self, v: CapsuleMap, timeout: Duration) -> JuizResult<CapsulePtr>;
@@ -27,16 +21,6 @@ pub trait MessengerBrokerProxyCore : Send {
 pub trait MessengerBrokerProxyCoreFactory { 
     fn create_core(&self, object_name: &str) -> JuizResult<Box<dyn MessengerBrokerProxyCore>>;
 }
-
-/*
-fn to_map(params: &[(String, String)]) -> Map<String, Value> {
-    let mut map : Map<String, Value> = Map::new();
-    for (k, v) in params {
-        map.insert(k.clone(), jvalue!(v));
-    }
-    map
-}
-*/
 
 impl MessengerBrokerProxy {
 
@@ -99,15 +83,6 @@ impl MessengerBrokerProxy {
     fn _construct_argument(_method_name: &str, _class_name: &str, _function_name: &str, _arguments: CapsuleMap, _params: &[(String, String)]) -> JuizResult<CapsuleMap> {
 
         todo!("ここにmethod_nameなどをArgumentMapに埋め込む作業を書く")
-        /* 
-        jvalue!({
-            "method_name": method_name,
-            "class_name": class_name,
-            "function_name": function_name, 
-            "arguments": arguments,
-            "params": to_map(params),
-        }
-        */
     }
 
     pub fn send_recv_output_and<F: Fn(CapsulePtr)->JuizResult<T>, T>(&self, method_name: &str, class_name: &str, function_name: &str, arguments: CapsuleMap, params: &[(String, String)], func: F) -> JuizResult<T> {
@@ -515,20 +490,21 @@ impl TopicBrokerProxy for MessengerBrokerProxy {
 
 
 impl ConnectionBrokerProxy for MessengerBrokerProxy {
-    fn connection_list(&self, recursive: bool) -> JuizResult<Value> {
-        capsule_to_value(self.read_with_param("connection", "list", &[("recursive".to_owned(), recursive.to_string())])?)
+    fn connection_list(&self, recursive: bool) -> JuizResult<Vec<ConnectionIdentifier>> {
+        let val = capsule_to_value(self.read_with_param("connection", "list", &[("recursive".to_owned(), recursive.to_string())])?)?;
+        get_array(&val)?.into_iter().map(|v| -> JuizResult<ConnectionIdentifier> { v.clone().try_into() }).collect()
     }
 
-    fn connection_profile_full(&self, id: &Identifier) -> JuizResult<Value> {
-        capsule_to_value(self.read_by_id("connection", "profile_full", id)?)
+    fn connection_profile_full(&self, id: ConnectionIdentifier) -> JuizResult<ConnectionProfile> {
+        capsule_to_value(self.read_by_id("connection", "profile_full", &id.to_string())?)?.try_into()
     }
 
-    fn connection_create(&mut self, manifest: Value) -> JuizResult<Value> {
-        capsule_to_value(self.create("connection", "create", manifest.try_into()?)?)
+    fn connection_create(&mut self, manifest: ConnectionManifest) -> JuizResult<ConnectionProfile> {
+        capsule_to_value(self.create("connection", "create", Into::<Value>::into(manifest).try_into()?)?)?.try_into()
     }
     
-    fn connection_destroy(&mut self, id: &Identifier) -> JuizResult<Value> {
-        capsule_to_value(self.delete_by_id("connection", "destroy", id)?)
+    fn connection_destroy(&mut self, id: ConnectionIdentifier) -> JuizResult<ConnectionProfile> {
+        capsule_to_value(self.delete_by_id("connection", "destroy", &id.to_string())?)?.try_into()
     }
 }
 

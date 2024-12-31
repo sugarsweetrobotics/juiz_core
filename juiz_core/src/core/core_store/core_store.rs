@@ -8,6 +8,8 @@ use crate::prelude::*;
 use crate::ecs::{execution_context_function::ExecutionContextFunction, execution_context_holder_factory::ExecutionContextHolderFactory};
 
 use juiz_sdk::anyhow::{self, anyhow};
+use juiz_sdk::manifests::ProcessProfile;
+use juiz_sdk::process_identifier::ProcessIdentifier;
 
 // #[derive(Debug)]
 pub struct CoreStore {
@@ -143,12 +145,12 @@ impl CoreStore {
         }).collect()
     }
 
-    pub fn processes_profile_full(&self) -> JuizResult<Value> {
+    pub fn processes_profile_full(&self) -> JuizResult<Vec<ProcessProfile>> {
         log::trace!("process_profile_full() called");
         self.processes.objects().iter().map(|(_k, c)| {
             c.lock().and_then(|co| { 
-                let id = co.identifier().clone();
-                Ok((id, co.profile_full()?))
+                //let id = co.identifier().clone();
+                co.profile()
             })} ).collect()
      }
 
@@ -162,20 +164,19 @@ impl CoreStore {
             } ).collect()
     }
 
-    pub fn container_processes_profile_full(&self) -> JuizResult<Value> {
+    pub fn container_processes_profile_full(&self) -> JuizResult<Vec<ProcessProfile>> {
         self.container_processes.objects().iter().map(|(_k, c)| {
             c.lock()
                 .and_then(|co| { 
-                    let id = co.identifier().clone();
-                    Ok((id, co.profile_full()?))
+                    co.profile()
                 })
             } ).collect()
     }
 
-    pub fn processes_id(&self) -> Value {
+    pub fn processes_id(&self) -> Vec<ProcessIdentifier> {
         self.processes.objects().iter().map(|(_k, c)| {
-         c.identifier().clone()
-         } ).collect()
+            c.identifier()
+        }).collect()
     }
 
     pub fn containers_id(&self) -> Value {
@@ -184,10 +185,10 @@ impl CoreStore {
          } ).collect()
     }
 
-    pub fn container_processes_id(&self) -> Value {
+    pub fn container_processes_id(&self) -> Vec<ProcessIdentifier> {
         self.container_processes.objects().iter().map(|(_k, c)| {
-         c.identifier().clone()
-         } ).collect()
+            c.identifier()
+        }).collect()
     }
 
     pub fn process_factories_profile_full(&self) -> JuizResult<Value> {
