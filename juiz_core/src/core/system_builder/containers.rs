@@ -65,7 +65,8 @@ fn setup_container_factory(system: &System, name: &String, container_profile: &V
 fn setup_container(system: &System, container_manifest: ContainerManifest, container_argument: CapsuleMap) -> JuizResult<()> {
     log::trace!("setup_container({container_manifest:?}) called");
     let type_name = container_manifest.type_name;
-    let container = system.core_broker().lock_mut()?.worker_mut().create_container_ref(type_name.as_str(), container_argument)?;
+    let name = container_manifest.name.unwrap();
+    let container = system.core_broker().lock_mut()?.worker_mut().create_container_ref(type_name.as_str(), name.as_str(), container_argument)?;
     log::info!("Container Created");    
     for container_process_manifest in container_manifest.processes.iter() {
         log::debug!(" - ContainerProcess ({:?}) Creating...", container_process_manifest);

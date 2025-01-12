@@ -1,7 +1,7 @@
 use std::{sync::{Arc, Mutex}, time::Duration};
 use anyhow::Context;
 
-use juiz_sdk::{anyhow, connection_identifier::ConnectionIdentifier, connections::{ConnectionManifest, ConnectionProfile}};
+use juiz_sdk::{anyhow, connection_identifier::ConnectionIdentifier, connections::{ConnectionManifest, ConnectionProfile}, container_identifier::ContainerIdentifier, manifests::{ContainerProfile, ProcessProfile}, process_identifier::ProcessIdentifier};
 use uuid::Uuid;
 use crate::{brokers::broker_proxy::TopicBrokerProxy, prelude::*};
 use crate::brokers::broker_proxy::{BrokerBrokerProxy, ConnectionBrokerProxy, ContainerBrokerProxy, ContainerProcessBrokerProxy, ExecutionContextBrokerProxy};
@@ -269,37 +269,36 @@ impl SystemBrokerProxy for MessengerBrokerProxy {
         capsule_to_value(self.update("system", "load_container_process", cp, &[])?)
     }
 
-    fn system_load_component(&mut self, language: String, filepath: String) -> JuizResult<Value> {
+    fn system_load_component(&mut self, language: String, filepath: String) -> JuizResult<ComponentManifest> {
         let mut cp = CapsuleMap::new();
         cp.insert("filepath".to_owned(), CapsulePtr::from(Value::from(filepath)));
         cp.insert("language".to_owned(), CapsulePtr::from(Value::from(language)));
-        capsule_to_value(self.update("system", "load_component", cp, &[])?)
+        Ok( serde_json::from_value( capsule_to_value(self.update("system", "load_component", cp, &[])?)? )? )
     }
 
 }
 
 impl ProcessBrokerProxy for MessengerBrokerProxy {
 
-    fn process_call(&self, id: &Identifier, args: CapsuleMap) -> JuizResult<CapsulePtr> {
-        self.update_output_by_id("process", "call", args, id)
+    fn process_call(&self, id: &ProcessIdentifier, args: CapsuleMap) -> JuizResult<CapsulePtr> {
+        self.update_output_by_id("process", "call", args, &id.to_string())
     }
 
-    fn process_execute(&self, id: &Identifier) -> JuizResult<CapsulePtr> {
-        self.update_output_by_id("process", "execute", CapsuleMap::new(), id)
+    fn process_execute(&self, id: &ProcessIdentifier) -> JuizResult<CapsulePtr> {
+        self.update_output_by_id("process", "execute", CapsuleMap::new(), &id.to_string())
     }
 
-    fn process_profile_full(&self, id: &Identifier) -> JuizResult<Value> {
-        capsule_to_value(self.read_by_id("process", "profile_full", id)?)
+    fn process_profile_full(&self, id: &ProcessIdentifier) -> JuizResult<ProcessProfile> {
+        Ok(serde_json::from_value(capsule_to_value(self.read_by_id("process", "profile_full", &id.to_string())?)?)?)
     }
 
-    fn process_list(&self, recursive: bool) -> JuizResult<Value> {
-        self.read_with_param("process", "list", &[("recursive".to_owned(), recursive.to_string())])?.extract_value()
+    fn process_list(&self, recursive: bool) -> JuizResult<Vec<ProcessIdentifier>> {
+        Ok(serde_json::from_value(self.read_with_param("process", "list", &[("recursive".to_owned(), recursive.to_string())])?.extract_value()?)?)
         //todo!("ここで__value__, __option___を使ってた弊害出てるぞ");
         //capsule_to_value(self.read("process", "list")?)
     }
 
-
-    fn process_push_by(&self, id: &Identifier, arg_name: String, value: CapsulePtr) -> JuizResult<CapsulePtr> {
+    fn process_push_by(&self, id: &ProcessIdentifier, arg_name: String, value: CapsulePtr) -> JuizResult<CapsulePtr> {
         log::trace!("process_push_by({id}, {arg_name}, {value}");
         let mut cm: CapsuleMap = CapsuleMap::new();
         cm.insert("value".to_owned(), value);
@@ -314,66 +313,68 @@ impl ProcessBrokerProxy for MessengerBrokerProxy {
             |value| Ok(value))
         
     }
-
-    fn process_try_connect_to(&mut self, source_process_id: &Identifier, arg_name: &str, destination_process_id: &Identifier, connection_type: String, connection_id: Option<String>) -> JuizResult<Value> {
-        let connection_manifest = ConnectionManifest::new(
-            connection_type.as_str().into(),
-            source_process_id.clone(),
-            arg_name.to_owned(),
-            destination_process_id.clone(),
-            connection_id,
-        );
+  
+    fn process_try_connect_to(&mut self, connection_manifest: &ConnectionManifest) -> JuizResult<ConnectionManifest> {
+//    fn process_try_connect_to(&mut self, source_process_id: &ProcessIdentifier, arg_name: &str, destination_process_id: &ProcessIdentifier, connection_type: String, connection_id: Option<String>) -> JuizResult<Value> {
+        // let connection_manifest = ConnectionManifest::new(
+        //     connection_type.as_str().into(),
+        //     source_process_id.clone(),
+        //     arg_name.to_owned(),
+        //     destination_process_id.clone(),
+        //     connection_id,
+        // );
         let capsule = self.send_recv_and(
             "UPDATE", 
             "process", 
             "try_connect_to", 
-            Into::<Value>::into(connection_manifest).try_into()?,
+            Into::<Value>::into(connection_manifest.clone()).try_into()?,
             &[], 
             |value| Ok(value))?;
-        capsule_to_value(capsule)
+        Ok( serde_json::from_value( capsule_to_value(capsule)? )? )
     }
 
-    fn process_notify_connected_from(&mut self, source_process_id: &Identifier, arg_name: &str, destination_process_id: &Identifier, connection_type: String, connection_id: Option<String>) -> JuizResult<Value> {
-        let connection_manifest = ConnectionManifest::new(
-            connection_type.as_str().into(),
-            source_process_id.clone(),
-            arg_name.to_owned(),
-            destination_process_id.clone(),
-            connection_id,
-        );
+    fn process_notify_connected_from(&mut self, connection_manifest: &ConnectionManifest) -> JuizResult<ConnectionProfile> {
+    // fn process_notify_connected_from(&mut self, source_process_id: &Identifier, arg_name: &str, destination_process_id: &Identifier, connection_type: String, connection_id: Option<String>) -> JuizResult<Value> {
+        // let connection_manifest = ConnectionManifest::new(
+        //     connection_type.as_str().into(),
+        //     source_process_id.clone(),
+        //     arg_name.to_owned(),
+        //     destination_process_id.clone(),
+        //     connection_id,
+        // );
         let value = self.send_recv_and(
             "UPDATE", 
             "process", 
             "notify_connected_from", 
-            Into::<Value>::into(connection_manifest).try_into()?, 
+            Into::<Value>::into(connection_manifest.clone()).try_into()?, 
             &[], 
             |value| Ok(value))?;
-        capsule_to_value(value)
+        Ok( serde_json::from_value( capsule_to_value(value)? )? )
     }
     
-    fn process_p_apply(&mut self, id: &Identifier, arg_name: &str, value: CapsulePtr) -> JuizResult<CapsulePtr> {
+    fn process_p_apply(&mut self, id: &ProcessIdentifier, arg_name: &str, value: CapsulePtr) -> JuizResult<CapsulePtr> {
         let arg = vec!(("arg_name", jvalue!(arg_name)), ("value", capsule_to_value(value)?));
-        self.update_by_id("process", "p_apply", arg.into(), id)
+        self.update_by_id("process", "p_apply", arg.into(), &id.to_string())
     }
     
-    fn process_create(&mut self, manifest: ProcessManifest) -> JuizResult<Value> {
-        capsule_to_value(self.create("process","create", Into::<Value>::into(manifest).try_into()?)?)
+    fn process_create(&mut self, manifest: &ProcessManifest) -> Result<ProcessProfile, juiz_sdk::anyhow::Error> {
+        Ok(serde_json::from_value( capsule_to_value(self.create("process","create", Into::<Value>::into(manifest.clone()).try_into()?)?)? )? )
     }
     
-    fn process_destroy(&mut self, identifier: &Identifier) -> JuizResult<Value> {
-        capsule_to_value(self.delete_by_id("process", "destroy", identifier)?)
+    fn process_destroy(&mut self, identifier: &ProcessIdentifier) -> Result<ProcessProfile, juiz_sdk::anyhow::Error> {
+        Ok(serde_json::from_value(  capsule_to_value(self.delete_by_id("process", "destroy", identifier)?)? )? )
     }
 }
 
 
 impl ContainerBrokerProxy for MessengerBrokerProxy {
-    fn container_profile_full(&self, id: &Identifier) -> JuizResult<Value> {
-        let capsule = self.read_by_id("container", "profile_full", id)?;
+    fn container_profile_full(&self, id: &ContainerIdentifier) -> Result<ContainerProfile, juiz_sdk::anyhow::Error> {
+        let capsule = self.read_by_id("container", "profile_full", &id.to_string())?;
         capsule_to_value(capsule)
     }
 
-    fn container_list(&self, recursive: bool) -> JuizResult<Value> {
-        capsule_to_value(self.read_with_param("container", "list", &[("recursive".to_owned(), recursive.to_string())])?)
+    fn container_list(&self, recursive: bool) -> Result<Vec<ContainerIdentifier>, juiz_sdk::anyhow::Error> {
+        Ok(serde_json::from_value(  capsule_to_value(self.read_with_param("container", "list", &[("recursive".to_owned(), recursive.to_string())])?)? )? )
     }
     
     fn container_create(&mut self, manifest: CapsuleMap) -> JuizResult<Value> {
@@ -495,15 +496,15 @@ impl ConnectionBrokerProxy for MessengerBrokerProxy {
         get_array(&val)?.into_iter().map(|v| -> JuizResult<ConnectionIdentifier> { v.clone().try_into() }).collect()
     }
 
-    fn connection_profile_full(&self, id: ConnectionIdentifier) -> JuizResult<ConnectionProfile> {
+    fn connection_profile_full(&self, id: &ConnectionIdentifier) -> JuizResult<ConnectionProfile> {
         capsule_to_value(self.read_by_id("connection", "profile_full", &id.to_string())?)?.try_into()
     }
 
-    fn connection_create(&mut self, manifest: ConnectionManifest) -> JuizResult<ConnectionProfile> {
-        capsule_to_value(self.create("connection", "create", Into::<Value>::into(manifest).try_into()?)?)?.try_into()
+    fn connection_create(&mut self, manifest: &ConnectionManifest) -> JuizResult<ConnectionProfile> {
+        capsule_to_value(self.create("connection", "create", Into::<Value>::into(manifest.clone()).try_into()?)?)?.try_into()
     }
     
-    fn connection_destroy(&mut self, id: ConnectionIdentifier) -> JuizResult<ConnectionProfile> {
+    fn connection_destroy(&mut self, id: &ConnectionIdentifier) -> JuizResult<ConnectionProfile> {
         capsule_to_value(self.delete_by_id("connection", "destroy", &id.to_string())?)?.try_into()
     }
 }

@@ -57,7 +57,7 @@ impl JuizObject for ContainerFactoryImpl {
 
 impl ContainerFactory for ContainerFactoryImpl {
 
-    fn create_container(&self, _core_worker: &mut CoreWorker, mut args: CapsuleMap) -> JuizResult<ContainerPtr>{
+    fn create_container(&self, _core_worker: &mut CoreWorker, name: String, mut args: CapsuleMap) -> JuizResult<ContainerPtr>{
         log::trace!("ContainerFactoryImpl::create_container(manifest={:?}) called", args);
         //println!("create_container");
         // ここでデフォルトを与えていく

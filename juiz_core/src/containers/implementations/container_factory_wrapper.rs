@@ -59,9 +59,9 @@ impl JuizObject for ContainerFactoryWrapper {
 
 impl ContainerFactory for ContainerFactoryWrapper {
     
-    fn create_container(&self, core_worker: &mut CoreWorker, manifest: CapsuleMap) -> JuizResult<ContainerPtr> {
-        log::trace!("ContainerFactoryWrapper::create_container(manifest={:?}) called", manifest);
-        let p = self.container_factory.lock()?.create_container(core_worker, manifest)?;
+    fn create_container(&self, core_worker: &mut CoreWorker, name: String, args: CapsuleMap) -> JuizResult<ContainerPtr> {
+        log::trace!("ContainerFactoryWrapper::create_container(name={name}, argst={:?}) called", args);
+        let p = self.container_factory.lock()?.create_container(core_worker, name, args)?;
         self.containers.borrow_mut().push(p.clone());
         Ok(p)
     }

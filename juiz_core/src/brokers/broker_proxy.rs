@@ -1,6 +1,6 @@
 
 
-use juiz_sdk::{connection_identifier::ConnectionIdentifier, connections::ConnectionProfile, container_identifier::ContainerIdentifier, manifests::{ContainerProfile, ProcessProfile}, process_identifier::ProcessIdentifier};
+use juiz_sdk::{connection_identifier::ConnectionIdentifier, connections::ConnectionProfile, container_identifier::ContainerIdentifier, manifests::{ContainerProfile, ProcessProfile}, process_identifier::ProcessIdentifier, topic_identifier::TopicIdentifier};
 use uuid::Uuid;
 
 use crate::prelude::*;
@@ -166,7 +166,7 @@ pub trait BrokerBrokerProxy {
     /// Broker支配下のプロセスのIDのリストを取得する
     /// 
     /// * `recursive` - サブシステムのプロセスを再起的に読み込む場合はtrue
-    fn broker_list(&self, recursive: bool) -> JuizResult<Value>;
+    fn broker_list(&self, recursive: bool) -> JuizResult<Vec<String>>;
 
     fn broker_profile_full(&self, id: &Identifier) -> JuizResult<Value>;
 }
@@ -191,7 +191,7 @@ pub trait ConnectionBrokerProxy {
 
 
 pub trait TopicBrokerProxy {
-    fn topic_list(&self) -> JuizResult<Value>;
+    fn topic_list(&self) -> JuizResult<Vec<TopicIdentifier>>;
 
     fn topic_push(&self, name: &str, capsule: CapsulePtr, pushed_system: Option<Uuid>) -> JuizResult<()>;
 

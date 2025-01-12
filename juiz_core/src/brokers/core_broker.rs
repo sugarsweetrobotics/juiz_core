@@ -8,6 +8,7 @@ use juiz_sdk::connections::{ConnectionManifest, ConnectionProfile};
 use juiz_sdk::container_identifier::ContainerIdentifier;
 use juiz_sdk::manifests::{ContainerProfile, ProcessProfile};
 use juiz_sdk::process_identifier::ProcessIdentifier;
+use juiz_sdk::topic_identifier::TopicIdentifier;
 use juiz_sdk::utils::check_corebroker_manifest;
 use uuid::Uuid;
 use crate::prelude::*;
@@ -327,13 +328,13 @@ impl SystemBrokerProxy for CoreBroker {
                 let my_uuid = self.system_store.uuid()?;
                 let bprof = bp.lock().unwrap().profile_full()?;
                 let broker_type_name = bprof.as_object().unwrap().get("type_name").unwrap().as_str().unwrap();
-                let broker_prof = self.broker_list(false)?.as_array().unwrap().iter().find(|x| {
-                    let idstruct: IdentifierStruct = IdentifierStruct::from_broker_identifier(&x.as_str().unwrap().to_owned()).unwrap();
+                let broker_prof = self.broker_list(false)?.iter().find(|x| {
+                    let idstruct: IdentifierStruct = IdentifierStruct::from_broker_identifier(x).unwrap();
                     log::debug!(" --- {:?}", idstruct);
                     idstruct.broker_type_name == broker_type_name
                 }).unwrap().clone();
                 log::trace!(" - broker_profile:{broker_prof:?}");
-                let idstruct: IdentifierStruct = IdentifierStruct::from_broker_identifier(&broker_prof.as_str().unwrap().to_owned()).unwrap();
+                let idstruct: IdentifierStruct = IdentifierStruct::from_broker_identifier(&broker_prof).unwrap();
                     
                 let broker_name = idstruct.object_name;
                 juiz_lock(&bp)?.system_add_subsystem(jvalue!({
@@ -544,23 +545,18 @@ impl ContainerProcessBrokerProxy for CoreBroker {
     }
     
     fn container_process_p_apply(&mut self, id: &ProcessIdentifier, arg_name: &str, value: CapsulePtr) -> JuizResult<CapsulePtr> {
-        Ok(self.worker().store().container_processes.get(id)?.lock_mut()?.p_apply(arg_name, value)?.into())
+        Ok(self.worker().store().container_processes.get(&id.to_string())?.lock_mut()?.p_apply(arg_name, value)?.into())
     }
 }
 
 impl BrokerBrokerProxy for CoreBroker {
-    fn broker_list(&self, recursive: bool) -> JuizResult<Value> {
+    fn broker_list(&self, recursive: bool) -> JuizResult<Vec<String>> {
         let mut ids = self.worker().store().brokers_list_ids()?;
-        let ids_arr = ids.as_array_mut().unwrap();
         if recursive {
-            // for (_, proxy ) in self.store().broker_proxies.objects().iter() {
             for ssp in self.subsystem_proxies.iter() {
                 let proxy = ssp.broker_proxy();
-                let plist = juiz_lock(&proxy)?.broker_list(recursive)?;
-                for v in get_array(&plist)?.iter() {
-                    let id = v.as_str().unwrap();
-                    ids_arr.push(id.into());
-                }
+                let mut plist = juiz_lock(&proxy)?.broker_list(recursive)?;
+                ids.append(&mut plist);
             }
         }
         Ok(ids)
@@ -581,10 +577,7 @@ impl TopicBrokerProxy for CoreBroker {
                 let proxy = ssp.broker_proxy();
         
                 let mut plist = juiz_lock(&proxy)?.topic_list()?;
-                for v in get_array(&plist)?.iter() {
-                    let id = v.as_str().unwrap();
-                    ids.push(id.into());
-                }
+                ids.append(&mut plist);
             }
         }
         Ok(ids.into())
@@ -778,16 +771,16 @@ impl ConnectionBrokerProxy for CoreBroker {
         Ok(ids_arr)
     }
 
-    fn connection_profile_full(&self, id: ConnectionIdentifier) -> JuizResult<ConnectionProfile> {
+    fn connection_profile_full(&self, id: &ConnectionIdentifier) -> JuizResult<ConnectionProfile> {
         self.worker().connection_profile(id, true)
     }
 
-    fn connection_create(&mut self, manifest: ConnectionManifest) -> JuizResult<ConnectionProfile> {
+    fn connection_create(&mut self, manifest: &ConnectionManifest) -> JuizResult<ConnectionProfile> {
         log::trace!("CoreBroker::connection_create({manifest}) called");
         self.worker_mut().create_connection(manifest)
     }
     
-    fn connection_destroy(&mut self, id: ConnectionIdentifier) -> JuizResult<ConnectionProfile> {
+    fn connection_destroy(&mut self, id: &ConnectionIdentifier) -> JuizResult<ConnectionProfile> {
         self.worker_mut().destroy_connection(id)
     }
 }

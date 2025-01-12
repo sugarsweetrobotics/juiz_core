@@ -129,7 +129,6 @@ impl ComponentManifest {
 //             "processes": self.processes.iter().map(|c| { c.clone().into() }).collect::<Vec<Value>>(),
 //             "containers": self.containers.iter().map(|c| { c.clone().into() }).collect::<Vec<Value>>(),
 //         });
-
 //         v
 //     }
 // }

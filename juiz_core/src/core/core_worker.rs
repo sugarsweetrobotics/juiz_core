@@ -190,7 +190,7 @@ impl CoreWorker {
             }
             Err(_) => {}
         }
-        let p = arc_pf.lock()?.create_container(self, args)?;
+        let p = arc_pf.lock()?.create_container(self, name.to_owned(), args)?;
         let id = p.identifier().clone();
         Ok(self.store_mut().containers.register(&id.to_string(), p)?.clone())
     }
@@ -499,29 +499,29 @@ impl CoreWorker {
         register_component(self, current_dir().map_or_else(|_|{None}, |wd|{Some(wd)}), plugin)
     }
 
-    pub fn create_connection(&mut self, connection_manifest: ConnectionManifest) -> JuizResult<ConnectionProfile> {
+    pub fn create_connection(&mut self, connection_manifest: &ConnectionManifest) -> JuizResult<ConnectionProfile> {
         log::trace!("CoreWorker::create_connection({connection_manifest}) called");
         let source = self.any_process_proxy_from_identifier(&connection_manifest.source_process_id, true)?;
         let destination = self.any_process_proxy_from_identifier(&connection_manifest.destination_process_id, true)?;
         Ok(connection_builder::connect(source, destination, &connection_manifest)?)
     }
 
-    pub fn destroy_connection(&mut self, connection_identifier: ConnectionIdentifier) -> JuizResult<ConnectionProfile> {
+    pub fn destroy_connection(&mut self, connection_identifier: &ConnectionIdentifier) -> JuizResult<ConnectionProfile> {
         todo!()
     }
 
-    pub fn connection_profile(&self, connection_identifier: ConnectionIdentifier, create_when_not_found: bool) -> JuizResult<ConnectionProfile> {
+    pub fn connection_profile(&self, connection_identifier: &ConnectionIdentifier, create_when_not_found: bool) -> JuizResult<ConnectionProfile> {
         let source_id = &connection_identifier.source_identifier;
         let destination_id = &connection_identifier.destination_identifier;
         let dst_proc = self.any_process_from_identifier(&connection_identifier.destination_identifier, create_when_not_found)?;
         for con in dst_proc.lock()?.source_connections()?.into_iter() {
-            if con.identifier() == connection_identifier {
+            if con.identifier() == *connection_identifier {
                 return Ok(con.profile())
             }
         }
         let src_proc = self.any_process_from_identifier(&connection_identifier.source_identifier, create_when_not_found)?;
         for con in src_proc.lock()?.destination_connections()?.into_iter() {
-            if con.identifier() == connection_identifier {
+            if con.identifier() == *connection_identifier {
                 return Ok(con.profile())
             }
         }

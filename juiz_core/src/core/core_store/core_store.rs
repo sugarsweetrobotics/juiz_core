@@ -11,6 +11,7 @@ use juiz_sdk::anyhow::{self, anyhow};
 use juiz_sdk::container_identifier::ContainerIdentifier;
 use juiz_sdk::manifests::{ContainerProfile, ProcessProfile};
 use juiz_sdk::process_identifier::ProcessIdentifier;
+use juiz_sdk::topic_identifier::TopicIdentifier;
 
 // #[derive(Debug)]
 pub struct CoreStore {
@@ -128,16 +129,16 @@ impl CoreStore {
         Ok(self.brokers_manifests.iter().map(| (k, v) | { v.clone() }).collect())
     }
 
-    pub fn brokers_list_ids(&self) -> JuizResult<Vec<&str>> {
+    pub fn brokers_list_ids(&self) -> JuizResult<Vec<String>> {
         self.brokers_manifests.values().into_iter().map(|pv| {
-            obj_get_str(pv, "identifier")
+            Ok(obj_get_str(pv, "identifier")?.to_owned())
         }).collect()
     }
 
-    pub fn topics_list_ids(&self) -> JuizResult<Vec<&str>> {
-        Ok(self.topics.values().into_iter().map(|topic| {
-            topic.name()
-        }).collect())
+    pub fn topics_list_ids(&self) -> JuizResult<Vec<TopicIdentifier>> {
+        self.topics.values().into_iter().map(|topic| {
+            topic.name().to_owned().try_into()
+        }).collect()
     }
 
     pub fn topics_profile_full(&self) -> JuizResult<Vec<Value>> {

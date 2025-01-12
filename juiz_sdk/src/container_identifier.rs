@@ -1,10 +1,11 @@
 use std::fmt::Display;
 
 use anyhow::anyhow;
+use serde::{Deserialize, Serialize};
 
 use crate::result::JuizError;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ContainerIdentifier {
     pub broker_name: String, 
     pub broker_type_name: String,
@@ -12,6 +13,7 @@ pub struct ContainerIdentifier {
     pub type_name: String,
     pub class_name: String,
 }
+
 impl ContainerIdentifier {
     pub(crate) fn new(broker_name: String, broker_type_name: String, name: String, type_name: String) -> Self {
         Self { broker_name, broker_type_name, name, type_name, class_name: "Container".to_owned()}

@@ -9,7 +9,7 @@ use crate::prelude::*;
 
 pub trait ContainerFactory : JuizObject + 'static {
 
-    fn create_container(&self, core_worker: &mut CoreWorker, manifest: CapsuleMap) -> JuizResult<ContainerPtr>;
+    fn create_container(&self, core_worker: &mut CoreWorker, name: String, args: CapsuleMap) -> JuizResult<ContainerPtr>;
 
     fn destroy_container(&mut self, c: ContainerPtr) -> JuizResult<ContainerProfile>;
     
