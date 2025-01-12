@@ -1,7 +1,7 @@
 
 
 use std::sync::{Arc, Mutex};
-use juiz_sdk::{anyhow, connection_identifier::ConnectionIdentifier, connections::ConnectionManifest, manifests::ProcessProfile, process_identifier::ProcessIdentifier};
+use juiz_sdk::{anyhow, connection_identifier::ConnectionIdentifier, connections::{ConnectionManifest, ConnectionProfile}, manifests::ProcessProfile, process_identifier::ProcessIdentifier};
 use crate::prelude::*;
 use juiz_sdk::prelude::*;
 use crate::brokers::BrokerProxy;
@@ -58,7 +58,7 @@ impl Process for ProcessProxy {
     fn call(&self, args: CapsuleMap) -> JuizResult<CapsulePtr> {
         let id = self.identifier();
         log::trace!("ProcessProxy({id})::call() called");
-        let result = juiz_lock(&self.broker_proxy)?.any_process_call(&self.identifier().to_string(), args);
+        let result = juiz_lock(&self.broker_proxy)?.any_process_call(&self.identifier(), args);
         log::trace!(" - return: {result:?}");
         return result;
     }
@@ -68,7 +68,7 @@ impl Process for ProcessProxy {
     }
 
     fn profile(&self) -> JuizResult<ProcessProfile> {
-        juiz_lock(&self.broker_proxy)?.any_process_profile_full(self.identifier().to_string())?.try_into()
+        juiz_lock(&self.broker_proxy)?.any_process_profile_full(&self.identifier())
     }
 
     fn invoke<'b>(&self) -> JuizResult<CapsulePtr> {
@@ -80,21 +80,21 @@ impl Process for ProcessProxy {
     }
 
     fn push_by(&self, arg_name: &str, value: CapsulePtr) -> JuizResult<CapsulePtr> {
-        juiz_lock(&self.broker_proxy)?.process_push_by(self.identifier(), arg_name.to_owned(), value)
+        juiz_lock(&self.broker_proxy)?.process_push_by(&self.identifier(), arg_name.to_owned(), value)
     }
 
     fn get_output(&self) -> CapsulePtr {
         todo!()
     }
 
-    fn notify_connected_from<'b>(&'b mut self, source: ProcessPtr, manifest: ConnectionManifest) -> JuizResult<ConnectionProfile> {
+    fn notify_connected_from<'b>(&'b mut self, source: ProcessPtr, manifest: &ConnectionManifest) -> JuizResult<ConnectionProfile> {
         log::trace!("ProcessProxy::notify_connected_from() called");
-        juiz_lock(&self.broker_proxy)?.process_notify_connected_from(manifest)
+        juiz_lock(&self.broker_proxy)?.process_notify_connected_from(&manifest)
     }
 
-    fn try_connect_to(&mut self, destination: ProcessPtr, manifest: ConnectionManifest) -> JuizResult<ConnectionManifest> {
+    fn try_connect_to(&mut self, destination: ProcessPtr, manifest: &ConnectionManifest) -> JuizResult<ConnectionManifest> {
         log::trace!("ProcessProxy::try_connect_to() called");
-        juiz_lock(&self.broker_proxy)?.process_try_connect_to(manifest)
+        juiz_lock(&self.broker_proxy)?.process_try_connect_to(&manifest)
     }
 
     fn source_connections(&self) -> JuizResult<Vec<&Box<dyn SourceConnection>>> {
@@ -107,7 +107,7 @@ impl Process for ProcessProxy {
 
 
     fn p_apply(&mut self, arg_name: &str, value: CapsulePtr) -> JuizResult<CapsulePtr> {
-        juiz_lock(&self.broker_proxy)?.process_p_apply(&self.identifier().to_string(), arg_name, value)
+        juiz_lock(&self.broker_proxy)?.process_p_apply(&self.identifier(), arg_name, value)
     }
     
     fn purge(&mut self) -> JuizResult<()> {

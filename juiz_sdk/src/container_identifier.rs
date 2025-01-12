@@ -4,13 +4,18 @@ use anyhow::anyhow;
 
 use crate::result::JuizError;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ContainerIdentifier {
     pub broker_name: String, 
     pub broker_type_name: String,
     pub name: String,
     pub type_name: String,
     pub class_name: String,
+}
+impl ContainerIdentifier {
+    pub(crate) fn new(broker_name: String, broker_type_name: String, name: String, type_name: String) -> Self {
+        Self { broker_name, broker_type_name, name, type_name, class_name: "Container".to_owned()}
+    }
 }
 
 impl Display for ContainerIdentifier {

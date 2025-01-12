@@ -9,7 +9,7 @@ pub trait ContainerProcessFactory : JuizObject + 'static {
 
     /// ContainerProcessを生成
     /// 
-    fn create_container_process(&self, container: ContainerPtr, manifest: ProcessManifest) -> JuizResult<ProcessPtr>;
+    fn create_container_process(&self, container: ContainerPtr, manifest: &ProcessManifest) -> JuizResult<ProcessPtr>;
 
     fn destroy_container_process(&mut self, p: ProcessPtr) -> JuizResult<ProcessProfile>;
 }

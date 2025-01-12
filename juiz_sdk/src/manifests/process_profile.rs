@@ -48,6 +48,28 @@ impl TryFrom<ProcessManifest> for ProcessProfile {
     }
 }
 
+// impl TryFrom<ProcessManifest> for ProcessProfile {
+//     type Error = anyhow::Error;
+
+//     fn try_from(value: ProcessManifest) -> Result<Self, Self::Error> {
+//         Ok( Self { 
+//             name: value.name.ok_or(anyhow!(JuizError::ProcessManifestInvalidError { message: format!("ProcessManifest does not include 'name' value.") }))?,
+//             type_name: value.type_name,
+//             description: value.description,
+//             arguments: value.arguments.into_iter().map(|a|{a.into()}).collect(),
+//             factory: value.factory, 
+//             use_memo: value.use_memo, 
+//             language: value.language, 
+//             broker_type_name: value.broker_type_name, 
+//             broker_name: value.broker_name,
+//             publishes: value.publishes.into_iter().map(|p| {p.into()}).collect(), 
+//             subscribes: value.subscribes.into_iter().map(|(k, v)| { (k, v.into()) }).collect(),
+//             container_name: value.container_name, 
+//             container_type: value.container_type 
+//         })
+//     }
+// }
+
 impl Display for ProcessProfile {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str("ProcessProfile(")?;

@@ -40,9 +40,9 @@ fn setup_process_factory(system: &System, name: &String, v: &Value, option: &Val
 pub(super) fn setup_processes(system: &System, manifest: &Value) -> JuizResult<()> {
     log::trace!("setup_processes({manifest}) called");
     for process_manifest_value  in get_array(manifest)?.iter() {
-        let process_manifest: ProcessManifest = process_manifest_value.clone().try_into()?;
+        let process_manifest: ProcessManifest = serde_json::from_value(process_manifest_value.clone())?;
         log::debug!("Process ({:?}) Creating...", process_manifest);
-        let new_process = system.core_broker().lock_mut()?.worker_mut().create_process_ref(process_manifest.clone())?;
+        let new_process = system.core_broker().lock_mut()?.worker_mut().create_process_ref(&process_manifest)?;
         log::info!("Process ({:?}) Created", process_manifest);
 
         // Topicをpublishするなら
@@ -73,7 +73,7 @@ pub(crate) fn register_process_factory(core_worker: &mut CoreWorker, working_dir
     let type_name = pf.lock().or_else(|e| { Err(JuizError::ObjectLockError { target: e.to_string() })})?.type_name().to_owned();
     let pfw = ProcessFactoryPtr::new(ProcessFactoryWrapper::new(plugin, pf)?);
     core_worker.store_mut().processes.register_factory(type_name.as_str(), pfw.clone())?;
-    log::debug!("ProcessFactory(type_name={type_name}) registered");
+    log::info!("ProcessFactory(type_name={type_name}) registered");
     log::trace!("register_process_factory() exit");
     Ok(pfw)
 }

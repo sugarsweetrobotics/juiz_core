@@ -66,7 +66,7 @@ impl JuizObjectCoreHolder for ContainerProcessFactoryImpl {
 impl JuizObject for ContainerProcessFactoryImpl {
     fn profile_full(&self) -> JuizResult<Value> {
         let mut v = self.core.profile_full()?;
-        let vv = self.manifest.arguments.iter().map(|v|{ v.clone().into() }).collect::<Vec<Value>>();
+        let vv = self.manifest.arguments.iter().map(|v|{ serde_json::to_value(v) }).collect::<serde_json::Result<Vec<Value>>>()?;
         obj_merge_mut(&mut v, &jvalue!({
             "arguments": vv,
             "language": self.manifest.language,
@@ -87,7 +87,7 @@ pub fn bind_container_function<T: 'static >(function: impl Fn(&mut ContainerImpl
 }
 
 impl ContainerProcessFactory for ContainerProcessFactoryImpl {
-    fn create_container_process(&self, container: ContainerPtr, manifest: ProcessManifest) -> JuizResult<ProcessPtr> {
+    fn create_container_process(&self, container: ContainerPtr, manifest: &ProcessManifest) -> JuizResult<ProcessPtr> {
         log::trace!("ContainerProcessFactoryImpl::create_container_process(container, manifest={:?}) called", manifest);
         
         //let function_clone = self.function.clone();
@@ -102,7 +102,7 @@ impl ContainerProcessFactory for ContainerProcessFactoryImpl {
         };
         Ok(ProcessPtr::new(ProcessImpl::new_from_clousure_and_class_name(
             JuizObjectClass::ContainerProcess("ContainerProcessImpl"), 
-            self.manifest.build_instance_manifest(manifest)?, 
+            self.manifest.build_instance_manifest(manifest.clone())?, 
             func, 
             Box::new(ConnectionFactoryImpl::new()))?))
         // Ok(ProcessPtr::new(

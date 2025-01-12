@@ -1,5 +1,6 @@
 
 
+use crate::manifests::ArgumentProfile;
 use crate::manifests::ProcessProfile;
 use crate::prelude::*;
 use crate::value::*;
@@ -82,7 +83,7 @@ pub fn check_connection_manifest(connection_manifest: Value) -> Result<Value, Ju
 //     Ok(process_manifest)
 // }
 
-fn check_arguments(args_manifest: &Vec<ArgumentManifest>, argument: &CapsuleMap) -> JuizResult<()> {
+fn check_arguments(args_manifest: &Vec<ArgumentProfile>, argument: &CapsuleMap) -> JuizResult<()> {
     //let arg_map = get_hashmap(argument).context("check_arguments")?;
     for arg_manifest in args_manifest.iter() {
         match argument.get(arg_manifest.name.as_str()) {
@@ -91,7 +92,7 @@ fn check_arguments(args_manifest: &Vec<ArgumentManifest>, argument: &CapsuleMap)
                 
                 return Err(
                 anyhow::Error::from(JuizError::ArgumentMissingWhenCallingError{
-                    process_manifest: args_manifest.iter().map(|a|{a.clone().into()}).collect::<Vec<Value>>().into(), 
+                    process_manifest: args_manifest.iter().map(|a|{ serde_json::to_value(a) }).collect::<Result<Vec<Value>, serde_json::Error>>()?.into(), 
                     missing_arg_name: arg_manifest.name.clone()}));
                 },
             Ok(_) => {}

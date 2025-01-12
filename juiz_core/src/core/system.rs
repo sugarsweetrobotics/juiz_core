@@ -6,6 +6,9 @@ use std::sync::{
 use std::time::{self, Duration};
 use home::home_dir;
 use juiz_sdk::anyhow::{self, anyhow, Context};
+use juiz_sdk::container_identifier::ContainerIdentifier;
+use juiz_sdk::manifests::ProcessProfile;
+use juiz_sdk::process_identifier::ProcessIdentifier;
 use juiz_sdk::utils::manifest_util::manifest_merge;
 use juiz_sdk::utils::yaml_conf_load::yaml_conf_load_with;
 
@@ -387,13 +390,13 @@ impl System {
         Ok(broker_proxy)
     }
 
-    pub fn process_list(&self, recursive: bool) -> JuizResult<Vec<Value>> {
+    pub fn process_list(&self, recursive: bool) -> JuizResult<Vec<ProcessIdentifier>> {
         log::trace!("System::process_list({recursive}) called");
-        let mut local_processes = self.core_broker().lock()?.worker().store().processes_profile_full()?.as_object().unwrap().values().into_iter().map(|v|{v.clone()}).collect::<Vec<Value>>();
+        let mut local_processes = self.core_broker().lock()?.worker().store().processes_id();
         if recursive {
             for (_, proxy) in self.core_broker().lock()?.worker().store().broker_proxies.objects().iter() {
                 log::trace!("process_list for proxy ()");
-                for v in get_array(&juiz_lock(proxy)?.process_list(recursive)?)?.iter() {
+                for v in juiz_lock(proxy)?.process_list(recursive)?.iter() {
                     local_processes.push(v.clone());
                 }
             }
@@ -402,26 +405,13 @@ impl System {
         return Ok(local_processes);
     }
 
-    pub fn container_list(&self, recursive: bool) -> JuizResult<Vec<Value>> {
+    pub fn container_list(&self, recursive: bool) -> JuizResult<Vec<ContainerIdentifier>> {
         log::trace!("System::container_list() called");
-        let mut local_containers = self.core_broker().lock()?.worker().store().containers_profile_full()?.as_object().unwrap().values().into_iter().map(|v|{v.clone()}).collect::<Vec<Value>>();
-
+        let mut local_containers = self.core_broker().lock()?.worker().store().containers_id();
         if recursive {
             for (_, proxy) in self.core_broker().lock()?.worker().store().broker_proxies.objects().iter() {
-                match juiz_lock(proxy) {
-                    Err(e) => return Err(e),
-                    Ok(p) => {
-                        match p.container_list(recursive) {
-                            Ok(v) => {
-                                for v in get_array(&v)?.iter() {
-                                    local_containers.push(v.clone());
-                                }
-                            }
-                            Err(e) => {
-                                log::error!("BrokerProxy({:}).container_list() in System::container_list() failed. Error({e:?}) ", p.identifier());
-                            }
-                        }
-                    }
+                for c in juiz_lock(proxy)?.container_list(recursive)?.iter() {
+                    local_containers.push(c.clone());
                 }
             }
         }
@@ -429,21 +419,19 @@ impl System {
         return Ok(local_containers);
     }
 
-    pub fn container_process_list(&self, recursive: bool) -> JuizResult<Vec<Value>> {
+    pub fn container_process_list(&self, recursive: bool) -> JuizResult<Vec<ProcessIdentifier>> {
         log::trace!("System::container_process_list() called");
-        let mut local_processes = self.core_broker().lock()?.worker().store().container_processes_profile_full()?.as_object().unwrap().values().into_iter().map(|v|{v.clone()}).collect::<Vec<Value>>();
-        if recursive {
-            for (_, proxy) in self.core_broker().lock()?.worker().store().broker_proxies.objects().iter() {
-                for v in get_array(&juiz_lock(proxy)?.container_process_list(recursive)?)?.iter() {
-                    local_processes.push(v.clone());
-                }
+        let mut local_processes = self.core_broker().lock()?.worker().store().container_processes_id();
+        for (_, proxy) in self.core_broker().lock()?.worker().store().broker_proxies.objects().iter() {
+            for v in juiz_lock(proxy)?.container_process_list(recursive)?.iter() {
+                local_processes.push(v.clone());
             }
         }
         log::debug!("ids: {local_processes:?}");    
-        return Ok(local_processes);
+        Ok(local_processes)
     }
 
-    pub fn any_process_list(&self, recursive: bool) -> JuizResult<Vec<Value>> {
+    pub fn any_process_list(&self, recursive: bool) -> JuizResult<Vec<ProcessIdentifier>> {
         log::trace!("System::any_process_list() called");
         let mut ps = self.process_list(recursive)?;
         let mut cps = self.container_process_list(recursive)?;

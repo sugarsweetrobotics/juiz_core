@@ -159,6 +159,7 @@
 pub mod identifier;
 pub mod connection_identifier;
 pub mod process_identifier;
+pub mod topic_identifier;
 pub mod container_identifier;
 pub mod value;
 pub mod result;

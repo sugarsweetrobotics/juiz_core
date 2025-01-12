@@ -1,5 +1,8 @@
 use std::cell::RefCell;
 
+use juiz_sdk::container_identifier::ContainerIdentifier;
+use juiz_sdk::manifests::ContainerProfile;
+
 use crate::prelude::*;
 use crate::plugin::{JuizObjectPlugin, Plugin};
 
@@ -64,9 +67,9 @@ impl ContainerFactory for ContainerFactoryWrapper {
     }
 
 
-    fn destroy_container(&mut self, c: ContainerPtr) -> JuizResult<Value> {
-        let prof = c.lock()?.profile_full()?;
-        let id = obj_get_str(&prof, "identifier")?;
+    fn destroy_container(&mut self, c: ContainerPtr) -> JuizResult<ContainerProfile> {
+        let prof = c.lock()?.profile()?;
+        let id: ContainerIdentifier = prof.identifier();
         log::trace!("ContainerFactoryWrapper::destroy_container(manifest={}) called", prof);
         let index = self.containers.borrow().iter().enumerate().find(|rc| rc.1.lock().unwrap().identifier() == id).unwrap().0;
         self.containers.borrow_mut().remove(index);

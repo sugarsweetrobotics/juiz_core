@@ -46,9 +46,9 @@ pub trait Process : Send + Sync + mopa::Any + std::fmt::Debug + 'static {
 
     fn get_output(&self) -> CapsulePtr;
 
-    fn notify_connected_from<'b>(&'b mut self, source: ProcessPtr, connection_manifest: ConnectionManifest) -> JuizResult<ConnectionProfile>;
+    fn notify_connected_from<'b>(&'b mut self, source: ProcessPtr, connection_manifest: &ConnectionManifest) -> JuizResult<ConnectionProfile>;
 
-    fn try_connect_to(&mut self, target: ProcessPtr, connection_manifest: ConnectionManifest) -> JuizResult<ConnectionManifest>;
+    fn try_connect_to(&mut self, target: ProcessPtr, connection_manifest: &ConnectionManifest) -> JuizResult<ConnectionManifest>;
     
     fn source_connections(&self) -> JuizResult<Vec<&Box<dyn SourceConnection>>>;
 

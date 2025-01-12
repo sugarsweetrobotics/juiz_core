@@ -62,7 +62,7 @@ impl CppPlugin {
     }
 
     pub fn load_component_manifest(&self, _working_dir: Option<PathBuf>) -> JuizResult<ComponentManifest> {
-        Ok(self.get_manifest().clone().try_into()?)
+        serde_json::from_value(self.get_manifest().clone()).or_else(|e| { Err(anyhow!(e))})
     }
     
     pub fn load_process_factory(&self, _working_dir: Option<PathBuf>, symbol_name: &str, type_name_opt: Option<&str>) -> JuizResult<ProcessFactoryPtr> {
@@ -75,13 +75,13 @@ impl CppPlugin {
         };
         let manifest = match type_name_opt {
             Some(type_name) => {
-                let manif: ComponentManifest = self.get_manifest().clone().try_into()?;
+                let manif: ComponentManifest = serde_json::from_value(self.get_manifest().clone())?;
                 manif.processes.iter().find(|p| { p.type_name == type_name })
                    .ok_or(anyhow!(JuizError::ArgumentError { message: format!("ComponentManifest does not include process(type_name={type_name})") }))?.clone()
             }
-            None => self.get_manifest().clone().try_into()?
+            None => serde_json::from_value(self.get_manifest().clone())?
         };
-        create_cpp_process_factory(manifest.into(), f)
+        create_cpp_process_factory(serde_json::to_value(manifest)?, f)
     }
 
     pub fn load_container_factory(&self, _working_dir: Option<PathBuf>, symbol_name: &str, type_name_opt: Option<&str>) -> JuizResult<ContainerFactoryPtr> {
@@ -95,11 +95,11 @@ impl CppPlugin {
 
         let container_manifest = match type_name_opt {
             Some(type_name) => {
-                let manif: ComponentManifest = self.get_manifest().clone().try_into()?;
+                let manif: ComponentManifest = serde_json::from_value(self.get_manifest().clone())?;
                 manif.containers.iter().find(|p| { p.type_name == type_name })
                    .ok_or(anyhow!(JuizError::ArgumentError { message: format!("ComponentManifest does not include container(type_name={type_name})") }))?.clone()
             }
-            None => self.get_manifest().clone().try_into()?
+            None => serde_json::from_value(self.get_manifest().clone())?
         };
         let constructor = move |cm: ContainerManifest, mut v: CapsuleMap| -> JuizResult<ContainerPtr> {
             let mut pobj: *mut c_void = std::ptr::null_mut();
@@ -124,10 +124,10 @@ impl CppPlugin {
         };
         let container_process_manifest: ProcessManifest = match type_name_opt {
             Some(type_name) => {
-                find_container_process_from_component_manifest(self.get_manifest().clone().try_into()?, type_name)
+                find_container_process_from_component_manifest(serde_json::from_value(self.get_manifest().clone())?, type_name)?
             }
-            None => self.get_manifest().clone().try_into()
-        }?;
+            None => serde_json::from_value(self.get_manifest().clone())?
+        };
         let type_name = container_process_manifest.type_name.to_owned();
         let constructor = move |c: &mut ContainerImpl<CppContainerStruct>, mut argument: CapsuleMap| -> JuizResult<Capsule> {
             let mut retval = Capsule::empty();
@@ -181,5 +181,5 @@ fn create_cpp_process_factory(manifest: Value, entry_point: unsafe fn(*mut Capsu
         return Ok(func_result);
     };
 
-    process_factory_create_from_trait(manifest.try_into()?, function)
+    process_factory_create_from_trait(serde_json::from_value(manifest)?, function)
 }

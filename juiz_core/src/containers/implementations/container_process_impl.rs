@@ -1,5 +1,5 @@
 use anyhow::Context;
-use juiz_sdk::{anyhow, connections::ConnectionManifest, manifests::ProcessProfile, process_identifier::ProcessIdentifier};
+use juiz_sdk::{anyhow, connections::{ConnectionManifest, ConnectionProfile}, manifests::ProcessProfile, process_identifier::ProcessIdentifier};
 
 use crate::prelude::*;
 //use crate::processes::process_from_clousure;
@@ -111,11 +111,11 @@ impl Process for ContainerProcessImpl {
         self.process().unwrap().get_output()
     }
 
-    fn notify_connected_from<'b>(&'b mut self, source: ProcessPtr, connection_manifest: ConnectionManifest) -> JuizResult<ConnectionManifest> {
+    fn notify_connected_from<'b>(&'b mut self, source: ProcessPtr, connection_manifest: &ConnectionManifest) -> JuizResult<ConnectionProfile> {
         self.process_mut()?.notify_connected_from(source, connection_manifest)
     }
 
-    fn try_connect_to(&mut self, target: ProcessPtr, connection_manifest: ConnectionManifest) -> JuizResult<ConnectionManifest> {
+    fn try_connect_to(&mut self, target: ProcessPtr, connection_manifest: &ConnectionManifest) -> JuizResult<ConnectionManifest> {
         self.process_mut()?.try_connect_to(target, connection_manifest)
     }
 

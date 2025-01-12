@@ -2,32 +2,30 @@
 
 use std::fmt::Display;
 
-use anyhow::Context;
-use serde::{Deserialize, Serialize};
+use anyhow::{anyhow, Context};
+use serde::{Serialize, Deserialize};
 
 use crate::{container_identifier::ContainerIdentifier, prelude::*};
-use super::manifest_description::Description;
+use super::{manifest_description::Description, ArgumentProfile, ProcessProfile};
 
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ContainerManifest {
-    pub name: Option<String>,
+pub struct ContainerProfile {
+    pub name: String,
     pub language: String,
     pub type_name: String,
     pub factory: String, 
-    pub arguments: Vec<ArgumentManifest>,
+    pub arguments: Vec<ArgumentProfile>,
     pub description: Description,
     pub parent_type_name: Option<String>,
     pub parent_name: Option<String>,
-    pub processes: Vec<ProcessManifest>,
+    pub processes: Vec<ProcessProfile>,
     pub args: Value,
-    pub broker_type_name: String,
-    pub broker_name: String,
 }
 
-impl Display for ContainerManifest {
+impl Display for ContainerProfile {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_fmt(format_args!("ContainerManifest(\"{}\", \"{}\", processes=[", self.type_name, self.language, ))?;
+        f.write_fmt(format_args!("ContainerProfile(\"{}\", \"{}\", processes=[", self.type_name, self.language, ))?;
         for p in self.processes.iter() {
             f.write_fmt(format_args!("{}, ", p))?;
         }
@@ -37,19 +35,38 @@ impl Display for ContainerManifest {
     }
 }
 
+impl TryFrom<ContainerManifest> for ContainerProfile {
+    
+    fn try_from(value: ContainerManifest) -> Result<Self, Self::Error> {
+        Ok(Self {
+            name: value.name.ok_or(anyhow!(JuizError::ContainerManifestInvalidError{message: format!("ContainerManifest does not include 'name' value.") }))?,
+            language: value.language,
+            type_name: value.type_name,
+            factory: value.factory,
+            arguments: value.arguments.into_iter().map(|a| { a.into() }).collect(),
+            description: value.description,
+            parent_type_name: value.parent_type_name,
+            parent_name: value.parent_name,
+            processes: value.processes.into_iter().map(|p| -> JuizResult<ProcessProfile> { p.try_into() }).collect::<JuizResult<Vec<ProcessProfile>>>()?,
+            args: value.args,
+        })
+    }
 
-impl ContainerManifest {
+    type Error = anyhow::Error;
+}
 
-    pub fn build_instance_manifest(&self, mut partial_instance_manifest: ContainerManifest) -> JuizResult<Self> {
+impl ContainerProfile {
+
+    pub fn build_instance_manifest(&self, mut partial_instance_manifest: ContainerProfile) -> JuizResult<Self> {
         partial_instance_manifest.type_name = self.type_name.clone();
         Ok(partial_instance_manifest
             .description(self.description.as_str())
         )
     }
 
-    pub fn new(type_name: &str) -> Self {
+    pub fn new(type_name: &str, name: &str) -> Self {
         Self {
-            name: None,
+            name: name.to_owned(),
             language: "rust".to_owned(),
             type_name: type_name.to_owned(),
             factory: "container_factory".to_owned(),
@@ -59,30 +76,28 @@ impl ContainerManifest {
             processes: Vec::new(),
             args: jvalue!({}),
             arguments: Vec::new(),
-            broker_name: "core".to_owned(),
-            broker_type_name: "core".to_owned(),
         }
     }
 
-    pub fn parent_container_manifest(&self) -> Self {
-        Self {
-            name: self.parent_name.clone(),
-            language: "rust".to_owned(),
-            type_name: self.parent_type_name.as_ref().unwrap().clone(),
-            factory: "component_factory".to_owned(),
-            description: "".into(),
-            parent_type_name: None,
-            parent_name: None,
-            processes: Vec::new(),
-            args: jvalue!({}),
-            arguments: Vec::new(),
-            broker_name: self.broker_name.clone(),
-            broker_type_name: self.broker_type_name.clone(),
-        }
+    pub fn parent_container_profile(&self) -> Option<Self> {
+        self.parent_name.as_ref().and_then(|pn| {
+            Some(Self {
+                name: pn.clone(),
+                language: "rust".to_owned(),
+                type_name: self.parent_type_name.as_ref().unwrap().clone(),
+                factory: "component_factory".to_owned(),
+                description: "".into(),
+                parent_type_name: None,
+                parent_name: None,
+                processes: Vec::new(),
+                args: jvalue!({}),
+                arguments: Vec::new(),
+            })
+        })
     }
 
     pub fn name(mut self, name: &str) -> Self {
-        self.name = Some(name.to_owned());
+        self.name = name.to_owned();
         self
     }
 
@@ -106,11 +121,11 @@ impl ContainerManifest {
         self
     }
 
-    pub fn add_process(mut self, process_manifest: ProcessManifest) -> Self {
+    pub fn add_process(mut self, process_profile: ProcessProfile) -> Self {
         // println!("add_process({})", process_manifest);
         self.processes.push( 
-            process_manifest
-                .container_name(self.name.as_ref().map(|s|{s.clone()}))
+            process_profile
+                .container_name(Some(self.name.clone()))
                 .container_type(Some(self.type_name.clone()))
         );
         // println!("cm: {}", self);
@@ -122,7 +137,7 @@ impl ContainerManifest {
         self
     }
     
-    pub fn add_arg(mut self, arg: ArgumentManifest) -> Self {
+    pub fn add_arg(mut self, arg: ArgumentProfile) -> Self {
         self.arguments.push(arg);
         self
     }
@@ -136,52 +151,40 @@ impl ContainerManifest {
     /// assert_eq!(manifest.arguments[0].type_name.as_str(), "int");
     /// ```
     pub fn add_int_arg(self, name: &str, description: &str, default: i64) -> Self {
-        self.add_arg(ArgumentManifest::new_int(name, default).description(description))
+        self.add_arg(ArgumentProfile::new_int(name, default).description(description))
     }
 
         /// ```
     /// use juiz_core::prelude::*;
-    /// let manifest = ProcessManifest::new("hoge_type")
+    /// let manifest = ProcessProfile::new("hoge_type")
     ///   .description("hoge manifest")
     ///   .add_float_arg("arg1", "float_arg", 1.0.into());
     /// assert_eq!(manifest.arguments[0].name, "arg1");
     /// assert_eq!(manifest.arguments[0].type_name.as_str(), "float");
     /// ```
     pub fn add_float_arg(self, name: &str, description: &str, default: f64) -> Self {
-        self.add_arg(ArgumentManifest::new_float(name, default).description(description))
-    }
-
-    pub fn add_bool_arg(self, name: &str, description: &str, default: bool) -> ContainerManifest {
-        self.add_arg(ArgumentManifest::new_bool(name, default).description(description))
+        self.add_arg(ArgumentProfile::new_float(name, default).description(description))
     }
 
     pub fn add_object_arg(self, name: &str, description: &str, default: Value) -> Self {
-        self.add_arg(ArgumentManifest::new_object(name, default).description(description))
+        self.add_arg(ArgumentProfile::new_object(name, default).description(description))
     }
 
     pub fn add_string_arg(self, name: &str, description: &str, default: &str) -> Self {
-        self.add_arg(ArgumentManifest::new_string(name, default).description(description))
+        self.add_arg(ArgumentProfile::new_string(name, default).description(description))
     }
 
     pub fn add_image_arg(self, name: &str, description: &str) -> Self {
-        self.add_arg(ArgumentManifest::new_image(name).description(description))
+        self.add_arg(ArgumentProfile::new_image(name).description(description))
     }
 
-    pub fn identifier(&self) -> JuizResult<ContainerIdentifier> { 
-        Ok(ContainerIdentifier::new(self.broker_name.clone(),
-            self.broker_type_name.clone(), 
-            self.type_name.clone(), 
-            self.name.as_ref().unwrap().clone()))
+    pub fn identifier(&self) -> ContainerIdentifier {
+        ContainerIdentifier::new( format!("core"), format!("core"), self.name.clone(), self.type_name.clone())
     }
-
-    pub fn add_array_arg(self, name: &str, description: &str, default: Vec<serde_json::Value>) -> ContainerManifest {
-        self.add_arg(ArgumentManifest::new_array(name, default).description(description))
-    }
-
 
 }
 
-// impl TryFrom<Value> for ContainerManifest {
+// impl TryFrom<Value> for ContainerProfile {
 //     type Error = anyhow::Error;
 
 //     fn try_from(value: Value) -> Result<Self, Self::Error> {
@@ -189,7 +192,7 @@ impl ContainerManifest {
 //             Ok(v) => v,
 //             Err(_) => ""
 //         };
-//         let mut p = ContainerManifest::new(obj_get_str(&value, "type_name")?)
+//         let mut p = ContainerProfile::new(obj_get_str(&value, "type_name")?,obj_get_str(&value, "name")?)
 //             .description(desc);
 //         match obj_get_str(&value, "name") {
 //             Ok(name) => {
@@ -224,7 +227,7 @@ impl ContainerManifest {
 //         match obj_get_array(&value, "processes") {
 //             Ok(process_manifest_values) => {
 //                 for process_manifest_value in process_manifest_values.iter() {
-//                     let pp :ProcessManifest = process_manifest_value.clone().try_into().context("in loading ContainerManifest from Value")?;
+//                     let pp :ProcessProfile = process_manifest_value.clone().try_into().context("in loading ContainerProfile from Value")?;
 //                     p = p.add_process(pp);
 //                 }
 //             },
@@ -251,7 +254,7 @@ impl ContainerManifest {
 //     }).collect()
 // }
 
-// impl Into<Value> for ContainerManifest {
+// impl Into<Value> for ContainerProfile {
 //     fn into(self) -> Value {
 //         let mut v = jvalue!({
 //             "type_name": self.type_name,

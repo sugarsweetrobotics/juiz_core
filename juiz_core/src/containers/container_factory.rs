@@ -1,6 +1,6 @@
 
 use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
-use juiz_sdk::anyhow::anyhow;
+use juiz_sdk::{anyhow::anyhow, manifests::ContainerProfile};
 use crate::prelude::*;
 
 
@@ -11,7 +11,7 @@ pub trait ContainerFactory : JuizObject + 'static {
 
     fn create_container(&self, core_worker: &mut CoreWorker, manifest: CapsuleMap) -> JuizResult<ContainerPtr>;
 
-    fn destroy_container(&mut self, c: ContainerPtr) -> JuizResult<Value>;
+    fn destroy_container(&mut self, c: ContainerPtr) -> JuizResult<ContainerProfile>;
     
 }
 

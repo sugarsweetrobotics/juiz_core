@@ -5,6 +5,9 @@ use std::sync::{Arc, Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use juiz_sdk::anyhow::{anyhow, Context};
 use juiz_sdk::connection_identifier::ConnectionIdentifier;
 use juiz_sdk::connections::{ConnectionManifest, ConnectionProfile};
+use juiz_sdk::container_identifier::ContainerIdentifier;
+use juiz_sdk::manifests::{ContainerProfile, ProcessProfile};
+use juiz_sdk::process_identifier::ProcessIdentifier;
 use juiz_sdk::utils::check_corebroker_manifest;
 use uuid::Uuid;
 use crate::prelude::*;
@@ -368,7 +371,7 @@ impl SystemBrokerProxy for CoreBroker {
         self.worker_mut().load_container_process_factory(language, filepath)
     }
 
-    fn system_load_component(&mut self, language: String, filepath: String) -> JuizResult<Value> {
+    fn system_load_component(&mut self, language: String, filepath: String) -> JuizResult<ComponentManifest> {
         log::trace!("system_load_component({language}, {filepath}) called");
         self.worker_mut().load_component(language, filepath)
     }
@@ -377,108 +380,81 @@ impl SystemBrokerProxy for CoreBroker {
 
 
 impl ProcessBrokerProxy for CoreBroker { 
-    fn process_call(&self, id: &Identifier, args: CapsuleMap) -> JuizResult<CapsulePtr> {
-        let idstruct = IdentifierStruct::try_from(id.clone())?;
-        if idstruct.broker_type_name == "core" {
-            self.worker().store().processes.get(id)?.lock()?.call(args)
+    fn process_call(&self, id: &ProcessIdentifier, args: CapsuleMap) -> JuizResult<CapsulePtr> {
+        //let idstruct = IdentifierStruct::try_from(id.clone())?;
+        if id.broker_type_name == "core" {
+            self.worker().store().processes.get(&id.to_string())?.lock()?.call(args)
         } else {
             self.worker().process_proxy_from_identifier(id, true)?.lock()?.call(args)
         }
     }
 
-    fn process_execute(&self, id: &Identifier) -> JuizResult<CapsulePtr> {
+    fn process_execute(&self, id: &ProcessIdentifier) -> JuizResult<CapsulePtr> {
         log::trace!("CoreBroker::process_execute({id:}) called");
-        let idstruct = IdentifierStruct::try_from(id.clone())?;
-        if idstruct.broker_type_name == "core" {
-            self.worker().store().processes.get(id)?.lock()?.execute()
+        //let idstruct = IdentifierStruct::try_from(id.clone())?;
+        if id.broker_type_name == "core" {
+            self.worker().store().processes.get(&id.to_string())?.lock()?.execute()
         } else {
             self.worker().process_proxy_from_identifier(id, true)?.lock()?.execute()
         }
     }
 
-    fn process_profile_full(&self, id: &Identifier) -> JuizResult<Value> {
-        Ok(self.worker().store().processes.get(id)?.lock()?.profile_full()?.into())
+    fn process_profile_full(&self, id: &ProcessIdentifier) -> JuizResult<ProcessProfile> {
+        Ok(self.worker().store().processes.get(&id.to_string())?.lock()?.profile()?)
     }
 
-    fn process_list(&self, recursive: bool) -> JuizResult<Value> {
+    fn process_list(&self, recursive: bool) -> JuizResult<Vec<ProcessIdentifier>> {
         log::trace!("process_list({recursive}) called");
         if !recursive {
             return Ok(self.worker().store().processes_id());
         } 
 
         let mut ids = self.worker().store().processes_id();
-        match ids.as_array_mut() {
-            Some(ids_arr) => {
-                for ssp in self.subsystem_proxies.iter() {
-                    log::trace!(" - process_list for subsystem({ssp:})");
-                    let plist = juiz_lock(&ssp.broker_proxy())?.process_list(recursive)?;
-                    for v in get_array(&plist)?.iter() {
-                        let id = v.as_str().unwrap();
-                        ids_arr.push(id.into());
-                    }
-                }
-            }
-            None => {
-                return Err(anyhow!(JuizError::ValueIsNotArrayError { value: jvalue!({})}));
+        for ssp in self.subsystem_proxies.iter() {
+            log::trace!(" - process_list for subsystem({ssp:})");
+            let plist = juiz_lock(&ssp.broker_proxy())?.process_list(recursive)?;
+            for v in plist.into_iter() {
+                ids.push(v);
             }
         }
         Ok(ids)
     }
 
 
-    fn process_push_by(&self, id: &Identifier, arg_name: String, value: CapsulePtr) -> JuizResult<CapsulePtr> {
-        self.worker().store().processes.get(id)?.lock()?.push_by(arg_name.as_str(), value)
+    fn process_push_by(&self, id: &ProcessIdentifier, arg_name: String, value: CapsulePtr) -> JuizResult<CapsulePtr> {
+        self.worker().store().processes.get(&id.to_string())?.lock()?.push_by(arg_name.as_str(), value)
     }
 
-    fn process_try_connect_to(&mut self, source_process_id: &Identifier, arg_name: &str, destination_process_id: &Identifier, connection_type: String, connection_id: Option<String>) -> JuizResult<Value> {
-        let mut source_process_id_struct = IdentifierStruct::try_from(source_process_id.clone())?;
-        source_process_id_struct.broker_type_name = "core".to_owned();
-        source_process_id_struct.broker_name = "core".to_owned();
-
-        let connection_manifest = ConnectionManifest::new(
-            connection_type.as_str().into(),
-            source_process_id_struct.to_identifier(),
-            arg_name.to_owned(),
-            destination_process_id.clone(),
-            connection_id,
-        );
-        let destination_process = self.worker_mut().any_process_proxy_from_identifier(destination_process_id, true)?;
-        //self.worker_mut().any_process_proxy_from_identifier(source_process_id)?.lock_mut()?.try_connect_to(destination_process, arg_name, manifest)
-        
-        Ok(self.worker_mut().any_process_proxy_from_identifier(source_process_id, true)?.lock_mut()?.try_connect_to(destination_process, connection_manifest)?.into())
+    fn process_try_connect_to(&mut self, connection_manifest_ref: &ConnectionManifest) -> JuizResult<ConnectionManifest> {
+        let mut connection_manifest = connection_manifest_ref.clone();
+        connection_manifest.source_process_id.broker_type_name = "core".to_owned();
+        connection_manifest.source_process_id.broker_name = "core".to_owned();
+        let destination_process = self.worker_mut().any_process_proxy_from_identifier(&connection_manifest.destination_process_id, true)?;
+        Ok(self.worker_mut().any_process_proxy_from_identifier(&connection_manifest.source_process_id, true)?.lock_mut()?.try_connect_to(destination_process, &connection_manifest)?.into())
     }
 
-    fn process_notify_connected_from(&mut self, source_process_id: &Identifier, arg_name: &str, destination_process_id: &Identifier, connection_type: String, connection_id: Option<String>) -> JuizResult<Value> {
-        
-        let mut destination_process_id_struct = IdentifierStruct::try_from(destination_process_id.clone())?;
-        destination_process_id_struct.broker_type_name = "core".to_owned();
-        destination_process_id_struct.broker_name = "core".to_owned();
-
-        let connection_manifest = ConnectionManifest::new(
-            connection_type.as_str().into(),
-            source_process_id.clone(),
-            arg_name.to_owned(),
-            destination_process_id_struct.to_identifier(),
-            connection_id,
-        );
-        let source_process = self.worker_mut().any_process_proxy_from_identifier(source_process_id, true)?;//self.store().processes.get(source_process_id)?;
-        //self.worker_mut().any_process_proxy_from_identifier(destination_process_id)?.lock_mut()?.notify_connected_from(source_process, arg_name, manifest)
-        Ok(self.worker_mut().any_process_proxy_from_identifier(destination_process_id, true)?.lock_mut()?.notify_connected_from(source_process, connection_manifest)?.into())
+    fn process_notify_connected_from(&mut self, mut connection_manifest_ref: &ConnectionManifest) -> JuizResult<ConnectionProfile> {
+        let mut connection_manifest = connection_manifest_ref.clone();
+        connection_manifest.destination_process_id.broker_type_name = "core".to_owned();
+        connection_manifest.destination_process_id.broker_name = "core".to_owned();
+        let source_process = self.worker_mut().any_process_proxy_from_identifier(&connection_manifest.source_process_id, true)?;//self.store().processes.get(source_process_id)?;
+        Ok(self.worker_mut().any_process_proxy_from_identifier(&connection_manifest.destination_process_id, true)?
+            .lock_mut()?.notify_connected_from(source_process, &connection_manifest)?.into())
      }
      
-    fn process_p_apply(&mut self, id: &Identifier, arg_name: &str, value: CapsulePtr) -> JuizResult<CapsulePtr> {
-        Ok(self.worker().store().processes.get(id)?.lock_mut()?.p_apply(arg_name, value)?.into())
+    fn process_p_apply(&mut self, id: &ProcessIdentifier, arg_name: &str, value: CapsulePtr) -> JuizResult<CapsulePtr> {
+        Ok(self.worker().store().processes.get(&id.to_string())?.lock_mut()?.p_apply(arg_name, value)?.into())
     }
     
-    fn process_create(&mut self, manifest: ProcessManifest) -> JuizResult<Value> {
-        self.worker_mut().create_process_ref(manifest)?.lock()?.profile_full()
+    fn process_create(&mut self, manifest: &ProcessManifest) -> JuizResult<ProcessProfile> {
+        self.worker_mut().create_process_ref(manifest)?.lock()?.profile()
     }
     
-    fn process_destroy(&mut self, identifier: &Identifier) -> JuizResult<Value> {
+    fn process_destroy(&mut self, identifier: &ProcessIdentifier) -> JuizResult<ProcessProfile> {
         log::trace!("process_destroy({}) called", identifier);
         match self.worker_mut().destroy_process_ref(identifier)?.lock_mut() {
             Ok(mut p) => {
-                let prof = p.profile_full()?;
+                let prof = p.profile()?;
                 p.purge()?;
                 log::trace!("process_destroy({}) exit", identifier);
                 Ok(prof)
@@ -490,92 +466,84 @@ impl ProcessBrokerProxy for CoreBroker {
 }
 
 impl ContainerBrokerProxy for CoreBroker {
-    fn container_profile_full(&self, id: &Identifier) -> JuizResult<Value> {
-        self.worker().store().containers.get(id)?.clone().lock()?.profile_full()
+    fn container_profile_full(&self, id: &ContainerIdentifier) -> JuizResult<ContainerProfile> {
+        self.worker().store().containers.get(&id.to_string())?.clone().lock()?.profile()
     }
 
-    fn container_list(&self, recursive: bool) -> JuizResult<Value> {
+    fn container_list(&self, recursive: bool) -> JuizResult<Vec<ContainerIdentifier>> {
         //Ok(self.store().containers.list_ids()?.into())
-        let mut ids = self.worker().store().containers_id();
-        let ids_arr = ids.as_array_mut().unwrap();
+        let mut ids = self.worker().store().containers.objects().iter().map(|(k, c)| {
+            c.identifier()
+        }).collect::<Vec<ContainerIdentifier>>();
         if recursive {
             //for (_id, proxy) in self.store().broker_proxies.objects().iter() {
             for ssp in self.subsystem_proxies.iter() {
                 let proxy = ssp.broker_proxy();
-                let plist = juiz_lock(&proxy)?.container_list(recursive)?;
-                for v in get_array(&plist)?.iter() {
-                    let id = v.as_str().unwrap();
-                    ids_arr.push(id.into());
-                }
+                let mut plist = juiz_lock(&proxy)?.container_list(recursive)?;
+                ids.append(&mut plist);
             }
         }
         Ok(ids)
     }
     
-    fn container_create(&mut self, manifest: CapsuleMap) -> JuizResult<Value> {
-        let type_name: String =  manifest.get("type_name")?.try_into()?;
+    fn container_create(&mut self, manifest: &ContainerManifest, args: CapsuleMap) -> JuizResult<ContainerProfile> {
+        let type_name: String =  manifest.type_name.clone();// manifest.get("type_name")?.try_into()?;
+        let name = manifest.name.clone().or(Some(format!("{}0", type_name))).unwrap();
        //let type_name = obj_get_str(&manifest, "type_name")?;
-        self.worker_mut().create_container_ref(type_name.as_str(), manifest)?.lock()?.profile_full()
+        self.worker_mut().create_container_ref(type_name.as_str(), name.as_str(), args)?.lock()?.profile()
     }
     
-    fn container_destroy(&mut self, identifier: &Identifier) -> JuizResult<Value> {
+    fn container_destroy(&mut self, identifier: &ContainerIdentifier) -> JuizResult<ContainerProfile> {
         log::trace!("container_destroy({}) called", identifier);
         self.worker_mut().destroy_container_ref(identifier)
     }
 }
 
 impl ContainerProcessBrokerProxy for CoreBroker {
-    fn container_process_profile_full(&self, id: &Identifier) -> JuizResult<Value> {
-        self.worker().store().container_processes.get(id)?.lock().with_context(||format!("locking container_procss(id={id:}) in CoreBroker::container_process_profile_full() function"))?.profile_full()
+    fn container_process_profile_full(&self, id: &ProcessIdentifier) -> JuizResult<ProcessProfile> {
+        self.worker().store().container_processes.get(&id.to_string())?.lock()?.profile()
     }
 
-    fn container_process_list(&self, recursive: bool) -> JuizResult<Value> {
+    fn container_process_list(&self, recursive: bool) -> JuizResult<Vec<ProcessIdentifier>> {
         let mut ids = self.worker().store().container_processes_id();
-        let ids_arr = ids.as_array_mut().unwrap();
         if recursive {
             for ssp in self.subsystem_proxies.iter() {
                 let proxy = ssp.broker_proxy();
-            // for (_str, proxy) in self.store().broker_proxies.objects().iter() {
-                let plist = juiz_lock(&proxy)?.container_process_list(recursive)?;
-                for v in get_array(&plist)?.iter() {
-                    let id = v.as_str().unwrap();
-                    ids_arr.push(id.into());
-                }
+                let mut plist = juiz_lock(&proxy)?.container_process_list(recursive)?;
+                ids.append(&mut plist);
             }
         }
         Ok(ids)
     }
 
-    fn container_process_call(&self, id: &Identifier, args: CapsuleMap) -> JuizResult<CapsulePtr> {
+    fn container_process_call(&self, id: &ProcessIdentifier, args: CapsuleMap) -> JuizResult<CapsulePtr> {
         log::trace!("CoreBroker::container_process_call(id={id:}, args) called");
-        let idstruct = IdentifierStruct::try_from(id.clone())?;
-        if idstruct.broker_type_name == "core" {
-            self.worker().store().container_processes.get(id)?.lock()?.call(args)
+        if id.broker_type_name == "core" {
+            self.worker().store().container_processes.get(&id.to_string())?.lock()?.call(args)
         } else {
             self.worker().process_proxy_from_identifier(id, true)?.lock()?.call(args)
         }
     }
 
-    fn container_process_execute(&self, id: &Identifier) -> JuizResult<CapsulePtr> {
-        let idstruct = IdentifierStruct::try_from(id.clone())?;
-        if idstruct.broker_type_name == "core" {
-            self.worker().store().container_processes.get(id)?.lock().with_context(||format!("locking process(id={id:}) in CoreBroker::execute_process() function"))?.execute()
+    fn container_process_execute(&self, id: &ProcessIdentifier) -> JuizResult<CapsulePtr> {
+        if id.broker_type_name == "core" {
+            self.worker().store().container_processes.get(&id.to_string())?.lock()?.execute()
         } else {
             self.worker().process_proxy_from_identifier(id, true)?.lock()?.execute()
         }
     }
  
-    fn container_process_create(&mut self, container_id: &Identifier, manifest: ProcessManifest) -> JuizResult<Value> {
+    fn container_process_create(&mut self, container_id: &ContainerIdentifier, manifest: &ProcessManifest) -> JuizResult<ProcessProfile> {
         let container = self.worker_mut().container_from_identifier(container_id)?;
-        self.worker_mut().create_container_process_ref(container, manifest)?.lock()?.profile_full()
+        self.worker_mut().create_container_process_ref(container, manifest)?.lock()?.profile()
     }
     
-    fn container_process_destroy(&mut self, identifier: &Identifier) -> JuizResult<Value> {
+    fn container_process_destroy(&mut self, identifier: &ProcessIdentifier) -> JuizResult<ProcessProfile> {
         log::trace!("container_process_destroy({}) called", identifier);
         self.worker_mut().destroy_container_process_ref(identifier)
     }
     
-    fn container_process_p_apply(&mut self, id: &Identifier, arg_name: &str, value: CapsulePtr) -> JuizResult<CapsulePtr> {
+    fn container_process_p_apply(&mut self, id: &ProcessIdentifier, arg_name: &str, value: CapsulePtr) -> JuizResult<CapsulePtr> {
         Ok(self.worker().store().container_processes.get(id)?.lock_mut()?.p_apply(arg_name, value)?.into())
     }
 }
@@ -605,22 +573,21 @@ impl BrokerBrokerProxy for CoreBroker {
 
 
 impl TopicBrokerProxy for CoreBroker {
-    fn topic_list(&self) -> JuizResult<Value> {
+    fn topic_list(&self) -> JuizResult<Vec<TopicIdentifier>> {
         let mut ids = self.worker().store().topics_list_ids()?;
-        let ids_arr = ids.as_array_mut().unwrap();
         if true {
             //for (_, proxy ) in self.store().broker_proxies.objects().iter() {
             for ssp in self.subsystem_proxies.iter() {
                 let proxy = ssp.broker_proxy();
         
-                let plist = juiz_lock(&proxy)?.topic_list()?;
+                let mut plist = juiz_lock(&proxy)?.topic_list()?;
                 for v in get_array(&plist)?.iter() {
                     let id = v.as_str().unwrap();
-                    ids_arr.push(id.into());
+                    ids.push(id.into());
                 }
             }
         }
-        Ok(ids)
+        Ok(ids.into())
     }
     
     fn topic_push(&self, name: &str, capsule: CapsulePtr, pushed_system_uuid: Option<Uuid>) -> JuizResult<()> {

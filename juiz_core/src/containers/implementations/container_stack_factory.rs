@@ -1,6 +1,8 @@
 
 use std::sync::{Arc, Mutex};
 
+use juiz_sdk::manifests::ContainerProfile;
+
 use crate::prelude::*;
 //use crate::{containers::ContainerImpl};
 
@@ -67,9 +69,9 @@ impl<T: 'static> ContainerFactory for ContainerStackFactoryImpl<T> {
         todo!()
     }
     
-    fn destroy_container(&mut self, c: ContainerPtr) -> JuizResult<Value> {
+    fn destroy_container(&mut self, c: ContainerPtr) -> JuizResult<ContainerProfile> {
         log::trace!("ContainerFractoryImpl::destroy_container() called");
-        c.lock()?.profile_full()
+        c.lock()?.profile()
     }
     
 }

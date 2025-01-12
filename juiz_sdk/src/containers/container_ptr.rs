@@ -1,20 +1,19 @@
 use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
-use crate::prelude::*;
+use crate::{container_identifier::ContainerIdentifier, prelude::*};
 use anyhow::anyhow;
 
 
 
 #[derive(Clone)]
 pub struct ContainerPtr {
-    identifier: Identifier,
-    type_name: String,
+    identifier: ContainerIdentifier,
     ptr: Arc<RwLock<dyn Container>>,
 }
 
 impl std::fmt::Debug for ContainerPtr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("ContainerPtr").field("identifier", &self.identifier).field("type_name", &self.type_name).finish()
+        f.debug_struct("ContainerPtr").field("identifier", &self.identifier).finish()
     }
 }
 
@@ -23,19 +22,14 @@ impl ContainerPtr {
     pub fn new(container: impl Container) -> Self {
         ContainerPtr{
             identifier: container.identifier().clone(),
-            type_name: container.type_name().to_owned(),
             ptr: Arc::new(RwLock::new(container))
         }
     }
 
-    pub fn identifier(&self) -> &Identifier {
-        &self.identifier
+    pub fn identifier(&self) -> ContainerIdentifier {
+        self.identifier.clone()
     }
 
-    pub fn type_name(&self) -> &String {
-        &self.type_name
-    }
-    
     pub fn lock(&self) -> JuizResult<RwLockReadGuard<dyn Container>> {
         self.ptr.read().or_else(|_|{ Err(anyhow!(JuizError::ObjectLockError{target:"ContainerPtr".to_owned()})) })
     }

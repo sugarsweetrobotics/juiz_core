@@ -198,6 +198,10 @@ pub enum JuizError {
 
     #[error("ProcessManifest is invalid. (message={message})")]
     ProcessManifestInvalidError { message: String },
+    #[error("ContainerManifest is invalid. (message={message})")]
+    ContainerManifestInvalidError { message: String },
+    #[error("ConnectionManifest is invalid. (message={message})")]
+    ConnectionManifestInvalidError { message: String },
     #[error("TopicManifest is invalid. (message={message})")]
     TopicManifestInvalidError{message: String},
 

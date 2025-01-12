@@ -20,7 +20,7 @@ pub(super) fn setup_container_factories(system: &System, manifest: &Value, optio
 pub(super) fn setup_containers(system: &System, manifest: &Value) -> JuizResult<()> {
     log::trace!("setup_containers({manifest}) called");
     for container_manifest_value in get_array(manifest)?.iter() {
-        let container_manifest: ContainerManifest = container_manifest_value.clone().try_into()?;
+        let container_manifest: ContainerManifest = serde_json::from_value(container_manifest_value.clone())?;
         log::debug!("Container ({:?}) Creating...", container_manifest);
         setup_container(system, container_manifest.clone(), container_manifest_value.clone().try_into()?)?;
         log::debug!("Container ({:?}) Fully Created", container_manifest);
@@ -69,7 +69,7 @@ fn setup_container(system: &System, container_manifest: ContainerManifest, conta
     log::info!("Container Created");    
     for container_process_manifest in container_manifest.processes.iter() {
         log::debug!(" - ContainerProcess ({:?}) Creating...", container_process_manifest);
-        let cp_ref = system.core_broker().lock_mut()?.worker_mut().create_container_process_ref(container.clone(), container_process_manifest.clone())?;
+        let cp_ref = system.core_broker().lock_mut()?.worker_mut().create_container_process_ref(container.clone(), container_process_manifest)?;
         log::info!(" - ContainerProcess ({:?}) Created", container_process_manifest);    
         // Topicをpublishするなら
         for pub_topic in container_process_manifest.publishes.iter() {

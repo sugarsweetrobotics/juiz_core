@@ -135,7 +135,7 @@ if not "{path_str:}" in sys.path:
                 python_process_call(py, &pyfunc2, PyTuple::new_bound(py, capsulemap_to_pytuple(py, &argument, &signature, 0)?))
             }).or_else(|e| { Err(anyhow!(e)) })
         };
-        process_factory_create_from_trait(manifest.try_into()?, function)
+        process_factory_create_from_trait(serde_json::from_value(manifest)?, function)
     }
     
     // pub fn load_container_factory_with_manifest(&self, working_dir: Option<PathBuf>, manifest: Value) -> JuizResult<ContainerFactoryPtr> {
@@ -191,7 +191,7 @@ if not "{path_str:}" in sys.path:
             }).or_else(|e| { Err(anyhow!(e)) })
         };
     
-        container_process_factory_create_from_trait(manifest.try_into()?, bind_container_function(function)).or_else(|e| {
+        container_process_factory_create_from_trait(serde_json::from_value(manifest)?, bind_container_function(function)).or_else(|e| {
             log::error!("container_process_factory_create_from_trait() failed.");
             Err(e)
         })
@@ -254,12 +254,14 @@ if not "{path_str:}" in sys.path:
             }))?))
         };
         
-        container_factory_create(manifest.try_into()?, Arc::new(constructor))
+        container_factory_create(serde_json::from_value(manifest)?, Arc::new(constructor))
     }
 
     pub fn load_component_manifest(&self, working_dir: Option<PathBuf>) -> JuizResult<ComponentManifest> {
         log::trace!("load_component_manifest() called");
-        self.get_manifest_with_name(working_dir, "component_manifest")?.try_into()
+        serde_json::from_value(self.get_manifest_with_name(working_dir, "component_manifest")?).or_else(|e| {
+            Err(anyhow!(e))
+        })
     }
 }
 

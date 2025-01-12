@@ -62,19 +62,8 @@ impl TopicPtr {
 
     pub fn new(name: &str, system_uuid: Uuid) -> Self {
         log::trace!("new(name={name}, uuid={system_uuid}) called");
-        let manifest: ProcessManifest = jvalue!({
-            "type_name": "topic",
-            "topic_name": name,
-            "name": name,
-            "use_memo": false,
-            "arguments": [
-                {
-                    "name": "input",
-                    "default": {},
-                    "type": "object",
-                }
-            ]
-        }).try_into().unwrap();
+        let manifest = ProcessManifest::new("topic").name(name).use_memo(false)
+            .add_object_arg("input", "", jvalue!({}));
 
         let topic = Arc::new(RwLock::new(Topic::new(name)));
         let my_topic_name = name.to_owned();
@@ -131,7 +120,7 @@ impl TopicPtr {
     }
 
     pub fn profile(&self) -> JuizResult<Value> {
-        Ok(self.ptr.lock()?.profile()?.into())
+        Ok(serde_json::to_value(self.ptr.lock()?.profile()?)?)
     }
 
     pub fn push(&self, capsule: CapsulePtr, pushed_system_uuid: Option<Uuid>) -> JuizResult<()> {

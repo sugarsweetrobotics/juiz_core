@@ -13,7 +13,7 @@ use crate::connections::{ConnectionFactory, ConnectionFactoryImpl};
 use crate::prelude::*;
 
 use juiz_sdk::utils::check_manifest_before_call;
-use juiz_sdk::connections::{ConnectionManifest, DestinationConnection, SourceConnection};
+use juiz_sdk::connections::{ConnectionManifest, ConnectionProfile, DestinationConnection, SourceConnection};
 
 //use crate::value::CapsuleMap;
 use super::inlet::Inlet;
@@ -191,7 +191,7 @@ impl Process for ProcessImpl {
         self.outlet.memo().clone()
     }
 
-    fn notify_connected_from(&mut self, source: ProcessPtr, connection_manifest: ConnectionManifest) -> JuizResult<ConnectionManifest> {
+    fn notify_connected_from(&mut self, source: ProcessPtr, connection_manifest: &ConnectionManifest) -> JuizResult<ConnectionProfile> {
         log::trace!("ProcessImpl(id={:?}).notify_connected_from(source=Process()) called", self.identifier());
         let _id = self.identifier().clone();
         let con = self.connection_factory.create_source_connection(
@@ -200,10 +200,10 @@ impl Process for ProcessImpl {
             con
             );
         log::trace!("ProcessImpl(id={:?}).notify_connected_from(source=Process()) exit", self.identifier());
-        Ok(connection_manifest)
+        Ok(connection_manifest.clone().into())
     }
 
-    fn try_connect_to(&mut self, destination: ProcessPtr, connection_manifest: ConnectionManifest) -> JuizResult<ConnectionManifest> {
+    fn try_connect_to(&mut self, destination: ProcessPtr, connection_manifest: &ConnectionManifest) -> JuizResult<ConnectionManifest> {
         log::trace!("ProcessImpl(id={:?}).try_connect_to(destination=Process()) called", self.identifier());
         // let destination_id = destination.identifier().clone();
         let con = self.connection_factory.create_destination_connection(
@@ -212,7 +212,7 @@ impl Process for ProcessImpl {
             connection_manifest.arg_name.clone(), 
             con);
         log::trace!("ProcessImpl(id={:?}).try_connect_to(destination=Process()) exit", self.identifier());
-        Ok(connection_manifest)
+        Ok(connection_manifest.clone())
     }
 
     

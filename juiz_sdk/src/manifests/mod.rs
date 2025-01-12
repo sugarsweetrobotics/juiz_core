@@ -3,7 +3,9 @@
 
 mod process_manifest;
 mod process_profile;
+
 mod container_manifest;
+mod container_profile;
 
 mod argument_type;
 mod argument_manifest;
@@ -16,6 +18,7 @@ mod topic_manifest;
 mod topic_profile;
 
 pub use container_manifest::ContainerManifest;
+pub use container_profile::ContainerProfile;
 pub use process_manifest::ProcessManifest;
 pub use process_profile::ProcessProfile;
 pub use component_manifest::ComponentManifest;

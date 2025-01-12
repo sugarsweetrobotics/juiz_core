@@ -1,5 +1,5 @@
 use std::sync::{Arc, Mutex};
-use juiz_sdk::anyhow::Context;
+use juiz_sdk::{anyhow::Context, process_identifier::ProcessIdentifier};
 
 use crate::{ecs::{execution_context_function::ExecutionContextFunction, execution_context_holder_factory::ExecutionContextHolderFactory, ExecutionContextFactory}, plugin::{concat_dirname, plugin_name_to_file_name, RustPlugin}, prelude::*};
 
@@ -71,7 +71,7 @@ pub(super) fn cleanup_ecs(system: &System) -> JuizResult<()> {
 fn setup_ec_bind(system: &System, ec: Arc<Mutex<dyn ExecutionContextFunction>>, bind_info: &Value) -> JuizResult<()> {
     let ec_id = juiz_lock(&ec)?.identifier().clone();
     log::trace!("system_builder::setup_ec_bind(ec={:}) called", ec_id);
-    let target_process = system.core_broker().lock_mut()?.worker_mut().any_process_from_manifest(bind_info, false)?;
+    let target_process = system.core_broker().lock_mut()?.worker_mut().any_process_from_identifier(&ProcessIdentifier::from_value(bind_info)?, false)?;
     let proc_id = target_process.identifier().clone();
     log::trace!("EC({:}) -> Process({:})", ec_id, proc_id);
     let ret = juiz_lock(&ec)?.bind(target_process);
