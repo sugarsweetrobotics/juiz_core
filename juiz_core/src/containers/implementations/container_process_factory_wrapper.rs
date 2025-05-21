@@ -15,6 +15,12 @@ pub struct ContainerProcessFactoryWrapper {
     plugin: JuizObjectPlugin,
 }
 
+impl std::fmt::Debug for ContainerProcessFactoryWrapper {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ContainerProcessFactoryWrapper").field("core", &self.core).field("container_process_factory", &self.container_process_factory).field("container_processes", &self.container_processes).field("plugin", &self.plugin).finish()
+    }
+}
+
 impl ContainerProcessFactoryWrapper {
 
 

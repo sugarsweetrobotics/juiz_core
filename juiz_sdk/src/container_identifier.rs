@@ -18,6 +18,10 @@ impl ContainerIdentifier {
     pub(crate) fn new(broker_name: String, broker_type_name: String, name: String, type_name: String) -> Self {
         Self { broker_name, broker_type_name, name, type_name, class_name: "Container".to_owned()}
     }
+
+    pub fn to_string(&self) -> String {
+        self.clone().into()
+    }
 }
 
 impl Display for ContainerIdentifier {

@@ -15,6 +15,12 @@ pub struct PythonPlugin {
 }
 
 
+impl std::fmt::Debug for PythonPlugin {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("PythonPlugin").field("path", &self.path).field("pythonpaths", &self.pythonpaths).finish()
+    }
+}
+
 pub struct PythonContainerStruct {
     pub pyobj: Py<PyAny>
 }

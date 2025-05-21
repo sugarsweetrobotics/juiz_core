@@ -1,10 +1,11 @@
 use std::{collections::HashMap, sync::{Mutex, Arc}};
 
-use juiz_sdk::{anyhow::anyhow, connection_identifier::ConnectionIdentifier, connections::{ConnectionManifest, ConnectionProfile}, identifier::connection_identifier_split};
+use juiz_sdk::{anyhow::anyhow, connection_identifier::ConnectionIdentifier, connections::{ConnectionManifest, ConnectionProfile}, container_identifier::ContainerIdentifier, manifests::{ContainerProfile, ProcessProfile}, process_identifier::ProcessIdentifier, topic_identifier::TopicIdentifier};
 use uuid::Uuid;
 
 use crate::{brokers::broker_proxy::TopicBrokerProxy, prelude::*};
 use crate::brokers::{broker_proxy::{BrokerBrokerProxy, ConnectionBrokerProxy, ContainerBrokerProxy, ContainerProcessBrokerProxy, ExecutionContextBrokerProxy, ProcessBrokerProxy, SystemBrokerProxy}, BrokerProxy};
+
 
 pub trait CRUDBrokerProxy : Send + Sync {
     fn create(&self, class_name: &str, function_name: &str, payload: Value, param: HashMap<String, String>) -> JuizResult<CapsulePtr>;
@@ -58,7 +59,33 @@ impl CRUDBrokerProxyHolder {
         })))
     }
 
-    fn convert_identifier_name(&self, id_array: &Value) -> JuizResult<Value> {
+    fn _convert_proccess_identifier_name(&self, mut id: ProcessIdentifier) -> JuizResult<ProcessIdentifier> {
+        if id.broker_type_name == "core" {
+            id.broker_type_name = self.type_name().to_owned();
+            id.broker_name = self.name().to_owned();
+        }
+        Ok(id)
+    }
+
+    fn _convert_container_identifier_name(&self, mut id: ContainerIdentifier) -> JuizResult<ContainerIdentifier> {
+        if id.broker_type_name == "core" {
+            id.broker_type_name = self.type_name().to_owned();
+            id.broker_name = self.name().to_owned();
+        }
+        Ok(id)
+    }
+
+    fn convert_identifier_name(&self, id: &Value) -> JuizResult<Value> {
+        let id_str = id.as_str().ok_or(anyhow!(JuizError::ValueIsNotStringError{}))?.to_owned();
+        let mut id_struct = IdentifierStruct::try_from(id_str)?;
+        if id_struct.broker_type_name == "core" {
+            id_struct.broker_type_name = self.type_name().to_owned();
+            id_struct.broker_name = self.name().to_owned();
+        }
+        Ok(id_struct.to_identifier().into())
+    }
+
+    fn _convert_identifier_names(&self, id_array: &Value) -> JuizResult<Value> {
         let mut ids: Vec<String> = Vec::new();
         for vid in get_array(id_array)?.iter() {
             let id = vid.as_str().ok_or(anyhow!(JuizError::ValueIsNotStringError{}))?.to_owned();
@@ -97,165 +124,169 @@ impl JuizObjectCoreHolder for CRUDBrokerProxyHolder {
 }
 
 impl JuizObject for CRUDBrokerProxyHolder {
-    
+    // fn profile_full(&self) -> JuizResult<Value>{
+    //     Ok(jvalue!({
+    //         "identifier": self.identifier(),
+    //         "class_name": self.class_name().as_str(),
+    //         "type_name": self.type_name(),
+    //         "name": self.name(),
+    //         "broker_type_name": self.broker_type(),
+    //         "broker_name": self.broker_name().to_owned() + "hogehogefoo",
+    //     }).into())
+    // }
 }
 
 impl ContainerProcessBrokerProxy for CRUDBrokerProxyHolder {
-    fn container_process_profile_full(&self, id: &Identifier) -> JuizResult<Value> {
+    fn container_process_profile_full(&self, id: &ProcessIdentifier) -> JuizResult<ProcessProfile> {
         log::info!("CRUDBrokerProxy.contaienr_process_profile_full({id}) called");
-        let result = capsule_to_value(self.modify_profile(self.broker.read("container_process", "profile_full", param(&[("identifier", id)]))?));
+        let result = capsule_to_value(self.modify_profile(self.broker.read("container_process", "profile_full", param(&[("identifier", Into::<String>::into(id.clone()).as_str())]))?));
         log::trace!("CRUDBrokerProxy.container_process_profile_full({id}) = {result:?}");
-        return result;
+        Ok(serde_json::from_value(result?)?)
     }
 
-    fn container_process_list(&self, recursive: bool) -> JuizResult<Value> {
+    fn container_process_list(&self, recursive: bool, caller_broker_profile: Option<Value>) -> JuizResult<Vec<ProcessIdentifier>> {
         log::trace!("CRUDBrokerProxyHolder::container_process_list({recursive}) called");
         let mut param: HashMap<String, String> = HashMap::new();
         param.insert("recursive".to_owned(), recursive.to_string());
         let v = self.broker.read("container_process", "list", param)?;
         log::debug!("CRUDBrokerProxyHolder::container_process_list() = {v:?}");
-        v.lock_as_value(|value| {
-            self.convert_identifier_name(value)
-        })?
+        let array_value = v.extract_value()?.as_array().ok_or(JuizError::InvalidArgumentError { message: format!("crud_broker_proxy::container_process_list failed. Return value is not array.") })?.clone();
+        Ok(array_value.into_iter().map(|v| { serde_json::from_value(v) }).collect::<serde_json::Result<Vec<ProcessIdentifier>>>()?)
     }
     
-    fn container_process_call(&self, id: &Identifier, args: CapsuleMap) -> JuizResult<CapsulePtr> {
-        self.broker.update("container_process", "call", args, param(&[("identifier", id)]))
+    fn container_process_call(&self, id: &ProcessIdentifier, args: CapsuleMap) -> JuizResult<CapsulePtr> {
+        self.broker.update("container_process", "call", args, param(&[("identifier", id.to_string().as_str())]))
     }
     
-    fn container_process_execute(&self, id: &Identifier) -> JuizResult<CapsulePtr> {
-        self.broker.update("container_process", "execute", CapsuleMap::new(), param(&[("identifier", id)]))
+    fn container_process_execute(&self, id: &ProcessIdentifier) -> JuizResult<CapsulePtr> {
+        self.broker.update("container_process", "execute", CapsuleMap::new(), param(&[("identifier", id.to_string().as_str())]))
     }
     
-    fn container_process_create(&mut self, container_id: &Identifier, manifest: ProcessManifest) -> JuizResult<Value> {
-        capsule_to_value(self.broker.create("container_process", "create", manifest.into(), param(&[("identifier", container_id)]))?)
+    fn container_process_create(&mut self, container_id: &ContainerIdentifier, manifest: &juiz_sdk::manifests::ProcessManifest) -> Result<ProcessProfile, juiz_sdk::anyhow::Error> {
+        let value = capsule_to_value(self.broker.create("container_process", "create", serde_json::to_value(manifest)?, param(&[("identifier", container_id.to_string().as_str())]))?)?;
+        Ok(serde_json::from_value(value)?)
     }
     
-    fn container_process_destroy(&mut self, identifier: &Identifier) -> JuizResult<Value> {
-        capsule_to_value(self.broker.delete("container_process", "destroy", param(&[("identifier", identifier)]))?)
-
+    fn container_process_destroy(&mut self, identifier: &ProcessIdentifier) -> Result<ProcessProfile, juiz_sdk::anyhow::Error> {
+        let value = capsule_to_value(self.broker.delete("container_process", "destroy", param(&[("identifier", identifier.to_string().as_str())]))?)?;
+        Ok(serde_json::from_value(value)?)
     }
     
-    fn container_process_p_apply(&mut self, id: &Identifier, arg_name: &str, value: CapsulePtr) -> JuizResult<CapsulePtr> {
+    fn container_process_p_apply(&mut self, id: &ProcessIdentifier, arg_name: &str, value: CapsulePtr) -> JuizResult<CapsulePtr> {
         let mut map = CapsuleMap::new();
         map.insert("arg_name".to_owned(), jvalue!(arg_name).into());
         map.insert("value".to_owned(), value);
-        self.broker.update("container_process", "p_apply", map, param(&[("identifier", id)]))
+        self.broker.update("container_process", "p_apply", map, param(&[("identifier", id.to_string().as_str())]))
     }
 }
 
 
 impl ContainerBrokerProxy for CRUDBrokerProxyHolder {
-    fn container_profile_full(&self, id: &Identifier) -> JuizResult<Value> {
-        capsule_to_value(self.modify_profile(self.broker.read("container", "profile_full", param(&[("identifier", id)]))?))
+    fn container_profile_full(&self, id: &ContainerIdentifier) -> JuizResult<ContainerProfile> {
+        let value = capsule_to_value(self.modify_profile(self.broker.read("container", "profile_full", param(&[("identifier", id.to_string().as_str())]))?))?;
+        Ok(serde_json::from_value(value)?)
     }
 
-    fn container_list(&self, recursive: bool) -> JuizResult<Value> {
+    fn container_list(&self, recursive: bool, caller_broker_profile: Option<Value>) -> JuizResult<Vec<ContainerIdentifier>> {
         log::trace!("CRUDBrokerProxyHolder::container_list({recursive}) called");
         let mut param: HashMap<String, String> = HashMap::new();
         param.insert("recursive".to_owned(), recursive.to_string());
-        let v = self.broker.read("container", "list", param)?;
-        log::debug!("CRUDBrokerProxyHolder::container_list() returns '{v:?}'");
-        v.lock_as_value(|value| {
-            self.convert_identifier_name(value)
-        })?
+        let vs = self.broker.read("container", "list", param)?.extract_value()?;
+        log::debug!("CRUDBrokerProxyHolder::container_list() returns '{vs:?}'");
+        Ok(vs.as_array().ok_or(JuizError::InvalidArgumentError { message: format!("Invalid Result type for CRUD_broker_proxy.container_list(). Not array.") })?.into_iter().map(|v| {
+            serde_json::from_value(v.clone())
+        }).collect::<serde_json::Result<Vec<ContainerIdentifier>>>()?)
     }
     
-    fn container_create(&mut self, manifest: CapsuleMap) -> JuizResult<Value> {
-        capsule_to_value(self.broker.create("container", "create", manifest.into(), HashMap::new())?)
-
-    }
+    fn container_create(&mut self, manifest: &ContainerManifest, mut args: CapsuleMap) -> JuizResult<ContainerProfile> {
+        args.insert("__manifest__".to_owned(), serde_json::to_value(manifest)?.into());
+        let value = capsule_to_value(self.broker.create("container", "create",  args.into(), HashMap::new())?)?;
+        Ok(serde_json::from_value(value)?)
+    }   
     
-    fn container_destroy(&mut self, identifier: &Identifier) -> JuizResult<Value> { 
-        capsule_to_value(self.broker.delete("container", "destroy", param(&[("identifier", identifier)]))?)
-
+    fn container_destroy(&mut self, identifier: &ContainerIdentifier) -> JuizResult<ContainerProfile> { 
+        let value = capsule_to_value(self.broker.delete("container", "destroy", param(&[("identifier", identifier.to_string().as_str())]))?)?;
+        Ok(serde_json::from_value(value)?)
     }
 }
 
 impl ProcessBrokerProxy for CRUDBrokerProxyHolder {
-    fn process_profile_full(&self, id: &Identifier) -> JuizResult<Value> {
+    fn process_profile_full(&self, id: &ProcessIdentifier) -> JuizResult<ProcessProfile> {
         log::info!("CRUDBrokerProxy.process_profile_full({id}) called");
-        let result = capsule_to_value(self.modify_profile(self.broker.read("process", "profile_full", param(&[("identifier", id)]))?));
-        log::trace!("CRUDBrokerProxy.process_profile_full({id}) = {result:?}");
-        return result;
+        let id_str: String = id.clone().into();
+        let result_value = capsule_to_value(self.modify_profile(self.broker.read("process", "profile_full", param(&[("identifier", id_str.as_str())]))?))?;
+        log::trace!("CRUDBrokerProxy.process_profile_full({id}) = {result_value:?}");
+        Ok(serde_json::from_value(result_value)?)
     }
 
-    fn process_call(&self, id: &Identifier, args: CapsuleMap) -> JuizResult<CapsulePtr> {
-        self.broker.update("process", "call", args, param(&[("identifier", id)]))
+    fn process_call(&self, id: &ProcessIdentifier, args: CapsuleMap) -> JuizResult<CapsulePtr> {
+        let id_str: String = id.clone().into();
+        self.broker.update("process", "call", args, param(&[("identifier", id_str.as_str())]))
     }
 
-    fn process_execute(&self, id: &Identifier) -> JuizResult<CapsulePtr> {
-        self.broker.update("process", "execute", CapsuleMap::new(), param(&[("identifier", id)]))
+    fn process_execute(&self, id: &ProcessIdentifier) -> JuizResult<CapsulePtr> {
+        let id_str: String = id.clone().into();
+        self.broker.update("process", "execute", CapsuleMap::new(), param(&[("identifier", id_str.as_str())]))
     }
 
-    fn process_list(&self, recursive:bool) -> JuizResult<Value> {
-        log::error!("CRUDBrokerProxyHolder({})::process_list() called", self.name());
+    fn process_list(&self, recursive:bool, caller_broker_profile: Option<Value>) -> JuizResult<Vec<ProcessIdentifier>> {
+        log::trace!("CRUDBrokerProxyHolder({})::process_list(recursive={recursive})が呼ばれました。", self.name());
         let mut param: HashMap<String, String> = HashMap::new();
         param.insert("recursive".to_owned(), recursive.to_string());
-        let v = self.broker.read("process", "list", param)?;
-        log::trace!("CRUDBrokerProxyHolder::process_list() => {v:?}");
-        v.lock_as_value(|value| {
-            self.convert_identifier_name(value)
-        })?
+        let v = self.broker.read("process", "list", param)?.extract_value()?;
+        log::debug!("【process_list()】得られたプロセスのリストは{v:}");
+        let v_array = v.as_array().ok_or(JuizError::InvalidArgumentError { message: format!("Invalid argument for crud_broker_proxy.process_list. Return value is not array.") })?.clone();
+        Ok(v_array.into_iter().map(|v| {
+            serde_json::from_value(v)
+        }).collect::<serde_json::Result<Vec<ProcessIdentifier>>>()?)
     }
 
     
-    fn process_push_by(&self, id: &Identifier, arg_name: String, value: CapsulePtr) -> JuizResult<CapsulePtr> {
+    fn process_push_by(&self, id: &ProcessIdentifier, arg_name: String, value: CapsulePtr) -> JuizResult<CapsulePtr> {
         log::trace!("process_push_by({id}, {arg_name}, {value}");
         let mut cm: CapsuleMap = CapsuleMap::new();
         cm.insert("value".to_owned(), value);
         let cap = CapsulePtr::from(Into::<Value>::into(arg_name));
         cm.insert("arg_name".to_owned(), cap);
 
-        self.broker.update("process", "push_by", cm, param(&[("identifier", id)]))
+        self.broker.update("process", "push_by", cm, param(&[("identifier", id.to_string().as_str())]))
     }
 
-    fn process_try_connect_to(&mut self, source_process_id: &Identifier, arg_name: &str, destination_process_id: &Identifier, connection_type: String, connection_id: Option<String>) -> JuizResult<Value> {
-        let connection_manifest = ConnectionManifest::new(
-            connection_type.as_str().into(),
-            source_process_id.clone(),
-            arg_name.to_owned(),
-            destination_process_id.clone(),
-            connection_id,
-        );
+    fn process_try_connect_to(&mut self, connection_manifest: &ConnectionManifest) -> Result<juiz_sdk::prelude::ConnectionManifest, juiz_sdk::anyhow::Error> {
+        log::trace!("process_try_connect_to({connection_manifest})が呼ばれました");
         let v: JuizResult<Value> = self.broker.update(
             "process", 
             "try_connect_to", 
-            CapsuleMap::try_from(Into::<Value>::into(connection_manifest))?, 
+            CapsuleMap::try_from(serde_json::to_value(connection_manifest)?)?, 
             HashMap::from([]))?.extract_value();
-        log::debug!("process_try_connect_to({source_process_id}, {arg_name}, {destination_process_id}) returns {v:?}");
-        v
+        log::debug!("process_try_connect_to({connection_manifest}) returns {v:?}");
+        Ok(serde_json::from_value(v?)?)
     }
 
-    fn process_notify_connected_from(&mut self, source_process_id: &Identifier, arg_name: &str, destination_process_id: &Identifier, connection_type: String, connection_id: Option<String>) -> JuizResult<Value> {
-        let connection_manifest = ConnectionManifest::new(
-            connection_type.as_str().into(),
-            source_process_id.clone(),
-            arg_name.to_owned(),
-            destination_process_id.clone(),
-            connection_id,
-        );
-        self.broker.update(
+    fn process_notify_connected_from(&mut self, connection_manifest: &ConnectionManifest) -> Result<ConnectionProfile, juiz_sdk::anyhow::Error> {
+        let v = self.broker.update(
             "process", 
             "notify_connected_from", 
-            CapsuleMap::try_from(Into::<Value>::into(connection_manifest))?, 
-            HashMap::from([]))?.extract_value()
+            CapsuleMap::try_from(serde_json::to_value(connection_manifest)?)?, 
+            HashMap::from([]))?.extract_value();
+        Ok(serde_json::from_value(v?)?)
     }
     
-    fn process_p_apply(&mut self, id: &Identifier, arg_name: &str, value: CapsulePtr) -> JuizResult<CapsulePtr> {
+    fn process_p_apply(&mut self, id: &ProcessIdentifier, arg_name: &str, value: CapsulePtr) -> JuizResult<CapsulePtr> {
         let mut map = CapsuleMap::new();
         map.insert("arg_name".to_owned(), jvalue!(arg_name).into());
         map.insert("value".to_owned(), value);
-        self.broker.update("process", "p_apply", map, param(&[("identifier", id)]))
+        self.broker.update("process", "p_apply", map, param(&[("identifier", id.to_string().as_str())]))
     }
     
-    fn process_create(&mut self, manifest: ProcessManifest) -> JuizResult<Value> {
-        capsule_to_value(self.broker.create("process", "create", manifest.into(), HashMap::new())?)
-
+    fn process_create(&mut self, manifest: &ProcessManifest) -> Result<ProcessProfile, juiz_sdk::anyhow::Error> {
+        let v = capsule_to_value(self.broker.create("process", "create", serde_json::to_value(manifest)?, HashMap::new())?)?;
+        Ok(serde_json::from_value(v)?)
     }
     
-    fn process_destroy(&mut self, identifier: &Identifier) -> JuizResult<Value> {
-        capsule_to_value(self.broker.delete("process", "destroy", param(&[("identifier", identifier)]))?)
+    fn process_destroy(&mut self, identifier: &ProcessIdentifier) -> Result<ProcessProfile, juiz_sdk::anyhow::Error> {
+        let v = capsule_to_value(self.broker.delete("process", "destroy", param(&[("identifier", identifier.to_string().as_str())]))?)?;
+        Ok(serde_json::from_value(v)?)
     }
 }
 
@@ -310,19 +341,21 @@ impl SystemBrokerProxy for CRUDBrokerProxyHolder {
         capsule_to_value(self.broker.update("system", "load_container_process", cp, HashMap::new())?)
     }
 
-    fn system_load_component(&mut self, language: String, filepath: String) -> JuizResult<Value> {
+    fn system_load_component(&mut self, language: String, filepath: String) -> Result<juiz_sdk::manifests::ComponentManifest, juiz_sdk::anyhow::Error> {
         let mut cp = CapsuleMap::new();
         cp.insert("filepath".to_owned(), CapsulePtr::from(Value::from(filepath)));
         cp.insert("language".to_owned(), CapsulePtr::from(Value::from(language)));
-        capsule_to_value(self.broker.update("system", "load_component", cp, HashMap::new())?)
+        let v = capsule_to_value(self.broker.update("system", "load_component", cp, HashMap::new())?)?;
+        Ok(serde_json::from_value(v)?)
     }
 }
 
 impl BrokerBrokerProxy for CRUDBrokerProxyHolder {
-    fn broker_list(&self, recursive: bool) -> JuizResult<Value> {
+    fn broker_list(&self, recursive: bool) -> Result<Vec<std::string::String>, juiz_sdk::anyhow::Error> {
         let mut param: HashMap<String, String> = HashMap::new();
         param.insert("recursive".to_owned(), recursive.to_string());
-        capsule_to_value(self.broker.read("broker", "list", param)?)
+        let v =  capsule_to_value(self.broker.read("broker", "list", param)?)?;
+        Ok(serde_json::from_value(v)?)
     }
 
     fn broker_profile_full(&self, id: &Identifier) -> JuizResult<Value> {
@@ -336,12 +369,10 @@ impl ExecutionContextBrokerProxy for CRUDBrokerProxyHolder {
         log::trace!("CRUDBrokerProxyHolder::container_list() called");
         let mut param: HashMap<String, String> = HashMap::new();
         param.insert("recursive".to_owned(), recursive.to_string());
-        let v = self.broker.read("execution_context", "list", param)?;
-
-        log::trace!("CRUDBrokerProxyHolder::process_list() => {v:?}");
-        v.lock_as_value(|value| {
-            self.convert_identifier_name(value)
-        })?
+        let vs = self.broker.read("execution_context", "list", param)?.extract_value()?;
+        vs.as_array().ok_or(JuizError::InvalidArgumentError { message: format!("CRUDBrokerProxy.ec_list() error. result must be array.") })?.into_iter().map(|v| {
+            self.convert_identifier_name(v)
+        }).collect::<JuizResult<Value>>()
     }
 
     fn ec_profile_full(&self, id: &Identifier) -> JuizResult<Value> { 
@@ -370,10 +401,13 @@ impl ExecutionContextBrokerProxy for CRUDBrokerProxyHolder {
 }
 
 impl TopicBrokerProxy for CRUDBrokerProxyHolder {
-    fn topic_list(&self) -> JuizResult<Value> {
+    fn topic_list(&self) -> Result<Vec<TopicIdentifier>, juiz_sdk::anyhow::Error> {
         let mut param: HashMap<String, String> = HashMap::new();
         param.insert("recursive".to_owned(), true.to_string());
-        capsule_to_value(self.broker.read("topic", "list", param)?)
+        let vs = capsule_to_value(self.broker.read("topic", "list", param)?)?;
+        Ok(vs.as_array().ok_or(JuizError::InvalidArgumentError { message: format!("CRudBrokerProxyHolder::topic_list() failed. Value must be array.") })?.into_iter().map(|v| {
+            serde_json::from_value(v.clone())
+        }).collect::<serde_json::Result<Vec<TopicIdentifier>>>()?)
     }
     
     fn topic_push(&self, name: &str, capsule: CapsulePtr, pushed_system_uuid: Option<Uuid>) -> JuizResult<()> {
@@ -413,44 +447,46 @@ impl ConnectionBrokerProxy for CRUDBrokerProxyHolder {
         log::trace!("connection_list(recursive={recursive}) called");
         let mut param: HashMap<String, String> = HashMap::new();
         param.insert("recursive".to_owned(), recursive.to_string());
-        let capsule = self.broker.read("connection", "list", param)?;
-        let connection_list_value = capsule.extract_value()?;
-        log::trace!(" - connection_list value is {connection_list_value}");
-        let id_vec = get_array(&connection_list_value)?.into_iter().map(|v| {
-            let id_str = v.as_str().ok_or(JuizError::ValueIsNotStringError {  })?.to_owned();
-            let (src_id, dst_id, arg_name) = connection_identifier_split(id_str)?;
-            let mut src_id_struct = IdentifierStruct::try_from(src_id)?;
-            let mut dst_id_struct = IdentifierStruct::try_from(dst_id)?;
-            //log::warn!("CONNECTIN: {src_id_struct:?}, {dst_id_struct:?}");
-            if src_id_struct.broker_type_name == "core" {
-                src_id_struct.broker_name = self.broker_name().to_owned();
-                src_id_struct.broker_type_name = self.broker_type().to_owned();
-                //log::warn!(" SRC: {dst_id_struct:?}");
-            }
-            if dst_id_struct.broker_type_name == "core" {
+        let value = self.broker.read("connection", "list", param)?.extract_value()?;
+        Ok(value.as_array().ok_or(JuizError::InvalidArgumentError { message: format!("Invalid argument for CRUDBrokerHolder::connnection_list(). not array") })?.into_iter().map(|v| {
+            serde_json::from_value(v.clone())
+        }).collect::<serde_json::Result<Vec<ConnectionIdentifier>>>()?)
+        
+        // let id_vec = get_array(&connection_list_value)?.into_iter().map(|v| {
+        //     let id_str = v.as_str().ok_or(JuizError::ValueIsNotStringError {  })?.to_owned();
+        //     let (src_id, dst_id, arg_name) = connection_identifier_split(id_str)?;
+        //     let mut src_id_struct = IdentifierStruct::try_from(src_id)?;
+        //     let mut dst_id_struct = IdentifierStruct::try_from(dst_id)?;
+        //     //log::warn!("CONNECTIN: {src_id_struct:?}, {dst_id_struct:?}");
+        //     if src_id_struct.broker_type_name == "core" {
+        //         src_id_struct.broker_name = self.broker_name().to_owned();
+        //         src_id_struct.broker_type_name = self.broker_type().to_owned();
+        //         //log::warn!(" SRC: {dst_id_struct:?}");
+        //     }
+        //     if dst_id_struct.broker_type_name == "core" {
 
-                dst_id_struct.broker_name = self.name().to_owned();
-                dst_id_struct.broker_type_name = self.type_name().to_owned();
-                //log::warn!(" SELF: {self:?}");
-                log::warn!(" DST : {dst_id_struct:?}");
-            }
-            //let connection_id = connection_identifier_new(&src_id_struct.to_identifier(), &dst_id_struct.to_identifier(), arg_name.as_str());
-            Ok(ConnectionIdentifier::new(src_id_struct.to_identifier(), arg_name.as_str(), dst_id_struct.to_identifier()))
-            //Ok(connection_id)
-        }).collect::<JuizResult<Vec<ConnectionIdentifier>>>()?;
-        Ok(id_vec.into())
+        //         dst_id_struct.broker_name = self.name().to_owned();
+        //         dst_id_struct.broker_type_name = self.type_name().to_owned();
+        //         //log::warn!(" SELF: {self:?}");
+        //         log::warn!(" DST : {dst_id_struct:?}");
+        //     }
+        //     //let connection_id = connection_identifier_new(&src_id_struct.to_identifier(), &dst_id_struct.to_identifier(), arg_name.as_str());
+        //     Ok(ConnectionIdentifier::new(src_id_struct.to_identifier(), arg_name.as_str(), dst_id_struct.to_identifier()))
+        //     //Ok(connection_id)
+        // }).collect::<JuizResult<Vec<ConnectionIdentifier>>>()?;
+        // Ok(id_vec.into())
         // Ok(connection_list_value)
     }
 
-    fn connection_profile_full(&self, id: ConnectionIdentifier) -> JuizResult<ConnectionProfile> {
+    fn connection_profile_full(&self, id: &ConnectionIdentifier) -> JuizResult<ConnectionProfile> {
         capsule_to_value(self.broker.read("connection", "profile_full", param(&[("identifier", id.to_string().as_str())]))?)?.try_into()
     }
 
-    fn connection_create(&mut self, manifest: ConnectionManifest) -> JuizResult<ConnectionProfile> {
-        capsule_to_value(self.broker.create("connection", "create", manifest.into(), HashMap::new())?)?.try_into()
+    fn connection_create(&mut self, manifest: &ConnectionManifest) -> JuizResult<ConnectionProfile> {
+        capsule_to_value(self.broker.create("connection", "create", manifest.clone().into(), HashMap::new())?)?.try_into()
     }
     
-    fn connection_destroy(&mut self, id: ConnectionIdentifier) -> JuizResult<ConnectionProfile> {
+    fn connection_destroy(&mut self, id: &ConnectionIdentifier) -> JuizResult<ConnectionProfile> {
         capsule_to_value(self.broker.delete("connection", "destroy", param(&[("identifier", id.to_string().as_str())]))?)?.try_into()
     }
 }

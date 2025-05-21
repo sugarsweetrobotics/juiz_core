@@ -1,7 +1,7 @@
 
 use std::path::PathBuf;
 
-use juiz_sdk::anyhow::{self, anyhow};
+use juiz_sdk::anyhow::{self, anyhow, Context};
 use crate::{containers::{ContainerFactoryWrapper, ContainerProcessFactoryWrapper}, core::system_builder::topics::{setup_publish_topic, setup_subscribe_topic}, plugin::JuizObjectPlugin, prelude::*};
 
 
@@ -22,7 +22,8 @@ pub(super) fn setup_containers(system: &System, manifest: &Value) -> JuizResult<
     for container_manifest_value in get_array(manifest)?.iter() {
         let container_manifest: ContainerManifest = serde_json::from_value(container_manifest_value.clone())?;
         log::debug!("Container ({:?}) Creating...", container_manifest);
-        setup_container(system, container_manifest.clone(), container_manifest_value.clone().try_into()?)?;
+        setup_container(system, container_manifest.clone(), container_manifest_value.clone().try_into()?)
+            .with_context(||{format!("setup_container({}) in setup_containers() in containers.rs", container_manifest)})?;
         log::debug!("Container ({:?}) Fully Created", container_manifest);
     } 
     log::trace!("setup_containers() exit");
@@ -68,9 +69,13 @@ fn setup_container(system: &System, container_manifest: ContainerManifest, conta
     let name = container_manifest.name.unwrap();
     let container = system.core_broker().lock_mut()?.worker_mut().create_container_ref(type_name.as_str(), name.as_str(), container_argument)?;
     log::info!("Container Created");    
-    for container_process_manifest in container_manifest.processes.iter() {
+    for container_process_manifest_original in container_manifest.processes.iter() {
+        let container_process_manifest = container_process_manifest_original.clone()
+            .container_name(Some(name.clone()))
+            .container_type(Some(type_name.clone()));
         log::debug!(" - ContainerProcess ({:?}) Creating...", container_process_manifest);
-        let cp_ref = system.core_broker().lock_mut()?.worker_mut().create_container_process_ref(container.clone(), container_process_manifest)?;
+        let cp_ref = system.core_broker().lock_mut()?.worker_mut().create_container_process_ref(container.clone(), &container_process_manifest)
+            .with_context(||{format!("worker.create_container_process_ref() in setup_container() in containers.rs")})?;
         log::info!(" - ContainerProcess ({:?}) Created", container_process_manifest);    
         // Topicをpublishするなら
         for pub_topic in container_process_manifest.publishes.iter() {

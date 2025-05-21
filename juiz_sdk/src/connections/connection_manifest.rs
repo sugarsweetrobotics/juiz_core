@@ -2,7 +2,7 @@ use std::fmt::Display;
 use anyhow::anyhow;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Map};
-use crate::{connection_identifier::ConnectionIdentifier, prelude::Identifier, process_identifier::ProcessIdentifier, result::{JuizError, JuizResult}, value::{CapsuleMap, Value}};
+use crate::{connection_identifier::ConnectionIdentifier, process_identifier::ProcessIdentifier, result::{JuizError, JuizResult}, value::{CapsuleMap, Value}};
 
 use super::connection_type::ConnectionType;
 
@@ -20,9 +20,9 @@ pub struct ConnectionManifest {
 impl Into<Value> for ConnectionManifest {
     fn into(self) -> Value {
         let mut map: Map<String, Value> = Map::new();
-        map.insert("type".to_owned(), self.connection_type.to_string().into());
-        map.insert("source".to_owned(), self.source_process_id.to_string().into());
-        map.insert("destination".to_owned(), self.destination_process_id.to_string().into());
+        map.insert("connection_type".to_owned(), self.connection_type.to_string().into());
+        map.insert("source_process_id".to_owned(), self.source_process_id.to_string().into());
+        map.insert("destination_process_id".to_owned(), self.destination_process_id.to_string().into());
         map.insert("arg_name".to_owned(), self.arg_name.into());
         //if self.identifier.is_some() {
         //    map.insert("identifier".to_owned(), self.identifier.unwrap().into());
@@ -35,11 +35,15 @@ impl TryFrom<CapsuleMap> for ConnectionManifest {
     type Error = anyhow::Error;
     
     fn try_from(value: CapsuleMap) -> Result<Self, Self::Error> {
+        log::debug!("TryFrom<CapsuleMap> for ConnectionManifestが呼ばれました(value={value})");
+        let source_process_id = ProcessIdentifier::from_value(&value.get("source_process_id")?.extract_value()?)?;
+        let destination_process_id = ProcessIdentifier::from_value(&value.get("destination_process_id")?.extract_value()?)?;
+        
         Ok(ConnectionManifest {
-            connection_type: value.get_str("type")?.as_str().try_into()?,
+            connection_type: value.get_str("connection_type")?.as_str().try_into()?,
             //identifier: value.get_str("identifier").ok(),
-            source_process_id: value.get_str("source")?.try_into()?,
-            destination_process_id: value.get_str("destination")?.try_into()?,
+            source_process_id,
+            destination_process_id,
             arg_name:  value.get_str("arg_name")?
         })
     }
@@ -77,11 +81,11 @@ impl TryFrom<Value> for ConnectionManifest {
        let err_handle = ||{err_handle(Some(&value))};
         match value.as_object() {
             Some(vobj) => {
-                let connection_type = vobj.get("type").or(Some(&json!("push"))).unwrap().as_str().ok_or_else(err_handle)?.to_owned();
+                let connection_type = vobj.get("connection_type").or(Some(&json!("push"))).unwrap().as_str().ok_or_else(err_handle)?.to_owned();
                 Ok( ConnectionManifest{
                     connection_type: ConnectionType::from(connection_type.as_str()),
-                    source_process_id: value_to_identifier(vobj.get("source"))?.try_into()?,
-                    destination_process_id: value_to_identifier(vobj.get("destination"))?.try_into()?,
+                    source_process_id: value_to_identifier(vobj.get("source_process_id"))?.try_into()?,
+                    destination_process_id: value_to_identifier(vobj.get("destination_process_id"))?.try_into()?,
                     arg_name: vobj.get("arg_name").ok_or_else(err_handle)?.as_str().ok_or_else(err_handle)?.to_owned()
                 } )
             }

@@ -2,7 +2,7 @@
 
 use std::fmt::Display;
 
-use anyhow::{anyhow, Context};
+use anyhow::anyhow;
 use serde::{Serialize, Deserialize};
 
 use crate::{container_identifier::ContainerIdentifier, prelude::*};
@@ -143,24 +143,24 @@ impl ContainerProfile {
     }
 
     /// ```
-    /// use juiz_core::prelude::*;
+    /// use juiz_sdk::prelude::*;
     /// let manifest = ProcessManifest::new("hoge_type")
     ///   .description("hoge manifest")
     ///   .add_int_arg("arg0", "int_arg", 1.into());
     /// assert_eq!(manifest.arguments[0].name, "arg0");
-    /// assert_eq!(manifest.arguments[0].type_name.as_str(), "int");
+    /// assert_eq!(manifest.arguments[0].type_name.as_str(), "Int");
     /// ```
     pub fn add_int_arg(self, name: &str, description: &str, default: i64) -> Self {
         self.add_arg(ArgumentProfile::new_int(name, default).description(description))
     }
 
         /// ```
-    /// use juiz_core::prelude::*;
-    /// let manifest = ProcessProfile::new("hoge_type")
+    /// use juiz_sdk::prelude::*;
+    /// let manifest = ProcessProfile::new("hoge01", "hoge_type")
     ///   .description("hoge manifest")
     ///   .add_float_arg("arg1", "float_arg", 1.0.into());
     /// assert_eq!(manifest.arguments[0].name, "arg1");
-    /// assert_eq!(manifest.arguments[0].type_name.as_str(), "float");
+    /// assert_eq!(manifest.arguments[0].type_name.as_str(), "Float");
     /// ```
     pub fn add_float_arg(self, name: &str, description: &str, default: f64) -> Self {
         self.add_arg(ArgumentProfile::new_float(name, default).description(description))

@@ -18,6 +18,14 @@ pub struct CppPlugin{
     manifest: Value,
 }
 
+
+impl std::fmt::Debug for CppPlugin {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("CppPlugin").field("path", &self.path).field("lib", &self.lib).field("manifest", &self.manifest).finish()
+    }
+}
+
+
 pub struct CppContainerStruct {
     pub cobj: *mut std::ffi::c_void
 }

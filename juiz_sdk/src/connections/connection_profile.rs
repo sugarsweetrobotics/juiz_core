@@ -2,7 +2,7 @@ use std::fmt::Display;
 use anyhow::anyhow;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Map};
-use crate::{connection_identifier::ConnectionIdentifier, prelude::Identifier, process_identifier::ProcessIdentifier, result::{JuizError, JuizResult}, value::{CapsuleMap, Value}};
+use crate::{connection_identifier::ConnectionIdentifier, process_identifier::ProcessIdentifier, result::{JuizError, JuizResult}, value::{CapsuleMap, Value}};
 
 use super::{connection_type::ConnectionType, ConnectionManifest};
 

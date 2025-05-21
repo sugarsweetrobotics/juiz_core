@@ -14,3 +14,4 @@ pub use process_proxy::ProcessProxy;
 //pub use process_impl::process_new;
 pub(crate) use process_impl::ProcessImpl;
 pub use process_factory_impl::ProcessFactoryImpl;
+pub use process_impl::process_new;

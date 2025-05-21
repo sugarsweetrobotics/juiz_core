@@ -1,15 +1,52 @@
 
 use std::fmt::Display;
 
-use serde::{Deserialize, Serialize};
+use crate::anyhow::anyhow;
+use serde::{de::Visitor, Deserialize, Serialize};
 
 use crate::prelude::*;
 
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize)]
 #[serde(rename_all="camelCase")]
 pub struct Description {
     pub text: String
+}
+
+impl<'de> Deserialize<'de> for Description {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de> {
+
+            struct DescriptionVisitor;
+
+            impl<'de> Visitor<'de> for DescriptionVisitor {
+                type Value = Description;
+
+                fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                    formatter.write_str("struct Description")
+                }
+
+                fn visit_str<E>(self, value: &str) -> Result<Description, E>
+                    where E: serde::de::Error,
+                {
+                    Ok(Description {
+                        text: value.to_owned(),
+                    })
+                }
+
+                fn visit_string<E>(self, value: String) -> Result<Description, E>
+                    where E: serde::de::Error,
+                {
+                    Ok(Description {
+                        text: value,
+                    })
+                }
+            }
+
+            
+            deserializer.deserialize_string(DescriptionVisitor)
+    }
 }
 
 impl Display for Description {
@@ -37,6 +74,18 @@ impl Description {
 impl Into<Value> for Description {
     fn into(self) -> Value {
         jvalue!(self.text)
+    }
+}
+
+
+impl TryFrom<Value> for Description {
+    type Error = anyhow::Error;
+
+    fn try_from(value: Value) -> Result<Self, Self::Error> {
+        if value.is_string() { 
+            return Ok(Description::new(value.as_str().unwrap()));
+        }
+        return Err(anyhow!(JuizError::InvalidArgumentError { message: format!("Invalid Value Type for Description struct.") }));
     }
 }
 

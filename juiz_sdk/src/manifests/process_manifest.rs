@@ -1,24 +1,40 @@
 
 use std::{collections::HashMap, fmt::Display};
 use serde::{Serialize, Deserialize};
-use serde_json::Map;
 use crate::{prelude::*, process_identifier::ProcessIdentifier};
 use super::{argument_manifest::ArgumentManifest, manifest_description::Description, topic_manifest::TopicManifest};
 
+fn default_description() -> Description { Description::new("") }
+fn default_broker_type_name() -> String { "core".to_owned() }
+fn default_broker_name() -> String { "core".to_owned() }
+fn default_factory() -> String { "process_factory".to_owned() }
+fn default_use_memo() -> bool { false }
+fn default_language() -> String { "rust".to_owned() }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ProcessManifest {
     pub name: Option<String>,
     pub type_name: String,
+    #[serde(default="default_description")]
     pub description: Description,
+    #[serde(default)]
     pub arguments: Vec<ArgumentManifest>,
+    #[serde(default="default_factory")]
     pub factory: String,
+    #[serde(default="default_use_memo")]
     pub use_memo: bool,
+    #[serde(default="default_language")]
     pub language: String,
+    #[serde(default="default_broker_type_name")]
     pub broker_type_name: String,
+    #[serde(default="default_broker_name")]
     pub broker_name: String,
+    #[serde(default)]
     pub publishes: Vec<TopicManifest>,
+    #[serde(default)]
     pub subscribes: HashMap<String, TopicManifest>,
+    #[serde(default)]
     pub container_name: Option<String>,
+    #[serde(default)]
     pub container_type: Option<String>,
 }
 
@@ -75,23 +91,23 @@ impl ProcessManifest {
         }
         partial_instance_manifest.arguments.clear();
         partial_instance_manifest.arguments = new_argument_manif;
-
+        log::warn!("partial_instance_manifest = {:?}", partial_instance_manifest);
         Ok(partial_instance_manifest)
     }   
 
     /// ```
-    /// use juiz_core::prelude::*;
+    /// use juiz_sdk::prelude::*;
     /// let manifest = ProcessManifest::new("hoge_type")
     ///   .description("hoge manifest")
     ///   .add_int_arg("arg0", "int_arg", 1.into())
     ///   .add_float_arg("arg1", "float_arg", 1.0.into())
     ///   .add_string_arg("arg2", "string_arg", "default_string".into());
     /// assert_eq!(manifest.arguments[0].name, "arg0");
-    /// assert_eq!(manifest.arguments[0].type_name.as_str(), "int");
+    /// assert_eq!(manifest.arguments[0].type_name.as_str(), "Int");
     /// assert_eq!(manifest.arguments[1].name, "arg1");
-    /// assert_eq!(manifest.arguments[1].type_name.as_str(), "float");
+    /// assert_eq!(manifest.arguments[1].type_name.as_str(), "Float");
     /// assert_eq!(manifest.arguments[2].name, "arg2");
-    /// assert_eq!(manifest.arguments[2].type_name.as_str(), "string");
+    /// assert_eq!(manifest.arguments[2].type_name.as_str(), "String");
     /// ```
     pub fn new(type_name: &str) -> Self {
         Self {
@@ -141,36 +157,36 @@ impl ProcessManifest {
         self
     }
     /// ```
-    /// use juiz_core::prelude::*;
+    /// use juiz_sdk::prelude::*;
     /// let manifest = ProcessManifest::new("hoge_type")
     ///   .description("hoge manifest")
     ///   .add_bool_arg("arg0", "boolt_arg", false.into());
     /// assert_eq!(manifest.arguments[0].name, "arg0");
-    /// assert_eq!(manifest.arguments[0].type_name.as_str(), "bool");
+    /// assert_eq!(manifest.arguments[0].type_name.as_str(), "Bool");
     /// ```
     pub fn add_bool_arg(self, name: &str, description: &str, default: bool) -> Self {
         self.add_arg(ArgumentManifest::new_bool(name, default).description(description))
     }
 
     /// ```
-    /// use juiz_core::prelude::*;
+    /// use juiz_sdk::prelude::*;
     /// let manifest = ProcessManifest::new("hoge_type")
     ///   .description("hoge manifest")
     ///   .add_int_arg("arg0", "int_arg", 1.into());
     /// assert_eq!(manifest.arguments[0].name, "arg0");
-    /// assert_eq!(manifest.arguments[0].type_name.as_str(), "int");
+    /// assert_eq!(manifest.arguments[0].type_name.as_str(), "Int");
     /// ```
     pub fn add_int_arg(self, name: &str, description: &str, default: i64) -> Self {
         self.add_arg(ArgumentManifest::new_int(name, default).description(description))
     }
 
         /// ```
-    /// use juiz_core::prelude::*;
+    /// use juiz_sdk::prelude::*;
     /// let manifest = ProcessManifest::new("hoge_type")
     ///   .description("hoge manifest")
     ///   .add_float_arg("arg1", "float_arg", 1.0.into());
     /// assert_eq!(manifest.arguments[0].name, "arg1");
-    /// assert_eq!(manifest.arguments[0].type_name.as_str(), "float");
+    /// assert_eq!(manifest.arguments[0].type_name.as_str(), "Float");
     /// ```
     pub fn add_float_arg(self, name: &str, description: &str, default: f64) -> Self {
         self.add_arg(ArgumentManifest::new_float(name, default).description(description))
@@ -189,12 +205,12 @@ impl ProcessManifest {
     }
 
     /// ```
-    /// use juiz_core::prelude::*;
+    /// use juiz_sdk::prelude::*;
     /// let manifest = ProcessManifest::new("hoge_type")
     ///   .description("hoge manifest")
     ///   .add_string_arg("arg2", "string_arg", "default_string".into());
     /// assert_eq!(manifest.arguments[0].name, "arg2");
-    /// assert_eq!(manifest.arguments[0].type_name.as_str(), "string");
+    /// assert_eq!(manifest.arguments[0].type_name.as_str(), "String");
     /// ```
     pub fn add_string_arg(self, name: &str, description: &str, default: &str) -> Self {
         self.add_arg(ArgumentManifest::new_string(name, default).description(description))
@@ -217,7 +233,7 @@ impl ProcessManifest {
     }
 
     /// ```
-    /// use juiz_core::prelude::*;
+    /// use juiz_sdk::prelude::*;
     /// let manifest = ProcessManifest::new("hoge_type")
     ///   .description("hoge manifest")
     ///   .publishes("topic1");
@@ -229,7 +245,7 @@ impl ProcessManifest {
     }
 
     /// ```
-    /// use juiz_core::prelude::*;
+    /// use juiz_sdk::prelude::*;
     /// let manifest = ProcessManifest::new("hoge_type")
     ///   .description("hoge manifest")
     ///   .add_int_arg("arg0", "int_arg", 1.into())
@@ -252,10 +268,18 @@ impl ProcessManifest {
         // } else {
         //     Err(anyhow!(JuizError::ProcessManifestInvalidError{message:"ProcessManifest::identifier() failed.".to_owned()}))
         // }
-        Ok(ProcessIdentifier::new_process_id(self.broker_name.clone(),
+        if self.container_name.is_some() {
+            Ok(ProcessIdentifier::new_container_process_id(self.broker_name.clone(),
+            self.broker_type_name.clone(), 
+            self.type_name.clone(), 
+            self.container_name.clone().unwrap(),
+            self.name.as_ref().unwrap().clone()))
+        } else {
+            Ok(ProcessIdentifier::new_process_id(self.broker_name.clone(),
             self.broker_type_name.clone(), 
             self.type_name.clone(), 
             self.name.as_ref().unwrap().clone()))
+        }
     }
 }
 
@@ -317,100 +341,100 @@ impl ProcessManifest {
 //     }
 // }
 
-// /// ```
-// /// use juiz_core::prelude::*;
-// /// fn main() -> JuizResult<()> {
-// /// 
-// /// let manifest_value: Value = jvalue!({
-// ///   "type_name": "hoge_type",
-// ///   "description": "hoge manifest",
-// ///   "arguments": [
-// ///     {
-// ///        "name": "arg0",
-// ///        "type": "int",
-// ///        "default": 1,
-// ///        "description": "int_arg"
-// ///     }, 
-// ///   ]
-// /// });
-// /// let manifest: ProcessManifest = manifest_value.try_into()?;
-// /// 
-// /// Ok(())}
-// /// ```
-// impl TryFrom<Value> for ProcessManifest {
-//     fn try_from(value: Value) -> anyhow::Result<Self> {
-//         // println!("try_from({value:?})");
-//         let desc = match obj_get_str(&value, "description") {
-//             Ok(v) => v,
-//             Err(_) => ""
-//         };
-//         let mut p = ProcessManifest::new(obj_get_str(&value, "type_name")?)
-//             .description(desc);
-//         match obj_get_array(&value, "arguments") {
-//             Ok(arg_manifest_values) => {
-//                 for arg_manifest_value in arg_manifest_values.iter() {
-//                     p = p.add_arg(arg_manifest_value.clone().try_into()?);
-//                 }
-//             }
-//             Err(_) => {},
-//         }
-//         match obj_get_str(&value, "name") {
-//             Ok(name) => {
-//                 p = p.name(name);
-//             },
-//             Err(_) => {}
-//         }
-//         match obj_get_str(&value, "language") {
-//             Ok(language) => {
-//                 p = p.name(language);
-//             },
-//             Err(_) => {
-//                 p = p.language("rust");
-//             }
-//         }
-//         match obj_get_str(&value, "factory") {
-//             Ok(factory) => {
-//                 p = p.factory(factory);
-//             },
-//             Err(_) => {
-//                 p = p.factory("process_factory");
-//             }
-//         }
-//         match obj_get_bool(&value, "use_memo") {
-//             Ok(flag) => {
-//                 p = p.use_memo(flag);
-//             },
-//             Err(_) => {}
-//         }
-//         match obj_get_str(&value, "container_type") {
-//             Ok(container_type) => {
-//                 p = p.container_type(Some(container_type.to_owned()));
-//             },
-//             Err(_) => {}
-//         }
-//         match obj_get_str(&value, "container_name") {
-//             Ok(container_name) => {
-//                 p = p.container_name(Some(container_name.to_owned()));
-//             },
-//             Err(_) => {}
-//         }
-//         match obj_get_array(&value, "publishes") {
-//             Ok(value_array) => {
-//                 for arg_obj in value_array.into_iter() {
-//                     p = p.publishes(arg_obj.as_str().unwrap());
-//                 }
-//             }
-//             Err(_) => {},
-//         };
-//         match obj_get_obj(&value, "subscribes") {
-//             Ok(value_map) => {
-//                 for (arg_name, arg_obj) in value_map.into_iter() {
-//                     p = p.subscribes(arg_name.as_str(), arg_obj.as_str().unwrap());
-//                 }
-//             }
-//             Err(_) => {},
-//         };
-//         Ok(p)
-//     }    
-//     type Error = anyhow::Error;
-// }
+/// ```
+/// use juiz_sdk::prelude::*;
+/// fn main() -> JuizResult<()> {
+/// 
+/// let manifest_value: Value = jvalue!({
+///   "type_name": "hoge_type",
+///   "description": "hoge manifest",
+///   "arguments": [
+///     {
+///        "name": "arg0",
+///        "type_name": "Int",
+///        "default": 1,
+///        "description": "int_arg"
+///     }, 
+///   ]
+/// });
+/// let manifest: ProcessManifest = manifest_value.try_into()?;
+/// 
+/// Ok(())}
+/// ```
+impl TryFrom<Value> for ProcessManifest {
+    fn try_from(value: Value) -> anyhow::Result<Self> {
+        // println!("try_from({value:?})");
+        let desc = match obj_get_str(&value, "description") {
+            Ok(v) => v,
+            Err(_) => ""
+        };
+        let mut p = ProcessManifest::new(obj_get_str(&value, "type_name")?)
+            .description(desc);
+        match obj_get_array(&value, "arguments") {
+            Ok(arg_manifest_values) => {
+                for arg_manifest_value in arg_manifest_values.iter() {
+                    p = p.add_arg(serde_json::from_value(arg_manifest_value.clone())?);
+                }
+            }
+            Err(_) => {},
+        }
+        match obj_get_str(&value, "name") {
+            Ok(name) => {
+                p = p.name(name);
+            },
+            Err(_) => {}
+        }
+        match obj_get_str(&value, "language") {
+            Ok(language) => {
+                p = p.name(language);
+            },
+            Err(_) => {
+                p = p.language("rust");
+            }
+        }
+        match obj_get_str(&value, "factory") {
+            Ok(factory) => {
+                p = p.factory(factory);
+            },
+            Err(_) => {
+                p = p.factory("process_factory");
+            }
+        }
+        match obj_get_bool(&value, "use_memo") {
+            Ok(flag) => {
+                p = p.use_memo(flag);
+            },
+            Err(_) => {}
+        }
+        match obj_get_str(&value, "container_type") {
+            Ok(container_type) => {
+                p = p.container_type(Some(container_type.to_owned()));
+            },
+            Err(_) => {}
+        }
+        match obj_get_str(&value, "container_name") {
+            Ok(container_name) => {
+                p = p.container_name(Some(container_name.to_owned()));
+            },
+            Err(_) => {}
+        }
+        match obj_get_array(&value, "publishes") {
+            Ok(value_array) => {
+                for arg_obj in value_array.into_iter() {
+                    p = p.publishes(arg_obj.as_str().unwrap());
+                }
+            }
+            Err(_) => {},
+        };
+        match obj_get_obj(&value, "subscribes") {
+            Ok(value_map) => {
+                for (arg_name, arg_obj) in value_map.into_iter() {
+                    p = p.subscribes(arg_name.as_str(), arg_obj.as_str().unwrap());
+                }
+            }
+            Err(_) => {},
+        };
+        Ok(p)
+    }    
+    type Error = anyhow::Error;
+}

@@ -9,7 +9,7 @@ pub use crate::{
         ProcessFactoryPtr, 
         ProcessPtr,
         ProcessProxy,
-        // process_new,
+        process_new,
         process_factory_create,
         //create_process_factory
     },
@@ -41,7 +41,5 @@ pub use crate::{
         System,
         CoreWorker,
     },
-    connections::{
-        connect
-    },
+    connections::connect,
 };

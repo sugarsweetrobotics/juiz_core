@@ -15,6 +15,12 @@ pub struct ContainerProxy {
     class_name_str: String,
 }
 
+impl std::fmt::Debug for ContainerProxy {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ContainerProxy").field("broker_proxy", &"dyn BrokerProxy".to_owned()).field("identifier", &self.identifier).field("class_name_str", &self.class_name_str).finish()
+    }
+}
+
 impl ContainerProxy {
 
     pub fn new(class_name: JuizObjectClass, identifier: ContainerIdentifier, broker_proxy: Arc<Mutex<dyn BrokerProxy>>) -> JuizResult<Self> {

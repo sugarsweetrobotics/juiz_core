@@ -40,12 +40,12 @@ pub(crate) fn on_container_process(_manifest: Value, working_dir: &Path, subcomm
 
 fn on_container_process_list(system: &mut System, _server: Option<String>, recursive: bool) -> JuizResult<()> {
     log::trace!("on_container_process_list() called");
-    let proc_manifests: Vec<Value> = system.container_process_list(recursive)?;
+    let proc_manifests = system.container_process_list(recursive)?;
     //println!("proc_manifests: {proc_manifests:?}");
     let mut ids: Vec<String> = Vec::new();
     for v in proc_manifests.iter() {
         //ids.push(obj_get_str(v, "identifier")?.to_owned());
-        ids.push(v.as_str().unwrap().to_owned());
+        ids.push(v.to_string());
     }
     //println!("process list");
     println!("{ids:?}");

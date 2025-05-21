@@ -18,6 +18,12 @@ pub struct RustPlugin {
     lib: Option<Library>,
 }
 
+impl std::fmt::Debug for RustPlugin {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("RustPlugin").field("path", &self.path).field("plugin_manager", &"{}".to_owned()).field("lib", &self.lib).finish()
+    }
+}
+
 
 impl RustPlugin {
 

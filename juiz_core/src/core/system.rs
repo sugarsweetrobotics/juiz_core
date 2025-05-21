@@ -7,7 +7,6 @@ use std::time::{self, Duration};
 use home::home_dir;
 use juiz_sdk::anyhow::{self, anyhow, Context};
 use juiz_sdk::container_identifier::ContainerIdentifier;
-use juiz_sdk::manifests::ProcessProfile;
 use juiz_sdk::process_identifier::ProcessIdentifier;
 use juiz_sdk::utils::manifest_util::manifest_merge;
 use juiz_sdk::utils::yaml_conf_load::yaml_conf_load_with;
@@ -61,13 +60,14 @@ impl JuizObject for System {
 impl System {
 
     pub fn new(manifest: Value) -> JuizResult<System> {
+        log::trace!("System::new({manifest}) called");
         let checked_manifest = check_system_manifest(manifest)?;
-        let _updated_manifest:Value = merge_home_manifest(checked_manifest)?;
+        let updated_manifest:Value = merge_home_manifest(checked_manifest)?;
         let store = SystemStorePtr::new(SystemStore::new());
         Ok(System {
             core: ObjectCore::create(JuizObjectClass::System("System"), "system", "system"),
             //manifest: updated_manifest.clone(),
-            core_broker: CoreBrokerPtr::new(CoreBroker::new(jvalue!({"type_name": "CoreBroker", "name": "core_broker"}), store.clone())?),
+            core_broker: CoreBrokerPtr::new(CoreBroker::new(updated_manifest, store.clone())?),
             sleep_time: time::Duration::from_millis(100),
             store,
             tokio_runtime: tokio::runtime::Builder::new_multi_thread().thread_name("juiz_core::System").worker_threads(4).enable_all().build().unwrap(),
@@ -129,7 +129,7 @@ impl System {
             system_builder::setup_plugins(&mut self, v, &option).context("system_builder::setup_plugins in System::setup() failed")
         })?;
 
-        system_builder::setup_objects(&mut self, &manifest_copied)?;
+        system_builder::setup_objects(&mut self, &manifest_copied).context("setup_objects() failed in setup in system.rs")?;
 
         system_builder::setup_topic_synchronization(&mut self)?;
 
@@ -391,12 +391,15 @@ impl System {
     }
 
     pub fn process_list(&self, recursive: bool) -> JuizResult<Vec<ProcessIdentifier>> {
-        log::trace!("System::process_list({recursive}) called");
+        log::trace!("System::process_list({recursive})が呼ばれました。");
         let mut local_processes = self.core_broker().lock()?.worker().store().processes_id();
+        log::debug!("【process_list】ローカルなプロセスのリストは {local_processes:?}");
         if recursive {
             for (_, proxy) in self.core_broker().lock()?.worker().store().broker_proxies.objects().iter() {
-                log::trace!("process_list for proxy ()");
-                for v in juiz_lock(proxy)?.process_list(recursive)?.iter() {
+                // log::trace!("process_list for proxy ()");
+                log::debug!("BrokerProxyに対してprocess_listを試みます。");
+                for v in juiz_lock(proxy)?.process_list(recursive, None)?.iter() {
+                    log::debug!(" - {v} が追加されます");
                     local_processes.push(v.clone());
                 }
             }
@@ -410,7 +413,7 @@ impl System {
         let mut local_containers = self.core_broker().lock()?.worker().store().containers_id();
         if recursive {
             for (_, proxy) in self.core_broker().lock()?.worker().store().broker_proxies.objects().iter() {
-                for c in juiz_lock(proxy)?.container_list(recursive)?.iter() {
+                for c in juiz_lock(proxy)?.container_list(recursive, None)?.iter() {
                     local_containers.push(c.clone());
                 }
             }
@@ -423,7 +426,7 @@ impl System {
         log::trace!("System::container_process_list() called");
         let mut local_processes = self.core_broker().lock()?.worker().store().container_processes_id();
         for (_, proxy) in self.core_broker().lock()?.worker().store().broker_proxies.objects().iter() {
-            for v in juiz_lock(proxy)?.container_process_list(recursive)?.iter() {
+            for v in juiz_lock(proxy)?.container_process_list(recursive, None)?.iter() {
                 local_processes.push(v.clone());
             }
         }

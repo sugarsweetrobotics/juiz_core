@@ -78,16 +78,41 @@ impl<T, TF> ObjectCollection<T, TF> {
         }
     }
 
-    pub fn get<'a>(&'a self, id: &Identifier) -> JuizResult<&'a T> {
+    pub fn get_with_error_ignore<'a>(&'a self, id: &Identifier) -> JuizResult<&'a T> {
         match self.objects.get(id) {
-            Some(p) => Ok(p),
+            Some(p) => {
+                // println!("Found: key: {id:?}");
+                Ok(p)
+            },
             None => {
                 log::trace!("StoreWorker({})::get(id={:?}) failed.", self.name, id);
                 log::trace!(" - CoreStore includes processes[");
+                // println!("E: key: {id:?}");
                 for (k, _v) in self.objects.iter() {
                     log::trace!("    - {:?}", k);
+                    // println!(" - {:?}", k);
                 }
                 log::trace!("]");
+                Err(anyhow::Error::from(JuizError::ObjectCanNotFoundByIdError{id: id.clone()}))
+            }
+        }
+    }
+
+    pub fn get<'a>(&'a self, id: &Identifier) -> JuizResult<&'a T> {
+        match self.objects.get(id) {
+            Some(p) => {
+                // println!("Found: key: {id:?}");
+                Ok(p)
+            },
+            None => {
+                log::error!("StoreWorker({})::get(id={:?}) failed.", self.name, id);
+                log::debug!(" - CoreStore includes processes[");
+                // println!("E: key: {id:?}");
+                for (k, _v) in self.objects.iter() {
+                    log::debug!("    - {:?}", k);
+                    // println!(" - {:?}", k);
+                }
+                log::debug!("]");
                 Err(anyhow::Error::from(JuizError::ObjectCanNotFoundByIdError{id: id.clone()}))
             }
         }

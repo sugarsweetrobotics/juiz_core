@@ -7,11 +7,19 @@ use crate::containers::{ContainerImpl, ContainerProcessImpl};
 use crate::processes::ProcessImpl;
 
 pub type BindedContainerFunctionType = Arc<dyn Fn(ContainerPtr, CapsuleMap)->JuizResult<Capsule>>;
+
+// #[derive(Debug)]
 pub struct ContainerProcessFactoryImpl {
     core: ObjectCore,
     manifest: ProcessManifest,
    // function: ContainerFunctionTypePtr<T>,
     binded_function: BindedContainerFunctionType,
+}
+
+impl std::fmt::Debug for ContainerProcessFactoryImpl {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ContainerProcessFactoryImpl").field("core", &self.core).field("manifest", &self.manifest).field("binded_function", &"{}".to_owned()).finish()
+    }
 }
 
 // pub type ContainerProcessConstructorType<T>=&'static dyn Fn(&mut ContainerImpl<T>, CapsuleMap) -> JuizResult<Capsule> ;
@@ -88,7 +96,7 @@ pub fn bind_container_function<T: 'static >(function: impl Fn(&mut ContainerImpl
 
 impl ContainerProcessFactory for ContainerProcessFactoryImpl {
     fn create_container_process(&self, container: ContainerPtr, manifest: &ProcessManifest) -> JuizResult<ProcessPtr> {
-        log::trace!("ContainerProcessFactoryImpl::create_container_process(container, manifest={:?}) called", manifest);
+        log::warn!("ContainerProcessFactoryImpl::create_container_process(container, manifest={:?}) called", manifest);
         
         //let function_clone = self.function.clone();
         // let func = move |args| -> JuizResult<Capsule> {

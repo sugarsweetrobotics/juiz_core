@@ -2,26 +2,42 @@
 
 use std::fmt::Display;
 
-use anyhow::Context;
 use serde::{Deserialize, Serialize};
 
 use crate::{container_identifier::ContainerIdentifier, prelude::*};
 use super::manifest_description::Description;
 
+#[allow(unused)]
+fn default_description() -> Description { Description::new("") }
+fn default_broker_type_name() -> String { "core".to_owned() }
+fn default_broker_name() -> String { "core".to_owned() }
+fn default_factory() -> String { "container_factory".to_owned() }
 
+#[allow(unused)]
+fn default_use_memo() -> bool { false }
+fn default_language() -> String { "rust".to_owned() }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ContainerManifest {
     pub name: Option<String>,
-    pub language: String,
     pub type_name: String,
+    #[serde(default="default_language")]
+    pub language: String,
+    #[serde(default="default_factory")]
     pub factory: String, 
+    #[serde(default)]
     pub arguments: Vec<ArgumentManifest>,
+    #[serde(default)]
     pub description: Description,
     pub parent_type_name: Option<String>,
     pub parent_name: Option<String>,
+    #[serde(default)]
     pub processes: Vec<ProcessManifest>,
+
+    #[serde(default)]
     pub args: Value,
+    #[serde(default="default_broker_type_name")]
     pub broker_type_name: String,
+    #[serde(default="default_broker_name")]
     pub broker_name: String,
 }
 
@@ -128,24 +144,24 @@ impl ContainerManifest {
     }
 
     /// ```
-    /// use juiz_core::prelude::*;
+    /// use juiz_sdk::prelude::*;
     /// let manifest = ProcessManifest::new("hoge_type")
     ///   .description("hoge manifest")
     ///   .add_int_arg("arg0", "int_arg", 1.into());
     /// assert_eq!(manifest.arguments[0].name, "arg0");
-    /// assert_eq!(manifest.arguments[0].type_name.as_str(), "int");
+    /// assert_eq!(manifest.arguments[0].type_name.as_str(), "Int");
     /// ```
     pub fn add_int_arg(self, name: &str, description: &str, default: i64) -> Self {
         self.add_arg(ArgumentManifest::new_int(name, default).description(description))
     }
 
         /// ```
-    /// use juiz_core::prelude::*;
+    /// use juiz_sdk::prelude::*;
     /// let manifest = ProcessManifest::new("hoge_type")
     ///   .description("hoge manifest")
     ///   .add_float_arg("arg1", "float_arg", 1.0.into());
     /// assert_eq!(manifest.arguments[0].name, "arg1");
-    /// assert_eq!(manifest.arguments[0].type_name.as_str(), "float");
+    /// assert_eq!(manifest.arguments[0].type_name.as_str(), "Float");
     /// ```
     pub fn add_float_arg(self, name: &str, description: &str, default: f64) -> Self {
         self.add_arg(ArgumentManifest::new_float(name, default).description(description))

@@ -7,7 +7,7 @@ use crate::{containers::{ContainerFactoryPtr, ContainerProcessFactoryPtr}, prelu
 use super::{cpp::CppPlugin, python::PythonPlugin, rust::RustPlugin};
 
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum JuizObjectPlugin {
     Rust(Rc<RustPlugin>),
     Python(Rc<PythonPlugin>),

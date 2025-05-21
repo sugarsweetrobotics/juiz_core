@@ -2,9 +2,8 @@
 use std::{collections::HashMap, fmt::Display};
 use anyhow::anyhow;
 use serde::{Deserialize, Serialize};
-use serde_json::Map;
 use crate::{prelude::*, process_identifier::ProcessIdentifier};
-use super::{argument_manifest::ArgumentManifest, manifest_description::Description, ArgumentProfile, TopicProfile};
+use super::{manifest_description::Description, ArgumentProfile, TopicProfile};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ProcessProfile {
@@ -124,18 +123,18 @@ impl ProcessProfile {
     }   
 
     /// ```
-    /// use juiz_core::prelude::*;
-    /// let manifest = ProcessProfile::new("hoge_type")
+    /// use juiz_sdk::prelude::*;
+    /// let manifest = ProcessProfile::new("hoge_type", "hoge01")
     ///   .description("hoge manifest")
     ///   .add_int_arg("arg0", "int_arg", 1.into())
     ///   .add_float_arg("arg1", "float_arg", 1.0.into())
     ///   .add_string_arg("arg2", "string_arg", "default_string".into());
     /// assert_eq!(manifest.arguments[0].name, "arg0");
-    /// assert_eq!(manifest.arguments[0].type_name.as_str(), "int");
+    /// assert_eq!(manifest.arguments[0].type_name.as_str(), "Int");
     /// assert_eq!(manifest.arguments[1].name, "arg1");
-    /// assert_eq!(manifest.arguments[1].type_name.as_str(), "float");
+    /// assert_eq!(manifest.arguments[1].type_name.as_str(), "Float");
     /// assert_eq!(manifest.arguments[2].name, "arg2");
-    /// assert_eq!(manifest.arguments[2].type_name.as_str(), "string");
+    /// assert_eq!(manifest.arguments[2].type_name.as_str(), "String");
     /// ```
     pub fn new(name: &str, type_name: &str) -> Self {
         Self {
@@ -185,36 +184,36 @@ impl ProcessProfile {
         self
     }
     /// ```
-    /// use juiz_core::prelude::*;
-    /// let manifest = ProcessProfile::new("hoge_type")
+    /// use juiz_sdk::prelude::*;
+    /// let manifest = ProcessProfile::new("hoge_type", "hoge01")
     ///   .description("hoge manifest")
     ///   .add_bool_arg("arg0", "boolt_arg", false.into());
     /// assert_eq!(manifest.arguments[0].name, "arg0");
-    /// assert_eq!(manifest.arguments[0].type_name.as_str(), "bool");
+    /// assert_eq!(manifest.arguments[0].type_name.as_str(), "Bool");
     /// ```
     pub fn add_bool_arg(self, name: &str, description: &str, default: bool) -> Self {
         self.add_arg(ArgumentProfile::new_bool(name, default).description(description))
     }
 
     /// ```
-    /// use juiz_core::prelude::*;
-    /// let manifest = ProcessProfile::new("hoge_type")
+    /// use juiz_sdk::prelude::*;
+    /// let manifest = ProcessProfile::new("hoge_type", "hoge01")
     ///   .description("hoge manifest")
     ///   .add_int_arg("arg0", "int_arg", 1.into());
     /// assert_eq!(manifest.arguments[0].name, "arg0");
-    /// assert_eq!(manifest.arguments[0].type_name.as_str(), "int");
+    /// assert_eq!(manifest.arguments[0].type_name.as_str(), "Int");
     /// ```
     pub fn add_int_arg(self, name: &str, description: &str, default: i64) -> Self {
         self.add_arg(ArgumentProfile::new_int(name, default).description(description))
     }
 
         /// ```
-    /// use juiz_core::prelude::*;
-    /// let manifest = ProcessProfile::new("hoge_type")
+    /// use juiz_sdk::prelude::*;
+    /// let manifest = ProcessProfile::new("hoge_type", "hoge01")
     ///   .description("hoge manifest")
     ///   .add_float_arg("arg1", "float_arg", 1.0.into());
     /// assert_eq!(manifest.arguments[0].name, "arg1");
-    /// assert_eq!(manifest.arguments[0].type_name.as_str(), "float");
+    /// assert_eq!(manifest.arguments[0].type_name.as_str(), "Float");
     /// ```
     pub fn add_float_arg(self, name: &str, description: &str, default: f64) -> Self {
         self.add_arg(ArgumentProfile::new_float(name, default).description(description))
@@ -233,12 +232,12 @@ impl ProcessProfile {
     }
 
     /// ```
-    /// use juiz_core::prelude::*;
-    /// let manifest = ProcessProfile::new("hoge_type")
+    /// use juiz_sdk::prelude::*;
+    /// let manifest = ProcessProfile::new("hoge_type", "hoge01")
     ///   .description("hoge manifest")
     ///   .add_string_arg("arg2", "string_arg", "default_string".into());
     /// assert_eq!(manifest.arguments[0].name, "arg2");
-    /// assert_eq!(manifest.arguments[0].type_name.as_str(), "string");
+    /// assert_eq!(manifest.arguments[0].type_name.as_str(), "String");
     /// ```
     pub fn add_string_arg(self, name: &str, description: &str, default: &str) -> Self {
         self.add_arg(ArgumentProfile::new_string(name, default).description(description))
@@ -261,8 +260,8 @@ impl ProcessProfile {
     }
 
     /// ```
-    /// use juiz_core::prelude::*;
-    /// let manifest = ProcessProfile::new("hoge_type")
+    /// use juiz_sdk::prelude::*;
+    /// let manifest = ProcessProfile::new("hoge_type", "hoge01")
     ///   .description("hoge manifest")
     ///   .publishes("topic1");
     /// assert_eq!(manifest.publishes[0].name, "topic1");
@@ -273,8 +272,8 @@ impl ProcessProfile {
     }
 
     /// ```
-    /// use juiz_core::prelude::*;
-    /// let manifest = ProcessProfile::new("hoge_type")
+    /// use juiz_sdk::prelude::*;
+    /// let manifest = ProcessProfile::new("hoge_type", "hoge01")
     ///   .description("hoge manifest")
     ///   .add_int_arg("arg0", "int_arg", 1.into())
     ///   .subscribes("arg0", "topic1");
@@ -297,7 +296,7 @@ impl ProcessProfile {
             broker_type_name: self.broker_type_name.clone(),
             name: self.name.clone(),
             type_name: self.type_name.clone(),
-            class_name: if self.container_name.is_none() { "Process".to_owned() } else { "ContainerProcess".to_owned() },
+            class_name: if self.container_name.is_none() { "process".to_owned() } else { "container_process".to_owned() },
             container_name: self.container_name.clone(),
         }
     }

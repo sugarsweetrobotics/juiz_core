@@ -22,13 +22,13 @@ impl ArgumentType {
 
     pub fn as_str(&self) -> &'static str {
         match self {
-            ArgumentType::Bool => "bool", 
-            ArgumentType::Int => "int",
-            ArgumentType::Float => "float",
-            ArgumentType::String => "string",
-            ArgumentType::Array => "array",
-            ArgumentType::Object => "object",
-            ArgumentType::Image => "image",
+            ArgumentType::Bool => "Bool", 
+            ArgumentType::Int => "Int",
+            ArgumentType::Float => "Float",
+            ArgumentType::String => "String",
+            ArgumentType::Array => "Array",
+            ArgumentType::Object => "Object",
+            ArgumentType::Image => "Image",
         }
     }
 }
@@ -44,13 +44,13 @@ impl TryFrom<&str> for ArgumentType {
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         match value {
-            "bool" => Ok(ArgumentType::Bool),
-            "int" => Ok(ArgumentType::Int),
-            "float" => Ok(ArgumentType::Float),
-            "string" => Ok(ArgumentType::String),
-            "array" => Ok(ArgumentType::Array),
-            "object" => Ok(ArgumentType::Object),
-            "image" => Ok(ArgumentType::Image),
+            "Bool" => Ok(ArgumentType::Bool),
+            "Int" => Ok(ArgumentType::Int),
+            "Float" => Ok(ArgumentType::Float),
+            "String" => Ok(ArgumentType::String),
+            "Array" => Ok(ArgumentType::Array),
+            "Object" => Ok(ArgumentType::Object),
+            "Image" => Ok(ArgumentType::Image),
             _ => Err(anyhow!(JuizError::ProcessManifestInvalidError{message: "Argument type is invalid in ArgumentManifest in ProcessManifest.".to_owned()}))
         }
     }

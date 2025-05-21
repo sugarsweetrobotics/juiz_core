@@ -21,6 +21,7 @@ pub use implementations::{
 use crate::prelude::*;
 
 pub(crate) use implementations::ProcessImpl;
+pub use implementations::process_new;
 
 pub fn process_factory_create(manifest: ProcessManifest, function: ProcessBodyFunctionType) -> JuizResult<ProcessFactoryPtr> {
     Ok(ProcessFactoryPtr::new(ProcessFactoryImpl::new(manifest, function)?))

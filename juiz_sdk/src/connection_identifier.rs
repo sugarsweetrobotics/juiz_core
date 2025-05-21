@@ -1,11 +1,12 @@
 use std::fmt::Display;
 
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use anyhow::anyhow;
 use crate::{process_identifier::ProcessIdentifier, result::JuizError};
 
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ConnectionIdentifier {
     pub source_identifier: ProcessIdentifier,
     pub destination_identifier: ProcessIdentifier,

@@ -50,7 +50,7 @@ impl Inlet {
     // pub fn source_connections_mut(&mut self) -> &mut Vec<Box<dyn SourceConnection>> {
     //     return &mut self.source_connections
     // }
-
+    #[allow(unused)]
     pub fn profile_full(&self) -> JuizResult<Value> {
         Ok(jvalue!({
             "name": self.name,

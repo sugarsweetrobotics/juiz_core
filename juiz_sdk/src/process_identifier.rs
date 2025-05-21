@@ -59,7 +59,7 @@ impl ProcessIdentifier {
                 return ProcessIdentifier::from_value(value_id);
             }
             let type_name = value_obj.get("type_name").and_then(|v|{v.as_str()}).ok_or(anyhow!(JuizError::InvalidValueError { message: format!("ProcessIdentifier need type_name") }))?.to_owned();
-            let broker_type = value_obj.get("broker_type").and_then(|v|{v.as_str()}).or(Some("core")).unwrap().to_owned();
+            let broker_type = value_obj.get("broker_type_name").and_then(|v|{v.as_str()}).or(Some("core")).unwrap().to_owned();
             let broker_name = value_obj.get("broker_name").and_then(|v|{v.as_str()}).or(Some("core")).unwrap().to_owned();
             let name = value_obj.get("name").and_then(|v|{v.as_str()}).and_then(|s|{ Some(s.to_owned())}).or(Some(format!("{}0", type_name))).unwrap();
             let container_name = value_obj.get("container_name").and_then(|v| { v.as_str() }).and_then( |s| { Some(s.to_owned()) });
@@ -67,6 +67,10 @@ impl ProcessIdentifier {
         } else {
             Err(anyhow!(JuizError::InvalidValueError { message: format!("Value is not valid ProcessIdentifier.") }))
         }
+    }
+
+    pub fn to_string(&self) -> String {
+        self.clone().into()
     }
 }
 
@@ -96,7 +100,7 @@ impl TryFrom<&str> for ProcessIdentifier {
                             "container_process" => {
                                 let tokens = type_name.split(":").collect::<Vec<&str>>();
                                 if tokens.len() != 2 {
-
+                                    return Err(anyhow!(JuizError::InvalidIdentifierError{ message: format!("Invalid ContainerProcess type_name format. Value is '{}'", type_name)}));
                                 }
                                 let container_name = tokens[1].to_owned();
                                 let container_process_type_name = tokens[0].to_owned();
@@ -129,6 +133,10 @@ impl TryFrom<String> for ProcessIdentifier {
 
 impl Into<String> for ProcessIdentifier {
     fn into(self) -> String {
-        format!("{}://{}/{}/{}::{}", self.broker_type_name, self.broker_name, self.class_name, self.name, self.type_name)
+        if self.container_name.is_some() {
+            format!("{}://{}/{}/{}::{}", self.broker_type_name, self.broker_name, self.class_name, self.name, self.type_name)
+        } else {
+            format!("{}://{}/{}/{}::{}", self.broker_type_name, self.broker_name, self.class_name, self.name, self.type_name)
+        }
     }
 }

@@ -1,9 +1,9 @@
-use std::fmt::Display;
+use std::fmt::{Debug, Display};
 
 use mopa::mopafy;
-use crate::{container_identifier::ContainerIdentifier, manifests::ContainerProfile, object::JuizObject, prelude::*, processes::ProcessPtr};
+use crate::{container_identifier::ContainerIdentifier, manifests::ContainerProfile, prelude::*, processes::ProcessPtr};
 
-pub trait Container : Display + mopa::Any {
+pub trait Container : Display + Debug + mopa::Any {
 
     fn identifier(&self) -> ContainerIdentifier;
 

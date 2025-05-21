@@ -4,12 +4,19 @@ version = "0.4.0"
 edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+#[dependencies]
+#juiz_macro = {path=".", workspace=true}
+#juiz_core = {path=".", workspace=true}
+#juiz_sdk = {path=".", workspace=true}
+#juiz_app = {path=".", workspace=true}
+
 
 [workspace.dependencies]
 
 juiz_macro = {version="0.0.4", path="juiz_macro"}
 juiz_sdk = {version="0.0.7", path="juiz_sdk"}
 juiz_core = {version="0.0.4", path="juiz_core"}
+juiz_app= {version="0.0.4", path="juiz_app"}
 
 anyhow = "1.0.89"
 approx = "0.5.1"
@@ -115,7 +122,7 @@ default-members = [
     "ecs/timer_ec",
     "ecs/one_shot_ec", 
     "ecs/main_loop_ec",
-    #"examples/rust/process/increment_process",
+    "examples/rust/process/increment_process",
     #"examples/rust/process/decrement_process",
     #"examples/rust/container",
     "examples/rust/process/talker",

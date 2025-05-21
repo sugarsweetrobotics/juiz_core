@@ -16,6 +16,12 @@ pub struct ContainerImpl<S: 'static> {
     parent_container: Option<ContainerPtr>,
 }
 
+impl<S: 'static> std::fmt::Debug for ContainerImpl<S> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ContainerImpl").field("profile", &self.profile).field("identifier", &self.identifier).field("t", &"User object.".to_owned()).field("processes", &self.processes).field("parent_container", &self.parent_container).finish()
+    }
+}
+
 fn _identifier_from_manifest(manifest: &Value) -> Identifier {
     match obj_get_str(manifest, "identifier") {
         Err(_) => obj_get_str(manifest, "name").unwrap().to_string(),

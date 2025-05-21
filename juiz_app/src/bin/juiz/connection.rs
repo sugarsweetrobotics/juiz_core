@@ -18,7 +18,6 @@ pub(crate) enum ConnectionSubCommands {
         #[arg(long = "type", short = 't', help = "Type of connection. Default is PUSH", default_value="push")]
         connection_type: String,
 
-
         #[arg(help = "ID of source process")]
         source: String,
 
@@ -67,6 +66,7 @@ pub(crate) fn on_connection_inner(manifest: Value, working_dir: &Path, subcomman
                 }
             ) 
         },
+        #[allow(unused)]
         ConnectionSubCommands::Delete { connection_id} => {
             log::trace!("connection connect command is selected. args={args:?}");
             //let manifest2 = yaml_conf_load(filepath.clone())?;
@@ -106,16 +106,16 @@ fn on_connection_create(system: &mut System, source_id: String, arg_name: String
     log::info!("Connecting {source_id} -({arg_name}:{connection_type:})-> {destination_id}");
     let manifest = ConnectionManifest::new(
         connection_type.as_str().try_into()?,
-        source_id,
+        source_id.try_into()?,
         arg_name,
-        destination_id,
-        None,
+        destination_id.try_into()?,
+        // None,
     );
-    system.core_broker().lock_mut()?.connection_create(manifest.into())?;
+    system.core_broker().lock_mut()?.connection_create(&manifest)?;
     Ok(())
 }
 
-fn on_connection_list(system: &mut System, server: String, recursive: bool) -> JuizResult<()> {
+fn on_connection_list(system: &mut System, server: String, _recursive: bool) -> JuizResult<()> {
     log::info!("Connection list");
     //let con_list = system.core_broker().lock()?.connection_list(recursive)?;
     let id_struct = IdentifierStruct::new_broker_id(server.clone())?;

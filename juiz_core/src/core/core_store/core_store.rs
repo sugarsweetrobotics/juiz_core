@@ -126,7 +126,7 @@ impl CoreStore {
     }
 
     pub fn brokers_profile_full(&self) -> JuizResult<Value> {
-        Ok(self.brokers_manifests.iter().map(| (k, v) | { v.clone() }).collect())
+        Ok(self.brokers_manifests.iter().map(| (_k, v) | { v.clone() }).collect())
     }
 
     pub fn brokers_list_ids(&self) -> JuizResult<Vec<String>> {
@@ -176,6 +176,7 @@ impl CoreStore {
     }
 
     pub fn processes_id(&self) -> Vec<ProcessIdentifier> {
+        log::debug!("process_id()が呼ばれました");
         self.processes.objects().iter().map(|(_k, c)| {
             c.identifier()
         }).collect()

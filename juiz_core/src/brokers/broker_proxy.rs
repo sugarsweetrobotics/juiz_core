@@ -73,7 +73,7 @@ pub trait ProcessBrokerProxy {
     /// Broker支配下のプロセスのIDのリストを取得する
     /// 
     /// * `recursive` - サブシステムのプロセスを再起的に読み込む場合はtrue
-    fn process_list(&self, recursive: bool) -> JuizResult<Vec<ProcessIdentifier>>;
+    fn process_list(&self, recursive: bool, caller_broker_profile: Option<Value>) -> JuizResult<Vec<ProcessIdentifier>>;
 
     fn process_profile_full(&self, id: &ProcessIdentifier) -> JuizResult<ProcessProfile>;
 
@@ -81,7 +81,7 @@ pub trait ProcessBrokerProxy {
     /// 
     /// * id: プロセスのID
     /// * args: 引数
-    fn process_call(&self, id: &ProcessIdentifier, _args: CapsuleMap) -> JuizResult<CapsulePtr>;
+    fn process_call(&self, id: &ProcessIdentifier, args: CapsuleMap) -> JuizResult<CapsulePtr>;
 
 
     /// プロセスをExecuteする
@@ -110,7 +110,7 @@ pub trait ContainerBrokerProxy {
     /// Broker支配下のプロセスのIDのリストを取得する
     /// 
     /// * `recursive` - サブシステムのプロセスを再起的に読み込む場合はtrue
-    fn container_list(&self, recursive: bool) -> JuizResult<Vec<ContainerIdentifier>>;
+    fn container_list(&self, recursive: bool, caller_broker_profile: Option<Value>) -> JuizResult<Vec<ContainerIdentifier>>;
 
     fn container_profile_full(&self, id: &ContainerIdentifier) -> JuizResult<ContainerProfile>;
 }
@@ -127,7 +127,7 @@ pub trait ContainerProcessBrokerProxy {
     /// Broker支配下のプロセスのIDのリストを取得する
     /// 
     /// * `recursive` - サブシステムのプロセスを再起的に読み込む場合はtrue
-    fn container_process_list(&self, rucursive: bool) -> JuizResult<Vec<ProcessIdentifier>>;
+    fn container_process_list(&self, rucursive: bool, caller_broker_profile: Option<Value>) -> JuizResult<Vec<ProcessIdentifier>>;
 
     fn container_process_profile_full(&self, id: &ProcessIdentifier) -> JuizResult<ProcessProfile>;
 
@@ -209,9 +209,9 @@ pub trait BrokerProxy : Send + JuizObject + SystemBrokerProxy + ProcessBrokerPro
 
     fn is_in_charge_for_process(&self, _id: &Identifier) -> JuizResult<bool>;
 
-    fn any_process_list(&self, recursive: bool) -> JuizResult<Vec<ProcessIdentifier>> {
-        let mut processes = self.process_list(recursive)?;
-        let mut container_processes = self.container_process_list(recursive)?;
+    fn any_process_list(&self, recursive: bool, caller_broker_profile: Option<Value>) -> JuizResult<Vec<ProcessIdentifier>> {
+        let mut processes = self.process_list(recursive, caller_broker_profile.clone())?;
+        let mut container_processes = self.container_process_list(recursive, caller_broker_profile)?;
         processes.append(&mut container_processes);
         Ok(processes)
         //Ok(value_merge(processes, &container_processes)?.into())
@@ -221,7 +221,7 @@ pub trait BrokerProxy : Send + JuizObject + SystemBrokerProxy + ProcessBrokerPro
         log::info!("BrokerProxy::any_process_profile_full({id}) called");
         //let id_struct = IdentifierStruct::try_from(id.clone())?;
         //log::info!("id_struct{:?}", id_struct);        
-        if id.class_name == "Process" {
+        if id.class_name == "process" {
             return self.process_profile_full(id)
         }
         self.container_process_profile_full(id)
@@ -230,7 +230,7 @@ pub trait BrokerProxy : Send + JuizObject + SystemBrokerProxy + ProcessBrokerPro
     fn any_process_call(&self, id: &ProcessIdentifier, args: CapsuleMap) -> JuizResult<CapsulePtr> {
         log::info!("BrokerProxy::any_process_profile_call({id}) called");
         //let id_struct = IdentifierStruct::try_from(id.clone())?;
-        if id.class_name == "Process" {
+        if id.class_name == "process" {
             return self.process_call(id, args)
         }
         self.container_process_call(id, args)

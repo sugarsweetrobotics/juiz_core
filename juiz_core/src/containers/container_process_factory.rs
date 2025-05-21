@@ -1,11 +1,12 @@
 
 use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
-
+use std::fmt::Debug;
 use crate::prelude::*;
 use juiz_sdk::{anyhow::anyhow, manifests::ProcessProfile};
 /// ContainerProcessを生成するためのFactoryクラスのtrait
 /// 
-pub trait ContainerProcessFactory : JuizObject + 'static {
+/// 
+pub trait ContainerProcessFactory : JuizObject + Debug + 'static {
 
     /// ContainerProcessを生成
     /// 
@@ -18,11 +19,17 @@ pub trait ContainerProcessFactory : JuizObject + 'static {
 
 
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct ContainerProcessFactoryPtr {
     identifier: Identifier,
     type_name: String,
     ptr: Arc<RwLock<dyn ContainerProcessFactory>>,
+}
+
+impl std::fmt::Display for ContainerProcessFactoryPtr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("ContainerProcessFactoryPtr(type_name={}, identifier={})", self.type_name, self.identifier))
+    }
 }
 
 impl ContainerProcessFactoryPtr {
