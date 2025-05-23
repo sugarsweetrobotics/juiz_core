@@ -24,7 +24,7 @@ fn setup_component(system: &System, name: &String, v: &Value, option: &Value) ->
     
     log::trace!("setup_component(name={:}, value={:}) called", name, v);
     let language = obj_get_str(v, "language").or::<JuizResult<&str>>(Ok("rust")).unwrap();
-    let plugin = JuizObjectPlugin::new(language, name, v, manifest_entry_point, option)?;
+    let plugin = JuizObjectPlugin::new(language, name, v, system.get_working_dir(), manifest_entry_point, option)?;
     let working_dir = system.get_working_dir();
     register_component(system.core_broker().lock_mut()?.worker_mut(), working_dir, plugin)?;
     // let component_manifest = plugin.load_component_manifest(system.get_working_dir())?;

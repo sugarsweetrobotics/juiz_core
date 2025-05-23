@@ -28,5 +28,6 @@ pub fn process_factory_create(manifest: ProcessManifest, function: ProcessBodyFu
 }
 
 pub fn process_factory_create_from_trait(manifest: ProcessManifest, function: impl Fn(CapsuleMap) -> JuizResult<Capsule> +'static ) -> JuizResult<ProcessFactoryPtr> {
+    log::trace!("【呼出】process_factory_create_from_trait()");
     Ok(ProcessFactoryPtr::new(ProcessFactoryImpl::new_from_clousure(manifest, function)?))
 }

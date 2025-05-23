@@ -42,12 +42,12 @@ fn setup_container_factory(system: &System, name: &String, container_profile: &V
         Some(obj) => {
             let language = obj.get("language").and_then(|v| { v.as_str() }).or(Some("rust")).unwrap();
             
-            let ctr = register_container_factory(system.core_broker().lock_mut()?.worker_mut(), system.get_working_dir(),JuizObjectPlugin::new(language, name, container_profile, manifest_entry_point, option)?, "container_factory", None)?;
+            let ctr = register_container_factory(system.core_broker().lock_mut()?.worker_mut(), system.get_working_dir(),JuizObjectPlugin::new(language, name, container_profile, system.get_working_dir(), manifest_entry_point, option)?, "container_factory", None)?;
             log::info!("ContainerFactory ({name:}) Loaded");
             when_contains_do(container_profile, "processes", |container_process_profile_map| {
                 for (cp_name, container_process_profile) in get_hashmap(container_process_profile_map)?.iter() {
                     log::debug!(" - ContainerProcessFactory ({cp_name:}) Loading...");
-                    register_container_process_factory(system.core_broker().lock_mut()?.worker_mut(), system.get_working_dir(), JuizObjectPlugin::new(language, cp_name, container_process_profile, manifest_entry_point, option)?, "container_process_factory", None)?;
+                    register_container_process_factory(system.core_broker().lock_mut()?.worker_mut(), system.get_working_dir(), JuizObjectPlugin::new(language, cp_name, container_process_profile, system.get_working_dir(), manifest_entry_point, option)?, "container_process_factory", None)?;
                     log::info!(" - ContainerProcessFactory ({cp_name:}) Loaded");
                 }
                 Ok(())

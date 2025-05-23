@@ -5,7 +5,7 @@ use crate::{core::system_builder::subsystems::{setup_mastersystem, setup_subsyst
 use crate::core::system_builder::{brokers::{setup_broker_proxies, setup_brokers}, connections::setup_connections, containers::setup_containers, ecs::setup_ecs, http_broker::{setup_http_broker, setup_http_broker_factory}, local_broker::{setup_local_broker, setup_local_broker_factory}, processes::setup_processes};
 
 pub(crate) fn setup_objects(system: &mut System, manifest: &Value) -> JuizResult<()> {
-    log::trace!("System::setup() called");
+    log::trace!("【呼出】System::setup_objects()");
     let manifest_copied = manifest.clone();
 
     let _ = when_contains_do(manifest, "processes", |v| {

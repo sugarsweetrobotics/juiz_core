@@ -59,6 +59,9 @@ struct Args {
     #[arg(short = 's', long = "server", default_value = "http://127.0.0.1:8000", help = "Host of server (ex., http://localhost:8000)")]
     server: String,
 
+    #[arg(short = 'C', long = "cwd", default_value = ".", help = "Set current working directory.")]
+    cwd: String,
+
     #[arg(long = "process", help = "ProcessModule loader mode.")]
     process: Option<String>,
 
@@ -449,7 +452,7 @@ fn main() -> () {
 }
 
 fn do_once() -> JuizResult<()>{
-    log::trace!("main::do_once called");
+    log::trace!("【呼出】main::do_once called");
     let args = Args::parse();
     let manifest = yaml_conf_load(args.filepath.clone())?;
     let flag_start = if args.daemonize { true } else { args.start_http_broker };

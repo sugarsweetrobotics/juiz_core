@@ -149,7 +149,7 @@ impl CoreWorker {
     }
 
     pub fn create_process_ref(&mut self, manifest: &ProcessManifest) -> JuizResult<ProcessPtr> {
-        log::trace!("CoreBroker::create_process_ref(manifest={:?}) called", manifest);
+        log::trace!("【呼出】create_process_ref(manifest={:}) called", manifest);
         let arc_pf = match self.store().processes.factory(manifest.type_name.as_str())
             .with_context(||{format!("store.container_processes.factory({}) in create_container_process_ref() in core_worker.rs", manifest.type_name.as_str())}) {
             Ok(v) => Ok(v),

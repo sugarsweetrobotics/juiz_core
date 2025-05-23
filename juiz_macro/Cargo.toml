@@ -1,9 +1,9 @@
 [package]
 name = "juiz_macro"
-version = "0.0.4"
+version = "0.0.5"
 edition = "2021"
 description = "Macro definitions for juiz_sdk crate."
-license = "WTFPL"
+license = "BSD"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 

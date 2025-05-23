@@ -110,15 +110,19 @@ if not "{path_str:}" in sys.path:
     }
 
     pub fn load_process_factory(&self, working_dir: Option<PathBuf>, symbol_name: &str, type_name_opt: Option<&str>) -> JuizResult<ProcessFactoryPtr> {
-        log::trace!("PythonPlugin({:?})::load_process_factory(symbol_name='{symbol_name}, type_name_opt={type_name_opt:?}') called", self.path);
+        log::trace!("【呼出】PythonPlugin({:?})::load_process_factory(working_dir={working_dir:?}, symbol_name='{symbol_name}, type_name_opt={type_name_opt:?}')", self.path);
         self.init_path(working_dir.clone())?;
         // let type_name = self.path.file_stem().unwrap().to_str().unwrap();
         let type_name = match type_name_opt {
             Some(v) => v,
-            None => self.path.file_stem().unwrap().to_str().unwrap()
+            None => {
+                log::trace!("type_name_optが与えられませんでした。{:?}より類推します。", self.path);
+                self.path.file_stem().unwrap().to_str().unwrap()
+            }
         };
-        
+        log::trace!("【load_process_factory】type_name = {type_name}");
         let fullpath = working_dir.unwrap_or(env!("CARGO_MANIFEST_DIR").into()).join(self.path.clone());
+        log::trace!("【load_process_factory】fullpath = {type_name}");
         let mut manifest = jvalue!({});
         let py_app = fs::read_to_string(fullpath.clone()).unwrap();
         let pyfunc2 = Python::with_gil(|py| -> PyResult<Py<PyAny>> {
@@ -134,14 +138,18 @@ if not "{path_str:}" in sys.path:
             //Ok(tuple)
             Ok(pyfunc.to_object(py))
         })?;
-
         let signature = get_python_function_signature(&pyfunc2)?;
+        log::trace!("Python関数の読み込みに成功。宣言： {manifest:}, シグネチャ： {signature}");
         let function = move |argument: CapsuleMap| -> JuizResult<Capsule> {
             Python::with_gil(|py| {
                 python_process_call(py, &pyfunc2, PyTuple::new_bound(py, capsulemap_to_pytuple(py, &argument, &signature, 0)?))
             }).or_else(|e| { Err(anyhow!(e)) })
         };
-        process_factory_create_from_trait(serde_json::from_value(manifest)?, function)
+        let result_process_manifest = serde_json::from_value::<ProcessManifest>(manifest);
+        if result_process_manifest.is_err() {
+            log::error!("【load_process_factory】【失敗】エラー({result_process_manifest:?})");
+        }
+        process_factory_create_from_trait(result_process_manifest?, function)
     }
     
     // pub fn load_container_factory_with_manifest(&self, working_dir: Option<PathBuf>, manifest: Value) -> JuizResult<ContainerFactoryPtr> {
@@ -440,6 +448,7 @@ def image_from_bytes(w, h, image_data):
 
 // #[cfg(not(feature="opencv4"))]
 pub fn python_process_call(py: Python, entry_point: &Py<PyAny>, pytuple: pyo3::Bound<PyTuple>) -> JuizResult<Capsule> {
+    log::trace!("【呼出】python_process_call()");
     match entry_point.call1(py, pytuple) {
         Ok(v) => {
             let object = v.extract::<&PyAny>(py)?;

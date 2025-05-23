@@ -7,7 +7,8 @@ pub(super) fn setup_execution_context_factories(system: &System, manifest: &Valu
     log::trace!("system_builder::setup_execution_context_factories() called");
     for (name, value) in get_hashmap(manifest)?.iter() {
         log::debug!("ExecutionContextFactory (name={name:}, value='{value:}') Loading...");
-        let plugin_filename = concat_dirname(value, plugin_name_to_file_name(name))?;
+        let working_dir = None;
+        let plugin_filename = concat_dirname(value, plugin_name_to_file_name(name), working_dir)?;
 
         log::debug!(" - filename: {plugin_filename:?}");
         let cpf;
@@ -19,13 +20,19 @@ pub(super) fn setup_execution_context_factories(system: &System, manifest: &Valu
                 cpf = (symbol)().with_context(||format!("calling symbol 'execution_context_factory'. arg is {manifest:}"))?;
                 let _ccpf = juiz_lock(&cpf)?;
             }
-            system.core_broker().lock_mut()?.worker_mut().store_mut().ecs.register_factory(ExecutionContextHolderFactory::new(plugin, cpf)?)?;
+            system.core_broker().lock_mut()?.worker_mut().store_mut().ecs.register_factory(ExecutionContextHolderFactory::new(Some(plugin), cpf)?)?;
         }
         log::info!("ExecutionContextFactory (name={name:}) Loaded");
     }
     Ok(())
 }
 
+pub(super) fn setup_main_loop_ec_factory(system: &mut System) -> JuizResult<()> {
+    log::trace!("【呼出】setup_main_loop_ec()");
+    let ecf = crate::ecs::main_loop_ec::execution_context_factory()?;
+    system.core_broker().lock_mut()?.worker_mut().store_mut().ecs.register_factory(ExecutionContextHolderFactory::new(None, ecf)?)?;
+    Ok(())
+}
 
 pub(super) fn setup_ecs(system: &mut System, manifest: &Value) -> JuizResult<()> {
     log::trace!("system_builder::setup_ecs({manifest}) called");
