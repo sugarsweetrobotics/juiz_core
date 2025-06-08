@@ -1,6 +1,6 @@
 use std::{collections::HashMap, sync::{Mutex, Arc}};
 
-use juiz_sdk::{anyhow::anyhow, connection_identifier::ConnectionIdentifier, connections::{ConnectionManifest, ConnectionProfile}, container_identifier::ContainerIdentifier, manifests::{ContainerProfile, ProcessProfile}, process_identifier::ProcessIdentifier, topic_identifier::TopicIdentifier};
+use juiz_sdk::{anyhow::anyhow, connection_identifier::ConnectionIdentifier, connections::{ConnectionManifest, ConnectionProfile}, manifests::ContainerIdentifier, manifests::{ContainerProfile, ProcessProfile}, process_identifier::ProcessIdentifier, topic_identifier::TopicIdentifier};
 use uuid::Uuid;
 
 use crate::{brokers::broker_proxy::TopicBrokerProxy, prelude::*};
@@ -144,7 +144,7 @@ impl ContainerProcessBrokerProxy for CRUDBrokerProxyHolder {
         Ok(serde_json::from_value(result?)?)
     }
 
-    fn container_process_list(&self, recursive: bool, caller_broker_profile: Option<Value>) -> JuizResult<Vec<ProcessIdentifier>> {
+    fn container_process_list(&self, recursive: bool, _caller_broker_profile: Option<Value>) -> JuizResult<Vec<ProcessIdentifier>> {
         log::trace!("CRUDBrokerProxyHolder::container_process_list({recursive}) called");
         let mut param: HashMap<String, String> = HashMap::new();
         param.insert("recursive".to_owned(), recursive.to_string());
@@ -187,7 +187,7 @@ impl ContainerBrokerProxy for CRUDBrokerProxyHolder {
         Ok(serde_json::from_value(value)?)
     }
 
-    fn container_list(&self, recursive: bool, caller_broker_profile: Option<Value>) -> JuizResult<Vec<ContainerIdentifier>> {
+    fn container_list(&self, recursive: bool, _caller_broker_profile: Option<Value>) -> JuizResult<Vec<ContainerIdentifier>> {
         log::trace!("CRUDBrokerProxyHolder::container_list({recursive}) called");
         let mut param: HashMap<String, String> = HashMap::new();
         param.insert("recursive".to_owned(), recursive.to_string());
@@ -229,7 +229,7 @@ impl ProcessBrokerProxy for CRUDBrokerProxyHolder {
         self.broker.update("process", "execute", CapsuleMap::new(), param(&[("identifier", id_str.as_str())]))
     }
 
-    fn process_list(&self, recursive:bool, caller_broker_profile: Option<Value>) -> JuizResult<Vec<ProcessIdentifier>> {
+    fn process_list(&self, recursive:bool, _caller_broker_profile: Option<Value>) -> JuizResult<Vec<ProcessIdentifier>> {
         log::trace!("CRUDBrokerProxyHolder({})::process_list(recursive={recursive})が呼ばれました。", self.name());
         let mut param: HashMap<String, String> = HashMap::new();
         param.insert("recursive".to_owned(), recursive.to_string());

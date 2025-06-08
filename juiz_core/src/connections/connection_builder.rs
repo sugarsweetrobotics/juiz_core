@@ -25,7 +25,7 @@ pub mod connection_builder {
         manif_for_source.source_process_id.broker_type_name = "core".to_owned();
         manif_for_source.source_process_id.broker_name = "core".to_owned();
         log::debug!("【connect】出力側接点宣言変更。ブローカを'core'に変更。");
-        let src_manifest = match src.lock_mut()?.try_connect_to(dst.clone(), &manif_for_source) {
+        let _src_manifest = match src.lock_mut()?.try_connect_to(dst.clone(), &manif_for_source) {
             Ok(manif) => {
                 log::debug!("【connect】出力側接点接続完了");
                 Ok(manif)

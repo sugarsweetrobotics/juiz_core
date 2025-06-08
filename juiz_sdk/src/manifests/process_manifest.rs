@@ -4,7 +4,7 @@ use serde::{Serialize, Deserialize};
 use crate::{prelude::*, process_identifier::ProcessIdentifier};
 use super::{argument_manifest::ArgumentManifest, manifest_description::Description, topic_manifest::TopicManifest};
 
-fn default_description() -> Description { Description::new("") }
+fn default_description() -> Description { Description{text: "".to_owned()} }
 fn default_broker_type_name() -> String { "core".to_owned() }
 fn default_broker_name() -> String { "core".to_owned() }
 fn default_factory() -> String { "process_factory".to_owned() }

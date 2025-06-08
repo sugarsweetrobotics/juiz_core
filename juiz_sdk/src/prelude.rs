@@ -14,6 +14,7 @@ pub use crate::{
         Description,
         ContainerManifest,
         ComponentManifest,
+        ContainerIdentifier,
         TopicManifest,
         ProcessProfile,
         ContainerProfile, 
@@ -91,7 +92,6 @@ pub use crate::{
     log,
     image::DynamicImage,
 
-    container_identifier::ContainerIdentifier,
 };
 
 pub use image;

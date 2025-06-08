@@ -1,4 +1,4 @@
-use juiz_sdk::{anyhow::anyhow, container_identifier::ContainerIdentifier, log, manifests::ContainerProfile, prelude::*};
+use juiz_sdk::{anyhow::anyhow, manifests::ContainerIdentifier, log, manifests::ContainerProfile, prelude::*};
 use std::str::FromStr;
 use crate::brokers::ContainerBrokerProxy;
 

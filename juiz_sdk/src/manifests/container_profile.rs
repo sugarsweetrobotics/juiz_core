@@ -5,7 +5,7 @@ use std::fmt::Display;
 use anyhow::anyhow;
 use serde::{Serialize, Deserialize};
 
-use crate::{container_identifier::ContainerIdentifier, prelude::*};
+use crate::{prelude::*};
 use super::{manifest_description::Description, ArgumentProfile, ProcessProfile};
 
 
@@ -179,102 +179,7 @@ impl ContainerProfile {
     }
 
     pub fn identifier(&self) -> ContainerIdentifier {
-        ContainerIdentifier::new( format!("core"), format!("core"), self.name.clone(), self.type_name.clone())
+        ContainerIdentifier::new( format!("core"), format!("core"), self.type_name.clone(), self.name.clone())
     }
 
 }
-
-// impl TryFrom<Value> for ContainerProfile {
-//     type Error = anyhow::Error;
-
-//     fn try_from(value: Value) -> Result<Self, Self::Error> {
-//         let desc = match obj_get_str(&value, "description") {
-//             Ok(v) => v,
-//             Err(_) => ""
-//         };
-//         let mut p = ContainerProfile::new(obj_get_str(&value, "type_name")?,obj_get_str(&value, "name")?)
-//             .description(desc);
-//         match obj_get_str(&value, "name") {
-//             Ok(name) => {
-//                 p = p.name(name);
-//             },
-//             Err(_) => {}
-//         }
-//         match obj_get_str(&value, "language") {
-//             Ok(lang) => {
-//                 p = p.language(lang);
-//             },
-//             Err(_) => {}
-//         }
-//         match obj_get_str(&value, "factory") {
-//             Ok(fact) => {
-//                 p = p.factory(fact);
-//             },
-//             Err(_) => {}
-//         }
-//         match obj_get_str(&value, "parent_name") {
-//             Ok(name) => {
-//                 p = p.parent_name(name);
-//             },
-//             Err(_) => {}
-//         }
-//         match obj_get_str(&value, "parent_type_name") {
-//             Ok(name) => {
-//                 p = p.parent_type_name(name);
-//             },
-//             Err(_) => {}
-//         }
-//         match obj_get_array(&value, "processes") {
-//             Ok(process_manifest_values) => {
-//                 for process_manifest_value in process_manifest_values.iter() {
-//                     let pp :ProcessProfile = process_manifest_value.clone().try_into().context("in loading ContainerProfile from Value")?;
-//                     p = p.add_process(pp);
-//                 }
-//             },
-//             Err(_) => {}
-//         }
-//         match obj_get_array(&value, "arguments") {
-//             Ok(arg_manifest_values) => {
-//                 // println!("try_into: {arg_manifest_values:?}");
-//                 for arg_manifest_value in arg_manifest_values.iter() {
-//                     p = p.add_arg(arg_manifest_value.clone().try_into()?);
-//                 }
-//             }
-//             Err(_) => {},
-//         }
-
-//         Ok(p)
-//     }
-// }
-
-
-// fn arguments_to_array(args: Vec<ArgumentManifest>) -> Value {
-//     args.into_iter().map(|arg| -> Value {
-//         arg.into()
-//     }).collect()
-// }
-
-// impl Into<Value> for ContainerProfile {
-//     fn into(self) -> Value {
-//         let mut v = jvalue!({
-//             "type_name": self.type_name,
-//             "language": self.language,
-//             "description": self.description.to_str(),
-//             "arguments": arguments_to_array(self.arguments),
-//             "processes": self.processes.iter().map(|p|{ p.clone().into() }).collect::<Vec<Value>>()
-//         });
-//         let obj = v.as_object_mut().unwrap();
-//         if let Some(name) = self.name {
-//             obj.insert("name".to_owned(), name.into());
-//         }
-//         if let Some(parent_type_name) = self.parent_type_name {
-//             obj.insert("parent_type_name".to_owned(), parent_type_name.into());
-//         }
-//         if let Some(parent_name) = self.parent_name {
-//             obj.insert("parent_name".to_owned(), parent_name.into());
-//         }
-
-
-//         v   
-//     }
-// }

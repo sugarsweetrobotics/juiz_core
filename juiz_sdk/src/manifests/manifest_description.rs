@@ -2,7 +2,7 @@
 use std::fmt::Display;
 
 use crate::anyhow::anyhow;
-use serde::{de::Visitor, Deserialize, Serialize};
+use serde::{de::{MapAccess, Visitor}, Deserialize, Serialize};
 
 use crate::prelude::*;
 
@@ -17,7 +17,7 @@ impl<'de> Deserialize<'de> for Description {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::Deserializer<'de> {
-
+            println!("deserialize!()");
             struct DescriptionVisitor;
 
             impl<'de> Visitor<'de> for DescriptionVisitor {
@@ -30,6 +30,7 @@ impl<'de> Deserialize<'de> for Description {
                 fn visit_str<E>(self, value: &str) -> Result<Description, E>
                     where E: serde::de::Error,
                 {
+                    println!("visit_str({value}) called");
                     Ok(Description {
                         text: value.to_owned(),
                     })
@@ -38,13 +39,25 @@ impl<'de> Deserialize<'de> for Description {
                 fn visit_string<E>(self, value: String) -> Result<Description, E>
                     where E: serde::de::Error,
                 {
+                    println!("visit_string({value}) called");
                     Ok(Description {
                         text: value,
                     })
                 }
+
+                fn visit_map<V>(self, mut _map: V) -> Result<Description, V::Error>
+                    where V: MapAccess<'de>,
+                {
+                    println!("visit_map is called!!!");
+                    
+
+                    Ok(Description{ text: "".to_owned()})
+                }
             }
 
             
+
+            // deserializer.deserialize_any(DescriptionVisitor)
             deserializer.deserialize_string(DescriptionVisitor)
     }
 }

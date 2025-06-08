@@ -155,3 +155,8 @@ default-members = [
     # "juiz_sdk/test_packages/sss_arg_proc",
     # "juiz_sdk/test_packages/img_arg_proc",
 ]
+
+
+workspace.exclude = [
+    "juiz_tutorial/rust/integer_component"
+]

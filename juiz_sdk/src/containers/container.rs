@@ -1,7 +1,7 @@
 use std::fmt::{Debug, Display};
 
 use mopa::mopafy;
-use crate::{container_identifier::ContainerIdentifier, manifests::ContainerProfile, prelude::*, processes::ProcessPtr};
+use crate::{manifests::ContainerProfile, prelude::*, processes::ProcessPtr};
 
 pub trait Container : Display + Debug + mopa::Any {
 

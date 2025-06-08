@@ -39,7 +39,7 @@ impl<T, TF> ObjectCollection<T, TF> {
     }
 
     pub fn register_factory(&mut self, type_name: &str, pf: TF) -> JuizResult<()> {
-        log::trace!("StoreWorker({})::registerfactory(Factory(type_name={:?})) called",self.name,type_name);
+        log::trace!("ObjectCollection({})::registerfactory(Factory(type_name={:?})) called",self.name,type_name);
         if self.factories.contains_key(type_name) {
             return Err(anyhow::Error::from(JuizError::FactoryOfSameTypeNameAlreadyExistsError{type_name: type_name.to_owned()}));
         }
@@ -56,7 +56,7 @@ impl<T, TF> ObjectCollection<T, TF> {
     }
 
     pub fn register(&mut self, id: &Identifier, p: T) -> JuizResult<&T> {
-        log::trace!("StoreWorker({})::register(Object(id={:?})) called", self.name, id);
+        log::trace!("ObjectCollection({})::register(Object(id={:?})) called", self.name, id);
         self.objects.insert(id.clone(), p);
         log::info!("Object(identifier={id}) registered");
         self.get(&id)
@@ -68,11 +68,11 @@ impl<T, TF> ObjectCollection<T, TF> {
     // }
 
     pub fn deregister_by_id(&mut self, id: &Identifier) -> JuizResult<T> {
-        log::trace!("StoreWorker({})::deregister(Object(id={:?})) called", self.name, id);
+        log::trace!("ObjectCollection({})::deregister_by_id(Object(id={:?})) called", self.name, id);
         match self.objects.remove(id) {
             Some(p) => Ok(p),
             None =>{
-                log::trace!("StoreWorker({})::deregister(id={:}) failed. Not found.", self.name, id);
+                log::trace!("ObjectCollection({})::deregister_by_id(id={:}) failed. Not found.", self.name, id);
                 Err(anyhow::Error::from(JuizError::ObjectCanNotFoundByIdError { id: id.clone() }))
             }
         }
@@ -85,7 +85,7 @@ impl<T, TF> ObjectCollection<T, TF> {
                 Ok(p)
             },
             None => {
-                log::trace!("StoreWorker({})::get(id={:?}) failed.", self.name, id);
+                log::trace!("ObjectCollection({})::get(id={:?}) failed.", self.name, id);
                 log::trace!(" - CoreStore includes processes[");
                 // println!("E: key: {id:?}");
                 for (k, _v) in self.objects.iter() {
@@ -105,8 +105,8 @@ impl<T, TF> ObjectCollection<T, TF> {
                 Ok(p)
             },
             None => {
-                log::error!("StoreWorker({})::get(id={:?}) failed.", self.name, id);
-                log::debug!(" - CoreStore includes processes[");
+                log::error!("ObjectCollection({})::get(id={:?}) failed.", self.name, id);
+                log::debug!(" - ObjectCollection({}) includes processes[", self.name);
                 // println!("E: key: {id:?}");
                 for (k, _v) in self.objects.iter() {
                     log::debug!("    - {:?}", k);

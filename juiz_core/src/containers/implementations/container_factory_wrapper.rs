@@ -1,6 +1,6 @@
 use std::cell::RefCell;
 
-use juiz_sdk::container_identifier::ContainerIdentifier;
+use juiz_sdk::manifests::ContainerIdentifier;
 use juiz_sdk::manifests::ContainerProfile;
 
 use crate::prelude::*;

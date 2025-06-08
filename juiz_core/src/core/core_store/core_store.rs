@@ -8,7 +8,7 @@ use crate::prelude::*;
 use crate::ecs::{execution_context_function::ExecutionContextFunction, execution_context_holder_factory::ExecutionContextHolderFactory};
 
 use juiz_sdk::anyhow::{self, anyhow};
-use juiz_sdk::container_identifier::ContainerIdentifier;
+use juiz_sdk::manifests::ContainerIdentifier;
 use juiz_sdk::manifests::{ContainerProfile, ProcessProfile};
 use juiz_sdk::process_identifier::ProcessIdentifier;
 use juiz_sdk::topic_identifier::TopicIdentifier;

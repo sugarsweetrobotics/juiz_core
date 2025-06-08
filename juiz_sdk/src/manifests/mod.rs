@@ -16,7 +16,9 @@ mod manifest_description;
 mod component_manifest;
 mod topic_manifest;
 mod topic_profile;
+mod container_identifier;
 
+pub use container_identifier::ContainerIdentifier;
 pub use container_manifest::ContainerManifest;
 pub use container_profile::ContainerProfile;
 pub use process_manifest::ProcessManifest;

@@ -4,7 +4,7 @@ use std::fmt::Display;
 
 use serde::{Deserialize, Serialize};
 
-use crate::{container_identifier::ContainerIdentifier, prelude::*};
+use crate::{prelude::*};
 use super::manifest_description::Description;
 
 #[allow(unused)]

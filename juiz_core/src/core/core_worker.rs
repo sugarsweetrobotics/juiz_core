@@ -1,7 +1,7 @@
 
 use std::{collections::HashMap, env::current_dir, path::PathBuf, sync::{Arc, Mutex}};
 
-use juiz_sdk::{anyhow::Context, connection_identifier::ConnectionIdentifier, connections::{ConnectionManifest, ConnectionProfile}, container_identifier::ContainerIdentifier, manifests::{ContainerProfile, ProcessProfile}, process_identifier::ProcessIdentifier, utils::manifest_util::{construct_id, type_name}};
+use juiz_sdk::{anyhow::Context, connection_identifier::ConnectionIdentifier, connections::{ConnectionManifest, ConnectionProfile}, manifests::ContainerIdentifier, manifests::{ContainerProfile, ProcessProfile}, process_identifier::ProcessIdentifier, utils::manifest_util::{construct_id, type_name}};
 use uuid::Uuid;
 
 use crate::{connections::connection_builder::connection_builder, containers::{ContainerProcessImpl, ContainerProxy}, core::system_builder::register_component, ecs::{execution_context_function::ExecutionContextFunction, execution_context_proxy::ExecutionContextProxy}, plugin::JuizObjectPlugin, prelude::*, topics::TopicPtr};
@@ -469,7 +469,7 @@ impl CoreWorker {
     }
 
     pub fn load_process_factory(&mut self, language: String, filepath: String) -> JuizResult<Value> {
-        log::trace!("load_process_factory({language}, {filepath}) called");
+        log::trace!("【呼出】load_process_factory({language}, {filepath})");
         let plugin = match language.as_str() {
             "rust" => JuizObjectPlugin::new_rust(PathBuf::from(filepath))?,
             "python" => JuizObjectPlugin::new_python(PathBuf::from(filepath))?,
@@ -484,7 +484,7 @@ impl CoreWorker {
     }
 
     pub fn load_container_factory(&mut self, language: String, filepath: String) -> JuizResult<Value> {
-        log::trace!("load_container_factory({language}, {filepath}) called");
+        log::trace!("【呼出】load_container_factory({language}, {filepath})");
         let plugin = match language.as_str() {
             "rust" => JuizObjectPlugin::new_rust(PathBuf::from(filepath))?,
             "python" => JuizObjectPlugin::new_python(PathBuf::from(filepath))?,
@@ -501,6 +501,7 @@ impl CoreWorker {
 
 
     pub fn load_container_process_factory(&mut self, language: String, filepath: String) -> JuizResult<Value> {
+        log::trace!("【呼出】load_container_process_factory({language}, {filepath})");
         let plugin = match language.as_str() {
             "rust" => JuizObjectPlugin::new_rust(PathBuf::from(filepath))?,
             "python" => JuizObjectPlugin::new_python(PathBuf::from(filepath))?,
@@ -516,7 +517,7 @@ impl CoreWorker {
     }
 
     pub fn load_component(&mut self, language: String, filepath: String) -> JuizResult<ComponentManifest> {
-        log::trace!("load_component({language}, {filepath}) called");
+        log::trace!("【呼出】load_component({language}, {filepath})");
         let plugin = match language.as_str() {
             "rust" => JuizObjectPlugin::new_rust(PathBuf::from(filepath))?,
             "python" => JuizObjectPlugin::new_python(PathBuf::from(filepath))?,
@@ -529,7 +530,7 @@ impl CoreWorker {
     }
 
     pub fn create_connection(&mut self, connection_manifest: &ConnectionManifest) -> JuizResult<ConnectionProfile> {
-        log::trace!("CoreWorker::create_connection({connection_manifest}) called");
+        log::trace!("【呼出】create_connection({connection_manifest})");
         let source = self.any_process_proxy_from_identifier(&connection_manifest.source_process_id, true).with_context(||{format!("search or create source process({})", &connection_manifest.source_process_id)})?;
         let destination = self.any_process_proxy_from_identifier(&connection_manifest.destination_process_id, true).with_context(||{format!("search or create destination process({})", &connection_manifest.destination_process_id)})?;
         Ok(connection_builder::connect(source, destination, &connection_manifest)?)

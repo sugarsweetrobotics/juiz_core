@@ -6,7 +6,7 @@ use std::sync::{
 use std::time::{self, Duration};
 use home::home_dir;
 use juiz_sdk::anyhow::{self, anyhow, Context};
-use juiz_sdk::container_identifier::ContainerIdentifier;
+use juiz_sdk::manifests::ContainerIdentifier;
 use juiz_sdk::process_identifier::ProcessIdentifier;
 use juiz_sdk::utils::manifest_util::manifest_merge;
 use juiz_sdk::utils::yaml_conf_load::yaml_conf_load_with;
@@ -122,7 +122,7 @@ impl System {
     pub fn setup(mut self) -> JuizResult<Self> {
         log::trace!("【呼出】System::setup()");
         let manifest_copied = self.core_broker().lock()?.worker().manifest();
-        log::debug!("System is setup with manifest: {:}", manifest_copied);
+        log::debug!("システムのセットアップを開始します。 {:}", manifest_copied);
         let option = self.get_opt();
         //log::info!("option: {option:}");
         let _ = when_contains_do_mut(&manifest_copied, "plugins", |v| {
@@ -134,7 +134,7 @@ impl System {
         system_builder::setup_topic_synchronization(&mut self)?;
 
         system_builder::setup_ec_activation(&mut self)?;
-        log::debug!("System::setup() successfully finished.");
+        log::debug!("システムのセットアップに成功しました。");
         Ok(self)
     }
 
@@ -187,13 +187,13 @@ impl System {
         match self.store.lock_mut() {
             Ok(store) => {
                 let profs = store.brokers.iter().map(|(type_name, broker)| {
-                    log::debug!("starting broker({type_name:})");
+                    log::debug!("ブローカ({type_name:})を開始します。");
                     //store.register_broker(broker.clone());
                     let p = match broker.lock_mut() {
                         Ok(mut b) =>{
                             b.start()?;
                             b.wait_until_started(Duration::from_secs_f64(3.0))?;
-                            log::info!("broker ({type_name:?}) has started");
+                            log::info!("ブローカー({type_name:?})が開始されました。");
                             Ok((b.profile_full()?, broker.clone()))
                         }
                         Err(e) => {
@@ -207,7 +207,7 @@ impl System {
                     let type_name = v.as_object().unwrap().get("type_name").unwrap().as_str().unwrap().to_owned();
                     let _ = self.core_broker().lock_mut().unwrap().worker_mut().store_mut().register_broker_manifest(type_name.as_str(), v)
                         .or_else(|e| {
-                        log::error!("Store::register_broker({type_name}) failed. Error({e:?})");
+                        log::error!("【エラー】Store::register_broker({type_name})失敗。エラー({e:?})");
                         Err(e)
                     });
                 });
@@ -236,7 +236,6 @@ impl System {
     }
 
     pub fn start_http_broker(self, flag_start: bool) -> Self {
-
         log::trace!("【呼出】start_http_brokers(flag_start={flag_start})");
         match self.core_broker().lock_mut() {
             Ok(mut cb) => {
@@ -257,11 +256,11 @@ impl System {
     pub fn cleanup_brokers(&mut self) -> JuizResult<()> {
         log::trace!("【呼出】System::cleanup_brokers()");
         self.store.lock_mut()?.brokers.clear();
-        log::trace!("brokers cleared");
+        log::trace!("ブローカ生成");
         self.store.lock_mut()?.broker_factories.clear();
-        log::trace!("broker factories cleared");
+        log::trace!("ブローカファクトリー生成");
         
-        log::trace!("System::cleanup_brokers() exit");
+        log::trace!("【完了】System::cleanup_brokers()");
         Ok(())
     }
 
@@ -282,7 +281,7 @@ impl System {
     fn stop(&mut self) -> JuizResult<()> {
 
         for (type_name, broker) in self.store.lock()?.brokers.iter() {
-            log::info!("stopping Broker({type_name:})");
+            log::info!("ブローカ({type_name:})を停止します。");
             let _ = broker.lock_mut()?.stop()?;
         }
 
@@ -301,11 +300,11 @@ impl System {
 
     pub fn run(&mut self) -> JuizResult<()> {
         log::trace!("【呼出】System::run()");
-        log::info!("Juiz System({}) Now Started.", self.store.uuid()?);
+        log::info!("【run】Juizシステム({})開始しました。", self.store.uuid()?);
         // self.setup().context("System::setup() in System::run() failed.")?;
         self.wait_for_singal().context("System::wait_for_signal() in System::run() failed.")?;
         self.stop()?;
-        log::debug!("System::run() exit");
+        log::debug!("【終了】System::run()");
         self.cleanup()?;
         Ok(())
     }
@@ -313,10 +312,10 @@ impl System {
     pub fn run_and_do(&mut self,  func: impl FnOnce(&mut System) -> JuizResult<()>) -> JuizResult<()> {
         log::trace!("【呼出】System::run_and_do()");
         // self.setup().context("System::setup() in System::run_and_do() failed.")?;
-        log::info!("Juiz System({}) Now Started.", self.store.uuid()?);
+        log::info!("【run_and_do】Juizシステム({})スタートしました。", self.store.uuid()?);
         (func)(self).context("User function passed for System::run_and_do() failed.")?;
         self.wait_for_singal().context("System::wait_for_signal() in System::run_and_do() failed.")?;
-        log::debug!("System::run_and_do() exit");
+        log::debug!("【終了】System::run_and_do()");
         self.stop()?;
         self.cleanup()?;
         Ok(())
@@ -325,11 +324,11 @@ impl System {
     pub fn run_and_do_once(&mut self, func: impl FnOnce(&mut System) -> JuizResult<()>) -> JuizResult<()>  {
         log::trace!("【呼出】System::run_and_do_once()");
         // self.setup().context("System::setup() in System::run_and_do_once() failed.")?;
-        log::debug!("Juiz System Now Started.");
+        log::info!("【run_and_do_once】Juizシステム({})スタートしました。", self.store.uuid()?);
         (func)(self).context("User function passed for System::run_and_do_once() failed.")?;
         //self.wait_for_singal().context("System::wait_for_signal() in System::run_and_do() failed.")?;
         self.stop()?;
-        log::debug!("System::run_and_do_once() exit");
+        log::debug!("【終了】System::run_and_do_once()");
         self.cleanup()?;
         Ok(())
     }

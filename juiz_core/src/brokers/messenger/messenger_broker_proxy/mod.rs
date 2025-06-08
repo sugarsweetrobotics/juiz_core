@@ -1,7 +1,7 @@
 use std::{sync::{Arc, Mutex}, time::Duration};
 use anyhow::Context;
 
-use juiz_sdk::{anyhow, connection_identifier::ConnectionIdentifier, connections::{ConnectionManifest, ConnectionProfile}, container_identifier::ContainerIdentifier, manifests::{ContainerProfile, ProcessProfile}, process_identifier::ProcessIdentifier, topic_identifier::TopicIdentifier};
+use juiz_sdk::{anyhow, connection_identifier::ConnectionIdentifier, connections::{ConnectionManifest, ConnectionProfile}, manifests::ContainerIdentifier, manifests::{ContainerProfile, ProcessProfile}, process_identifier::ProcessIdentifier, topic_identifier::TopicIdentifier};
 use uuid::Uuid;
 use crate::{brokers::broker_proxy::TopicBrokerProxy, prelude::*};
 use crate::brokers::broker_proxy::{BrokerBrokerProxy, ConnectionBrokerProxy, ContainerBrokerProxy, ContainerProcessBrokerProxy, ExecutionContextBrokerProxy};
@@ -292,7 +292,7 @@ impl ProcessBrokerProxy for MessengerBrokerProxy {
         Ok(serde_json::from_value(capsule_to_value(self.read_by_id("process", "profile_full", &id.to_string())?)?)?)
     }
 
-    fn process_list(&self, recursive: bool, caller_broker_profile: Option<Value>) -> JuizResult<Vec<ProcessIdentifier>> {
+    fn process_list(&self, recursive: bool, _caller_broker_profile: Option<Value>) -> JuizResult<Vec<ProcessIdentifier>> {
         Ok(serde_json::from_value(self.read_with_param("process", "list", &[("recursive".to_owned(), recursive.to_string())])?.extract_value()?)?)
         //todo!("ここで__value__, __option___を使ってた弊害出てるぞ");
         //capsule_to_value(self.read("process", "list")?)
@@ -381,7 +381,7 @@ impl ContainerBrokerProxy for MessengerBrokerProxy {
         Ok(serde_json::from_value(capsule_to_value(capsule)?)?)
     }
 
-    fn container_list(&self, recursive: bool, caller_broker_profile: Option<Value>) -> Result<Vec<ContainerIdentifier>, juiz_sdk::anyhow::Error> {
+    fn container_list(&self, recursive: bool, _caller_broker_profile: Option<Value>) -> Result<Vec<ContainerIdentifier>, juiz_sdk::anyhow::Error> {
         Ok(serde_json::from_value(  capsule_to_value(self.read_with_param("container", "list", &[("recursive".to_owned(), recursive.to_string())])?)? )? )
     }
     
@@ -399,7 +399,7 @@ impl ContainerProcessBrokerProxy for MessengerBrokerProxy {
         Ok(serde_json::from_value(value)?)
     }
 
-    fn container_process_list(&self, recursive: bool, caller_broker_profile: Option<Value>) -> Result<Vec<ProcessIdentifier>, juiz_sdk::anyhow::Error> {
+    fn container_process_list(&self, recursive: bool, _caller_broker_profile: Option<Value>) -> Result<Vec<ProcessIdentifier>, juiz_sdk::anyhow::Error> {
        let value = capsule_to_value(self.read_with_param("container_process", "list", &[("recursive".to_owned(), recursive.to_string())])?)?;
        Ok(serde_json::from_value(value)?)
     }

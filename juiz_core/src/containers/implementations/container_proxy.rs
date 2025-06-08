@@ -3,7 +3,7 @@
 use std::fmt::Display;
 use std::sync::{Arc, Mutex};
 
-use juiz_sdk::container_identifier::ContainerIdentifier;
+use juiz_sdk::manifests::ContainerIdentifier;
 
 use crate::prelude::*;
 

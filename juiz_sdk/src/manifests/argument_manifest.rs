@@ -6,10 +6,13 @@ use super::manifest_description::Description;
 use serde::{Deserialize, Serialize};
 use super::argument_type::{ArgumentType, type_check};
 
+fn default_description() -> Description { Description{text: "".to_owned()} }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ArgumentManifest {
     pub type_name: ArgumentType,
     pub name: String,
+
+    #[serde(default="default_description")]
     pub description: Description,
     pub default: Value
 }

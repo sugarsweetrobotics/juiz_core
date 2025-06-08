@@ -1,6 +1,6 @@
 
 
-use juiz_sdk::{connection_identifier::ConnectionIdentifier, connections::ConnectionProfile, container_identifier::ContainerIdentifier, manifests::{ContainerProfile, ProcessProfile}, process_identifier::ProcessIdentifier, topic_identifier::TopicIdentifier};
+use juiz_sdk::{connection_identifier::ConnectionIdentifier, connections::ConnectionProfile, manifests::ContainerIdentifier, manifests::{ContainerProfile, ProcessProfile}, process_identifier::ProcessIdentifier, topic_identifier::TopicIdentifier};
 use uuid::Uuid;
 
 use crate::prelude::*;

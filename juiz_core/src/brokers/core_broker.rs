@@ -5,7 +5,7 @@ use std::sync::{Arc, Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use juiz_sdk::anyhow::{anyhow, Context};
 use juiz_sdk::connection_identifier::ConnectionIdentifier;
 use juiz_sdk::connections::{ConnectionManifest, ConnectionProfile};
-use juiz_sdk::container_identifier::ContainerIdentifier;
+use juiz_sdk::manifests::ContainerIdentifier;
 use juiz_sdk::manifests::{ContainerProfile, ProcessProfile};
 use juiz_sdk::process_identifier::ProcessIdentifier;
 use juiz_sdk::topic_identifier::TopicIdentifier;
@@ -370,7 +370,7 @@ impl SystemBrokerProxy for CoreBroker {
                         log::debug!("【system_add_mastersystem】BrokerProxy.system_add_subsystem()が成功。結果は{r:}。再度UUIDを取得します。");
                         b.system_uuid()
                     },
-                    Err(e) => {
+                    Err(_e) => {
                         todo!()
                     }
                 }
@@ -395,22 +395,22 @@ impl SystemBrokerProxy for CoreBroker {
     }
     
     fn system_load_process(&mut self, language: String, filepath: String) -> JuizResult<Value> {
-        log::trace!("system_load_process({language}, {filepath}) called");
+        log::trace!("【呼出】system_load_process({language}, {filepath})");
         self.worker_mut().load_process_factory(language, filepath)
     }
 
     fn system_load_container(&mut self, language: String, filepath: String) -> JuizResult<Value> {
-        log::trace!("system_load_container({language}, {filepath}) called");
+        log::trace!("【呼出】system_load_container({language}, {filepath})");
         self.worker_mut().load_container_factory(language, filepath)
     }
 
     fn system_load_container_process(&mut self, language: String, filepath: String) -> JuizResult<Value> {
-        log::trace!("system_load_container_process({language}, {filepath}) called");
+        log::trace!("【呼出】system_load_container_process({language}, {filepath})");
         self.worker_mut().load_container_process_factory(language, filepath)
     }
 
     fn system_load_component(&mut self, language: String, filepath: String) -> JuizResult<ComponentManifest> {
-        log::trace!("system_load_component({language}, {filepath}) called");
+        log::trace!("【呼出】system_load_component({language}, {filepath})");
         self.worker_mut().load_component(language, filepath)
     }
 
@@ -441,7 +441,7 @@ impl ProcessBrokerProxy for CoreBroker {
         Ok(self.worker().store().processes.get(&id.to_string())?.lock()?.profile()?)
     }
 
-    fn process_list(&self, recursive: bool, caller_broker_profile: Option<Value>) -> JuizResult<Vec<ProcessIdentifier>> {
+    fn process_list(&self, recursive: bool, _caller_broker_profile: Option<Value>) -> JuizResult<Vec<ProcessIdentifier>> {
         log::trace!("process_list({recursive})が呼ばれました。");
         let mut ids = self.worker().store().processes_id();
         log::debug!("【process_list】ローカルなStoreにあるProcessは{ids:?}");
@@ -491,7 +491,7 @@ impl ProcessBrokerProxy for CoreBroker {
 
     fn process_notify_connected_from(&mut self, connection_manifest_ref: &ConnectionManifest) -> JuizResult<ConnectionProfile> {
         log::trace!("【呼出】process_notify_connected_from({connection_manifest_ref})");
-        let mut connection_manifest = connection_manifest_ref.clone();
+        let connection_manifest = connection_manifest_ref.clone();
         // connection_manifest.destination_process_id.broker_type_name = "core".to_owned();
         // connection_manifest.destination_process_id.broker_name = "core".to_owned();
         let source_process = self.worker_mut().any_process_proxy_from_identifier(&connection_manifest.source_process_id, true).or_else(|e|{
@@ -533,7 +533,7 @@ impl ContainerBrokerProxy for CoreBroker {
         self.worker().store().containers.get(&id.to_string())?.clone().lock()?.profile()
     }
 
-    fn container_list(&self, recursive: bool, caller_broker_profile: Option<Value>) -> JuizResult<Vec<ContainerIdentifier>> {
+    fn container_list(&self, recursive: bool, _caller_broker_profile: Option<Value>) -> JuizResult<Vec<ContainerIdentifier>> {
         //Ok(self.store().containers.list_ids()?.into())
         let mut ids = self.worker().store().containers.objects().iter().map(|(_k, c)| {
             c.identifier()
@@ -567,7 +567,7 @@ impl ContainerProcessBrokerProxy for CoreBroker {
         self.worker().store().container_processes.get(&id.to_string())?.lock()?.profile()
     }
 
-    fn container_process_list(&self, recursive: bool, caller_broker_profile: Option<Value>) -> JuizResult<Vec<ProcessIdentifier>> {
+    fn container_process_list(&self, recursive: bool, _caller_broker_profile: Option<Value>) -> JuizResult<Vec<ProcessIdentifier>> {
         let mut ids = self.worker().store().container_processes_id();
         if recursive {
             for ssp in self.subsystem_proxies.iter() {
