@@ -6,7 +6,7 @@ export PYTHONPATH=`pwd`/../../../../bindings/pyjuiz
 export PWD=`pwd`
 
 export FILEPATH=$(pwd)/juiz.conf
-#export RUST_LOG=juiz_core=trace
+export RUST_LOG=juiz_core=info
 #export RUST_BACKTRACE=1
 
 cd ../../../../

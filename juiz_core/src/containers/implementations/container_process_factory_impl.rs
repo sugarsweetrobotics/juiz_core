@@ -96,7 +96,7 @@ pub fn bind_container_function<T: 'static >(function: impl Fn(&mut ContainerImpl
 
 impl ContainerProcessFactory for ContainerProcessFactoryImpl {
     fn create_container_process(&self, container: ContainerPtr, manifest: &ProcessManifest) -> JuizResult<ProcessPtr> {
-        log::warn!("ContainerProcessFactoryImpl::create_container_process(container, manifest={:?}) called", manifest);
+        log::trace!("【呼出】ContainerProcessFactoryImpl::create_container_process(container, manifest={:?})", manifest);
         
         //let function_clone = self.function.clone();
         // let func = move |args| -> JuizResult<Capsule> {

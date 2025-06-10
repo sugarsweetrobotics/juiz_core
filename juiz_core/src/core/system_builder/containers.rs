@@ -43,12 +43,12 @@ fn setup_container_factory(system: &System, name: &String, container_profile: &V
             let language = obj.get("language").and_then(|v| { v.as_str() }).or(Some("rust")).unwrap();
             
             let ctr = register_container_factory(system.core_broker().lock_mut()?.worker_mut(), system.get_working_dir(),JuizObjectPlugin::new(language, name, container_profile, system.get_working_dir(), manifest_entry_point, option)?, "container_factory", None)?;
-            log::info!("ContainerFactory ({name:}) Loaded");
+            log::debug!("【ロード完了】ContainerFactory ({name:}) Loaded");
             when_contains_do(container_profile, "processes", |container_process_profile_map| {
                 for (cp_name, container_process_profile) in get_hashmap(container_process_profile_map)?.iter() {
-                    log::debug!(" - ContainerProcessFactory ({cp_name:}) Loading...");
+                    log::debug!("【ロード】ContainerProcessFactory ({cp_name:}) Loading...");
                     register_container_process_factory(system.core_broker().lock_mut()?.worker_mut(), system.get_working_dir(), JuizObjectPlugin::new(language, cp_name, container_process_profile, system.get_working_dir(), manifest_entry_point, option)?, "container_process_factory", None)?;
-                    log::info!(" - ContainerProcessFactory ({cp_name:}) Loaded");
+                    log::debug!("【ロード完了】ContainerProcessFactory ({cp_name:}) Loaded");
                 }
                 Ok(())
             })?;
@@ -68,15 +68,14 @@ fn setup_container(system: &System, container_manifest: ContainerManifest, conta
     let type_name = container_manifest.type_name;
     let name = container_manifest.name.unwrap();
     let container = system.core_broker().lock_mut()?.worker_mut().create_container_ref(type_name.as_str(), name.as_str(), container_argument)?;
-    log::info!("Container Created");    
     for container_process_manifest_original in container_manifest.processes.iter() {
         let container_process_manifest = container_process_manifest_original.clone()
             .container_name(Some(name.clone()))
             .container_type(Some(type_name.clone()));
-        log::debug!(" - ContainerProcess ({:?}) Creating...", container_process_manifest);
+        log::debug!("【作成】ContainerProcess ({:?})", container_process_manifest);
         let cp_ref = system.core_broker().lock_mut()?.worker_mut().create_container_process_ref(container.clone(), &container_process_manifest)
             .with_context(||{format!("worker.create_container_process_ref() in setup_container() in containers.rs")})?;
-        log::info!(" - ContainerProcess ({:?}) Created", container_process_manifest);    
+        log::debug!("【作成完了】ContainerProcess ({:?})", container_process_manifest);    
         // Topicをpublishするなら
         for pub_topic in container_process_manifest.publishes.iter() {
             setup_publish_topic(system, cp_ref.clone(), pub_topic.clone())?

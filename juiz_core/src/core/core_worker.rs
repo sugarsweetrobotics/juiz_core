@@ -244,7 +244,7 @@ impl CoreWorker {
         let p = arc_pf.lock()?.create_container_process(container.clone(), manifest)?;
         container.lock_mut()?.register_process(p.clone())?;
         let id = p.identifier().clone();
-        log::warn!("id: {:?}, {:?}", id, id.to_string());
+        log::debug!("id: {:?}, {:?}", id, id.to_string());
         Ok(self.store_mut().container_processes.register(&id.to_string(), p)?.clone())
     }
 

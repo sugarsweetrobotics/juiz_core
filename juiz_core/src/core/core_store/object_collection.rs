@@ -44,7 +44,7 @@ impl<T, TF> ObjectCollection<T, TF> {
             return Err(anyhow::Error::from(JuizError::FactoryOfSameTypeNameAlreadyExistsError{type_name: type_name.to_owned()}));
         }
         let _opt_ref = self.factories.insert(type_name.to_owned(), pf);
-        log::info!("Factory(type_name={type_name}) registered");
+        log::info!("【登録({})】ファクトリ(type_name={type_name})", self.name);
         Ok(())
     }
 
@@ -58,7 +58,7 @@ impl<T, TF> ObjectCollection<T, TF> {
     pub fn register(&mut self, id: &Identifier, p: T) -> JuizResult<&T> {
         log::trace!("ObjectCollection({})::register(Object(id={:?})) called", self.name, id);
         self.objects.insert(id.clone(), p);
-        log::info!("Object(identifier={id}) registered");
+        log::info!("【登録({})】identifier={id}", self.name);
         self.get(&id)
     }
 
