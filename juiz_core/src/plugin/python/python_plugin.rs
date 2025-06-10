@@ -71,6 +71,7 @@ if not "{path_str:}" in sys.path:
         Ok(())
     }
 
+    #[allow(unused)]
     fn get_manifest_with_name(&self, working_dir: Option<PathBuf>, symbol_name: &str) -> JuizResult<Value> {
         let fullpath = working_dir.clone().unwrap_or(env!("CARGO_MANIFEST_DIR").into()).join(self.path.clone());
         let pythonpaths = self.pythonpaths.clone();
@@ -151,7 +152,7 @@ if not "{path_str:}" in sys.path:
                     Ok(pydict_to_value(manifest_func.call0(py)?.extract::<&PyDict>(py)?)?) // 関数コールしてPyDictを抽出してvalueに変換する
 
                 },
-                Err(e) => {
+                Err(_e) => {
                     let attrs = module.dir()?;
                     // println!("attrs: {attrs:?}");
                     if attrs.is_instance_of::<PyList>() {
@@ -161,33 +162,33 @@ if not "{path_str:}" in sys.path:
                             Ok((attr_name.clone(), Into::<Py<PyAny>>::into(module.getattr(attr_name.as_str())?)))
                         }).collect::<anyhow::Result<Vec<(String, Py<PyAny>)>>>();
                         //println!("attrs: {attrs:?}");
-                        let procs = attrs.as_ref().unwrap().iter().filter(|(attr_name, attr)| {
+                        let procs = attrs.as_ref().unwrap().iter().filter(|(_attr_name, attr)| {
                             attr.to_string().contains("juiz.decorators.JuizProcess object")
                         }).collect::<Vec<&(String, Py<PyAny>)>>();
                         //println!("procs: {procs:?}");
-                        let conts = attrs.as_ref().unwrap().iter().filter(|(attr_name, attr)| {
+                        let conts = attrs.as_ref().unwrap().iter().filter(|(_attr_name, attr)| {
                             attr.to_string().contains("juiz.decorators.JuizContainer object")
                         }).collect::<Vec<&(String, Py<PyAny>)>>();
                         //println!("conts: {conts:?}");
-                        let cont_procs = attrs.as_ref().unwrap().iter().filter(|(attr_name, attr)| {
+                        let cont_procs = attrs.as_ref().unwrap().iter().filter(|(_attr_name, attr)| {
                             attr.to_string().contains("juiz.decorators.JuizContainerProcess object")
                         }).collect::<Vec<&(String, Py<PyAny>)>>();
                         //println!("cont_procs: {cont_procs:?}");
-                        let procs_vec = procs.iter().map(|(proc_name, proc_obj)| {
+                        let procs_vec = procs.iter().map(|(_proc_name, proc_obj)| {
                             let manifest_function = proc_obj.getattr(py, "manifest")?;
                             let manifest_pyobj = manifest_function.call0(py)?;
                             pyany_to_value(manifest_pyobj.extract::<&PyAny>(py)?).or_else(|e| {
                                 Err(anyhow!(e))
                             })
                         }).collect::<anyhow::Result<Vec<Value>>>()?;
-                        let mut conts_vec = conts.iter().map(|(cont_name, cont_obj)| {
+                        let mut conts_vec = conts.iter().map(|(_cont_name, cont_obj)| {
                             let manifest_function = cont_obj.getattr(py, "manifest")?;
                             let manifest_pyobj = manifest_function.call0(py)?;
                             pyany_to_value(manifest_pyobj.extract::<&PyAny>(py)?).or_else(|e| {
                                 Err(anyhow!(e))
                             })
                         }).collect::<anyhow::Result<Vec<Value>>>()?;
-                        let cont_procs_vec = cont_procs.iter().map(|(cont_proc_name, cont_proc_obj)| {
+                        let _cont_procs_vec = cont_procs.iter().map(|(_cont_proc_name, cont_proc_obj)| {
                             let manifest_function = cont_proc_obj.getattr(py, "manifest")?;
                             let manifest_pyobj = manifest_function.call0(py)?;
                             let manif_value = pyany_to_value(manifest_pyobj.extract::<&PyAny>(py)?).or_else(|e| {
@@ -401,7 +402,7 @@ if not "{path_str:}" in sys.path:
                     Err(anyhow!(e))
                 })
             },
-            Err(e) => {
+            Err(_e) => {
                 // 自動でコンポーネントのマニフェストを生成できるかどうかやってみる場合
                 todo!("自動でコンポーネントのマニフェストを生成できるかどうかやってみる場合")
             }

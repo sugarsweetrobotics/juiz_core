@@ -5,14 +5,14 @@ class PyCompContainer:
         self.buf = arg
         
 @juiz_container
-def python_integer_container(arg: int = 0):
-    return PyCompContainer(arg)
+def python_integer_container(initial_value:  int = 0):
+    return PyCompContainer(initial_value)
 
 @juiz_container_process(
     container_type="python_integer_container"
 )
-def python_integer_container_set(pycomp, arg0:int = 0):
-    pycomp.buf = arg0
+def python_integer_container_set(pycomp, value:int = 0):
+    pycomp.buf = value
     return pycomp.buf
 
 @juiz_container_process(
