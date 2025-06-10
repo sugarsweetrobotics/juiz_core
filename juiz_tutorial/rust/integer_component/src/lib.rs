@@ -14,13 +14,16 @@ fn rust_integer_container(initial_value: i64) -> JuizResult<Box<RustIntegerConta
 }
 
 
-#[juiz_component_container_process( container_type = "rust_integer_container" )]
+#[juiz_component_container_process( 
+    container_type = "rust_integer_container" )
+]
 fn rust_integer_container_get(container: &mut ContainerImpl<RustIntegerContainer>) -> JuizResult<Capsule> {
     println!("rust_integer_container_get()");
     Ok(jvalue!(container.value).into())
 }
 
-#[juiz_component_container_process( container_type = "rust_integer_container"
+#[juiz_component_container_process( 
+    container_type = "rust_integer_container"
     arguments = {
       default = {
         value = 1
@@ -33,7 +36,8 @@ fn rust_integer_container_add(container: &mut ContainerImpl<RustIntegerContainer
     Ok(jvalue!(container.value).into())
 }   
 
-#[juiz_component_container_process( container_type = "rust_integer_container" 
+#[juiz_component_container_process( 
+    container_type = "rust_integer_container" 
     arguments = {
       default = {
         value = 0

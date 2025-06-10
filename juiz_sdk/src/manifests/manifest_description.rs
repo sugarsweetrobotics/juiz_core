@@ -17,7 +17,7 @@ impl<'de> Deserialize<'de> for Description {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::Deserializer<'de> {
-            println!("deserialize!()");
+            // println!("deserialize!()");
             struct DescriptionVisitor;
 
             impl<'de> Visitor<'de> for DescriptionVisitor {
@@ -30,7 +30,7 @@ impl<'de> Deserialize<'de> for Description {
                 fn visit_str<E>(self, value: &str) -> Result<Description, E>
                     where E: serde::de::Error,
                 {
-                    println!("visit_str({value}) called");
+                    // println!("visit_str({value}) called");
                     Ok(Description {
                         text: value.to_owned(),
                     })
@@ -39,7 +39,7 @@ impl<'de> Deserialize<'de> for Description {
                 fn visit_string<E>(self, value: String) -> Result<Description, E>
                     where E: serde::de::Error,
                 {
-                    println!("visit_string({value}) called");
+                    // println!("visit_string({value}) called");
                     Ok(Description {
                         text: value,
                     })
