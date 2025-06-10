@@ -88,7 +88,7 @@ fn check_arguments(args_manifest: &Vec<ArgumentProfile>, argument: &CapsuleMap) 
     for arg_manifest in args_manifest.iter() {
         match argument.get(arg_manifest.name.as_str()) {
             Err(_) => {
-                log::error!("In Process Manifest there is argument named '{arg_manifest:?}', but can not be found in argument:CapsuleMap ().");
+                log::error!("プロセスのマニフェストチェック中にエラーが発生しました。引数のマニフェストは('{arg_manifest:?}')ですが、この引数が渡されたカプセルの中に見つかりません。渡された引数の名前が間違っているかもしれません。");
                 
                 return Err(
                 anyhow::Error::from(JuizError::ArgumentMissingWhenCallingError{

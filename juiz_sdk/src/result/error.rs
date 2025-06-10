@@ -41,7 +41,7 @@ pub enum JuizError {
     MutexLockFailedError { error: String },
     #[error("Process tried to use output_memo, but borrowing value failed.")]
     ProcessOutputMemoIsNotInitializedError { id: String },
-    #[error("Process checked given argument but the argument does not contain the predefined specification ({process_manifest:})")]
+    #[error("【引数不在失敗：ArgumentMissingWhenCallingError】プロセスがマニフェスト({process_manifest:})に従って引数をチェックしましたが、引数(missing_arg_name)が見つかりませんでした。")]
     ArgumentMissingWhenCallingError { process_manifest: Value, missing_arg_name: String },
     #[error("Process manifest includes invalid value type string. Manifest is ({manifest:}), type string is ({type_string:}")]
     ManifestArgumentDefaultValueIsInvalidTypeError {manifest: Value, type_string: String  },
