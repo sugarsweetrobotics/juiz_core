@@ -1,5 +1,5 @@
 [package]
-name = "rust_integer_component"
+name = "imgproc_component"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,11 +7,10 @@ edition = "2021"
 
 [lib]
 crate-type = ["cdylib"]
-path="src/lib.rs"
 
 [dependencies]
-# juiz_sdk = { version="0.0.8" }
 
-juiz_sdk = { path = "../../../juiz_sdk/" }
-
-[workspace]
+juiz_core = { path="../../../../" }
+# mozjpeg-sys = {version="2.2"}
+imageproc = { version="0.25.0" }
+#eye = { version="0.5" }
